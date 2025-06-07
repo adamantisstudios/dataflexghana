@@ -1,11 +1,10 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import { WhatsAppChat } from "@/components/whatsapp-chat"
-import { WhatsAppChannelPopup } from "@/components/whatsapp-channel-popup"
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { WhatsAppChat } from "@/components/whatsapp-chat";
+import { WhatsAppChannelPopup } from "@/components/whatsapp-channel-popup";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "DataFlex Ghana - Affordable Data Bundles & Digital Services",
@@ -17,7 +16,8 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://dataflexghana.com/",
     title: "DataFlex Ghana - Affordable Data Bundles & Digital Services",
-    description: "Ghana's cheapest data bundles from MTN, Telecel, and AirtelTigo. Save up to 20% on data plans.",
+    description:
+      "Ghana's cheapest data bundles from MTN, Telecel, and AirtelTigo. Save up to 20% on data plans.",
     images: [
       {
         url: "https://dataflexghana.com/og-image.jpg",
@@ -30,7 +30,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "DataFlex Ghana - Affordable Data Bundles & Digital Services",
-    description: "Ghana's cheapest data bundles from MTN, Telecel, and AirtelTigo. Save up to 20% on data plans.",
+    description:
+      "Ghana's cheapest data bundles from MTN, Telecel, and AirtelTigo. Save up to 20% on data plans.",
     images: ["https://dataflexghana.com/og-image.jpg"],
   },
   icons: {
@@ -43,18 +44,19 @@ export const metadata: Metadata = {
   },
   themeColor: "#25d366",
   generator: "v0.dev",
-}
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
         {/* External Stylesheets */}
         <link rel="stylesheet" href="/styles.css" />
         <link
@@ -72,5 +74,5 @@ export default function RootLayout({
         <WhatsAppChannelPopup />
       </body>
     </html>
-  )
+  );
 }
