@@ -16,7 +16,8 @@ const promotionalOffers = [
     color: "text-purple-600",
     bgColor: "bg-purple-100",
     description: "📋 Hassle-Free Business Registration & Compliance",
-    subtitle: `📍 Online Registration\n📍 Paperless process\n📍 Doorstep Delivery\`,
+    subtitle:
+      "📍 Online Registration\n📍 Paperless Process\n📍 Doorstep Delivery",
     cta: "Visit our portal and get started!",
     link: "https://bizcompliance.netlify.app/",
     image: "/bizcompliance.jpg?height=200&width=300",
@@ -40,7 +41,8 @@ const promotionalOffers = [
     color: "text-green-600",
     bgColor: "bg-green-100",
     description: "🚀 Exclusive Benefits:",
-    subtitle: "🔹 Birthday Treats & Gift Bundles\n🔹 Bulk Data Deals",
+    subtitle:
+      "🔹 Birthday Treats & Gift Bundles\n🔹 Bulk Data Deals",
     cta: "👉 Sign up and enjoy it all!",
     link: "https://forms.gle/KWPtjZ8MT65ALUt3A",
     image: "/ad2-placeholder.jpg?height=200&width=300",
@@ -57,7 +59,7 @@ const promotionalOffers = [
     link: "https://forms.gle/nC5CCagRdxG6tFGy9",
     image: "/ad3-placeholder.jpg?height=200&width=300",
   },
-]
+];
 
 export function PromotionalAds() {
   return (
