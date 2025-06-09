@@ -1,8 +1,26 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Scissors, Briefcase, Gift } from "lucide-react"
+import {
+  ExternalLink,
+  Scissors,
+  Briefcase,
+  Gift,
+  ShieldCheck, // New icon for BizCompliance
+} from "lucide-react"
 
 const promotionalOffers = [
+  {
+    id: "bizcompliance",
+    title: "Start or Grow Your Business",
+    icon: ShieldCheck,
+    color: "text-purple-600",
+    bgColor: "bg-purple-100",
+    description: "📋 Hassle-Free Business Registration & Compliance",
+    subtitle: `📍 Online Registration\n📍 Paperless process\n📍 Doorstep Delivery\n📍 24/7 Support\n📍 Competitive Rates\n📍 Speed & Reliability\n📍 Refund Guarantee\n📍 Secured Payment\n📍 Data Protection`,
+    cta: "Visit our portal and get started!",
+    link: "https://bizcompliance.netlify.app/",
+    image: "/bizcompliance.jpg?height=200&width=300",
+  },
   {
     id: "fashionably-hired",
     title: "Fashionably Hired",
@@ -84,7 +102,15 @@ export function PromotionalAds() {
 
                 <a href={offer.link} target="_blank" rel="noopener noreferrer">
                   <Button
-                    className={`w-full ${offer.id === "fashionably-hired" ? "bg-pink-600 hover:bg-pink-700" : offer.id === "dataflex-perks" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}
+                    className={`w-full ${
+                      offer.id === "bizcompliance"
+                        ? "bg-purple-600 hover:bg-purple-700"
+                        : offer.id === "fashionably-hired"
+                        ? "bg-pink-600 hover:bg-pink-700"
+                        : offer.id === "dataflex-perks"
+                        ? "bg-green-600 hover:bg-green-700"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
                   >
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Sign Up
