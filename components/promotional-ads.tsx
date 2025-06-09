@@ -16,7 +16,7 @@ const promotionalOffers = [
     color: "text-purple-600",
     bgColor: "bg-purple-100",
     description: "📋 Hassle-Free Business Registration & Compliance",
-    subtitle: `📍 Online Registration\n📍 Paperless process\n📍 Doorstep Delivery\n📍 24/7 Support\n📍 Competitive Rates\n📍 Speed & Reliability\n📍 Refund Guarantee\n📍 Secured Payment\n📍 Data Protection`,
+    subtitle: `📍 Online Registration\n📍 Paperless process\n📍 Doorstep Delivery\`,
     cta: "Visit our portal and get started!",
     link: "https://bizcompliance.netlify.app/",
     image: "/bizcompliance.jpg?height=200&width=300",
