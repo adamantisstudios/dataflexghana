@@ -32,7 +32,7 @@ const registrationTypes = [
   {
     id: "agent",
     name: "Agent Registration",
-    price: 10,
+    price: 35,
     icon: Crown,
     color: "text-blue-600",
     bgColor: "bg-blue-100",
