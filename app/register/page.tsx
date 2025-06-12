@@ -4,7 +4,7 @@ import { RegistrationForms } from "@/components/registration-forms"
 
 export const metadata = {
   title: "Register - AFA & Agent Registration - DataFlex Ghana",
-  description: "Register as AFA member (₵15) for full access or Agent (₵10) for reseller discounts on data bundles.",
+  description: "Register as AFA member (₵15) for full access or Agent (₵35) for reseller discounts on data bundles.",
 }
 
 export default function RegisterPage() {
