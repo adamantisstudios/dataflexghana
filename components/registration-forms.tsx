@@ -38,11 +38,11 @@ const registrationTypes = [
     bgColor: "bg-blue-100",
     popular: true,
     benefits: [
-      "Unlocks reseller discounts for data bundles",
+      "Reseller discounts for data bundles",
       "Commission on referrals",
       "Agent dashboard access",
       "Bulk purchase discounts",
-      "Marketing materials provided",
+      "Analytics & Tracking Of Order",
       "Monthly performance bonuses",
     ],
     description: "Become a reseller and earn commissions",
