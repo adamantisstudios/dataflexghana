@@ -45,7 +45,7 @@ const registrationTypes = [
       "Analytics & Tracking Of Order",
       "Monthly performance bonuses",
     ],
-    description: "Become a reseller and earn commissions",
+    description: "Become a reseller and make good profits",
   },
 ]
 
