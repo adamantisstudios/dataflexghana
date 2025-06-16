@@ -5,7 +5,7 @@ import {
   Scissors,
   Briefcase,
   Gift,
-  ShieldCheck, // New icon for BizCompliance
+  ShieldCheck,
 } from "lucide-react"
 
 const promotionalOffers = [
@@ -35,16 +35,16 @@ const promotionalOffers = [
     image: "/ad1-placeholder.jpg?height=200&width=300",
   },
   {
-    id: "dataflex-perks",
-    title: "DataFlex Ghana Perks",
+    id: "dataflex-agent",
+    title: "Become a DataFlex Agent",
     icon: Gift,
     color: "text-green-600",
     bgColor: "bg-green-100",
-    description: "🚀 Exclusive Benefits:",
+    description: "🚀 Start Earning with DataFlex!",
     subtitle:
-      "🔹 Birthday Treats & Gift Bundles\n🔹 Bulk Data Deals",
-    cta: "👉 Sign up and enjoy it all!",
-    link: "https://forms.gle/KWPtjZ8MT65ALUt3A",
+      "🔹 Discounted Bundles\n🔹 Referral Commissions\n🔹 ₵300+ Bonus Potential",
+    cta: "👉 Register Now & Boost Your Income!",
+    link: "https://dataflexagent.netlify.app/",
     image: "/ad2-placeholder.jpg?height=200&width=300",
   },
   {
@@ -109,7 +109,7 @@ export function PromotionalAds() {
                         ? "bg-purple-600 hover:bg-purple-700"
                         : offer.id === "fashionably-hired"
                         ? "bg-pink-600 hover:bg-pink-700"
-                        : offer.id === "dataflex-perks"
+                        : offer.id === "dataflex-agent"
                         ? "bg-green-600 hover:bg-green-700"
                         : "bg-blue-600 hover:bg-blue-700"
                     }`}
@@ -135,5 +135,5 @@ export function PromotionalAds() {
         </Card>
       </div>
     </section>
-  )
+  );
 }
