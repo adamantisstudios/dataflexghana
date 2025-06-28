@@ -44,7 +44,7 @@ const promotionalOffers = [
     subtitle:
       "🔹 Discounted Bundles\n🔹 Referral Commissions\n🔹 ₵300+ Bonus Potential",
     cta: "👉 Register Now & Boost Your Income!",
-    link: "https://dataflexagent.netlify.app/",
+    link: "https://agents.dataflexghana.com/",
     image: "/ad2-placeholder.jpg?height=200&width=300",
   },
   {
