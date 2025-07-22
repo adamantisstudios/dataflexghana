@@ -29,7 +29,7 @@ export function WhatsAppChannelSection() {
                 </p>
               </div>
 
-              <a href="https://whatsapp.com/channel/0029VbA1ejaJENxwZ6puZs11" target="_blank" rel="noopener noreferrer">
+              <a href="http://bit.ly/4m03srM" target="_blank" rel="noopener noreferrer">
                 <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-3">
                   <MessageCircle className="mr-2 h-5 w-5" />
                   Join Channel
