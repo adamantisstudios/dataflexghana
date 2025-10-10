@@ -1,6 +1,6 @@
 [build]
-  # Use npm install instead of npm ci so devDependencies are also installed.
-  command = "npm install --legacy-peer-deps && npm run build"
+  # Run only the build — Netlify already installs dependencies automatically
+  command = "npm run build"
   publish = ".next"
 
 [build.environment]
