@@ -276,7 +276,7 @@ export default function AgentCompliancePage() {
               </div>
               <Button
                 onClick={() => handleFormSelect(AVAILABLE_FORMS[0].id)}
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Submission

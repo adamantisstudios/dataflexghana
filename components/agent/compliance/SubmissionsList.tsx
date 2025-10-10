@@ -319,42 +319,45 @@ export function SubmissionsList({ agentId, onUpdate }: SubmissionsListProps) {
               const formName = `${formType} - ${displayName}`
 
               return (
-                <div key={submission.id} className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+                <div
+                  key={submission.id}
+                  className="border-b last:border-b-0 pb-4 last:pb-0 hover:bg-gray-50 transition-colors rounded-lg p-4"
+                >
                   <div className="space-y-3">
-                    <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-1">{getStatusIcon(submission.status)}</div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm sm:text-base text-gray-900 break-words">{formName}</h4>
-                        <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                        <h4 className="font-semibold text-base text-gray-900 break-words">{formName}</h4>
+                        <p className="text-sm text-gray-500 mt-1">
                           Submitted {format(new Date(submission.submitted_at), "MMM dd, yyyy 'at' h:mm a")}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                      <Badge
-                        className={`${getStatusColor(submission.status)} border justify-center sm:justify-start text-xs`}
-                      >
+                    <div className="flex flex-col gap-2">
+                      <Badge className={`${getStatusColor(submission.status)} border justify-center text-sm py-1`}>
                         {submission.status}
                       </Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewSubmission(submission)}
-                        className="w-full sm:w-auto text-xs sm:text-sm"
-                      >
-                        <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                        View Details
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenChat(submission)}
-                        className="w-full sm:w-auto text-xs sm:text-sm"
-                      >
-                        <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                        Chat
-                      </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewSubmission(submission)}
+                          className="w-full text-sm"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenChat(submission)}
+                          className="w-full text-sm"
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Chat
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -365,7 +368,7 @@ export function SubmissionsList({ agentId, onUpdate }: SubmissionsListProps) {
       </Card>
 
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">Submission Details</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
@@ -407,7 +410,7 @@ export function SubmissionsList({ agentId, onUpdate }: SubmissionsListProps) {
                     variant="outline"
                     size="sm"
                     onClick={downloadAllImages}
-                    className="w-full sm:w-auto bg-transparent text-xs sm:text-sm"
+                    className="w-full bg-transparent text-xs sm:text-sm"
                   >
                     <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     Download All Images

@@ -812,24 +812,15 @@ function AdminDashboardContent() {
           </TabsContent>
           {/* Compliance Tab Content */}
           <TabsContent value="compliance" className="space-y-6">
-            <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-blue-800">Compliance Dashboard</h2>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                  Compliance
-                </Badge>
-              </div>
-              <p className="text-blue-600 mb-4">Manage compliance settings and requirements.</p>
-              <Button
-                asChild
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
-              >
-                <Link href="/admin/compliance">
-                  <FileText className="h-4 w-4 mr-2" />
-                  View Compliance
-                </Link>
-              </Button>
-            </div>
+            <Suspense fallback={<TabLoadingSkeleton />}>
+              <ComplianceTab
+                getCachedData={() => getCachedData("compliance")}
+                setCachedData={(data: any) => setCachedData("compliance", data)}
+                adminUnreadCount={adminUnreadCount}
+                adminGetUnreadCount={adminGetUnreadCount}
+                adminMarkAsRead={adminMarkAsRead}
+              />
+            </Suspense>
           </TabsContent>
           {/* Dynamic Tab Content for Components */}
           {TAB_CONFIG.filter((tab) => tab.component).map(({ id, label, component: Component }) => (

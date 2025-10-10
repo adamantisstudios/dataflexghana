@@ -123,7 +123,7 @@ ${formData.additionalNotes ? `📝 *Notes:* ${formData.additionalNotes}` : ""}
               <SelectTrigger className="border-blue-200 focus:border-blue-500">
                 <SelectValue placeholder="Select a product" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[60vh]">
                 {products.map((product) => (
                   <SelectItem key={product.id} value={product.id.toString()}>
                     {product.title} - GHS {product.price.toFixed(2)}
@@ -131,6 +131,38 @@ ${formData.additionalNotes ? `📝 *Notes:* ${formData.additionalNotes}` : ""}
                 ))}
               </SelectContent>
             </Select>
+
+            {formData.productId > 0 &&
+              (() => {
+                const selectedProduct = getProductById(formData.productId)
+                const totalPrice = selectedProduct
+                  ? (selectedProduct.price * Number.parseInt(formData.quantity || "1")).toFixed(2)
+                  : "0.00"
+
+                return selectedProduct ? (
+                  <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                    <h4 className="font-semibold text-blue-900">Selected Product</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Product:</span>
+                        <span className="font-medium text-blue-900">{selectedProduct.title}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Unit Price:</span>
+                        <span className="font-medium text-blue-900">GHS {selectedProduct.price.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-blue-700">Quantity:</span>
+                        <span className="font-medium text-blue-900">{formData.quantity}</span>
+                      </div>
+                      <div className="flex justify-between pt-2 border-t border-blue-300">
+                        <span className="text-blue-700 font-semibold">Total Cost:</span>
+                        <span className="font-bold text-blue-900 text-lg">GHS {totalPrice}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null
+              })()}
           </div>
 
           {/* Quantity */}

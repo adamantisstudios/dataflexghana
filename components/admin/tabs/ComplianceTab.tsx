@@ -91,8 +91,7 @@ export default function ComplianceTab() {
       const { data: submissionsData, error: submissionsError } = await supabase
         .from("form_submissions")
         .select(
-          `
-          *,
+          `*
           agents!form_submissions_agent_id_fkey (
             full_name
           )
@@ -551,12 +550,12 @@ export default function ComplianceTab() {
                 </Button>
               </div>
 
-              <div className="flex gap-1">
+              <div className="grid grid-cols-2 gap-1">
                 <Button
                   size="sm"
                   variant={submission.status === "Pending" ? "default" : "outline"}
                   onClick={() => handleUpdateStatus(submission.id, "Pending")}
-                  className="flex-1 text-xs"
+                  className="text-xs"
                 >
                   Pending
                 </Button>
@@ -564,7 +563,7 @@ export default function ComplianceTab() {
                   size="sm"
                   variant={submission.status === "Processing" ? "default" : "outline"}
                   onClick={() => handleUpdateStatus(submission.id, "Processing")}
-                  className="flex-1 text-xs"
+                  className="text-xs"
                 >
                   Processing
                 </Button>
@@ -572,7 +571,7 @@ export default function ComplianceTab() {
                   size="sm"
                   variant={submission.status === "Completed" ? "default" : "outline"}
                   onClick={() => handleUpdateStatus(submission.id, "Completed")}
-                  className="flex-1 text-xs"
+                  className="text-xs"
                 >
                   Completed
                 </Button>
@@ -580,7 +579,7 @@ export default function ComplianceTab() {
                   size="sm"
                   variant={submission.status === "Delivered" ? "default" : "outline"}
                   onClick={() => handleUpdateStatus(submission.id, "Delivered")}
-                  className="flex-1 text-xs"
+                  className="text-xs"
                 >
                   Delivered
                 </Button>
