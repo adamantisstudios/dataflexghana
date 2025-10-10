@@ -810,18 +810,6 @@ function AdminDashboardContent() {
               </div>
             </div>
           </TabsContent>
-          {/* Compliance Tab Content */}
-          <TabsContent value="compliance" className="space-y-6">
-            <Suspense fallback={<TabLoadingSkeleton />}>
-              <ComplianceTab
-                getCachedData={() => getCachedData("compliance")}
-                setCachedData={(data: any) => setCachedData("compliance", data)}
-                adminUnreadCount={adminUnreadCount}
-                adminGetUnreadCount={adminGetUnreadCount}
-                adminMarkAsRead={adminMarkAsRead}
-              />
-            </Suspense>
-          </TabsContent>
           {/* Dynamic Tab Content for Components */}
           {TAB_CONFIG.filter((tab) => tab.component).map(({ id, label, component: Component }) => (
             <TabsContent key={id} value={id} className="space-y-4">
