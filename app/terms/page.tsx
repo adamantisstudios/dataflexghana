@@ -1,0 +1,415 @@
+import type { Metadata } from "next"
+import {
+  ShieldCheck,
+  FileText,
+  Lock,
+  Cookie,
+  Users,
+  Smartphone,
+  CreditCard,
+  TrendingUp,
+  Shield,
+  Globe,
+} from "lucide-react"
+import Image from "next/image"
+
+export const metadata: Metadata = {
+  title: "Terms & Policies | DataFlexAgent.com",
+  description:
+    "Read the full Terms & Conditions, Privacy Policy and Cookie Policy for using DataFlexAgent.com – Ghana's premier data-reseller platform.",
+  robots: "index,follow",
+}
+
+export default function TermsPage() {
+  return (
+    <main className="mx-auto max-w-4xl px-4 py-12 prose prose-headings:font-semibold prose-a:text-emerald-600 dark:prose-invert">
+      {/* hero */}
+      <header className="mb-12 text-center">
+        <div className="mb-6 flex justify-center">
+          <Image
+            src="/images/social-preview-new.jpg"
+            alt="DataFlex Agent Platform"
+            width={400}
+            height={200}
+            className="rounded-lg shadow-lg"
+          />
+        </div>
+        <h1 className="flex items-center justify-center gap-2 text-3xl font-bold">
+          <FileText className="h-8 w-8 text-emerald-600" />
+          {"Terms & Conditions"}
+        </h1>
+        <p className="text-sm text-muted-foreground">Last updated: September 2, 2025</p>
+      </header>
+
+      {/* PLATFORM OVERVIEW */}
+      <section id="platform-overview">
+        <h2 className="flex items-center gap-2">
+          <Globe className="h-5 w-5" />
+          {"About DataFlex Agent Platform"}
+        </h2>
+        <p>
+          DataFlex Agent is Ghana's premier multi-service digital platform offering comprehensive business solutions
+          including:
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+          <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+            <Smartphone className="h-5 w-5 text-emerald-600 mt-1" />
+            <div>
+              <h4 className="font-semibold mb-1">Data Bundle Resale</h4>
+              <p className="text-sm">Exclusive wholesale data bundles for MTN, AirtelTigo, and Telecel networks</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <Users className="h-5 w-5 text-blue-600 mt-1" />
+            <div>
+              <h4 className="font-semibold mb-1">Service Referrals</h4>
+              <p className="text-sm">Connect clients with professional services and earn commissions</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+            <CreditCard className="h-5 w-5 text-purple-600 mt-1" />
+            <div>
+              <h4 className="font-semibold mb-1">Wholesale Products</h4>
+              <p className="text-sm">Access to exclusive wholesale product catalog with competitive pricing</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+            <TrendingUp className="h-5 w-5 text-orange-600 mt-1" />
+            <div>
+              <h4 className="font-semibold mb-1">Job Board</h4>
+              <p className="text-sm">Access to curated job opportunities across various industries</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* GENERAL TERMS */}
+      <section id="general-terms">
+        <h2 className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5" />
+          {"General Terms"}
+        </h2>
+        <ul>
+          <li>No refunds – double-check all phone numbers & amounts before submitting.</li>
+          <li>MTN delivery takes between 10 minutes and 24 hours. Do not make any complaint while an order is still processing. Only report if the order is completed but the customer has not received it.</li>
+          <li>Bundles are valid for 90 days and roll over with the next purchase.</li>
+          <li>Platform operates 24/7 including weekends.</li>
+          <li>Prices are market-driven and may change without notice&nbsp;<em>(e.g. ₵6 MTN bundle can drop to ₵4 and remain low for a week)</em>.</li>
+        </ul>
+      </section>
+
+      {/* AGENT REGISTRATION & FEES */}
+      <section id="agent-registration">
+        <h2 className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          {"Agent Registration & Platform Entry Fee"}
+        </h2>
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-lg border-l-4 border-amber-500">
+          <h3 className="text-lg font-semibold mb-3">Platform Entry Fee: ₵50 (Non-Refundable)</h3>
+          <p className="mb-4">
+            Think of this as your ticket to enter a movie theater – once you pay, you gain access to all the
+            entertainment inside. Similarly, your ₵50 platform entry fee grants you access to our comprehensive business
+            ecosystem with unlimited earning potential.
+          </p>
+          <div className="space-y-2">
+            <p>
+              <strong>What you get access to:</strong>
+            </p>
+            <ul className="list-disc pl-6 space-y-1">
+              <li>Wholesale data bundle pricing (up to 40% profit margins)</li>
+              <li>Exclusive service referral opportunities</li>
+              <li>Wholesale product catalog access</li>
+              <li>Job board with premium listings</li>
+              <li>Commission tracking and withdrawal system</li>
+              <li>24/7 platform support</li>
+              <li>Agent training materials and resources</li>
+            </ul>
+          </div>
+          <p className="mt-4 font-medium text-amber-800 dark:text-amber-200">
+            <strong>Important:</strong> This fee is non-refundable. Your account may be automatically put on "pending" mode when
+            you are inactive on the platform for a period of 1 month. You can request re-activation if you notice you cannot login.
+          </p>
+        </div>
+      </section>
+
+      {/* AGENT RULES */}
+      <section id="agent-rules">
+        <h2 className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          {"Agent Rules & Guidelines"}
+        </h2>
+        <h3 className="mt-4">Data Resale Restrictions</h3>
+        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border-l-4 border-red-500">
+          <p className="font-semibold mb-2">⚠️ CRITICAL: Data bundles are NOT for public advertisement or consumption</p>
+          <p>
+            Our wholesale data bundles are exclusively for resale to{" "}
+            <strong>friends, relatives, and close acquaintances only</strong>. This is not a public retail service.
+          </p>
+        </div>
+        <h3 className="mt-6">Allowed promotion channels</h3>
+        <ul>
+          <li>WhatsApp groups (private/personal)</li>
+          <li>Close friends & family</li>
+          <li>Trusted associates and colleagues</li>
+          <li>Personal network contacts</li>
+        </ul>
+        <h3>Strictly forbidden promotion channels</h3>
+        <ul className="list-disc pl-6 marker:text-red-600">
+          <li>TikTok, Facebook, Instagram, LinkedIn, X (Twitter)</li>
+          <li>Any form of public advertising using the DataFlex brand name</li>
+          <li>Public marketplaces or e-commerce platforms</li>
+          <li>Mass marketing campaigns or bulk SMS</li>
+          <li>Radio, TV, or print media advertisements</li>
+        </ul>
+        <blockquote className="border-l-4 border-emerald-600 pl-4 italic">
+          Violation results in permanent ban and loss of all agent privileges. No refunds of entry fees or commissions.
+        </blockquote>
+      </section>
+
+      {/* COMMISSION SYSTEM */}
+      <section id="commission-system">
+        <h2 className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          {"Commission System & Earnings"}
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-semibold">Data Bundle Commissions</h4>
+            <p>Earn competitive commissions on every data bundle sale with rates varying by bundle type and size.</p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Service Referral Commissions</h4>
+            <p>Receive fixed commission amounts for successful service referrals that result in completed projects.</p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Wholesale Product Commissions</h4>
+            <p>Earn commissions on wholesale product sales with transparent commission structures.</p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Withdrawal System</h4>
+            <p>
+              Request withdrawals anytime with processing within 24-48 hours to your registered mobile money account.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* IMPORTANT USAGE RULES */}
+      <section id="usage-rules">
+        <h2 className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          {"Important Usage Rules"}
+        </h2>
+        <ol className="list-decimal pl-5">
+          <li>Join our official WhatsApp Channel after registration.</li>
+          <li>Do not advertise the platform publicly or use it for mass marketing.</li>
+          <li>Never contact MTN, AirtelTigo, Vodafone or Telecel for bundle issues—contact DataFlex support only.</li>
+          <li>Do not use SIMs with borrowed airtime/data; bundles may auto-expire.</li>
+          <li>Sent bundles cannot be cancelled or corrected once processed.</li>
+          <li>Only refer people through DataFlexAgent.com referral links.</li>
+          <li>Maintain professional conduct in all client interactions.</li>
+          <li>Report any technical issues or suspicious activities immediately.</li>
+          <li>Keep your account information and login credentials secure.</li>
+          <li>Comply with all applicable Ghanaian laws and regulations.</li>
+        </ol>
+      </section>
+
+      {/* ACCOUNT MANAGEMENT */}
+      <section id="account-management">
+        <h2 className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          {"Account Management & Security"}
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-semibold">Account Verification</h4>
+            <p>All agent accounts require verification by platform Admin. You must also provide valid info such as your full name, region, contact line and momo line for payment.</p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Account Suspension</h4>
+            <p>
+              Accounts may be suspended for violation of terms, suspicious activity, or non-compliance with platform
+              rules.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Data Security</h4>
+            <p>We employ industry-standard security measures to protect your personal and financial information.</p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Account Termination</h4>
+            <p>
+              Your account may be terminated by platform Admin for violating the terms and conditions of the platform. All Outstanding commissions will be
+              processed according to our withdrawal policy. If you violate our terms and conditions and you are reported, any wallet balance remaining on the platform will be paid to you, but your commissions will be denied you.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* PLATFORM RESPONSIBILITIES */}
+      <section id="platform-responsibilities">
+        <h2 className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          {"Platform Responsibilities & Limitations"}
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-semibold">Service Availability</h4>
+            <p>
+              We strive for 99.9% uptime but cannot guarantee uninterrupted service due to maintenance, network issues,
+              or force majeure events.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Third-Party Services</h4>
+            <p>
+              We are not responsible for issues arising from third-party services, network provider problems, or mobile
+              money transaction failures.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Commission Disputes</h4>
+            <p>
+              All commission calculations are automated and transparent. Disputes must be reported within 30 days of the
+              transaction.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Platform Updates</h4>
+            <p>
+              We reserve the right to update platform features, commission structures, and terms with reasonable notice
+              to agents through our platform official WhatsApp Channel.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Platform Maintenance Mode</h4>
+            <p>
+              We reserve the right to put the site under "Maintenance Mode" in order to improve platform security, add more features and to maintain it at anytime without notice.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* DISPUTE RESOLUTION */}
+      <section id="dispute-resolution" className="pt-8">
+        <h2 className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          {"Dispute Resolution & Complaints"}
+        </h2>
+        <p>
+          The complaint team handles only two cases: pending payments and not received issues. All matters related to the specific data bundle will be ignored unless these issues are related to other matters not in contention.
+        </p>
+        <p>
+          If a customer complains of not receiving a data bundle, first check their data balance, take a clear screenshot as proof, and confirm carefully before reporting to us.
+        </p>
+      </section>
+
+      {/* PRIVACY POLICY */}
+      <section id="privacy-policy" className="pt-12">
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <Lock className="h-6 w-6" />
+          {"Privacy Policy"}
+        </h1>
+        <p>
+          Your privacy is important to us. We collect only the data required to operate the service, such as your name,
+          phone number, email address and transaction history. We never sell your data to third parties.
+        </p>
+        <h3>1. Data collection</h3>
+        <p>
+          We collect personal information when you register as an agent, purchase bundles, make referrals, or interact
+          with our support team. This includes contact information, transaction history, and platform usage data.
+        </p>
+        <h3>2. Data Usage</h3>
+        <p>
+          Your data is used solely for platform operations, commission calculations, customer support, and compliance
+          with legal requirements. We may use aggregated, anonymized data for platform improvements and analytics.
+        </p>
+        <h3>3. Cookies</h3>
+        <p>
+          Small cookies are used solely for authentication, session management, and analytics. You can disable cookies
+          in your browser but the platform may not function correctly.
+        </p>
+        <h3>4. Data storage & security</h3>
+        <p>
+          All data is stored on secure servers provided by Supabase and protected with industry-standard encryption,
+          access controls, and regular security audits.
+        </p>
+        <h3>5. Data sharing</h3>
+        <p>
+          We do not sell or rent your personal information. Data may be shared with service providers (payment
+          processors, SMS providers) strictly for platform operations, and with authorities when required by law.
+        </p>
+        <h3>6. Data retention</h3>
+        <p>
+          Transaction data is retained for audit purposes for a minimum of seven years in compliance with Ghanaian tax
+          regulations. Personal data is retained as long as your account is active or as required by law.
+        </p>
+        <h3>7. Your rights</h3>
+        <p>
+          You have the right to access, correct, or delete your personal information. Contact us to exercise these
+          rights, subject to legal and operational requirements.
+        </p>
+        <h3>8. Contact</h3>
+        <p>
+          For any privacy enquiries, email&nbsp;
+          <a href="mailto:sales.dataflex@gmail.com">sales.dataflex@gmail.com</a>.
+        </p>
+      </section>
+
+      {/* COOKIE POLICY */}
+      <section id="cookie-policy" className="pt-12">
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <Cookie className="h-6 w-6" />
+          {"Cookie Policy"}
+        </h1>
+        <p>
+          DataFlexAgent.com uses essential cookies to keep you logged in and to remember your preferences. Optional
+          analytics cookies help us improve the service. By using the site you agree to our use of cookies.
+        </p>
+        <h3>Types of cookies we use:</h3>
+        <ul>
+          <li>
+            <strong>Essential cookies:</strong> Required for platform functionality and security
+          </li>
+          <li>
+            <strong>Analytics cookies:</strong> Help us understand platform usage and improve user experience
+          </li>
+          <li>
+            <strong>Preference cookies:</strong> Remember your settings and preferences
+          </li>
+        </ul>
+      </section>
+
+      {/* CONTACT */}
+      <section id="contact" className="pt-12">
+        <h2>Contact Information</h2>
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-lg">
+          <p className="mb-4">
+            <strong>For all support, technical issues, and general inquiries:</strong>
+          </p>
+          <p>
+            Email:&nbsp;
+            <a href="mailto:sales.dataflex@gmail.com" className="font-medium">
+              sales.dataflex@gmail.com
+            </a>
+            <br />
+            WhatsApp Support:&nbsp;
+            <a href="https://wa.me/233242799990" target="_blank" rel="noreferrer noopener">
+              +233 242 799 990
+            </a>
+            <br />
+            Business Hours: Monday - Sunday, 6:00 AM - 10:00 PM (GMT)
+          </p>
+        </div>
+      </section>
+
+      {/* EFFECTIVE DATE */}
+      <section id="effective-date" className="pt-8 border-t">
+        <p className="text-sm text-muted-foreground text-center">
+          These terms and conditions are effective as of September 2, 2025, and supersede all previous versions.
+          Continued use of the platform constitutes acceptance of these terms.
+        </p>
+      </section>
+    </main>
+  )
+}
