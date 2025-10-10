@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { FileText, ArrowLeft, Clock, CheckCircle, AlertCircle, Building2, Baby, CreditCard, Plus } from "lucide-react"
 import Link from "next/link"
 import { getStoredAgent, type Agent } from "@/lib/unified-auth-system"
@@ -13,6 +12,7 @@ import { SoleProprietorshipForm } from "@/components/agent/compliance/forms/Sole
 import { TINRegistrationForm } from "@/components/agent/compliance/forms/TINRegistrationForm"
 import { SubmissionsList } from "@/components/agent/compliance/SubmissionsList"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 const AVAILABLE_FORMS = [
   {
@@ -45,6 +45,7 @@ export default function AgentCompliancePage() {
   const [agent, setAgent] = useState<Agent | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null)
+  const [showFormDialog, setShowFormDialog] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -99,6 +100,7 @@ export default function AgentCompliancePage() {
   const handleFormSelect = (formId: string) => {
     console.log("[v0] Form selected:", formId)
     setSelectedFormId(formId)
+    setShowFormDialog(false)
   }
 
   if (loading) {
@@ -269,50 +271,58 @@ export default function AgentCompliancePage() {
 
         <Card className="mb-6 sm:mb-8">
           <CardHeader>
-            <div className="space-y-4">
-              <div>
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="space-y-2">
                 <CardTitle className="text-lg sm:text-xl md:text-2xl">Compliance Management</CardTitle>
-                <CardDescription className="mt-2 text-sm">Submit and track your compliance forms</CardDescription>
+                <CardDescription className="text-sm">Submit and track your compliance forms</CardDescription>
               </div>
               <Button
-                onClick={() => handleFormSelect(AVAILABLE_FORMS[0].id)}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={() => setShowFormDialog(true)}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 self-start"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Submission
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {AVAILABLE_FORMS.map((form) => {
-                const Icon = form.icon
-                return (
-                  <Card
-                    key={form.id}
-                    className={`border-2 transition-colors cursor-pointer ${form.color}`}
-                    onClick={() => handleFormSelect(form.id)}
-                  >
-                    <CardContent className="p-4 sm:p-6 text-center">
-                      <div className="mx-auto mb-3 sm:mb-4">
-                        <Icon className={`h-10 w-10 sm:h-12 sm:w-12 ${form.iconColor}`} />
-                      </div>
-                      <h3 className="font-bold text-base sm:text-lg mb-2">{form.name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">{form.description}</p>
-                      <Badge variant="secondary" className="text-xs">
-                        Click to Start
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
-          </CardContent>
         </Card>
 
         {/* Submissions List */}
         <SubmissionsList agentId={agent.id} onUpdate={handleFormSubmitted} />
       </main>
+
+      <Dialog open={showFormDialog} onOpenChange={setShowFormDialog}>
+        <DialogContent className="max-w-[90vw] sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-base sm:text-lg">Select Form Type</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
+              Choose the type of compliance form you want to submit
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-3 mt-4">
+            {AVAILABLE_FORMS.map((form) => {
+              const Icon = form.icon
+              return (
+                <Card
+                  key={form.id}
+                  className={`border-2 transition-colors cursor-pointer hover:shadow-md ${form.color}`}
+                  onClick={() => handleFormSelect(form.id)}
+                >
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className="shrink-0">
+                      <Icon className={`h-8 w-8 ${form.iconColor}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-sm sm:text-base mb-1">{form.name}</h3>
+                      <p className="text-xs text-gray-600 line-clamp-2">{form.description}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BackToTop />
     </div>
