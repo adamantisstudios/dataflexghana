@@ -129,6 +129,7 @@ export function ProfessionalWritingSubmissionsList({ agentId, onUpdate }: Profes
       "resume-writing": "Resume Writing",
       "curriculum-vitae": "Curriculum Vitae",
       "business-presentation": "Business Presentation",
+      "international-resume": "International Resume",
     }
     return serviceLabels[serviceType] || "Unknown Service"
   }

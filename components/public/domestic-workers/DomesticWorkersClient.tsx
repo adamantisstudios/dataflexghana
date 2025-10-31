@@ -1,31 +1,12 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import {
-  Users,
-  MapPin,
-  GraduationCap,
-  MessageCircle,
-  Search,
-  Filter,
-  Home,
-  CheckCircle,
-  XCircle,
-  ArrowRight,
-} from "lucide-react"
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import { Users, MapPin, GraduationCap, MessageCircle, Search, Filter, Home, CheckCircle, XCircle, ArrowRight, Phone, MessageSquare, Heart, Star } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import Link from "next/link"
@@ -54,20 +35,7 @@ export interface DomesticWorker {
 }
 
 const experienceRanges = ["All Experience", "0-1 years", "2-3 years", "4-5 years", "6+ years"]
-
-const locations = [
-  "All Locations",
-  "Accra",
-  "Tema",
-  "Kumasi",
-  "East Legon",
-  "Airport Residential",
-  "Spintex",
-  "Cantonments",
-  "Labone",
-  "Adenta",
-  "Apolonia",
-]
+const locations = ["All Locations", "Accra", "Tema", "Kumasi", "East Legon", "Airport Residential", "Spintex", "Cantonments", "Labone", "Adenta", "Apolonia"]
 
 export default function DomesticWorkersClient() {
   const [workers, setWorkers] = useState<DomesticWorker[]>([])
@@ -105,8 +73,7 @@ export default function DomesticWorkersClient() {
   }, [])
 
   useEffect(() => {
-    let filtered = workers
-
+    let filtered = [...workers]
     if (searchTerm) {
       filtered = filtered.filter(
         (worker) =>
@@ -115,7 +82,6 @@ export default function DomesticWorkersClient() {
           worker.key_skills?.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
-
     if (selectedExperience !== "All Experience") {
       const experienceMap = {
         "0-1 years": [0, 1],
@@ -126,15 +92,12 @@ export default function DomesticWorkersClient() {
       const [min, max] = experienceMap[selectedExperience as keyof typeof experienceMap]
       filtered = filtered.filter((worker) => worker.years_of_experience >= min && worker.years_of_experience <= max)
     }
-
     if (selectedLocation !== "All Locations") {
       filtered = filtered.filter((worker) => worker.current_location === selectedLocation)
     }
-
     if (selectedAvailability !== "All") {
       filtered = filtered.filter((worker) => worker.availability_status === selectedAvailability)
     }
-
     setFilteredWorkers(filtered)
     setCurrentPage(1)
   }, [workers, searchTerm, selectedExperience, selectedLocation, selectedAvailability])
@@ -191,17 +154,8 @@ export default function DomesticWorkersClient() {
     return `${names[0]} ${names[names.length - 1].charAt(0)}.`
   }
 
-  const PaginationControls = ({
-    currentPage,
-    totalPages,
-    onPageChange,
-  }: {
-    currentPage: number
-    totalPages: number
-    onPageChange: (page: number) => void
-  }) => {
+  const PaginationControls = ({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) => {
     if (totalPages <= 1) return null
-
     const getVisiblePages = () => {
       const isMobile = typeof window !== "undefined" && window.innerWidth < 768
       const maxVisible = isMobile ? 3 : 5
@@ -213,20 +167,14 @@ export default function DomesticWorkersClient() {
       const adjustedStart = Math.max(1, end - maxVisible + 1)
       return Array.from({ length: end - adjustedStart + 1 }, (_, i) => adjustedStart + i)
     }
-
     const visiblePages = getVisiblePages()
-
     return (
       <div className="flex justify-center mt-6">
         <Pagination>
           <PaginationContent className="gap-1 sm:gap-2">
             <PaginationItem>
               <PaginationPrevious
-                onClick={() => {
-                  if (currentPage > 1) {
-                    onPageChange(currentPage - 1)
-                  }
-                }}
+                onClick={() => { if (currentPage > 1) onPageChange(currentPage - 1) }}
                 className={`${currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
               />
             </PaginationItem>
@@ -243,11 +191,7 @@ export default function DomesticWorkersClient() {
             ))}
             <PaginationItem>
               <PaginationNext
-                onClick={() => {
-                  if (currentPage < totalPages) {
-                    onPageChange(currentPage + 1)
-                  }
-                }}
+                onClick={() => { if (currentPage < totalPages) onPageChange(currentPage + 1) }}
                 className={`${currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
               />
             </PaginationItem>
@@ -274,17 +218,11 @@ export default function DomesticWorkersClient() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 overflow-x-hidden">
       {/* Header */}
-      <header className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 shadow-md border-b border-green-700">
+      <header className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 shadow-md border-b border-green-700 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto w-full px-4 py-4 md:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            {/* Left side: Home + Title */}
             <div className="flex items-center gap-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                asChild
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 shrink-0"
-              >
+              <Button variant="secondary" size="sm" asChild className="bg-white/20 hover:bg-white/30 text-white border-white/30 shrink-0">
                 <Link href="/">
                   <Home className="h-4 w-4" />
                   <span className="hidden sm:inline ml-2">Home</span>
@@ -295,8 +233,6 @@ export default function DomesticWorkersClient() {
                 <p className="text-green-100 text-sm">Find trusted home care professionals</p>
               </div>
             </div>
-
-            {/* Right side: Worker count */}
             <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
               <Users className="h-4 w-4 mr-1" />
               {filteredWorkers.length} Workers
@@ -310,101 +246,57 @@ export default function DomesticWorkersClient() {
         {/* Hero Slider */}
         <DomesticWorkersHeroSlider />
 
-        {/* Hero Section */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-green-200 p-6 mb-6">
-          <div className="text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-green-800 mb-2">
-              Find Trusted Home Care Professionals in Ghana
-            </h2>
-            <p className="text-green-600 text-lg mb-4">
-              Connect with experienced housekeepers, nannies, cleaners, personal nurses, personal aides, and hospital
-              support workers. We process workers for you!
-            </p>
-
-            <div className="flex justify-center mb-6">
-              <Button
-                size="lg"
-                asChild
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-xl text-lg px-8 py-4 mb-4"
-              >
-                <Link href="/register-worker">
-                  <Users className="mr-2 h-5 w-5" />
-                  Register Now
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
+        {/* Welcome Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-green-200 p-6 mb-6 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-green-800 mb-2">
+            Find Trusted Home Care Professionals in Ghana
+          </h2>
+          <p className="text-green-600 text-lg mb-4">
+            Connect with experienced housekeepers, nannies, cleaners, personal nurses, and more. We process workers for you!
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="bg-green-50 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">🏠</div>
+              <h3 className="font-semibold text-green-800 text-sm">Domestic Workers</h3>
+              <p className="text-xs text-green-600">Housekeepers, Cleaners, Cooks</p>
             </div>
-            <p className="text-sm text-gray-600 text-center mb-6">
-              Click to register as a worker or candidate seeking a job.
-            </p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-              <div className="bg-green-50 rounded-lg p-4 text-center">
-                <div className="text-2xl mb-2">🏠</div>
-                <h3 className="font-semibold text-green-800 text-sm">Domestic Workers</h3>
-                <p className="text-xs text-green-600">Housekeepers, Cleaners, Cooks</p>
-              </div>
-              <div className="bg-blue-50 rounded-lg p-4 text-center">
-                <div className="text-2xl mb-2">👩‍⚕️</div>
-                <h3 className="font-semibold text-blue-800 text-sm">Personal Nurses</h3>
-                <p className="text-xs text-blue-600">Home Healthcare, Patient Care</p>
-              </div>
-              <div className="bg-purple-50 rounded-lg p-4 text-center">
-                <div className="text-2xl mb-2">🤝</div>
-                <h3 className="font-semibold text-purple-800 text-sm">Personal Aides</h3>
-                <p className="text-xs text-purple-600">Elderly Care, Disability Support</p>
-              </div>
-              <div className="bg-orange-50 rounded-lg p-4 text-center">
-                <div className="text-2xl mb-2">🏥</div>
-                <h3 className="font-semibold text-orange-800 text-sm">Hospital Support</h3>
-                <p className="text-xs text-orange-600">Medical Assistance, Recovery Care</p>
-              </div>
+            <div className="bg-blue-50 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">👩‍⚕️</div>
+              <h3 className="font-semibold text-blue-800 text-sm">Personal Nurses</h3>
+              <p className="text-xs text-blue-600">Home Healthcare, Patient Care</p>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">🤝</div>
+              <h3 className="font-semibold text-purple-800 text-sm">Personal Aides</h3>
+              <p className="text-xs text-purple-600">Elderly Care, Disability Support</p>
+            </div>
+            <div className="bg-orange-50 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">🏥</div>
+              <h3 className="font-semibold text-orange-800 text-sm">Hospital Support</h3>
+              <p className="text-xs text-orange-600">Medical Assistance, Recovery Care</p>
             </div>
           </div>
         </div>
 
-        {/* CV Writer Pros promotion section */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl shadow-lg border border-blue-200 p-6 mb-6 text-white">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-4">
-              <div className="text-3xl mr-3">📝</div>
-              <h2 className="text-2xl md:text-3xl font-bold">Need Professional Documents?</h2>
-            </div>
-            <p className="text-blue-100 text-lg mb-6">
-              Get expertly written documents for all your professional and personal needs
-            </p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white/10 backdrop-blur-[1px] rounded-lg p-4 text-center border border-white/20">
-                <div className="text-2xl mb-2">💼</div>
-                <h3 className="font-semibold text-sm">Job Seekers</h3>
-                <p className="text-xs text-blue-100">CVs & Applications</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-[1px] rounded-lg p-4 text-center border border-white/20">
-                <div className="text-2xl mb-2">👔</div>
-                <h3 className="font-semibold text-sm">Executives</h3>
-                <p className="text-xs text-blue-100">Leadership Docs</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-[1px] rounded-lg p-4 text-center border border-white/20">
-                <div className="text-2xl mb-2">🏡</div>
-                <h3 className="font-semibold text-sm">Home Owners</h3>
-                <p className="text-xs text-blue-100">Property Docs</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-[1px] rounded-lg p-4 text-center border border-white/20">
-                <div className="text-2xl mb-2">🏢</div>
-                <h3 className="font-semibold text-sm">Business Owners</h3>
-                <p className="text-xs text-blue-100">Business Docs</p>
-              </div>
-            </div>
-
+        {/* Registration CTA - Moved before filters */}
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-lg border border-purple-200 p-6 mb-6 text-center">
+          <h2 className="text-xl md:text-2xl font-bold text-purple-800 mb-3">
+            Join Our Network of Trusted Professionals
+          </h2>
+          <p className="text-purple-600 text-lg mb-5">
+            Register as a Domestic Worker or Care Professional in minutes.
+          </p>
+          <div className="flex justify-center">
             <Button
               size="lg"
-              onClick={() => window.open("https://cvwriterpros.netlify.app/", "_blank")}
-              className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              asChild
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-xl text-lg px-8 py-4 transform hover:scale-105 transition-all"
             >
-              <span className="mr-2">✨</span>
-              Get Started Here
-              <span className="ml-2">→</span>
+              <Link href="/register-worker">
+                <Users className="mr-2 h-5 w-5" />
+                Register Now
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
             </Button>
           </div>
         </div>
@@ -424,32 +316,28 @@ export default function DomesticWorkersClient() {
             <Select value={selectedExperience} onValueChange={setSelectedExperience}>
               <SelectTrigger className="border-green-200 focus:border-green-500">
                 <Filter className="h-4 w-4 mr-2" />
-                <SelectValue />
+                <SelectValue placeholder="Experience" />
               </SelectTrigger>
               <SelectContent>
                 {experienceRanges.map((range) => (
-                  <SelectItem key={range} value={range}>
-                    {range}
-                  </SelectItem>
+                  <SelectItem key={range} value={range}>{range}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger className="border-green-200 focus:border-green-500">
                 <MapPin className="h-4 w-4 mr-2" />
-                <SelectValue />
+                <SelectValue placeholder="Location" />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (
-                  <SelectItem key={location} value={location}>
-                    {location}
-                  </SelectItem>
+                  <SelectItem key={location} value={location}>{location}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={selectedAvailability} onValueChange={setSelectedAvailability}>
               <SelectTrigger className="border-green-200 focus:border-green-500">
-                <SelectValue />
+                <SelectValue placeholder="Availability" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Status</SelectItem>
@@ -475,11 +363,10 @@ export default function DomesticWorkersClient() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
           {currentWorkers.map((worker) => {
             const workerImages = [worker.image_url_1, worker.image_url_2, worker.image_url_3].filter(Boolean)
-
             return (
               <Card
                 key={worker.id}
-                className="hover:shadow-xl transition-all duration-300 border-green-200 bg-white/90 backdrop-blur-sm overflow-hidden"
+                className="hover:shadow-xl transition-all duration-300 border-green-200 bg-white/90 backdrop-blur-sm overflow-hidden hover:transform hover:-translate-y-1"
               >
                 <div className="relative">
                   <div className="aspect-[4/3] w-full bg-gradient-to-br from-green-100 to-emerald-100 overflow-hidden">
@@ -488,11 +375,7 @@ export default function DomesticWorkersClient() {
                       onClick={() => handleImageClick(worker, 0)}
                     >
                       <ImageWithFallback
-                        src={
-                          worker.image_url_1 ||
-                          "/placeholder.svg?height=300&width=300&query=professional domestic worker" ||
-                          "/placeholder.svg"
-                        }
+                        src={worker.image_url_1 || "/domestic-worker-profile.jpg"}
                         alt={getAbridgedName(worker.full_name)}
                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         fallbackSrc="/domestic-worker-profile.jpg"
@@ -523,7 +406,6 @@ export default function DomesticWorkersClient() {
                     )}
                   </div>
                 </div>
-
                 {workerImages.length > 1 && (
                   <div className="px-4 py-2 bg-gray-50 border-b">
                     <div className="flex gap-2 overflow-x-auto">
@@ -534,7 +416,7 @@ export default function DomesticWorkersClient() {
                           onClick={() => handleImageClick(worker, index + 1)}
                         >
                           <ImageWithFallback
-                            src={image || "/placeholder.svg"}
+                            src={image || "/domestic-worker-profile.jpg"}
                             alt={`${getAbridgedName(worker.full_name)} - Image ${index + 2}`}
                             className="w-full h-full object-cover"
                             fallbackSrc="/domestic-worker-profile.jpg"
@@ -544,38 +426,32 @@ export default function DomesticWorkersClient() {
                     </div>
                   </div>
                 )}
-
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg text-green-800 mb-2">{getAbridgedName(worker.full_name)}</CardTitle>
+                  <CardTitle className="text-lg text-green-800 mb-2 flex items-center justify-between">
+                    {getAbridgedName(worker.full_name)}
+                    <Badge variant="outline" className="text-xs bg-green-50 text-green-800 border-green-200">
+                      {worker.years_of_experience} yrs
+                    </Badge>
+                  </CardTitle>
                   <div className="flex items-center gap-2 text-sm text-green-600 mb-2">
                     <span>Age: {getAgeRange(worker.age)}</span>
                     <span>•</span>
-                    <span>{worker.years_of_experience} years exp.</span>
+                    <span>{worker.current_location}</span>
                   </div>
                 </CardHeader>
-
                 <CardContent className="pt-0">
                   <div className="space-y-3">
-                    {worker.current_location && (
-                      <div className="flex items-center gap-2 text-green-600">
-                        <MapPin className="h-4 w-4" />
-                        <span className="text-sm">{worker.current_location}</span>
-                      </div>
-                    )}
-
                     {worker.highest_education_level && (
                       <div className="flex items-center gap-2 text-green-600">
                         <GraduationCap className="h-4 w-4" />
                         <span className="text-sm">{worker.highest_education_level}</span>
                       </div>
                     )}
-
                     {worker.key_skills && (
                       <div className="text-sm text-green-600">
                         <strong>Skills:</strong> {worker.key_skills}
                       </div>
                     )}
-
                     <div className="space-y-2 pt-2 border-t border-green-100">
                       {worker.willing_to_relocate !== undefined && (
                         <div className="flex items-center justify-between text-sm">
@@ -585,7 +461,6 @@ export default function DomesticWorkersClient() {
                           </Badge>
                         </div>
                       )}
-
                       {worker.job_type && (
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-green-700 font-medium">Job Type:</span>
@@ -595,8 +470,7 @@ export default function DomesticWorkersClient() {
                         </div>
                       )}
                     </div>
-
-                    <div className="grid grid-cols-1 gap-2 pt-3 border-t border-green-100">
+                    <div className="grid grid-cols-2 gap-2 pt-3 border-t border-green-100">
                       <Button
                         size="sm"
                         onClick={() => handleRequestDetails(worker)}
@@ -605,6 +479,15 @@ export default function DomesticWorkersClient() {
                       >
                         <MessageCircle className="h-3 w-3 mr-1" />
                         Request Details
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleWhatsAppAdmin(worker)}
+                        className="text-xs border-green-600 text-green-600 hover:bg-green-50"
+                      >
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        WhatsApp
                       </Button>
                     </div>
                   </div>
@@ -619,6 +502,19 @@ export default function DomesticWorkersClient() {
             <Users className="h-16 w-16 mx-auto mb-4 text-green-300" />
             <h3 className="text-xl font-semibold text-green-800 mb-2">No Workers Found</h3>
             <p className="text-green-600">Try adjusting your search criteria or filters.</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setSearchTerm("")
+                setSelectedExperience("All Experience")
+                setSelectedLocation("All Locations")
+                setSelectedAvailability("All")
+              }}
+              className="mt-4"
+            >
+              Reset Filters
+            </Button>
           </div>
         )}
 

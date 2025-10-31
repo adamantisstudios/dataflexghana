@@ -70,6 +70,7 @@ const WholesaleTab = lazy(() => import("@/components/admin/tabs/WholesaleTab"))
 const SavingsTab = lazy(() => import("@/components/admin/tabs/SavingsTab"))
 const PropertiesTab = lazy(() => import("@/components/admin/tabs/PropertiesTab"))
 const DomesticWorkersTab = lazy(() => import("@/components/admin/tabs/DomesticWorkersTab"))
+const DomesticWorkerClientRequestsTab = lazy(() => import("@/components/admin/tabs/DomesticWorkerClientRequestsTab"))
 const BlogsTab = lazy(() => import("@/components/admin/tabs/BlogsTab"))
 const ComplianceTab = lazy(() => import("@/components/admin/tabs/ComplianceTab"))
 const TeacherHubTab = lazy(() => import("@/components/admin/tabs/TeacherHubTab"))
@@ -134,9 +135,10 @@ const TAB_CONFIG = [
   { id: "link-cache", label: "Link Cache", icon: FileText, component: LinkCacheManagementTab },
   { id: "automation", label: "Automation", icon: Activity, component: null },
   { id: "performance", label: "Performance", icon: TrendingUp, component: null },
+  { id: "domestic-workers", label: "Domestic Workers", icon: Users, component: DomesticWorkersTab },
+  { id: "domestic-worker-requests", label: "Client Requests", icon: Bell, component: DomesticWorkerClientRequestsTab },
   { id: "wholesale", label: "Wholesale", icon: ShoppingBag, component: WholesaleTab },
   { id: "properties", label: "Properties", icon: Home, component: PropertiesTab },
-  { id: "domestic-workers", label: "Domestic Workers", icon: Users, component: DomesticWorkersTab },
   { id: "blogs", label: "Blogs", icon: FileText, component: BlogsTab },
   { id: "services", label: "Services", icon: Package, component: ServicesTab },
   { id: "data", label: "Data", icon: Database, component: DataTab },

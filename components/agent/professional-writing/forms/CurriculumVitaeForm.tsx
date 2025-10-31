@@ -95,6 +95,7 @@ export function CurriculumVitaeForm({ agentId, onComplete, onCancel }: Curriculu
         {
           agent_id: agentId,
           service_type: "curriculum-vitae",
+          service_name: "Curriculum Vitae",
           status: "pending",
           form_data: formData,
           document_url: documentUrl,

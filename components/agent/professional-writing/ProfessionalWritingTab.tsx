@@ -21,6 +21,7 @@ import { toast } from "sonner"
 import { ResumeWritingForm } from "./forms/ResumeWritingForm"
 import { CurriculumVitaeForm } from "./forms/CurriculumVitaeForm"
 import { BusinessPresentationForm } from "./forms/BusinessPresentationForm"
+import { InternationalResumeForm } from "./forms/InternationalResumeForm"
 import { ProfessionalWritingSubmissionsList } from "./ProfessionalWritingSubmissionsList"
 
 interface ProfessionalWritingTabProps {
@@ -69,6 +70,20 @@ const AVAILABLE_SERVICES = [
     duration: "2 Hours",
     delivery: "Email or WhatsApp",
     format: "PowerPoint (PPT)",
+  },
+  {
+    id: "international-resume",
+    service_type: "international-resume",
+    service_name: "International Resume",
+    service_description: "Professional international CV for specific countries",
+    icon: FileText,
+    color: "border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50",
+    iconColor: "text-indigo-600",
+    is_active: true,
+    cost: "270 GHS",
+    duration: "2 Hours",
+    delivery: "Email or WhatsApp",
+    format: "PDF/DOC",
   },
 ]
 
@@ -194,6 +209,13 @@ export function ProfessionalWritingTab({ agentId }: ProfessionalWritingTabProps)
         )}
         {activeServiceId === "business-presentation" && (
           <BusinessPresentationForm
+            agentId={agentId}
+            onComplete={handleServiceComplete}
+            onCancel={handleServiceCancel}
+          />
+        )}
+        {activeServiceId === "international-resume" && (
+          <InternationalResumeForm
             agentId={agentId}
             onComplete={handleServiceComplete}
             onCancel={handleServiceCancel}

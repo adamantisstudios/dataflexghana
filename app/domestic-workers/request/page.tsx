@@ -61,7 +61,7 @@ export const metadata: Metadata = {
       "Find trusted domestic workers across Ghana! Browse experienced housekeepers, nannies, cleaners, and home care professionals. Contact admin directly via WhatsApp for reliable domestic services.",
     images: [
       {
-        url: "https://dataflexghana.com/images/ghana-domestic-workers-showcase.jpg",
+        url: "https://dataflexghana.com/domestic-worker-profile.jpg",
         width: 1200,
         height: 630,
         alt: "Domestic Workers in Ghana - Housekeepers, Nannies, Cleaners, Home Care Services",
@@ -78,7 +78,7 @@ export const metadata: Metadata = {
       "🏡 Housekeepers ✅ Nannies ✅ Cleaners ✅ Home Care ✅ Trusted Professionals ✅ Contact admin via WhatsApp! 🇬🇭 #DomesticWorkersGhana #HomeCareGhana #HousekeepersGhana",
     images: [
       {
-        url: "https://dataflexghana.com/images/ghana-domestic-workers-showcase.jpg",
+        url: "https://dataflexghana.com/domestic-worker-profile.jpg",
         alt: "Ghana Domestic Workers - Housekeepers, Nannies, Cleaners & Home Care Services",
       },
     ],
