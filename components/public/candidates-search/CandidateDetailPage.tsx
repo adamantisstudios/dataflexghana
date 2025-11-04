@@ -6,7 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
-  ArrowLeft, MessageSquare, MapPin, GraduationCap, Briefcase, X, Code, Award, BookOpen, Users, Heart, FileText, Zap,
+  ArrowLeft,
+  MessageSquare,
+  MapPin,
+  GraduationCap,
+  Briefcase,
+  X,
+  Code,
+  Award,
+  BookOpen,
+  Users,
+  Heart,
+  FileText,
+  Zap,
 } from "lucide-react"
 import Link from "next/link"
 import { type CandidateProfile, fetchCandidateById } from "@/lib/candidate-search-utils"
@@ -14,55 +26,46 @@ import { maskEmail, maskPhone, sanitizeDisplay } from "@/lib/privacy-masking"
 import { shortenJobTitle } from "@/lib/job-title-formatter"
 import { PremiumInfoSection } from "./PremiumInfoSection"
 
-function formatCandidateName(fullName: string): string {
-  const nameParts = fullName.split(" ").filter(part => part.trim() !== "");
-  if (nameParts.length >= 3) {
-    return `${nameParts[0]} ${nameParts[1]}`;
-  } else if (nameParts.length === 2) {
-    return nameParts[0];
-  } else {
-    return fullName;
-  }
-}
-
 function CandidateDetailPage({ candidateId }: { candidateId: string }) {
-  const [candidate, setCandidate] = useState<CandidateProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showCVModal, setShowCVModal] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const router = useRouter();
+  const [candidate, setCandidate] = useState<CandidateProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [showCVModal, setShowCVModal] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
-    setIsMobile(typeof window !== "undefined" && window.innerWidth < 768);
+    setIsMobile(typeof window !== "undefined" && window.innerWidth < 768)
     const handleResize = () => {
-      setIsMobile(typeof window !== "undefined" && window.innerWidth < 768);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+      setIsMobile(typeof window !== "undefined" && window.innerWidth < 768)
+    }
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   useEffect(() => {
     const loadCandidate = async () => {
       try {
-        const data = await fetchCandidateById(candidateId);
-        setCandidate(data);
+        const data = await fetchCandidateById(candidateId)
+        setCandidate(data)
       } catch (error) {
-        console.error("Error loading candidate:", error);
+        console.error("Error loading candidate:", error)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-    loadCandidate();
-  }, [candidateId]);
+    }
+    loadCandidate()
+  }, [candidateId])
 
   useEffect(() => {
-    localStorage.removeItem("searchTipsShown");
-  }, []);
+    // Clear the search tips shown flag so tips appear fresh when user returns
+    // But only clear on initial mount for this specific candidate
+    localStorage.removeItem("searchTipsShown")
+  }, [])
 
   const handleRequestCV = () => {
-    if (!candidate) return;
-    setShowCVModal(true);
-  };
+    if (!candidate) return
+    setShowCVModal(true)
+  }
 
   if (loading) {
     return (
@@ -83,7 +86,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
           </Card>
         </div>
       </div>
-    );
+    )
   }
 
   if (!candidate) {
@@ -99,7 +102,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
   return (
@@ -128,15 +131,16 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
             <CardHeader className="pb-4 border-b border-blue-100 bg-white">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex-1">
-                  <CardTitle className="text-2xl text-blue-900 font-bold mb-3">
-                    {formatCandidateName(candidate?.full_name || "")}
-                  </CardTitle>
+                  <CardTitle className="text-2xl text-blue-900 font-bold mb-3">{candidate?.full_name}</CardTitle>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 text-xs font-medium">
                       {sanitizeDisplay(candidate?.country || "")}
                     </Badge>
                     {candidate?.willingness_to_relocate && (
-                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-300 text-xs font-medium">
+                      <Badge
+                        variant="secondary"
+                        className="bg-emerald-100 text-emerald-700 border-emerald-300 text-xs font-medium"
+                      >
                         Open to Relocate: {candidate.willingness_to_relocate}
                       </Badge>
                     )}
@@ -151,24 +155,30 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
                 </Button>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-4 pt-6">
               <div className="p-4 rounded-lg border border-blue-100 bg-white hover:shadow-sm transition-shadow">
                 <div className="flex items-start gap-3">
                   <Briefcase className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Position Seeking</p>
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+                      Position Seeking
+                    </p>
                     <p className="text-base font-semibold text-gray-900 break-words">
                       {shortenJobTitle(candidate?.job_looking_for || "Not specified")}
                     </p>
                   </div>
                 </div>
               </div>
+
               {candidate?.career_aspirations && (
                 <div className="p-4 rounded-lg border border-blue-100 bg-white hover:shadow-sm transition-shadow">
                   <div className="flex items-start gap-3">
                     <Zap className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Career Aspirations</p>
+                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+                        Career Aspirations
+                      </p>
                       <p className="text-sm text-gray-800 leading-relaxed break-words">
                         {sanitizeDisplay(candidate.career_aspirations)}
                       </p>
@@ -176,6 +186,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
                   </div>
                 </div>
               )}
+
               {/* Education */}
               <div className="flex gap-3 p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
                 <GraduationCap className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
@@ -186,6 +197,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
                   </p>
                 </div>
               </div>
+
               {/* Location */}
               <div className="flex gap-3 p-4 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
                 <MapPin className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
@@ -196,6 +208,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
                   </p>
                 </div>
               </div>
+
               {/* Contact Information */}
               <div className="border-t pt-4 mt-4">
                 <p className="text-xs font-bold text-gray-700 uppercase mb-3 tracking-wide">Contact Information</p>
@@ -215,6 +228,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               </div>
             </CardContent>
           </Card>
+
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -223,6 +237,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               <h2 className="text-lg font-bold text-gray-900">Professional Details</h2>
               <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-xs font-medium">Request to Unlock</Badge>
             </div>
+
             {/* Work History */}
             <PremiumInfoSection
               icon={<Briefcase className="h-5 w-5" />}
@@ -232,6 +247,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               isLocked={!candidate?.work_history}
               onRequestAccess={() => handleRequestCV()}
             />
+
             {/* Skills */}
             <PremiumInfoSection
               icon={<Code className="h-5 w-5" />}
@@ -241,6 +257,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               isLocked={!candidate?.skills}
               onRequestAccess={() => handleRequestCV()}
             />
+
             {/* Certifications */}
             <PremiumInfoSection
               icon={<Award className="h-5 w-5" />}
@@ -250,6 +267,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               isLocked={!candidate?.certifications}
               onRequestAccess={() => handleRequestCV()}
             />
+
             {/* Projects */}
             <PremiumInfoSection
               icon={<BookOpen className="h-5 w-5" />}
@@ -259,6 +277,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               isLocked={!candidate?.projects}
               onRequestAccess={() => handleRequestCV()}
             />
+
             {/* Publications */}
             <PremiumInfoSection
               icon={<FileText className="h-5 w-5" />}
@@ -268,6 +287,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               isLocked={!candidate?.publications}
               onRequestAccess={() => handleRequestCV()}
             />
+
             {/* Awards */}
             <PremiumInfoSection
               icon={<Award className="h-5 w-5" />}
@@ -277,6 +297,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               isLocked={!candidate?.awards}
               onRequestAccess={() => handleRequestCV()}
             />
+
             {/* Professional Affiliations */}
             <PremiumInfoSection
               icon={<Users className="h-5 w-5" />}
@@ -286,6 +307,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               isLocked={!candidate?.professional_affiliations}
               onRequestAccess={() => handleRequestCV()}
             />
+
             {/* Interests */}
             <PremiumInfoSection
               icon={<Heart className="h-5 w-5" />}
@@ -295,6 +317,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               isLocked={!candidate?.interests}
               onRequestAccess={() => handleRequestCV()}
             />
+
             {/* Professional References */}
             <PremiumInfoSection
               icon={<Users className="h-5 w-5" />}
@@ -305,11 +328,13 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
               onRequestAccess={() => handleRequestCV()}
             />
           </div>
+
           <Card className="bg-gradient-to-br from-blue-50 to-white border-2 border-blue-200">
             <CardContent className="pt-6 text-center">
               <h3 className="text-base font-bold text-gray-900 mb-2">Ready to Connect?</h3>
               <p className="text-xs text-gray-600 mb-6 leading-relaxed">
-                Request the candidate's CV via WhatsApp to unlock all professional details and get full contact information.
+                Request the candidate's CV via WhatsApp to unlock all professional details and get full contact
+                information.
               </p>
               <Button
                 onClick={() => handleRequestCV()}
@@ -322,6 +347,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
           </Card>
         </div>
       </main>
+
       {showCVModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 md:p-4 overflow-y-auto">
           <div className="w-full md:max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto">
@@ -336,6 +362,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
                 <X className="h-4 w-4 md:h-5 md:w-5" />
               </button>
             </div>
+
             <div className="flex flex-col md:flex-row md:gap-0">
               {/* CV Image */}
               <div className="w-full md:w-1/2 md:max-h-96 overflow-hidden flex items-center justify-center bg-gray-100">
@@ -345,14 +372,13 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
                   className="w-full h-full object-contain"
                 />
               </div>
+
               {/* Content */}
               <div className="w-full md:w-1/2 p-4 md:p-6 flex flex-col justify-between gap-4 md:max-h-96 overflow-y-auto">
                 {/* Candidate Info */}
                 <div className="bg-blue-50 p-3 md:p-4 rounded-lg border border-blue-200">
                   <p className="text-xs font-bold text-blue-600 uppercase mb-1">Requesting CV for:</p>
-                  <p className="text-sm md:text-base font-bold text-blue-900 break-words">
-                    {formatCandidateName(candidate?.full_name || "")}
-                  </p>
+                  <p className="text-sm md:text-base font-bold text-blue-900 break-words">{candidate?.full_name}</p>
                   <p className="text-xs md:text-xs text-gray-600 mt-2">
                     <span className="font-semibold">Position:</span> {shortenJobTitle(candidate?.job_looking_for || "")}
                   </p>
@@ -360,6 +386,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
                     <span className="font-semibold">Location:</span> {candidate?.exact_location}
                   </p>
                 </div>
+
                 {/* Message */}
                 <div className="space-y-2">
                   <p className="text-sm md:text-base font-semibold text-gray-900">Get Full Profile Access</p>
@@ -367,20 +394,22 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
                     Contact our support team via WhatsApp to receive this candidate's complete CV.
                   </p>
                 </div>
+
                 {/* CTA Button */}
                 <Button
                   onClick={() => {
-                    const uniqueId = `${candidate?.id || candidateId}-${Date.now()}`;
-                    const message = `Hi, I'd like to request the CV for candidate ID: ${uniqueId} (${formatCandidateName(candidate?.full_name || "")}, ${candidate?.exact_location})`;
-                    const whatsappUrl = `https://wa.me/233546460945?text=${encodeURIComponent(message)}`;
-                    window.open(whatsappUrl, "_blank");
-                    setShowCVModal(false);
+                    const uniqueId = `${candidate?.id || candidateId}-${Date.now()}`
+                    const message = `Hi, I'd like to request the CV for candidate ID: ${uniqueId} (${candidate?.full_name}, ${candidate?.exact_location})`
+                    const whatsappUrl = `https://wa.me/233546460945?text=${encodeURIComponent(message)}`
+                    window.open(whatsappUrl, "_blank")
+                    setShowCVModal(false)
                   }}
                   className="bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 md:py-2.5 px-4 md:px-6 rounded-lg shadow-lg hover:shadow-xl transition-all text-xs md:text-sm w-full flex items-center justify-center gap-2 h-10 md:h-11"
                 >
                   <MessageSquare className="h-4 w-4 md:h-5 md:w-5" />
                   Request via WhatsApp
                 </Button>
+
                 {/* Cancel Button */}
                 <Button
                   onClick={() => setShowCVModal(false)}
@@ -389,6 +418,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
                 >
                   Cancel
                 </Button>
+
                 {/* Footer info */}
                 <p className="text-xs text-gray-600 text-center italic">
                   Your unique Candidate ID will be included to help us track your request.
@@ -399,7 +429,7 @@ function CandidateDetailPage({ candidateId }: { candidateId: string }) {
         </div>
       )}
     </div>
-  );
+  )
 }
 
-export default CandidateDetailPage;
+export default CandidateDetailPage

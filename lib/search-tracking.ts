@@ -4,7 +4,7 @@
  */
 
 const STORAGE_KEY_PREFIX = "candidate_search_"
-const DAILY_SEARCH_LIMIT = 3
+const DAILY_SEARCH_LIMIT = 7
 
 export interface SearchQuota {
   date: string

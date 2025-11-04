@@ -9,7 +9,7 @@ import { AlertCircle, Phone } from "lucide-react"
 
 export default function SearchLimitExceededCard() {
   const message =
-    "You have used your 3 free searches for today. To continue searching for candidates, please contact our support team for priority access."
+    "You have used your 7 free searches for today. To continue searching for candidates, please contact our support team for priority access."
   const phoneNumber = "+233 546 460 945"
 
   return (
