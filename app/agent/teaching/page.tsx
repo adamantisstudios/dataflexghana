@@ -1,0 +1,731 @@
+"use client"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  LogOut,
+  Search,
+  BookOpen,
+  Users,
+  MessageCircle,
+  Plus,
+  MessageSquare,
+  ChevronRight,
+  Eye,
+  Award,
+  CheckCircle2,
+} from "lucide-react"
+import { supabase } from "@/lib/supabase"
+import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
+import { BackToTop } from "@/components/back-to-top"
+import { toast } from "sonner"
+import { TeacherChannelDashboard } from "@/components/teaching/TeacherChannelDashboard"
+
+interface TeachingChannel {
+  id: string
+  name: string
+  description: string
+  category: string
+  is_public: boolean
+  max_members: number
+  created_at: string
+  member_count?: number
+  is_member?: boolean
+  user_role?: string
+}
+
+interface ChannelPost {
+  id: string
+  channel_id: string
+  title: string
+  content: string
+  post_type: string
+  author_id: string
+  author_name?: string
+  view_count: number
+  created_at: string
+  comment_count?: number
+}
+
+function ChannelCardSkeleton() {
+  return (
+    <Card className="border-blue-200 bg-white/90 w-full">
+      <CardHeader className="pb-2">
+        <div className="space-y-1">
+          <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+          <div className="h-2 bg-gray-100 rounded w-1/2 animate-pulse"></div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="space-y-1">
+          <div className="h-2 bg-gray-100 rounded animate-pulse"></div>
+          <div className="h-2 bg-gray-100 rounded w-5/6 animate-pulse"></div>
+        </div>
+        <div className="flex gap-3">
+          <div className="h-2 bg-gray-100 rounded w-1/4 animate-pulse"></div>
+          <div className="h-2 bg-gray-100 rounded w-1/4 animate-pulse"></div>
+        </div>
+        <div className="flex gap-2 pt-1 border-t border-gray-200">
+          <div className="h-7 bg-gray-200 rounded flex-1 animate-pulse"></div>
+          <div className="h-7 bg-gray-200 rounded flex-1 animate-pulse"></div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function TeachingPlatformPage() {
+  const router = useRouter()
+  const agent = getStoredAgent()
+  const [activeTab, setActiveTab] = useState<"channels" | "my-channels">("channels")
+  const [channels, setChannels] = useState<TeachingChannel[]>([])
+  const [myChannels, setMyChannels] = useState<TeachingChannel[]>([])
+  const [selectedChannel, setSelectedChannel] = useState<TeachingChannel | null>(null)
+  const [channelPosts, setChannelPosts] = useState<ChannelPost[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [showJoinDialog, setShowJoinDialog] = useState(false)
+  const [joinMessage, setJoinMessage] = useState("")
+  const [selectedChannelForJoin, setSelectedChannelForJoin] = useState<TeachingChannel | null>(null)
+  const [hasLoaded, setHasLoaded] = useState(false)
+  const [showChannelDialog, setShowChannelDialog] = useState(false)
+
+  useEffect(() => {
+    if (!agent) {
+      router.push("/agent/login")
+      return
+    }
+
+    if (!hasLoaded) {
+      loadChannels()
+      setHasLoaded(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent, router, hasLoaded])
+
+  const loadChannels = async () => {
+    try {
+      setLoading(true)
+      console.log("[v0] Loading channels for agent:", agent?.id)
+
+      const { data: publicChannels, error: channelsError } = await supabase
+        .from("teaching_channels")
+        .select("*")
+        .eq("is_public", true)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+
+      if (channelsError) {
+        console.error("[v0] Error loading channels:", channelsError)
+        toast.error("Failed to load channels. Please try again.")
+        setLoading(false)
+        return
+      }
+
+      console.log("[v0] Loaded public channels:", publicChannels?.length)
+
+      const { data: memberChannels, error: memberError } = await supabase
+        .from("channel_members")
+        .select("channel_id, role")
+        .eq("agent_id", agent.id)
+
+      if (memberError) {
+        console.error("[v0] Error loading memberships:", memberError)
+        toast.error("Failed to load your memberships.")
+        setLoading(false)
+        return
+      }
+
+      const memberChannelIds = memberChannels?.map((m) => m.channel_id) || []
+      const roleMap = new Map(memberChannels?.map((m) => [m.channel_id, m.role]) || [])
+      console.log("[v0] Agent is member of channels:", memberChannelIds.length)
+
+      const { data: memberCounts, error: countError } = await supabase.from("channel_members").select("channel_id")
+
+      if (countError) {
+        console.error("[v0] Error loading member counts:", countError)
+      }
+
+      const countMap = new Map<string, number>()
+      memberCounts?.forEach((m: any) => {
+        countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1)
+      })
+
+      const enrichedChannels = (publicChannels || []).map((channel: any) => ({
+        ...channel,
+        is_member: memberChannelIds.includes(channel.id),
+        member_count: countMap.get(channel.id) || 0,
+        user_role: roleMap.get(channel.id),
+      }))
+
+      setChannels(enrichedChannels)
+
+      if (memberChannelIds.length > 0) {
+        const { data: userChannels, error: userChannelsError } = await supabase
+          .from("teaching_channels")
+          .select("*")
+          .in("id", memberChannelIds)
+          .order("created_at", { ascending: false })
+
+        if (userChannelsError) {
+          console.error("[v0] Error loading user channels:", userChannelsError)
+          toast.error("Failed to load your channels.")
+          setLoading(false)
+          return
+        }
+
+        const enrichedUserChannels = (userChannels || []).map((channel: any) => ({
+          ...channel,
+          member_count: countMap.get(channel.id) || 0,
+          user_role: roleMap.get(channel.id),
+        }))
+
+        setMyChannels(enrichedUserChannels)
+      }
+    } catch (error) {
+      console.error("[v0] Error loading channels:", error)
+      toast.error("An unexpected error occurred while loading channels")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadChannelPosts = async (channelId: string) => {
+    try {
+      console.log("[v0] Loading posts for channel:", channelId)
+      const { data: posts, error } = await supabase
+        .from("channel_posts")
+        .select("*")
+        .eq("channel_id", channelId)
+        .eq("is_archived", false)
+        .order("is_pinned", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(3)
+
+      if (error) throw error
+      console.log("[v0] Loaded posts:", posts?.length)
+      setChannelPosts(posts || [])
+    } catch (error) {
+      console.error("[v0] Error loading posts:", error)
+      toast.error("Failed to load channel posts")
+    }
+  }
+
+  const handleJoinChannel = async () => {
+    if (!selectedChannelForJoin || !agent) return
+
+    try {
+      const { data: existing } = await supabase
+        .from("channel_members")
+        .select("id")
+        .eq("channel_id", selectedChannelForJoin.id)
+        .eq("agent_id", agent.id)
+        .single()
+
+      if (existing) {
+        toast.error("You are already a member of this channel")
+        setShowJoinDialog(false)
+        setSelectedChannelForJoin(null)
+        return
+      }
+
+      const { error: requestError } = await supabase.from("channel_join_requests").insert([
+        {
+          channel_id: selectedChannelForJoin.id,
+          agent_id: agent.id,
+          request_message: joinMessage,
+          status: "pending",
+        },
+      ])
+
+      if (requestError) throw requestError
+
+      toast.success("Join request sent! Waiting for approval.")
+      setShowJoinDialog(false)
+      setJoinMessage("")
+      setSelectedChannelForJoin(null)
+      await loadChannels()
+    } catch (error) {
+      console.error("[v0] Error joining channel:", error)
+      toast.error("Failed to send join request")
+    }
+  }
+
+  const handleOpenChannel = (channel: TeachingChannel) => {
+    router.push(`/agent/teaching/${channel.id}`)
+  }
+
+  const handleLogout = () => {
+    logoutAgent()
+    router.push("/agent/login")
+  }
+
+  const filteredChannels = channels.filter(
+    (channel) =>
+      channel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      channel.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const filteredMyChannels = myChannels.filter(
+    (channel) =>
+      channel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      channel.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  if (!agent) {
+    return null
+  }
+
+  if (selectedChannel && (selectedChannel.user_role === "admin" || selectedChannel.user_role === "teacher")) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg border-b-2 border-blue-700">
+          <div className="w-full px-2 py-2 sm:px-3 sm:py-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedChannel(null)}
+                  className="text-white hover:bg-white/20 h-7 px-2 text-xs"
+                >
+                  ← Back
+                </Button>
+                <div className="min-w-0">
+                  <h1 className="text-sm sm:text-base font-bold text-white drop-shadow-lg truncate">
+                    {selectedChannel.name}
+                  </h1>
+                  <p className="text-xs text-blue-100 truncate">Teaching Channel - {selectedChannel.user_role}</p>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleLogout}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-7 px-2 text-xs flex-shrink-0"
+              >
+                <LogOut className="h-3 w-3 mr-1" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div className="w-full px-2 py-4 sm:px-3">
+          <TeacherChannelDashboard
+            channelId={selectedChannel.id}
+            teacherId={agent.id}
+            teacherName={agent.full_name || agent.email}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg border-b-2 border-blue-700">
+        <div className="w-full px-2 py-2 sm:px-3 sm:py-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/agent/dashboard")}
+                className="text-white hover:bg-white/20 h-7 px-2 text-xs"
+              >
+                ← Back
+              </Button>
+              <div className="w-8 h-8 bg-white rounded-lg shadow-lg flex items-center justify-center p-1 flex-shrink-0">
+                <BookOpen className="w-full h-full text-blue-600" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-base font-bold text-white drop-shadow-lg truncate">Teaching Platform</h1>
+                <p className="text-xs text-blue-100 truncate">Learn from expert teachers</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full">
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
+          <div className="w-full bg-white/80 backdrop-blur-sm shadow-md border-b border-blue-200">
+            <div className="w-full py-2 px-2 sm:px-3">
+              <TabsList className="w-full flex items-center justify-start bg-transparent p-0 gap-1 overflow-x-auto">
+                <TabsTrigger
+                  value="channels"
+                  className="flex items-center justify-center px-2 py-1 text-xs font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-md whitespace-nowrap flex-shrink-0"
+                >
+                  <BookOpen className="h-3 w-3 mr-1" />
+                  View
+                </TabsTrigger>
+                <TabsTrigger
+                  value="my-channels"
+                  className="flex items-center justify-center px-2 py-1 text-xs font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-md whitespace-nowrap flex-shrink-0"
+                >
+                  <Users className="h-3 w-3 mr-1" />
+                  My Channels
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
+
+          <div className="w-full py-2 px-2 sm:px-3">
+            <div className="relative w-full max-w-xl">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-blue-400 h-3 w-3" />
+              <Input
+                placeholder="Search channels..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-7 border-blue-200 focus:border-blue-500 bg-white/80 backdrop-blur-sm w-full rounded-lg text-xs h-7"
+              />
+            </div>
+          </div>
+
+          <TabsContent value="channels" className="pb-4 space-y-2 w-full px-2 sm:px-3">
+            <div className="w-full">
+              {loading ? (
+                <div className="space-y-2 w-full">
+                  {[...Array(3)].map((_, i) => (
+                    <ChannelCardSkeleton key={i} />
+                  ))}
+                </div>
+              ) : filteredChannels.length === 0 ? (
+                <Card className="bg-blue-50 border-blue-200 w-full">
+                  <CardContent className="pt-3 text-center text-blue-600 text-sm">
+                    <BookOpen className="h-8 w-8 mx-auto mb-1 opacity-50" />
+                    <p>No channels available</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 w-full">
+                  {filteredChannels.map((channel) => (
+                    <Card
+                      key={channel.id}
+                      className="border-blue-200 bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group w-full"
+                    >
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between gap-1 flex-wrap">
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-blue-800 group-hover:text-blue-600 transition-colors text-xs sm:text-sm truncate">
+                              {channel.name}
+                            </CardTitle>
+                            <p className="text-xs text-gray-600 mt-0.5 truncate">{channel.category}</p>
+                          </div>
+                          {channel.is_member && (
+                            <Badge className="bg-green-100 text-green-800 border-green-200 text-xs flex-shrink-0 h-5">
+                              Member
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <p className="text-xs text-gray-700 line-clamp-2">{channel.description}</p>
+                        <div className="flex items-center gap-3 text-xs text-gray-600">
+                          <span className="flex items-center gap-0.5">
+                            <Users className="h-2.5 w-2.5" />
+                            {channel.member_count || 0}
+                          </span>
+                          <span className="flex items-center gap-0.5">
+                            <Eye className="h-2.5 w-2.5" />
+                            {channel.is_public ? "Public" : "Private"}
+                          </span>
+                        </div>
+                        <div className="flex gap-1 pt-1 border-t border-gray-200 w-full">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 text-blue-600 border-blue-300 bg-transparent hover:bg-blue-50 text-xs h-6"
+                            onClick={() => {
+                              setSelectedChannel(channel)
+                              setShowChannelDialog(true)
+                              loadChannelPosts(channel.id)
+                            }}
+                          >
+                            <Eye className="h-2.5 w-2.5 mr-0.5" />
+                            View
+                          </Button>
+
+                          {!channel.is_member && (
+                            <Dialog
+                              open={showJoinDialog && selectedChannelForJoin?.id === channel.id}
+                              onOpenChange={setShowJoinDialog}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs h-6"
+                                  onClick={() => {
+                                    setSelectedChannelForJoin(channel)
+                                    setShowJoinDialog(true)
+                                  }}
+                                >
+                                  <Plus className="h-2.5 w-2.5 mr-0.5" />
+                                  Join
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-[90vw] max-w-xs w-full">
+                                <DialogHeader>
+                                  <DialogTitle className="text-sm">Join Channel</DialogTitle>
+                                  <DialogDescription className="text-xs">
+                                    Request to join {selectedChannelForJoin?.name}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-2 py-2">
+                                  <div className="grid gap-1">
+                                    <label className="text-xs font-medium text-gray-700">Message (Optional)</label>
+                                    <textarea
+                                      value={joinMessage}
+                                      onChange={(e) => setJoinMessage(e.target.value)}
+                                      placeholder="Tell us why you want to join..."
+                                      className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                                      rows={3}
+                                    />
+                                  </div>
+                                </div>
+                                <DialogFooter className="gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setShowJoinDialog(false)
+                                      setJoinMessage("")
+                                      setSelectedChannelForJoin(null)
+                                    }}
+                                    className="text-xs h-7"
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    onClick={handleJoinChannel}
+                                    className="bg-blue-600 hover:bg-blue-700 text-xs h-7"
+                                  >
+                                    Send
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+
+                          {channel.is_member && (
+                            <Badge className="flex-1 flex items-center justify-center bg-green-100 text-green-800 border-green-200 text-xs h-6">
+                              <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                              Member
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="my-channels" className="pb-4 space-y-2 w-full px-2 sm:px-3">
+            <div className="w-full">
+              {loading ? (
+                <div className="space-y-2 w-full">
+                  {[...Array(2)].map((_, i) => (
+                    <ChannelCardSkeleton key={i} />
+                  ))}
+                </div>
+              ) : filteredMyChannels.length === 0 ? (
+                <Card className="bg-blue-50 border-blue-200 w-full">
+                  <CardContent className="pt-3 text-center text-blue-600 text-sm">
+                    <Users className="h-8 w-8 mx-auto mb-1 opacity-50" />
+                    <p className="text-xs">You haven't joined any channels yet</p>
+                    <p className="text-xs mt-1">Explore channels to get started</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2 w-full">
+                  {filteredMyChannels.filter((c) => c.user_role === "teacher" || c.user_role === "admin").length >
+                    0 && (
+                    <div className="space-y-2 w-full">
+                      <h3 className="font-semibold text-blue-800 flex items-center gap-1 text-xs sm:text-sm">
+                        <Award className="h-3 w-3" />
+                        Channels You Manage
+                      </h3>
+                      {filteredMyChannels
+                        .filter((c) => c.user_role === "teacher" || c.user_role === "admin")
+                        .map((channel) => (
+                          <Card
+                            key={channel.id}
+                            className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-lg transition-all duration-300 cursor-pointer w-full"
+                          >
+                            <CardContent className="pt-3">
+                              <div className="flex items-start justify-between gap-1 flex-wrap">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-blue-800 text-xs sm:text-sm truncate">
+                                    {channel.name}
+                                  </h3>
+                                  <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{channel.description}</p>
+                                  <div className="flex items-center gap-2 text-xs text-gray-600 mt-2 flex-wrap">
+                                    <span className="flex items-center gap-0.5">
+                                      <Users className="h-2.5 w-2.5" />
+                                      {channel.member_count || 0}
+                                    </span>
+                                    <Badge variant="secondary" className="text-xs h-5">
+                                      {channel.category}
+                                    </Badge>
+                                    <Badge className="text-xs bg-blue-600 text-white h-5">
+                                      {channel.user_role === "admin" ? "Admin" : "Teacher"}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-blue-400 flex-shrink-0 mt-1" />
+                              </div>
+                              <div className="flex gap-1 pt-2 border-t border-blue-200 mt-2 w-full">
+                                <Button
+                                  size="sm"
+                                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs h-6"
+                                  onClick={() => handleOpenChannel(channel)}
+                                >
+                                  <MessageCircle className="h-3 w-3 mr-0.5" />
+                                  Manage
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  )}
+
+                  {filteredMyChannels.filter((c) => c.user_role === "member").length > 0 && (
+                    <div className="space-y-2 w-full">
+                      <h3 className="font-semibold text-gray-800 flex items-center gap-1 text-xs sm:text-sm">
+                        <Users className="h-3 w-3" />
+                        Channels You're a Member Of
+                      </h3>
+                      {filteredMyChannels
+                        .filter((c) => c.user_role === "member")
+                        .map((channel) => (
+                          <Card
+                            key={channel.id}
+                            className="border-gray-200 bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer w-full"
+                          >
+                            <CardContent className="pt-3">
+                              <div className="flex items-start justify-between gap-1 flex-wrap">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-gray-800 text-xs sm:text-sm truncate">
+                                    {channel.name}
+                                  </h3>
+                                  <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{channel.description}</p>
+                                  <div className="flex items-center gap-2 text-xs text-gray-600 mt-2 flex-wrap">
+                                    <span className="flex items-center gap-0.5">
+                                      <Users className="h-2.5 w-2.5" />
+                                      {channel.member_count || 0}
+                                    </span>
+                                    <Badge variant="secondary" className="text-xs h-5">
+                                      {channel.category}
+                                    </Badge>
+                                    <Badge variant="outline" className="text-xs h-5">
+                                      Member
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0 mt-1" />
+                              </div>
+                              <div className="flex gap-1 pt-2 border-t border-gray-200 mt-2 w-full">
+                                <Button
+                                  size="sm"
+                                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs h-6"
+                                  onClick={() => handleOpenChannel(channel)}
+                                >
+                                  <MessageCircle className="h-3 w-3 mr-0.5" />
+                                  View
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {selectedChannel && selectedChannel.user_role !== "admin" && selectedChannel.user_role !== "teacher" && (
+          <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
+            <DialogContent className="max-w-sm max-h-[70vh] overflow-y-auto w-[95vw]">
+              <DialogHeader>
+                <DialogTitle className="text-sm">{selectedChannel.name}</DialogTitle>
+                <DialogDescription className="text-xs">{selectedChannel.description}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50 rounded-lg">
+                  <div>
+                    <p className="text-xs text-gray-600">Category</p>
+                    <p className="font-semibold text-blue-800 text-xs">{selectedChannel.category}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600">Members</p>
+                    <p className="font-semibold text-blue-800 text-xs">{selectedChannel.member_count || 0}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-blue-800 text-xs">Latest Lessons</h3>
+                  {channelPosts.length === 0 ? (
+                    <p className="text-xs text-gray-600 text-center py-2">No posts yet</p>
+                  ) : (
+                    channelPosts.map((post) => (
+                      <Card
+                        key={post.id}
+                        className="border-gray-200 cursor-pointer hover:shadow-lg hover:border-blue-400 transition-all duration-200"
+                        onClick={() => handleOpenChannel(selectedChannel)}
+                      >
+                        <CardContent className="pt-2">
+                          <div className="space-y-1">
+                            <h4 className="font-medium text-gray-800 hover:text-blue-600 text-xs">{post.title}</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">{post.content}</p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500 pt-1">
+                              <span className="flex items-center gap-0.5">
+                                <Eye className="h-2.5 w-2.5" />
+                                {post.view_count}
+                              </span>
+                              <span className="flex items-center gap-0.5">
+                                <MessageSquare className="h-2.5 w-2.5" />
+                                {post.comment_count || 0}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+
+                <Button
+                  onClick={() => handleOpenChannel(selectedChannel)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
+                >
+                  View Full Channel
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      <BackToTop />
+    </div>
+  )
+}
