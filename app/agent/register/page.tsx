@@ -26,8 +26,23 @@ import {
 import Link from "next/link"
 
 const regions = [
-  "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta", "Northern",
-  "Upper East", "Upper West", "Brong-Ahafo", "Western North", "Ahafo", "Bono", "Bono East", "Oti", "North East", "Savannah",
+  "Greater Accra",
+  "Ashanti",
+  "Western",
+  "Central",
+  "Eastern",
+  "Volta",
+  "Northern",
+  "Upper East",
+  "Upper West",
+  "Brong-Ahafo",
+  "Western North",
+  "Ahafo",
+  "Bono",
+  "Bono East",
+  "Oti",
+  "North East",
+  "Savannah",
 ]
 
 export default function RegisterPage() {
@@ -121,14 +136,16 @@ export default function RegisterPage() {
       const passwordHash = await hashPassword(formData.password)
       const { data, error: insertError } = await supabase
         .from("agents")
-        .insert([{
-          full_name: formData.fullName,
-          phone_number: formData.phoneNumber,
-          payment_line: formData.paymentLine,
-          region: formData.region,
-          password_hash: passwordHash,
-          isapproved: false,
-        }])
+        .insert([
+          {
+            full_name: formData.fullName,
+            phone_number: formData.phoneNumber,
+            momo_number: formData.paymentLine,
+            region: formData.region,
+            password_hash: passwordHash,
+            isapproved: false,
+          },
+        ])
         .select()
       if (insertError) {
         console.error("Registration error:", insertError)
