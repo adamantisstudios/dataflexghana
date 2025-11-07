@@ -4,52 +4,53 @@ import { TrendingUp, Users, Zap } from "lucide-react"
 
 export default function VanityMetricsCompact() {
   const [visitors, setVisitors] = useState(0)
+  const [successfulPlacements, setSuccessfulPlacements] = useState(0)
 
   useEffect(() => {
-    const today = new Date().toDateString()
-    const stored = localStorage.getItem("dailyVisitors")
-    const storedDate = localStorage.getItem("visitorDate")
-    if (storedDate === today && stored) {
-      setVisitors(Number.parseInt(stored))
+    const today = new Date()
+    const todayString = today.toDateString()
+    const isMonday = today.getDay() === 1
+
+    // Weekly logic for "Successfully Placed"
+    const storedWeekly = localStorage.getItem("weeklyPlacements")
+    const storedWeekStart = localStorage.getItem("weekStartDate")
+
+    if (isMonday || !storedWeekStart) {
+      const newWeekly = Math.floor(Math.random() * (50 - 17 + 1)) + 17
+      localStorage.setItem("weeklyPlacements", newWeekly.toString())
+      localStorage.setItem("weekStartDate", todayString)
+      setSuccessfulPlacements(newWeekly)
+    } else {
+      setSuccessfulPlacements(Number.parseInt(storedWeekly))
+    }
+
+    // Daily logic for "Active Visitors Today"
+    const storedDaily = localStorage.getItem("dailyVisitors")
+    const storedDailyDate = localStorage.getItem("visitorDate")
+
+    if (storedDailyDate === todayString && storedDaily) {
+      setVisitors(Number.parseInt(storedDaily))
     } else {
       const randomVisitors = Math.floor(Math.random() * (1300 - 120 + 1)) + 120
       setVisitors(randomVisitors)
       localStorage.setItem("dailyVisitors", randomVisitors.toString())
-      localStorage.setItem("visitorDate", today)
+      localStorage.setItem("visitorDate", todayString)
     }
   }, [])
 
   const metrics = [
-    {
-      icon: <Users className="h-4 w-4 sm:h-5 sm:w-5" />,
-      label: "Active Visitors Today",
-      value: visitors.toLocaleString(),
-      color: "text-blue-500",
-    },
-    {
-      icon: <Zap className="h-4 w-4 sm:h-5 sm:w-5" />,
-      label: "Candidates Verified",
-      value: "2,847+",
-      color: "text-cyan-500",
-    },
-    {
-      icon: <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />,
-      label: "Successful Placements",
-      value: "1,256+",
-      color: "text-green-500",
-    },
+    { icon: <Users size={16} />, label: "Active Visitors", value: visitors.toLocaleString(), color: "text-blue-500" },
+    { icon: <Zap size={16} />, label: "Candidates Verified", value: "24,847+", color: "text-cyan-500" },
+    { icon: <TrendingUp size={16} />, label: "Successfully Placed This Week", value: successfulPlacements.toLocaleString(), color: "text-green-500" },
   ]
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+    <div className="flex flex-row justify-between w-full gap-1">
       {metrics.map((metric, idx) => (
-        <div
-          key={idx}
-          className="bg-white dark:bg-slate-50 border border-slate-200 dark:border-slate-700 rounded-md p-2 sm:p-3 text-center shadow-sm hover:shadow-md transition-shadow"
-        >
-          <div className={`flex items-center justify-center mb-1 ${metric.color}`}>{metric.icon}</div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 line-clamp-1">{metric.label}</p>
-          <p className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-800">{metric.value}</p>
+        <div key={idx} className="flex-1 bg-white dark:bg-slate-50 border border-slate-200 dark:border-slate-700 rounded p-1.5 text-center shadow-sm min-w-0">
+          <div className={`flex justify-center mb-0.5 ${metric.color}`}>{metric.icon}</div>
+          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">{metric.label}</p>
+          <p className="text-sm sm:text-base font-medium text-slate-900 dark:text-slate-800 truncate">{metric.value}</p>
         </div>
       ))}
     </div>
