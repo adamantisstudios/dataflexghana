@@ -63,6 +63,7 @@ export default function RegisterPage() {
   const [popupTimeRemaining, setPopupTimeRemaining] = useState(15)
   const [canClosePopup, setCanClosePopup] = useState(false)
   const [showIntroMessage, setShowIntroMessage] = useState(false)
+  const [referralCode, setReferralCode] = useState<string>("")
   const router = useRouter()
 
   // Show warning popup 15 seconds after page load
@@ -97,6 +98,20 @@ export default function RegisterPage() {
     return () => clearInterval(timer)
   }, [showWarningPopup])
 
+  // Capture referral code from URL and track the referral link click
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const code = searchParams.get("ref")
+    if (code) {
+      setReferralCode(code)
+      fetch("/api/agent/referral/track-click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referral_code: code }),
+      }).catch((err) => console.error("[v0] Failed to track referral click:", err))
+    }
+  }, [])
+
   const handleCloseAudioPlayer = () => {
     const today = new Date().toDateString()
     localStorage.setItem("audioPlayerLastShown", today)
@@ -125,34 +140,111 @@ export default function RegisterPage() {
     try {
       const { data: existingAgent } = await supabase
         .from("agents")
-        .select("id")
+        .select("id, phone_number")
         .eq("phone_number", formData.phoneNumber)
-        .single()
+        .maybeSingle()
       if (existingAgent) {
         setError("An agent with this phone number already exists")
         setLoading(false)
         return
       }
       const passwordHash = await hashPassword(formData.password)
+
       const { data, error: insertError } = await supabase
         .from("agents")
         .insert([
           {
             full_name: formData.fullName,
+            agent_name: formData.fullName, // Add agent_name field
             phone_number: formData.phoneNumber,
             momo_number: formData.paymentLine,
             region: formData.region,
             password_hash: passwordHash,
             isapproved: false,
+            referral_code: referralCode || null, // Store the referral code used
           },
         ])
         .select()
+
       if (insertError) {
         console.error("Registration error:", insertError)
         setError("Registration failed. Please try again.")
         setLoading(false)
         return
       }
+
+      if (data && data[0]) {
+        const newAgent = data[0]
+
+        if (referralCode) {
+          try {
+            const { data: referralLink } = await supabase
+              .from("referral_links")
+              .select("id, agent_id")
+              .eq("referral_code", referralCode)
+              .maybeSingle()
+
+            if (referralLink?.agent_id) {
+              const { error: creditError } = await supabase.from("referral_credits").insert([
+                {
+                  referring_agent_id: referralLink.agent_id,
+                  referred_agent_id: newAgent.id,
+                  credit_amount: 15.0,
+                  status: "pending",
+                  created_at: new Date().toISOString(),
+                },
+              ])
+
+              if (creditError) {
+                console.error("[v0] Error creating referral credit:", creditError)
+              }
+
+              const { data: trackingData, error: trackingError } = await supabase
+                .from("referral_tracking")
+                .update({
+                  referred_agent_id: newAgent.id,
+                  referred_name: formData.fullName,
+                  referred_phone: formData.phoneNumber,
+                  referred_user_registered: true,
+                  referred_user_registered_at: new Date().toISOString(),
+                  converted: true,
+                  converted_at: new Date().toISOString(),
+                })
+                .eq("referral_code", referralCode)
+                .eq("converted", false)
+                .order("clicked_at", { ascending: false })
+                .limit(1)
+                .select()
+
+              if (trackingError) {
+                console.error("[v0] Error updating referral tracking:", trackingError)
+              }
+
+              // Update referral link stats
+              const { data: referralTrackingData } = await supabase
+                .from("referral_tracking")
+                .select("*", { count: "exact" })
+                .eq("referral_link_id", referralLink.id)
+                .eq("converted", true)
+
+              if (referralTrackingData) {
+                await supabase
+                  .from("referral_links")
+                  .update({
+                    total_referrals: referralTrackingData.length || 0,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", referralLink.id)
+              }
+
+              console.log("[v0] Referral processed for agent:", referralLink.agent_id)
+            }
+          } catch (referralError) {
+            console.error("[v0] Error processing referral:", referralError)
+          }
+        }
+      }
+
       router.push("/payment-reminder")
     } catch (error) {
       console.error("Registration error:", error)

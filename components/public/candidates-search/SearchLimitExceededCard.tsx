@@ -1,16 +1,26 @@
 /**
  * Search Limit Exceeded Card
  * Displayed when user reaches their daily search limit
+ * Redirects to https://registrypoint.netlify.app/ after 7 seconds
  */
 "use client"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { AlertCircle, Phone } from "lucide-react"
+import { useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Phone } from "lucide-react";
 
 export default function SearchLimitExceededCard() {
   const message =
-    "You have used your 7 free searches for today. To continue searching for candidates, please contact our support team for priority access."
-  const phoneNumber = "+233 546 460 945"
+    "You have used your 7 free searches for today. To continue searching for candidates, please contact our support team for priority access.";
+  const phoneNumber = "+233 546 460 945";
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.location.href = "https://registrypoint.netlify.app/";
+    }, 7000); // 7 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <Card className="border-blue-200 bg-blue-50">
@@ -30,5 +40,5 @@ export default function SearchLimitExceededCard() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

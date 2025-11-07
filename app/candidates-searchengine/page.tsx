@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import CandidatesSearchEngineClientPage from "@/components/public/candidates-search/CandidatesSearchEngineClientPage"
+import BoldCandidatesSearchEngine from "@/components/public/candidates-search/BoldCandidatesSearchEngine"
 
 export const metadata: Metadata = {
   title: "Job Candidates Search Engine in Ghana | Find Qualified Professionals",
@@ -17,6 +17,25 @@ export const metadata: Metadata = {
     "hiring Ghana",
     "job seekers Ghana",
     "qualified professionals",
+    "Ghana talent pool",
+    "professional search Ghana",
+    "skilled workers Ghana",
+    "employment Ghana",
+    "talent acquisition Ghana",
+    "HR recruitment Ghana",
+    "staff search Ghana",
+    "career Ghana",
+    "job opportunities Ghana",
+    "professionals near me",
+    "candidate database Ghana",
+    "verify candidates Ghana",
+    "pre-vetted professionals",
+    "find employees Ghana",
+    "human resources Ghana",
+    "staffing Ghana",
+    "skilled professionals Ghana",
+    "business talent Ghana",
+    "workforce Ghana",
   ].join(", "),
   authors: [{ name: "DataFlex Ghana Candidates" }],
   creator: "DataFlex Ghana",
@@ -32,7 +51,7 @@ export const metadata: Metadata = {
       "Search for qualified candidates across Ghana. Find marketing executives, IT professionals, business managers, and more. Pre-vetted professionals ready to work.",
     images: [
       {
-        url: "https://dataflexghana.com/images/candidates-search-showcase.jpg",
+        url: "https://dataflexghana.com/images/candidates-search-preview.jpg",
         width: 1200,
         height: 630,
         alt: "Job Candidates Search Engine in Ghana - Find Qualified Professionals",
@@ -49,7 +68,7 @@ export const metadata: Metadata = {
       "🎯 Marketing Executives ✅ IT Professionals ✅ Business Managers ✅ Find Pre-vetted Candidates ✅ Hire Now! 🇬🇭 #JobCandidatesGhana #RecruitmentGhana #HiringGhana",
     images: [
       {
-        url: "https://dataflexghana.com/images/candidates-search-showcase.jpg",
+        url: "https://dataflexghana.com/images/candidates-search-preview.jpg",
         alt: "Job Candidates Search Engine - Find Qualified Professionals in Ghana",
       },
     ],
@@ -62,7 +81,7 @@ export const metadata: Metadata = {
 export default function CandidatesSearchEnginePage() {
   return (
     <>
-      <CandidatesSearchEngineClientPage />
+      <BoldCandidatesSearchEngine />
     </>
   )
 }

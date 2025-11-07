@@ -182,8 +182,31 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
 
   const approveAgent = async (agentId: string) => {
     try {
+      const agentToApprove = agents.find((a) => a.id === agentId)
+      if (!agentToApprove) return
+
       const { error } = await supabase.from("agents").update({ isapproved: true }).eq("id", agentId)
       if (error) throw error
+
+      if (agentToApprove.referral_code) {
+        const { data: referringAgent } = await supabase
+          .from("agents")
+          .select("id")
+          .eq("unique_agent_code", agentToApprove.referral_code)
+          .single()
+
+        if (referringAgent) {
+          // Create referral credit record with "pending" status for manual payout
+          await supabase.from("referral_credits").insert({
+            referring_agent_id: referringAgent.id,
+            referred_agent_id: agentId,
+            credit_amount: 15.0,
+            status: "pending", // Admin will manually process this later
+            created_at: new Date().toISOString(),
+          })
+        }
+      }
+
       const updatedAgents = agents.map((agent) => (agent.id === agentId ? { ...agent, isapproved: true } : agent))
       setAgents(updatedAgents)
       setCachedData(updatedAgents)

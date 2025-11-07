@@ -81,6 +81,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       onClick: () => handleMenuCardClick("properties"),
     },
     {
+      id: "referral-program",
+      title: "Referral Program",
+      description: "Invite & Earn Commissions",
+      icon: <Users className="h-12 w-12" />,
+      image: "/images/referral-program.png",
+      gradient: "linear-gradient(135deg, #F59E0B, #D97706)",
+      buttonText: "INVITE NOW",
+      onClick: () => handleMenuCardClick("referral-program"),
+    },
+    {
       id: "services",
       title: "Referral Services",
       description: "Refer & Earn Big",

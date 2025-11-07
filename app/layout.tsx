@@ -6,21 +6,45 @@ import { Toaster as SonnerToaster } from "sonner"
 import { DevConsoleDetector } from "@/components/dev-console-detector"
 
 export const metadata: Metadata = {
-  title: "DataFlex Agents - Educational Services, Jobs & Business Opportunities in Ghana",
+  title: "DataFlex Agents Ghana - Earn ₵700+ Daily | Multi-Service Platform with Commissions",
   description:
-    "Ghana's premier platform for educational services, job opportunities, and business growth. Access GES-approved books, wholesale shopping, business registration, digital vouchers, school forms, and verified employment opportunities. Join thousands building successful careers and businesses.",
+    "Join Ghana's #1 multi-service earning platform. Earn commissions up to ₵700+ daily as a DataFlex Agent. Access GES-approved books, verified jobs, business registration, wholesale shopping, digital vouchers & more. Perfect for students, job seekers & entrepreneurs seeking side income. Zero agency fees. 100% free job search support. Become an agent today!",
   keywords: [
-    // Educational services
+    // Primary earning/commission keywords
+    "earn money in Ghana",
+    "earn commissions Ghana",
+    "make money on the side Ghana",
+    "side gigs Ghana",
+    "side hustle Ghana",
+    "earn 700 cedis daily",
+    "earn 500 cedis daily Ghana",
+    "earn extra income Ghana",
+    "make money online Ghana",
+    "online earning Ghana",
+    "work from home Ghana",
+    "commission based jobs Ghana",
+    "affiliate marketing Ghana",
+    "referral commission Ghana",
+    "passive income Ghana",
+    "additional income Ghana",
+    "flexible income Ghana",
+    "part time earning Ghana",
+
+    // Educational services & GES-approved products
     "GES approved books Ghana",
     "educational materials Ghana",
     "school stationery Ghana",
     "textbooks Ghana",
     "student supplies Ghana",
     "educational resources Ghana",
-    "school voucher cards",
-    "GES approved books",
+    "school voucher cards Ghana",
+    "GES certified books",
+    "BECE results checker Ghana",
+    "WASSCE results checker Ghana",
+    "school forms Ghana",
+    "university application forms Ghana",
 
-    // Job seekers & students
+    // Job seekers & employment
     "jobs for students Ghana",
     "part time jobs Ghana",
     "online jobs Ghana",
@@ -38,8 +62,10 @@ export const metadata: Metadata = {
     "job vacancies Ghana",
     "remote jobs Ghana",
     "freelance jobs Ghana",
+    "casual labor Ghana",
+    "fast hired jobs Ghana",
 
-    // Business services
+    // Business registration & compliance
     "business registration Ghana",
     "business opportunities Ghana",
     "entrepreneur Ghana",
@@ -50,21 +76,34 @@ export const metadata: Metadata = {
     "sole proprietorship registration",
     "company registration Ghana",
     "register business Ghana",
-    "AFA registration",
+    "AFA registration Ghana",
+    "business compliance Ghana",
+    "business legalization Ghana",
 
-    // Side gigs and earning
-    "side gigs in Ghana",
-    "make money online in Ghana",
-    "earn money Ghana",
-    "side hustles Ghana",
-    "side income Ghana",
-    "extra income Ghana",
-    "passive income Ghana",
-    "money making ideas Ghana",
-    "affiliate marketing Ghana",
-    "agent opportunities Ghana",
+    // Data bundles & telecommunications
+    "affordable data bundles Ghana",
+    "cheap data Ghana",
+    "data bundle prices",
+    "MTN data Ghana",
+    "AirtelTigo data Ghana",
+    "Telecel data Ghana",
+    "buy data online Ghana",
+    "data packages Ghana",
+    "internet bundles Ghana",
 
-    // Real estate
+    // Wholesale & shopping
+    "wholesale business Ghana",
+    "wholesale shopping Ghana",
+    "bulk purchases Ghana",
+    "business supplies Ghana",
+    "wholesale marketplace Ghana",
+    "retail shopping Ghana",
+    "school supplies wholesale Ghana",
+    "dropshipping Ghana",
+    "import export Ghana",
+    "supplier Ghana",
+
+    // Real estate & investment
     "real estate agent Ghana",
     "property investment Ghana",
     "buy land Ghana",
@@ -74,95 +113,19 @@ export const metadata: Metadata = {
     "high return investment Ghana",
     "investment opportunities Ghana",
 
-    // Government services
-    "birth certificate Ghana",
-    "driver's license Ghana",
-    "passport Ghana",
-    "legal document processing Ghana",
-    "government services Ghana",
+    // Multi-service platform specific
+    "multi-service platform Ghana",
+    "all in one service platform",
+    "platform to earn money Ghana",
+    "DataFlex platform",
+    "DataFlex Ghana",
+    "DataFlex agents",
+    "agent registration Ghana",
+    "verified platform Ghana",
+    "trusted service platform",
+    "legitimate opportunities Ghana",
 
-    // Wholesale & shopping
-    "wholesale business Ghana",
-    "wholesale shopping Ghana",
-    "bulk purchases Ghana",
-    "business supplies Ghana",
-    "wholesale marketplace Ghana",
-    "retail shopping Ghana",
-    "school supplies Ghana",
-
-    // Tech services
-    "MTN Turbonet",
-    "buy internet routers Ghana",
-    "software installation Ghana",
-    "tech services Ghana",
-    "data bundles Ghana",
-    "internet services Ghana",
-    "tech support Ghana",
-    "software Ghana",
-    "hardware Ghana",
-    "networking Ghana",
-
-    // Digital services
-    "digital voucher cards Ghana",
-    "school placement forms Ghana",
-    "educational paperwork Ghana",
-    "digital services Ghana",
-    "e-commerce Ghana",
-    "online shopping Ghana",
-    "digital payments Ghana",
-    "online payments Ghana",
-    "mobile money Ghana",
-
-    // Financial services
-    "financial services Ghana",
-    "financial freedom Ghana",
-    "wealth creation Ghana",
-    "savings Ghana",
-    "loans Ghana",
-    "credit Ghana",
-    "banking Ghana",
-    "cryptocurrency Ghana",
-    "bitcoin Ghana",
-    "forex trading Ghana",
-    "stock trading Ghana",
-    "investment clubs Ghana",
-    "microfinance Ghana",
-
-    // Business ideas
-    "business ideas Ghana",
-    "online business Ghana",
-    "home business Ghana",
-    "online business ideas Ghana",
-    "business consulting Ghana",
-
-    // Education and training
-    "career growth Ghana",
-    "skills development Ghana",
-    "training Ghana",
-    "certification Ghana",
-    "online courses Ghana",
-    "distance learning Ghana",
-    "scholarships Ghana",
-    "student loans Ghana",
-    "education Ghana",
-    "schools Ghana",
-    "universities Ghana",
-    "colleges Ghana",
-    "vocational training Ghana",
-    "apprenticeship Ghana",
-    "internship Ghana",
-
-    // Professional services
-    "legal consulting Ghana",
-    "financial consulting Ghana",
-    "tax consulting Ghana",
-    "audit services Ghana",
-    "accounting services Ghana",
-    "bookkeeping Ghana",
-    "payroll services Ghana",
-    "HR services Ghana",
-
-    // Regional keywords
+    // Geographic & regional keywords
     "Greater Accra Ghana",
     "Ashanti Region Ghana",
     "Western Region Ghana",
@@ -174,14 +137,38 @@ export const metadata: Metadata = {
     "Accra Ghana",
     "Tema Ghana",
     "Takoradi Ghana",
+    "Sekondi Ghana",
+    "Cape Coast Ghana",
+    "Tamale Ghana",
 
-    // Platform specific
-    "DataFlex Ghana",
-    "DataFlex Agents",
-    "agent registration Ghana",
-    "verified platform Ghana",
-    "trusted service platform",
-    "legitimate opportunities Ghana",
+    // Mentorship & learning platform keywords
+    "learn from mentors Ghana",
+    "mentorship platform Ghana",
+    "teacher network Ghana",
+    "skill development Ghana",
+    "training courses Ghana",
+    "online learning Ghana",
+    "career guidance Ghana",
+    "business training Ghana",
+    "professional development Ghana",
+    "teaching channels Ghana",
+
+    // Platform channels & community
+    "channels to join Ghana",
+    "learning channels",
+    "community platform Ghana",
+    "agent community",
+    "networking platform Ghana",
+    "professional network Ghana",
+    "business channels Ghana",
+    "educational channels Ghana",
+
+    // Service-specific keywords
+    "teacher mentor network",
+    "find mentors Ghana",
+    "learning opportunities Ghana",
+    "skill sharing platform",
+    "professional consultation Ghana",
   ].join(", "),
   authors: [{ name: "DataFlex Ghana - Adamantis Solutions" }],
   creator: "DataFlex Ghana",
@@ -191,23 +178,23 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_GH",
     url: "https://dataflexghana.com",
-    siteName: "DataFlex Agents - Ghana's Premier Educational & Business Platform",
-    title: "Educational Services, Jobs & Business Opportunities in Ghana | DataFlex",
+    siteName: "DataFlex Agents Ghana - Earn Commissions & Build Multiple Income Streams",
+    title: "DataFlex Agents Ghana - Earn ₵700+ Daily | Multi-Service Earning Platform",
     description:
-      "Transform your future with DataFlex! Access GES-approved educational materials, find verified job opportunities, register your business, shop wholesale, and access digital services. Perfect for students, job seekers, parents, and entrepreneurs. Join thousands building successful careers in Ghana.",
+      "🇬🇭 DataFlex: Ghana's #1 multi-service platform to earn money. Earn ₵700+ daily through commissions. GES-approved books, verified jobs, business registration, wholesale shopping, digital vouchers & mentorship channels. Perfect for students, parents, entrepreneurs & job seekers. Start earning today with zero agency fees!",
     images: [
       {
         url: "https://dataflexghana.com/images/social-previewone.jpg",
         width: 1200,
         height: 630,
-        alt: "DataFlex Agents - Educational Services, Jobs & Business Opportunities in Ghana",
+        alt: "DataFlex Agents Ghana - Multi-Service Platform to Earn Money with Commissions",
         type: "image/jpeg",
       },
       {
         url: "https://dataflexghana.com/images/hero-main.jpg",
         width: 800,
         height: 600,
-        alt: "Students and professionals accessing educational and business services through DataFlex platform",
+        alt: "DataFlex platform offering GES-approved books, jobs, business registration, wholesale shopping & mentorship",
         type: "image/jpeg",
       },
     ],
@@ -216,13 +203,13 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@DataFlexGhana",
     creator: "@DataFlexGhana",
-    title: "🎓 Educational Services, Jobs & Business Opportunities in Ghana",
+    title: "🇬🇭 DataFlex: Earn ₵700+ Daily | Ghana's Multi-Service Earning Platform",
     description:
-      "📚 GES-approved books ✅ Verified jobs ✅ Business registration ✅ Wholesale shopping ✅ Digital vouchers ✅ School forms. Perfect for students, parents & entrepreneurs! 🇬🇭 #GhanaEducation #GhanaJobs #BusinessGhana #StudentServices",
+      "💰 Earn commissions through GES books, verified jobs, business registration, wholesale shopping & digital vouchers. Perfect side income! 📚 Educational services ✅ Verified employment ✅ Business tools ✅ Mentorship channels ✅ Start FREE today! #GhanaEarnings #SideHustle #GhanaJobs",
     images: [
       {
         url: "https://dataflexghana.com/images/social-previewone.jpg",
-        alt: "DataFlex - Ghana's Premier Platform for Educational & Business Services",
+        alt: "DataFlex Agents - Earn Money on the Side in Ghana",
       },
     ],
   },
@@ -240,8 +227,9 @@ export const metadata: Metadata = {
     "msapplication-config": "/browserconfig.xml",
   },
   generator: "Next.js",
-  category: "Business & Finance",
-  classification: "Earning Platform, Job Portal, Investment Tools",
+  category: "Business & Finance | Employment | Education",
+  classification:
+    "Multi-Service Platform | Earning Platform | Job Portal | Investment Tools | Commission-Based Business",
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -314,8 +302,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 {
                   "@type": "Organization",
                   "@id": "https://dataflexghana.com/#organization",
-                  name: "DataFlex Agents",
-                  alternateName: ["Adamantis Solutions", "DataFlex Ghana"],
+                  name: "DataFlex Agents Ghana",
+                  alternateName: ["DataFlex", "Adamantis Solutions", "DataFlex Ghana Platform"],
                   url: "https://dataflexghana.com",
                   logo: {
                     "@type": "ImageObject",
@@ -329,36 +317,52 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     width: 1200,
                     height: 630,
                   },
-                  contactPoint: {
-                    "@type": "ContactPoint",
-                    telephone: "+233-55-199-9901",
-                    contactType: "customer service",
-                    areaServed: "GH",
-                    availableLanguage: ["English", "Twi"],
-                    hoursAvailable: {
-                      "@type": "OpeningHoursSpecification",
-                      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-                      opens: "08:00",
-                      closes: "20:00",
+                  description:
+                    "Ghana's premier multi-service platform enabling agents to earn ₵700+ daily through GES-approved educational services, verified job placements, business registration, wholesale shopping, digital vouchers, and mentorship channels. Zero agency fees with transparent commission structures.",
+                  slogan: "Ghana's Multi-Service Platform to Earn Money with Multiple Income Streams",
+                  contactPoint: [
+                    {
+                      "@type": "ContactPoint",
+                      telephone: "+233-55-199-9901",
+                      contactType: "customer service",
+                      areaServed: "GH",
+                      availableLanguage: ["English", "Twi", "Akan"],
+                      hoursAvailable: {
+                        "@type": "OpeningHoursSpecification",
+                        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                        opens: "06:00",
+                        closes: "23:00",
+                      },
                     },
-                  },
+                    {
+                      "@type": "ContactPoint",
+                      contactType: "WhatsApp Support",
+                      url: "https://wa.me/233551999901",
+                      areaServed: "GH",
+                    },
+                  ],
                   address: {
                     "@type": "PostalAddress",
                     addressCountry: "GH",
-                    addressRegion: "Ghana",
+                    addressRegion: "Greater Accra",
+                    addressLocality: "Accra",
                   },
-                  sameAs: ["https://www.dataflexagents.com", "https://agentwelcome.netlify.app/"],
+                  sameAs: [
+                    "https://www.dataflexagents.com",
+                    "https://agentwelcome.netlify.app/",
+                    "https://fasthiredterms.netlify.app/",
+                    "https://bizcomplianceforms.netlify.app/",
+                  ],
                   foundingDate: "2023",
-                  numberOfEmployees: "50-100",
-                  slogan: "Ghana's Premier Platform for Educational & Business Services",
+                  numberOfEmployees: "50-200",
                 },
                 {
                   "@type": "WebSite",
                   "@id": "https://dataflexghana.com/#website",
                   url: "https://dataflexghana.com",
-                  name: "DataFlex Agents - Ghana's Premier Educational & Business Platform",
+                  name: "DataFlex Agents Ghana - Multi-Service Platform to Earn Money",
                   description:
-                    "Join Ghana's #1 platform for educational services, job opportunities, and business growth. Access GES-approved books, wholesale shopping, business registration, digital vouchers, school forms, and verified employment opportunities.",
+                    "Join Ghana's #1 multi-service platform offering GES-approved educational materials, verified employment opportunities, business registration, wholesale shopping, digital vouchers, and mentorship channels. Earn commissions up to ₵700 daily. Perfect for students, parents, entrepreneurs, and job seekers seeking flexible side income.",
                   publisher: {
                     "@id": "https://dataflexghana.com/#organization",
                   },
@@ -371,10 +375,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 },
                 {
                   "@type": "Service",
-                  "@id": "https://dataflexghana.com/#service",
-                  name: "DataFlex Agent Platform",
+                  "@id": "https://dataflexghana.com/#ges-books-service",
+                  name: "GES Approved Educational Books & Stationery",
                   description:
-                    "Comprehensive platform offering educational services, job opportunities, business registration, wholesale shopping, digital vouchers, and school forms for students, professionals, parents, and entrepreneurs in Ghana.",
+                    "Access GES-certified textbooks, stationery, and educational materials for schools across Ghana. Agents earn commissions on every sale to students and parents. Wholesale prices with doorstep delivery nationwide. Perfect for parents wanting to save on school supplies.",
                   provider: {
                     "@id": "https://dataflexghana.com/#organization",
                   },
@@ -382,123 +386,130 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     "@type": "Country",
                     name: "Ghana",
                   },
-                  audience: [
-                    {
-                      "@type": "Audience",
-                      audienceType: "Students",
-                      geographicArea: {
-                        "@type": "Country",
-                        name: "Ghana",
-                      },
-                    },
-                    {
-                      "@type": "Audience",
-                      audienceType: "Job Seekers",
-                      geographicArea: {
-                        "@type": "Country",
-                        name: "Ghana",
-                      },
-                    },
-                    {
-                      "@type": "Audience",
-                      audienceType: "Investors",
-                      geographicArea: {
-                        "@type": "Country",
-                        name: "Ghana",
-                      },
-                    },
-                    {
-                      "@type": "Audience",
-                      audienceType: "Parents",
-                      geographicArea: {
-                        "@type": "Country",
-                        name: "Ghana",
-                      },
-                    },
-                    {
-                      "@type": "Audience",
-                      audienceType: "Entrepreneurs",
-                      geographicArea: {
-                        "@type": "Country",
-                        name: "Ghana",
-                      },
-                    },
-                  ],
-                  hasOfferCatalog: {
-                    "@type": "OfferCatalog",
-                    name: "DataFlex Agent Services and Opportunities",
-                    itemListElement: [
-                      {
-                        "@type": "Offer",
-                        itemOffered: {
-                          "@type": "Service",
-                          name: "GES Approved Books",
-                          description:
-                            "Access to GES-approved educational materials and books for students and parents.",
-                          category: "Educational Services",
-                        },
-                      },
-                      {
-                        "@type": "Offer",
-                        itemOffered: {
-                          "@type": "Service",
-                          name: "Verified Job Opportunities",
-                          description:
-                            "Access to verified job listings from credible employers across Ghana, perfect for students and job seekers looking for part-time, remote, or full-time work.",
-                          category: "Employment Services",
-                        },
-                      },
-                      {
-                        "@type": "Offer",
-                        itemOffered: {
-                          "@type": "Service",
-                          name: "Business Registration",
-                          description: "Register your business with DataFlex for seamless setup and management.",
-                          category: "Business Services",
-                        },
-                      },
-                      {
-                        "@type": "Offer",
-                        itemOffered: {
-                          "@type": "Service",
-                          name: "Wholesale Shopping",
-                          description:
-                            "Access wholesale products, import goods, and start dropshipping business with doorstep delivery from verified suppliers across Ghana.",
-                          category: "E-commerce",
-                        },
-                      },
-                      {
-                        "@type": "Offer",
-                        itemOffered: {
-                          "@type": "Service",
-                          name: "Digital Voucher Cards",
-                          description:
-                            "Promote high-value business projects and services to earn commissions ranging from ₵50 to ₵4000 based on project value and success.",
-                          category: "Digital Services",
-                        },
-                      },
-                      {
-                        "@type": "Offer",
-                        itemOffered: {
-                          "@type": "Service",
-                          name: "School Forms and Paperwork",
-                          description:
-                            "Comprehensive dashboard with earnings reports, performance metrics, profit calculators, and business intelligence tools for agents.",
-                          category: "Administrative Services",
-                        },
-                      },
-                    ],
+                  offers: {
+                    "@type": "Offer",
+                    priceCurrency: "GHS",
+                    description: "Commission earnings from ₵50-₵500 per transaction",
+                  },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#verified-jobs-service",
+                  name: "Verified Job Placements & Employment Portal",
+                  description:
+                    "100% free job search support connecting job seekers with verified employers across Ghana. Zero agency fees. Agents earn referral commissions when helping friends find employment. Features include remote jobs, corporate positions, casual labor, and domestic work. No salary deductions after landing job.",
+                  provider: {
+                    "@id": "https://dataflexghana.com/#organization",
+                  },
+                  areaServed: {
+                    "@type": "Country",
+                    name: "Ghana",
+                  },
+                  offers: {
+                    "@type": "Offer",
+                    priceCurrency: "GHS",
+                    description: "Free job search support with commission earnings on successful placements",
+                  },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#business-registration",
+                  name: "Online Business Registration & Compliance Services",
+                  description:
+                    "100% online business registration without paperwork or queues. Agents earn ₵80-₵130 commission per registration. Services include sole proprietorship, partnership, company registration, and business legalization. Nationwide delivery within 14 working days. Completely secured process with government approval.",
+                  provider: {
+                    "@id": "https://dataflexghana.com/#organization",
+                  },
+                  areaServed: {
+                    "@type": "Country",
+                    name: "Ghana",
+                  },
+                  offers: {
+                    "@type": "Offer",
+                    priceCurrency: "GHS",
+                    price: "80-130",
+                    description: "Commission per business registration for agents",
+                  },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#wholesale-shopping",
+                  name: "Wholesale Shopping & Dropshipping Platform",
+                  description:
+                    "Access wholesale products from verified suppliers across Ghana. Agents buy at wholesale prices and resell at retail prices earning significant margins. Features include doorstep delivery, dropshipping capabilities, and bulk purchase options. Perfect for starting a small business with low capital.",
+                  provider: {
+                    "@id": "https://dataflexghana.com/#organization",
+                  },
+                  areaServed: {
+                    "@type": "Country",
+                    name: "Ghana",
+                  },
+                  offers: {
+                    "@type": "Offer",
+                    priceCurrency: "GHS",
+                    description: "Variable margins based on product category and quantity",
+                  },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#digital-vouchers",
+                  name: "Digital Vouchers & Educational Cards",
+                  description:
+                    "Sell digital educational vouchers, results checker cards (BECE, WASSCE, ABCE), school forms, and subscription services. Agents earn high commissions (₵50-₵4000) promoting business projects and services. Instant delivery via email or WhatsApp. No registration required for customers.",
+                  provider: {
+                    "@id": "https://dataflexghana.com/#organization",
+                  },
+                  areaServed: {
+                    "@type": "Country",
+                    name: "Ghana",
+                  },
+                  offers: {
+                    "@type": "Offer",
+                    priceCurrency: "GHS",
+                    price: "50-4000",
+                    description: "Commission range per digital voucher sale",
+                  },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#mentorship-channels",
+                  name: "Teacher Mentorship & Learning Channels",
+                  description:
+                    "Join teacher-led mentorship channels and learning communities. Connect with educational mentors, professional consultants, and skill-building experts. Agents earn referral commissions when connecting students and professionals with mentors for training and career guidance.",
+                  provider: {
+                    "@id": "https://dataflexghana.com/#organization",
+                  },
+                  areaServed: {
+                    "@type": "Country",
+                    name: "Ghana",
+                  },
+                  offers: {
+                    "@type": "Offer",
+                    priceCurrency: "GHS",
+                    description: "Commission earnings from mentorship referrals",
                   },
                 },
                 {
                   "@type": "JobPosting",
                   "@id": "https://dataflexghana.com/#agent-opportunity",
-                  title: "DataFlex Agent - Earn Money Online",
+                  title: "DataFlex Agent - Earn ₵700+ Daily | Multi-Income Side Gig Opportunity",
                   description:
-                    "Join as a DataFlex Agent and start earning through multiple income streams: job applications, educational services, business registration, wholesale shopping, and digital vouchers.",
+                    "Join DataFlex as an agent and earn ₵700+ daily through multiple income streams: GES book sales (₵50-₵500 per sale), job referrals, business registrations (₵80-₵130 per registration), wholesale trading, digital vouchers (₵50-₵4000 per sale), and mentorship referrals. Flexible hours, work from home, zero agency fees, transparent commissions, and 24/7 support included.",
+                  jobBenefits: [
+                    "Earn ₵700+ daily potential earnings",
+                    "Multiple income streams and passive income opportunities",
+                    "Flexible working hours - work from home",
+                    "No hidden fees or agency charges",
+                    "24/7 customer support via WhatsApp and phone",
+                    "Comprehensive training and onboarding",
+                    "Real-time earnings tracking dashboard",
+                    "Exclusive access to mentorship channels",
+                    "Nationwide network of agents",
+                    "Transparent commission structure",
+                  ],
                   datePosted: "2024-01-01",
                   validThrough: "2025-12-31",
-                  employmentType: ["PART_TIME", "CONTRACTOR", "OTHER"],
+                  employmentType: ["PART_TIME", "CONTRACTOR", "TEMPORARY", "OTHER"],
                   hiringOrganization: {
                     "@id": "https://dataflexghana.com/#organization",
                   },
@@ -508,6 +519,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       "@type": "PostalAddress",
                       addressCountry: "GH",
                       addressRegion: "Ghana",
+                      addressLocality: "Nationwide",
                     },
                   },
                   baseSalary: {
@@ -516,16 +528,87 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     value: {
                       "@type": "QuantitativeValue",
                       minValue: 50,
-                      maxValue: 5000,
+                      maxValue: 10000,
                       unitText: "MONTH",
                     },
                   },
                   qualifications:
-                    "No specific qualifications required. Perfect for students, job seekers, parents, and anyone looking to earn extra income.",
+                    "No specific qualifications required. Perfect for students aged 18+, job seekers, parents, entrepreneurs, and anyone seeking flexible side income in Ghana.",
                   responsibilities:
-                    "Provide educational services, apply to jobs, register businesses, manage wholesale orders, and use digital services to track earnings.",
+                    "Sell GES-approved books and educational materials, connect job seekers with employers, register businesses online, facilitate wholesale purchases, promote digital vouchers, and connect mentees with mentors. Track earnings via dashboard and provide customer support.",
                   benefits:
-                    "Flexible working hours, multiple income streams, comprehensive training, 24/7 support, and access to exclusive business opportunities.",
+                    "Flexible scheduling, work-from-home opportunity, multiple income sources, transparent commission-based earnings (₵50-₵4000 per transaction), real-time payment tracking, comprehensive training, 24/7 support team, and access to exclusive mentorship channels.",
+                },
+                {
+                  "@type": "AggregateOffer",
+                  "@id": "https://dataflexghana.com/#service-catalog",
+                  name: "DataFlex Multi-Service Platform - Earn Money in Ghana",
+                  description:
+                    "Complete suite of earning opportunities combining educational services, employment support, business tools, wholesale access, and mentorship connections. All services designed to generate flexible income with transparent commission structures.",
+                  priceCurrency: "GHS",
+                  offers: [
+                    {
+                      "@type": "Offer",
+                      name: "GES Books Commission",
+                      price: "50-500",
+                      availability: "InStock",
+                    },
+                    {
+                      "@type": "Offer",
+                      name: "Business Registration Commission",
+                      price: "80-130",
+                      availability: "InStock",
+                    },
+                    {
+                      "@type": "Offer",
+                      name: "Digital Voucher Commission",
+                      price: "50-4000",
+                      availability: "InStock",
+                    },
+                    {
+                      "@type": "Offer",
+                      name: "Job Referral Earnings",
+                      price: "Variable",
+                      availability: "InStock",
+                    },
+                  ],
+                },
+                {
+                  "@type": "FAQPage",
+                  mainEntity: [
+                    {
+                      "@type": "Question",
+                      name: "How much can I earn daily as a DataFlex agent in Ghana?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text: "Agents can earn ₵700+ daily depending on activity and product mix. Earnings include: GES books (₵50-₵500), business registrations (₵80-₵130), digital vouchers (₵50-₵4000), job referrals (variable), and wholesale margins (30-50%). Most successful agents earn ₵1500-₵5000 monthly.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "What are the DataFlex agent menu items and services?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text: "DataFlex offers 6 main services: 1) GES Approved Books - sell educational materials; 2) Verified Jobs - connect job seekers with employers; 3) Business Registration - help businesses get legally registered; 4) Wholesale Shopping - resell wholesale products; 5) Digital Vouchers - sell educational and gift vouchers; 6) Mentorship Channels - connect learners with teachers and mentors.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Are there any agency fees or joining costs?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text: "DataFlex has zero agency fees. The only cost is a one-time joining fee (specific amount depends on current promotion). All commissions are transparent and paid directly to your wallet with no deductions.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Can I earn passive income through mentorship channels?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text: "Yes! Join teacher mentorship channels and earn referral commissions when connecting students and professionals with mentors. This creates a passive income stream while helping people develop skills and advance careers.",
+                      },
+                    },
+                  ],
                 },
               ],
             }),

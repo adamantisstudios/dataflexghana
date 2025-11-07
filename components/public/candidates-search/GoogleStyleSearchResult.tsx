@@ -10,11 +10,7 @@ import { shortenJobTitle } from "@/lib/job-title-formatter"
 import { Button } from "@/components/ui/button"
 import { MessageSquare, MapPin, Briefcase, GraduationCap, Info } from "lucide-react"
 import Link from "next/link"
-import {
-  calculateATSScore,
-  getATSScoreColor,
-  getATSScoreBackground,
-} from "@/lib/ats-scoring"
+import { calculateATSScore, getATSScoreColor, getATSScoreBackground } from "@/lib/ats-scoring"
 
 interface GoogleStyleSearchResultProps {
   candidate: CandidateProfile
@@ -31,10 +27,7 @@ export default function GoogleStyleSearchResult({
 }: GoogleStyleSearchResultProps) {
   const formatCandidateName = (name: string): string => {
     if (!name) return "Professional"
-    const parts = name.trim().split(/\s+/)
-    if (parts.length >= 3) return parts.slice(0, 2).join(" ")
-    if (parts.length === 2) return parts[0]
-    return parts[0]
+    return name.trim()
   }
 
   const fullName = formatCandidateName(candidate.full_name || "")
@@ -105,15 +98,11 @@ export default function GoogleStyleSearchResult({
       <div className="text-xs text-gray-500 mb-4 space-y-1 bg-gray-50 p-3 rounded-md border border-gray-100">
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-gray-600 font-medium">Email:</span>
-          <span className="font-mono text-gray-700 text-xs">
-            {maskEmail(candidate.email)}
-          </span>
+          <span className="font-mono text-gray-700 text-xs">{maskEmail(candidate.email)}</span>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-gray-600 font-medium">Phone:</span>
-          <span className="font-mono text-gray-700 text-xs">
-            {maskPhoneNumber(candidate.contact_lines)}
-          </span>
+          <span className="font-mono text-gray-700 text-xs">{maskPhoneNumber(candidate.contact_lines)}</span>
         </div>
       </div>
 
@@ -122,10 +111,7 @@ export default function GoogleStyleSearchResult({
         <div className="text-xs text-gray-600 mb-4 flex items-center gap-2">
           <Briefcase className="h-3.5 w-3.5 text-gray-400" />
           <span>
-            Willing to Relocate:{" "}
-            <span className="font-medium text-gray-700">
-              {candidate.willingness_to_relocate}
-            </span>
+            Willing to Relocate: <span className="font-medium text-gray-700">{candidate.willingness_to_relocate}</span>
           </span>
         </div>
       )}
@@ -137,9 +123,7 @@ export default function GoogleStyleSearchResult({
           asChild
           className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9 font-medium transition-colors"
         >
-          <Link href={`/candidates-searchengine/${candidate.id}`}>
-            View Profile
-          </Link>
+          <Link href={`/candidates-searchengine/${candidate.id}`}>View Profile</Link>
         </Button>
         <Button
           size="sm"

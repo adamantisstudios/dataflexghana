@@ -45,6 +45,7 @@ import {
   FileText,
   BookOpen,
   Music,
+  Mail,
 } from "lucide-react"
 import { getCurrentAdmin, logoutAdmin, getAdminToken, clearAdminSession } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -77,6 +78,7 @@ const TeacherHubTab = lazy(() => import("@/components/admin/tabs/TeacherHubTab")
 const AudioManagementTab = lazy(() => import("@/components/admin/tabs/AudioManagementTab"))
 const LinkCacheManagementTab = lazy(() => import("@/components/admin/tabs/LinkCacheManagementTab"))
 const ProfessionalWritingTab = lazy(() => import("@/components/admin/tabs/ProfessionalWritingTab"))
+const InvitationManagementTab = lazy(() => import("@/components/admin/tabs/InvitationManagementTab"))
 
 // Custom hook for managing tab loading state
 const useTabLoader = () => {
@@ -153,6 +155,7 @@ const TAB_CONFIG = [
   { id: "professional-writing", label: "Professional Writing", icon: FileText, component: ProfessionalWritingTab },
   { id: "maintenance", label: "Maintenance", icon: Wrench, component: null },
   { id: "settings", label: "Settings", icon: Settings, component: null },
+  { id: "invitation-management", label: "Invitation Management", icon: Mail, component: InvitationManagementTab },
 ]
 function AdminDashboardContent() {
   const { loadedTabs, activeTab, loadTab } = useTabLoader()
@@ -594,7 +597,27 @@ function AdminDashboardContent() {
                 </CardContent>
               </Card>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              <Card className="bg-white/90 backdrop-blur-sm shadow-lg border border-emerald-200">
+                <CardContent className="pt-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-xs text-emerald-600 font-medium">Total</p>
+                        <p className="text-2xl font-bold text-emerald-800">{stats.totalReferrals.toLocaleString()}</p>
+                      </div>
+                      <Package className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <div className="pt-2 border-t border-emerald-100 flex justify-between text-xs">
+                      <span className="text-emerald-600">Completed: {stats.completedReferrals.toLocaleString()}</span>
+                      <span className="text-yellow-600">
+                        Pending: {stats.totalReferrals - stats.completedReferrals}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="bg-white/90 backdrop-blur-sm shadow-lg border border-blue-200">
                 <CardHeader>
                   <CardTitle className="text-blue-800 flex items-center gap-2">
