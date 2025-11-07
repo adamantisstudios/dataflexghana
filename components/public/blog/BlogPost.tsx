@@ -259,10 +259,10 @@ export function BlogPost({ blog }: BlogPostProps) {
                 <div className="bg-white rounded-full p-2 w-10 h-10 flex items-center justify-center">
                   <img src="/images/logo-footer.png" alt="DataFlex Logo" className="w-6 h-6 object-contain" />
                 </div>
-                <span className="text-lg font-bold">DataFlexAgent.com</span>
+                <span className="text-lg font-bold">Dataflexghana.com</span>
               </div>
               <p className="text-gray-400 text-sm">
-                Ghana's most reliable data reselling platform. Connect with clients and earn generous commissions.
+                Ghana's most reliable multi=service platform. Connect with clients and earn generous commissions.
               </p>
             </div>
 
@@ -325,7 +325,7 @@ export function BlogPost({ blog }: BlogPostProps) {
           </div>
 
           <div className="border-t border-gray-700 mt-6 md:mt-8 pt-6 text-center">
-            <p className="text-gray-400 text-sm">© 2025 DataFlexAgent.com. All rights reserved.</p>
+            <p className="text-gray-400 text-sm">© 2025 Dataflex Ghana. All rights reserved.</p>
           </div>
         </CardContent>
       </Card>

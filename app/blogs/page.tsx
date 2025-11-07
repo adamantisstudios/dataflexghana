@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     description:
       "Stay updated with the latest insights, tips, and industry news from DataFlex. Discover expert articles on data management, technology trends, and business solutions.",
     url: `${siteUrl}/blogs`,
-    siteName: "DataFlexAgent.com",
+    siteName: "Dataflexghana.com",
     images: [
       {
         url: `${siteUrl}/images/social-preview-new.jpg`,
@@ -163,10 +163,10 @@ export default async function BlogsPage() {
                     <div className="bg-white rounded-full p-2 w-10 h-10 flex items-center justify-center">
                       <img src="/images/logo-footer.png" alt="DataFlex Logo" className="w-6 h-6 object-contain" />
                     </div>
-                    <span className="text-lg font-bold">DataFlexAgent.com</span>
+                    <span className="text-lg font-bold">Dataflexghana.com</span>
                   </div>
                   <p className="text-gray-400 text-sm">
-                    Ghana's most reliable data reselling platform. Connect with clients and earn generous commissions.
+                    Ghana's most reliable multi-service platform. Connect with clients and earn generous commissions.
                   </p>
                 </div>
 
@@ -229,7 +229,7 @@ export default async function BlogsPage() {
               </div>
 
               <div className="border-t border-gray-700 mt-6 pt-6 text-center">
-                <p className="text-gray-400 text-sm">© 2025 DataFlexAgent.com. All rights reserved.</p>
+                <p className="text-gray-400 text-sm">© 2025 Dataflexghana.com. All rights reserved.</p>
               </div>
             </CardContent>
           </Card>

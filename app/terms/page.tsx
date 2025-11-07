@@ -14,9 +14,9 @@ import {
 import Image from "next/image"
 
 export const metadata: Metadata = {
-  title: "Terms & Policies | DataFlexAgent.com",
+  title: "Terms & Policies | Dataflexghana.com",
   description:
-    "Read the full Terms & Conditions, Privacy Policy and Cookie Policy for using DataFlexAgent.com – Ghana's premier data-reseller platform.",
+    "Read the full Terms & Conditions, Privacy Policy and Cookie Policy for using Dataflexghana.com – Ghana's premier data-reseller platform.",
   robots: "index,follow",
 }
 
@@ -236,7 +236,7 @@ export default function TermsPage() {
           <li>Never contact MTN, AirtelTigo, Vodafone or Telecel for bundle issues—contact DataFlex support only.</li>
           <li>Do not use SIMs with borrowed airtime/data; bundles may auto-expire.</li>
           <li>Sent bundles cannot be cancelled or corrected once processed.</li>
-          <li>Only refer people through DataFlexAgent.com referral links.</li>
+          <li>Only refer people through Dataflexghana.com referral links.</li>
           <li>Maintain professional conduct in all client interactions.</li>
           <li>Report any technical issues or suspicious activities immediately.</li>
           <li>Keep your account information and login credentials secure.</li>
@@ -471,7 +471,7 @@ export default function TermsPage() {
           {"Cookie Policy"}
         </h1>
         <p>
-          DataFlexAgent.com uses essential cookies to keep you logged in and to remember your preferences. Optional
+          Dataflexghana.com uses essential cookies to keep you logged in and to remember your preferences. Optional
           analytics cookies help us improve the service. By using the site you agree to our use of cookies.
         </p>
         <h3>Types of cookies we use:</h3>

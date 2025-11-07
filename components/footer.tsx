@@ -42,11 +42,10 @@ export function Footer() {
               <div className="bg-white rounded-full p-2 w-12 h-12 flex items-center justify-center border-2 border-green-500 shadow-lg">
                 <img src="/images/logo-footer.png" alt="DataFlex Logo" className="w-8 h-8 object-contain" />
               </div>
-              <span className="text-xl lg:text-2xl font-bold">DataFlexAgent.com</span>
+              <span className="text-xl lg:text-2xl font-bold">Dataflexghana.com</span>
             </div>
             <p className="text-gray-400 leading-relaxed text-sm lg:text-base">
-              Ghana's most reliable data reselling platform. Connect with clients and earn generous commissions on every
-              data bundle sale.
+              Ghana's most reliable Multi=Service platform. Connect with clients and earn generous commissions.
             </p>
             <div className="flex space-x-4">
               <a
@@ -138,7 +137,7 @@ export function Footer() {
         <Separator className="my-6 lg:my-8 bg-gray-700" />
 
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <div className="text-gray-400 text-sm">© 2025 DataFlexAgent.com. All rights reserved.</div>
+          <div className="text-gray-400 text-sm">© 2025 Dataflexghana.com. All rights reserved.</div>
           <div className="flex flex-wrap justify-center gap-4 lg:gap-6 text-sm">
             <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
               Privacy Policy

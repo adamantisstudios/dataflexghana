@@ -95,7 +95,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
       title: blog.meta_title || blog.title,
       description: blog.meta_description || blog.excerpt,
       url: `${siteUrl}/blogs/${blog.slug}`,
-      siteName: "DataFlexAgent.com",
+      siteName: "Dataflexghana.com",
       images: [
         {
           url: blog.featured_image_url || `${siteUrl}/images/social-preview-new.jpg`,
