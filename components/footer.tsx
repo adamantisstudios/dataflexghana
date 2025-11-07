@@ -45,7 +45,7 @@ export function Footer() {
               <span className="text-xl lg:text-2xl font-bold">Dataflexghana.com</span>
             </div>
             <p className="text-gray-400 leading-relaxed text-sm lg:text-base">
-              Ghana's most reliable Multi=Service platform. Connect with clients and earn generous commissions.
+              Ghana's most reliable Multi-Service platform. Connect with clients and earn generous commissions.
             </p>
             <div className="flex space-x-4">
               <a
