@@ -24,7 +24,7 @@ export default function VanityMetricsCompact() {
       setSuccessfulPlacements(Number.parseInt(storedWeekly))
     }
 
-    // Daily logic for "Active Visitors Today"
+    // Daily logic for "Daily Visitors Today"
     const storedDaily = localStorage.getItem("dailyVisitors")
     const storedDailyDate = localStorage.getItem("visitorDate")
 
@@ -39,9 +39,9 @@ export default function VanityMetricsCompact() {
   }, [])
 
   const metrics = [
-    { icon: <Users size={16} />, label: "Active Visitors", value: visitors.toLocaleString(), color: "text-blue-500" },
-    { icon: <Zap size={16} />, label: "Candidates Verified", value: "24,847+", color: "text-cyan-500" },
-    { icon: <TrendingUp size={16} />, label: "Successfully Placed This Week", value: successfulPlacements.toLocaleString(), color: "text-green-500" },
+    { icon: <Users size={16} />, label: "Daily Visitors", value: visitors.toLocaleString(), color: "text-blue-500" },
+    { icon: <Zap size={16} />, label: "Verified", value: "24,847+", color: "text-cyan-500" },
+    { icon: <TrendingUp size={16} />, label: "Placement This Week", value: successfulPlacements.toLocaleString(), color: "text-green-500" },
   ]
 
   return (
