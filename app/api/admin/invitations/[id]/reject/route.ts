@@ -3,7 +3,7 @@ import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -23,13 +23,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const { admin_id, reason } = await request.json()
     const referralId = params.id
 
-    // Update referral status to rejected
+    console.log("[v0] Rejecting invitation:", referralId)
+
     const { error: updateError } = await supabase
-      .from("referral_tracking")
+      .from("referral_links")
       .update({
         admin_approval_status: "rejected",
-        admin_approved_at: new Date().toISOString(),
         admin_rejection_reason: reason,
+        updated_at: new Date().toISOString(),
       })
       .eq("id", referralId)
 
@@ -43,14 +44,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       reason,
     })
 
-    if (auditError) console.error("Audit log error:", auditError)
+    if (auditError) console.error("[v0] Audit log error:", auditError)
+
+    console.log("[v0] Invitation rejected successfully")
 
     return NextResponse.json({
       success: true,
       message: "Invitation rejected successfully",
     })
   } catch (error) {
-    console.error("Error rejecting invitation:", error)
+    console.error("[v0] Error rejecting invitation:", error)
     return NextResponse.json(
       {
         success: false,

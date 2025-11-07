@@ -3,7 +3,7 @@ import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -23,8 +23,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const { admin_id, notes } = await request.json()
     const referralId = params.id
 
+    console.log("[v0] Approving invitation:", referralId)
+
     const { error: updateError } = await supabase
-      .from("referral_tracking")
+      .from("referral_links")
       .update({
         admin_approval_status: "approved",
         admin_approved_at: new Date().toISOString(),
@@ -42,6 +44,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     })
 
     if (auditError) console.error("[v0] Audit log error:", auditError)
+
+    console.log("[v0] Invitation approved successfully")
 
     return NextResponse.json({
       success: true,

@@ -3,7 +3,7 @@ import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -27,19 +27,21 @@ export async function GET(request: NextRequest) {
     const pageSize = 10
     const offset = (page - 1) * pageSize
 
+    console.log("[v0] Fetching invitations with status:", status, "search:", search)
+
     let countQuery = supabase
-      .from("referral_tracking")
+      .from("referral_links")
       .select("id", { count: "exact", head: true })
       .eq("admin_approval_status", status)
 
     // Build data query
     let dataQuery = supabase
-      .from("referral_tracking")
+      .from("referral_links")
       .select(
         `
         id,
         referral_code,
-        referred_agent_id,
+        agent_id as referred_agent_id,
         referred_phone,
         referred_name,
         admin_approval_status,
@@ -49,16 +51,13 @@ export async function GET(request: NextRequest) {
         admin_approved_at,
         created_at,
         updated_at,
-        referral_links (
+        id as referral_link_id,
+        agent_id,
+        agents (
           id,
-          referral_code,
-          agent_id,
-          agents (
-            id,
-            agent_name,
-            full_name,
-            email
-          )
+          agent_name,
+          full_name,
+          email
         )
       `,
       )
@@ -86,9 +85,21 @@ export async function GET(request: NextRequest) {
       throw dataError
     }
 
+    console.log("[v0] Found invitations:", data?.length || 0)
+
+    const mappedData = (data || []).map((inv: any) => ({
+      ...inv,
+      referral_links: {
+        id: inv.referral_link_id,
+        code: inv.referral_code,
+        agent_id: inv.agent_id,
+        agents: inv.agents,
+      },
+    }))
+
     return NextResponse.json({
       success: true,
-      data: data || [],
+      data: mappedData,
       total: count || 0,
       page,
       pageSize,

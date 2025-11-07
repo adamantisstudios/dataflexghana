@@ -189,21 +189,42 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       if (error) throw error
 
       if (agentToApprove.referral_code) {
-        const { data: referringAgent } = await supabase
-          .from("agents")
-          .select("id")
-          .eq("unique_agent_code", agentToApprove.referral_code)
+        console.log("[v0] Looking up referrer with code:", agentToApprove.referral_code)
+
+        const { data: referringAgent, error: lookupError } = await supabase
+          .from("referral_links")
+          .select("agent_id")
+          .eq("referral_code", agentToApprove.referral_code)
           .single()
 
+        if (lookupError) {
+          console.log("[v0] Lookup error (may be expected if no referrer):", lookupError.message)
+        }
+
         if (referringAgent) {
+          console.log("[v0] Found referring agent:", referringAgent.agent_id)
           // Create referral credit record with "pending" status for manual payout
           await supabase.from("referral_credits").insert({
-            referring_agent_id: referringAgent.id,
+            referring_agent_id: referringAgent.agent_id,
             referred_agent_id: agentId,
             credit_amount: 15.0,
             status: "pending", // Admin will manually process this later
             created_at: new Date().toISOString(),
           })
+
+          const { error: updateInvError } = await supabase
+            .from("referral_links")
+            .update({
+              referred_user_registered: true,
+              referred_user_registered_at: new Date().toISOString(),
+              admin_approval_status: "approved",
+              admin_approved_at: new Date().toISOString(),
+            })
+            .eq("referral_code", agentToApprove.referral_code)
+
+          if (updateInvError) {
+            console.error("[v0] Error updating invitation status:", updateInvError)
+          }
         }
       }
 
