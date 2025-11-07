@@ -41,7 +41,7 @@ export default function VanityMetricsCompact() {
   const metrics = [
     { icon: <Users size={16} />, label: "Daily Visitors", value: visitors.toLocaleString(), color: "text-blue-500" },
     { icon: <Zap size={16} />, label: "Verified", value: "24,847+", color: "text-cyan-500" },
-    { icon: <TrendingUp size={16} />, label: "Placement This Week", value: successfulPlacements.toLocaleString(), color: "text-green-500" },
+    { icon: <TrendingUp size={16} />, label: "Weekly Placement", value: successfulPlacements.toLocaleString(), color: "text-green-500" },
   ]
 
   return (
