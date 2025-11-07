@@ -10,6 +10,10 @@ import {
   TrendingUp,
   Shield,
   Globe,
+  Home,
+  BookOpen,
+  GraduationCap,
+  ShoppingCart,
 } from "lucide-react"
 import Image from "next/image"
 
@@ -48,7 +52,8 @@ export default function TermsPage() {
           {"About DataFlex Agent Platform"}
         </h2>
         <p>
-          DataFlex Agent is Ghana's premier multi-service digital platform, empowering individuals and businesses with innovative solutions to grow, save, and earn. Our platform is designed to help you:
+          DataFlex Agent is Ghana's premier multi-service digital platform, empowering individuals and businesses with
+          innovative solutions to grow, save, and earn. Our platform is designed to help you:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
           <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
@@ -56,7 +61,8 @@ export default function TermsPage() {
             <div>
               <h4 className="font-semibold mb-1">Bulk Data Bundles</h4>
               <p className="text-sm">
-                Purchase affordable bulk data bundles for MTN, AirtelTigo, and Telecel networks—ideal for companies, staff, or personal use.
+                Purchase affordable bulk data bundles for MTN, AirtelTigo, and Telecel networks—ideal for companies,
+                staff, or personal use.
               </p>
             </div>
           </div>
@@ -65,7 +71,8 @@ export default function TermsPage() {
             <div>
               <h4 className="font-semibold mb-1">Real Estate Promotion</h4>
               <p className="text-sm">
-                List or promote real estate properties for free, and connect with potential buyers or tenants effortlessly.
+                List or promote real estate properties for free, and connect with potential buyers or tenants
+                effortlessly.
               </p>
             </div>
           </div>
@@ -128,7 +135,8 @@ export default function TermsPage() {
             <div>
               <h4 className="font-semibold mb-1">Wholesale Products</h4>
               <p className="text-sm">
-                Access an exclusive catalog of wholesale products at competitive prices, perfect for resellers and entrepreneurs.
+                Access an exclusive catalog of wholesale products at competitive prices, perfect for resellers and
+                entrepreneurs.
               </p>
             </div>
           </div>
