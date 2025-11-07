@@ -22,6 +22,11 @@ import {
   User,
   CreditCard,
   ExternalLink,
+  Lightbulb,
+  X,
+  Smartphone,
+  Wallet,
+  ArrowDown,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -64,9 +69,10 @@ export default function RegisterPage() {
   const [canClosePopup, setCanClosePopup] = useState(false)
   const [showIntroMessage, setShowIntroMessage] = useState(false)
   const [referralCode, setReferralCode] = useState<string>("")
+  const [showBeyondDataModal, setShowBeyondDataModal] = useState(false)
   const router = useRouter()
 
-  // Show warning popup 15 seconds after page load
+  // Auto-show warning popup after 15 seconds
   useEffect(() => {
     const warningTimer = setTimeout(() => {
       setShowWarningPopup(true)
@@ -74,7 +80,7 @@ export default function RegisterPage() {
     return () => clearTimeout(warningTimer)
   }, [])
 
-  // Show audio player 30 seconds after page load
+  // Auto-show audio player after 30 seconds
   useEffect(() => {
     const audioTimer = setTimeout(() => {
       setShowAudioPlayer(true)
@@ -82,7 +88,7 @@ export default function RegisterPage() {
     return () => clearTimeout(audioTimer)
   }, [])
 
-  // Handle the countdown timer for the warning popup
+  // Countdown timer for warning popup
   useEffect(() => {
     if (!showWarningPopup) return
     const timer = setInterval(() => {
@@ -98,7 +104,7 @@ export default function RegisterPage() {
     return () => clearInterval(timer)
   }, [showWarningPopup])
 
-  // Capture referral code from URL and track the referral link click
+  // Track referral code from URL
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     const code = searchParams.get("ref")
@@ -122,46 +128,51 @@ export default function RegisterPage() {
     e.preventDefault()
     setError("")
     setLoading(true)
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match")
       setLoading(false)
       return
     }
+
     if (formData.password.length < 6) {
       setError("Password must be at least 6 characters long")
       setLoading(false)
       return
     }
+
     if (!formData.agreeToTerms) {
       setError("Please agree to the terms and conditions")
       setLoading(false)
       return
     }
+
     try {
       const { data: existingAgent } = await supabase
         .from("agents")
         .select("id, phone_number")
         .eq("phone_number", formData.phoneNumber)
         .maybeSingle()
+
       if (existingAgent) {
         setError("An agent with this phone number already exists")
         setLoading(false)
         return
       }
-      const passwordHash = await hashPassword(formData.password)
 
+      const passwordHash = await hashPassword(formData.password)
       const { data, error: insertError } = await supabase
         .from("agents")
         .insert([
           {
             full_name: formData.fullName,
-            agent_name: formData.fullName, // Add agent_name field
+            agent_name: formData.fullName,
             phone_number: formData.phoneNumber,
             momo_number: formData.paymentLine,
             region: formData.region,
             password_hash: passwordHash,
             isapproved: false,
-            referral_code: referralCode || null, // Store the referral code used
+            referral_code: referralCode || null,
           },
         ])
         .select()
@@ -175,7 +186,6 @@ export default function RegisterPage() {
 
       if (data && data[0]) {
         const newAgent = data[0]
-
         if (referralCode) {
           try {
             const { data: referralLink } = await supabase
@@ -220,7 +230,6 @@ export default function RegisterPage() {
                 console.error("[v0] Error updating referral tracking:", trackingError)
               }
 
-              // Update referral link stats
               const { data: referralTrackingData } = await supabase
                 .from("referral_tracking")
                 .select("*", { count: "exact" })
@@ -236,7 +245,6 @@ export default function RegisterPage() {
                   })
                   .eq("id", referralLink.id)
               }
-
               console.log("[v0] Referral processed for agent:", referralLink.agent_id)
             }
           } catch (referralError) {
@@ -244,7 +252,6 @@ export default function RegisterPage() {
           }
         }
       }
-
       router.push("/payment-reminder")
     } catch (error) {
       console.error("Registration error:", error)
@@ -265,6 +272,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50">
+      {/* Audio Player */}
       {showAudioPlayer && (
         <FloatingAudioPlayer
           onClose={handleCloseAudioPlayer}
@@ -273,6 +281,8 @@ export default function RegisterPage() {
           description="Learn how to get started as an agent"
         />
       )}
+
+      {/* Warning Popup */}
       {showWarningPopup && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full border-red-300 bg-white shadow-2xl">
@@ -314,6 +324,8 @@ export default function RegisterPage() {
           </Card>
         </div>
       )}
+
+      {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-10">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -333,7 +345,10 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+
+      {/* Main Content */}
       <div className="max-w-md mx-auto px-4 py-6">
+        {/* Welcome Section */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <UserPlus className="h-8 w-8 text-white" />
@@ -344,6 +359,8 @@ export default function RegisterPage() {
             sell at wholesale, and enjoy affordable data bundles.
           </p>
         </div>
+
+        {/* Registration Fee Card */}
         <Card className="mb-6 border-emerald-100 bg-gradient-to-br from-emerald-50 to-green-50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -402,6 +419,8 @@ export default function RegisterPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Registration Form */}
         <Card className="border-emerald-100 shadow-lg mb-6">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">Create Your Account</CardTitle>
@@ -409,6 +428,7 @@ export default function RegisterPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Personal Information */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
                   <User className="h-4 w-4" />
@@ -449,6 +469,8 @@ export default function RegisterPage() {
                   </Select>
                 </div>
               </div>
+
+              {/* Contact Information */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
                   <Phone className="h-4 w-4" />
@@ -487,6 +509,8 @@ export default function RegisterPage() {
                   <p className="text-xs text-gray-500">Used for commission payments. Maximum 10 digits</p>
                 </div>
               </div>
+
+              {/* Account Security */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
                   <Lock className="h-4 w-4" />
@@ -521,6 +545,8 @@ export default function RegisterPage() {
                   />
                 </div>
               </div>
+
+              {/* Terms and Conditions */}
               <div className="flex items-start space-x-3 py-4">
                 <Checkbox
                   id="terms"
@@ -536,6 +562,8 @@ export default function RegisterPage() {
                   and understand that my account requires approval before activation.
                 </Label>
               </div>
+
+              {/* Error Message */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <div className="flex items-center gap-2">
@@ -544,6 +572,8 @@ export default function RegisterPage() {
                   </div>
                 </div>
               )}
+
+              {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-lg h-12 text-base font-medium"
@@ -561,6 +591,233 @@ export default function RegisterPage() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Beyond Data Card */}
+<Card className="border-amber-100 bg-amber-50/50 mb-6 shadow-sm hover:shadow-md transition-shadow w-full">
+  <CardContent className="p-4">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="p-2.5 rounded-full bg-amber-100 flex-shrink-0">
+        <Lightbulb className="h-6 w-6 text-amber-600" />
+      </div>
+      <div className="flex-1 min-w-[200px]">
+        <h3 className="font-medium text-amber-800 text-lg">More Than Just Data</h3>
+        <p className="text-sm text-amber-700 mt-2">
+          Data reselling is just the start. Discover how to earn <strong>GH₵50 to GH₵1,000+ per transaction</strong> with our trusted services.
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 transition-colors w-full sm:w-auto"
+        onClick={() => setShowBeyondDataModal(true)}
+      >
+        Learn How
+      </Button>
+    </div>
+  </CardContent>
+</Card>
+
+{/* Beyond Data Modal */}
+{showBeyondDataModal && (
+  <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-xl shadow-xl w-full max-w-none sm:max-w-3xl mx-4 my-8 max-h-[95vh] overflow-y-auto">
+      {/* Modal Header */}
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 text-white">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-full bg-white/20">
+            <Lightbulb className="h-6 w-6 text-white" />
+          </div>
+          <h2 className="text-xl font-semibold">Build a Business, Not Just Sales</h2>
+        </div>
+        <p className="text-sm text-white/90 mt-2">
+          Turn your hustle into a real income with DataFlex Ghana.
+        </p>
+      </div>
+
+      {/* Modal Content */}
+      <div className="p-6 space-y-6">
+        {/* Introduction */}
+        <div className="bg-amber-50 rounded-lg p-5 border-l-4 border-amber-300">
+          <p className="text-lg font-semibold text-gray-800 mb-3">
+            💡 <strong>Want More Than Just Pocket Money?</strong>
+          </p>
+          <p className="text-gray-700 leading-relaxed text-base">
+            Selling data bundles is a good start, but it shouldn’t be your only source of income.
+            Imagine earning <strong>GH₵50 to GH₵1,000+ per transaction</strong>—not just small change.
+            With DataFlex Ghana, you can turn your phone into a real business tool.
+          </p>
+        </div>
+
+        {/* The Problem */}
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <AlertTriangle className="h-6 w-6 text-red-500" />
+            The Truth About Data Reselling
+          </h3>
+          <p className="text-gray-700 leading-relaxed text-base">
+            Selling data bundles alone won’t take you far. Here’s why:
+          </p>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
+              <div className="p-2 rounded-full bg-red-100 flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-800">Endless Complaints</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Customers often blame you for issues—even when the data is delivered.
+                  <span className="block mt-2 text-xs italic">
+                    *"I didn’t get my data!"* —Sound familiar?
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
+              <div className="p-2 rounded-full bg-red-100 flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-800">Small Earnings, Big Effort</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  After fees and costs, you’re left with very little.
+                  <span className="block mt-2 text-xs italic">
+                    Can GH₵10 pay your bills? Your dreams?
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
+              <div className="p-2 rounded-full bg-red-100 flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-800">No Growth</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  You’re stuck in the same cycle—selling, explaining, and repeating.
+                  <span className="block mt-2 text-xs italic">
+                    Is this really the business you want?
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* The Solution */}
+        <div className="space-y-5">
+          <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+            How DataFlex Ghana Helps You
+          </h3>
+          <p className="text-gray-700 leading-relaxed text-base">
+            We don’t just sell data. We help you <strong>build a real business</strong>—one that pays you what you deserve.
+          </p>
+          <p className="text-gray-700 leading-relaxed text-base">
+            With DataFlex Ghana, you can earn <strong>GH₵50 to GH₵1,000+ per transaction</strong>.
+            No more stress. No more small change. Just real income.
+          </p>
+          <p className="text-gray-700 leading-relaxed text-base">
+            We offer <strong>50+ trusted services</strong> that people need every day:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4">
+            <div className="bg-green-50 rounded-lg p-5 border border-green-100">
+              <h4 className="font-medium text-green-800 flex items-center gap-2 mb-3">
+                <Smartphone className="h-5 w-5" /> Digital Services
+              </h4>
+              <ul className="space-y-3 text-sm text-gray-700">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  Birth Certificate Applications
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  TIN & Business Registration
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  Professional Document Writing
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  Resume & CV Services
+                </li>
+              </ul>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-5 border border-blue-100">
+              <h4 className="font-medium text-blue-800 flex items-center gap-2 mb-3">
+                <Wallet className="h-5 w-5" /> Financial Services
+              </h4>
+              <ul className="space-y-3 text-sm text-gray-700">
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  Investment Opportunities
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  Bulk Data for Businesses
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  Commission-Based Referrals
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                  Real Estate Listings
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Call to Action */}
+        <div className="bg-amber-50 rounded-lg p-6 border-l-4 border-amber-300 space-y-5">
+          <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <Lightbulb className="h-6 w-6 text-amber-600" />
+            Your Next Step
+          </h3>
+          <p className="text-gray-700 leading-relaxed text-base">
+            You can keep selling data and earning small amounts.
+          </p>
+          <p className="text-gray-700 leading-relaxed text-base font-medium">
+            Or you can join DataFlex Ghana and start building a business that pays you well.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 mt-5">
+            <Button
+              onClick={() => {
+                setShowBeyondDataModal(false)
+                router.push("/agent/dashboard")
+              }}
+              className="bg-amber-600 hover:bg-amber-700 text-white py-3 text-base flex-1"
+            >
+              Get Started Now
+            </Button>
+            <Button
+              onClick={() => setShowBeyondDataModal(false)}
+              variant="outline"
+              className="border-amber-300 text-amber-700 hover:bg-amber-50 py-3 text-base flex-1"
+            >
+              Maybe Later
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Footer */}
+      <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
+        <Button
+          onClick={() => setShowBeyondDataModal(false)}
+          variant="ghost"
+          className="text-gray-600 hover:text-gray-800 text-base"
+        >
+          Close
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+        {/* Important Notice Card */}
         <Card className="mb-6 border-amber-200 bg-amber-50">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -575,6 +832,8 @@ export default function RegisterPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Footer Links */}
         <div className="space-y-4">
           <Button
             asChild
@@ -595,6 +854,8 @@ export default function RegisterPage() {
             </p>
           </div>
         </div>
+
+        {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-200 text-center">
           <p className="text-xs text-gray-500">
             Powered by <span className="font-medium text-emerald-600">AdamantisSolutions</span>

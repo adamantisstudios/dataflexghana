@@ -48,36 +48,88 @@ export default function TermsPage() {
           {"About DataFlex Agent Platform"}
         </h2>
         <p>
-          DataFlex Agent is Ghana's premier multi-service digital platform offering comprehensive business solutions
-          including:
+          DataFlex Agent is Ghana's premier multi-service digital platform, empowering individuals and businesses with innovative solutions to grow, save, and earn. Our platform is designed to help you:
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
           <div className="flex items-start gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
             <Smartphone className="h-5 w-5 text-emerald-600 mt-1" />
             <div>
-              <h4 className="font-semibold mb-1">Data Bundle Resale</h4>
-              <p className="text-sm">Exclusive wholesale data bundles for MTN, AirtelTigo, and Telecel networks</p>
+              <h4 className="font-semibold mb-1">Bulk Data Bundles</h4>
+              <p className="text-sm">
+                Purchase affordable bulk data bundles for MTN, AirtelTigo, and Telecel networks—ideal for companies, staff, or personal use.
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <Users className="h-5 w-5 text-blue-600 mt-1" />
+            <Home className="h-5 w-5 text-blue-600 mt-1" />
             <div>
-              <h4 className="font-semibold mb-1">Service Referrals</h4>
-              <p className="text-sm">Connect clients with professional services and earn commissions</p>
+              <h4 className="font-semibold mb-1">Real Estate Promotion</h4>
+              <p className="text-sm">
+                List or promote real estate properties for free, and connect with potential buyers or tenants effortlessly.
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
             <CreditCard className="h-5 w-5 text-purple-600 mt-1" />
             <div>
-              <h4 className="font-semibold mb-1">Wholesale Products</h4>
-              <p className="text-sm">Access to exclusive wholesale product catalog with competitive pricing</p>
+              <h4 className="font-semibold mb-1">Investment Opportunities</h4>
+              <p className="text-sm">
+                Save, invest, and earn attractive returns on your investments with our curated financial solutions.
+              </p>
             </div>
           </div>
           <div className="flex items-start gap-3 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-            <TrendingUp className="h-5 w-5 text-orange-600 mt-1" />
+            <Users className="h-5 w-5 text-orange-600 mt-1" />
+            <div>
+              <h4 className="font-semibold mb-1">Service Referrals & Commissions</h4>
+              <p className="text-sm">
+                Promote over 50 professional services and earn commissions for every successful referral.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+            <FileText className="h-5 w-5 text-amber-600 mt-1" />
+            <div>
+              <h4 className="font-semibold mb-1">Business Registration</h4>
+              <p className="text-sm">
+                Register any type of business in Ghana remotely, with expert guidance and hassle-free processing.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-4 bg-teal-50 dark:bg-teal-900/20 rounded-lg">
+            <BookOpen className="h-5 w-5 text-teal-600 mt-1" />
+            <div>
+              <h4 className="font-semibold mb-1">Professional Writing Services</h4>
+              <p className="text-sm">
+                Access top-tier writing services for all your documents, from business plans to legal contracts.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+            <GraduationCap className="h-5 w-5 text-indigo-600 mt-1" />
+            <div>
+              <h4 className="font-semibold mb-1">Teaching & Mentorship Channels</h4>
+              <p className="text-sm">
+                Join exclusive teaching channels and learn directly from experienced mentors and industry experts.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <TrendingUp className="h-5 w-5 text-red-600 mt-1" />
             <div>
               <h4 className="font-semibold mb-1">Job Board</h4>
-              <p className="text-sm">Access to curated job opportunities across various industries</p>
+              <p className="text-sm">
+                Explore curated job opportunities across diverse industries and take the next step in your career.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 p-4 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg">
+            <ShoppingCart className="h-5 w-5 text-cyan-600 mt-1" />
+            <div>
+              <h4 className="font-semibold mb-1">Wholesale Products</h4>
+              <p className="text-sm">
+                Access an exclusive catalog of wholesale products at competitive prices, perfect for resellers and entrepreneurs.
+              </p>
             </div>
           </div>
         </div>
