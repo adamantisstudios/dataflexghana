@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const heroSlides = [
   {
-    title: "Find Your Next Team Member",
+    title: "Find Your Next Employee",
     image: "/candidates-slider-1.jpg",
     imageAlt: "Professional candidates in modern office",
   },

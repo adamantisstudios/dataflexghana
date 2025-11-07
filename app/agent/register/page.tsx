@@ -12,22 +12,7 @@ import { supabase, hashPassword } from "@/lib/supabase"
 import { getJoiningFeeFormatted, getPlatformName } from "@/lib/config"
 import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
-import {
-  ArrowLeft,
-  UserPlus,
-  CheckCircle,
-  AlertTriangle,
-  Info,
-  Phone,
-  Lock,
-  User,
-  CreditCard,
-  ExternalLink,
-  Lightbulb,
-  Smartphone,
-  Wallet,
-  Play,
-} from "lucide-react"
+import { X } from "lucide-react"
 import Link from "next/link"
 
 const regions = [
@@ -288,7 +273,7 @@ export default function RegisterPage() {
           <Card className="max-w-md w-full border-red-300 bg-white shadow-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+                <X className="h-6 w-6 text-red-600" />
                 <CardTitle className="text-red-600">Important Notice</CardTitle>
               </div>
             </CardHeader>
@@ -333,7 +318,7 @@ export default function RegisterPage() {
               href="/"
               className="inline-flex items-center text-xs sm:text-sm text-gray-600 hover:text-emerald-600 transition-colors truncate"
             >
-              <ArrowLeft className="h-4 w-4 mr-1 flex-shrink-0" />
+              <X className="h-4 w-4 mr-1 flex-shrink-0" />
               <span className="hidden sm:inline">Back to Home</span>
               <span className="sm:hidden">Back</span>
             </Link>
@@ -353,7 +338,7 @@ export default function RegisterPage() {
           {/* Welcome Section - Responsive */}
           <div className="text-center mb-6 sm:mb-8">
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-emerald-600 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg flex-shrink-0">
-              <UserPlus className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
+              <X className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
             </div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Become an Agent</h1>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed px-2">
@@ -368,7 +353,7 @@ export default function RegisterPage() {
               <div className="flex flex-col gap-3 sm:gap-4">
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className="p-2 sm:p-2.5 rounded-full bg-blue-100 flex-shrink-0">
-                    <Play className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                    <X className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-blue-800 text-sm sm:text-lg">See What You'll Get</h3>
@@ -389,7 +374,7 @@ export default function RegisterPage() {
             <CardContent className="p-3 sm:p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3">
                 <div className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                  <X className="h-5 w-5 text-emerald-600 flex-shrink-0" />
                   <span className="font-semibold text-emerald-800 text-sm sm:text-base">Registration Fee</span>
                 </div>
                 <span className="text-2xl sm:text-3xl font-bold text-emerald-600">{getJoiningFeeFormatted()}</span>
@@ -404,38 +389,52 @@ export default function RegisterPage() {
                 onClick={() => setShowInfo(!showInfo)}
                 className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 p-0 h-auto font-normal text-xs sm:text-sm"
               >
-                <Info className="h-4 w-4 mr-1" />
+                <X className="h-4 w-4 mr-1" />
                 {showInfo ? "Hide details" : "Why this fee?"}
               </Button>
               {showInfo && (
                 <div className="mt-3 pt-3 border-t border-emerald-200">
                   <div className="space-y-2 text-xs sm:text-sm text-emerald-700">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
+                        <X className="h-4 w-4 text-emerald-600" />
+                      </div>
                       <span>Ghana's number one platform for commissions, investment, and wholesale trade</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
+                        <X className="h-4 w-4 text-emerald-600" />
+                      </div>
                       <span>Promote projects and earn commissions</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
+                        <X className="h-4 w-4 text-emerald-600" />
+                      </div>
                       <span>Buy and sell at wholesale prices</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
+                        <X className="h-4 w-4 text-emerald-600" />
+                      </div>
                       <span>Invest and grow your earnings</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
+                        <X className="h-4 w-4 text-emerald-600" />
+                      </div>
                       <span>Enjoy affordable data bundles & airtime</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
+                        <X className="h-4 w-4 text-emerald-600" />
+                      </div>
                       <span>Access your agent dashboard & wallet system</span>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
+                        <X className="h-4 w-4 text-emerald-600" />
+                      </div>
                       <span>24/7 support & training materials</span>
                     </div>
                   </div>
@@ -455,7 +454,7 @@ export default function RegisterPage() {
                 {/* Personal Information */}
                 <div className="space-y-3 sm:space-y-4">
                   <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
-                    <User className="h-4 w-4 flex-shrink-0" />
+                    <X className="h-4 w-4 flex-shrink-0" />
                     Personal Information
                   </div>
                   <div className="space-y-2">
@@ -497,7 +496,7 @@ export default function RegisterPage() {
                 {/* Contact Information */}
                 <div className="space-y-3 sm:space-y-4">
                   <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
-                    <Phone className="h-4 w-4 flex-shrink-0" />
+                    <X className="h-4 w-4 flex-shrink-0" />
                     Contact Information
                   </div>
                   <div className="space-y-2">
@@ -537,7 +536,7 @@ export default function RegisterPage() {
                 {/* Account Security */}
                 <div className="space-y-3 sm:space-y-4">
                   <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
-                    <Lock className="h-4 w-4 flex-shrink-0" />
+                    <X className="h-4 w-4 flex-shrink-0" />
                     Account Security
                   </div>
                   <div className="space-y-2">
@@ -591,7 +590,7 @@ export default function RegisterPage() {
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                     <div className="flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <X className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
                       <p className="text-red-600 text-xs sm:text-sm">{error}</p>
                     </div>
                   </div>
@@ -622,7 +621,7 @@ export default function RegisterPage() {
               <div className="flex flex-col gap-3 sm:gap-4">
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className="p-2 sm:p-2.5 rounded-full bg-amber-100 flex-shrink-0">
-                    <Lightbulb className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
+                    <X className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-amber-800 text-sm sm:text-lg">More Than Just Data</h3>
@@ -646,21 +645,32 @@ export default function RegisterPage() {
 
           {/* Beyond Data Modal */}
           {showBeyondDataModal && (
-            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-xl shadow-xl w-full max-w-none sm:max-w-3xl mx-4 my-8 max-h-[95vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4">
+              <div className="bg-white rounded-none sm:rounded-xl shadow-xl w-screen sm:w-full sm:max-w-3xl mx-0 sm:mx-4 my-0 sm:my-8 max-h-screen sm:max-h-[95vh] overflow-y-auto">
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5 text-white">
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 sm:px-6 py-5 text-white sticky top-0 z-10">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-full bg-white/20">
-                      <Lightbulb className="h-6 w-6 text-white" />
+                      <X className="h-6 w-6 text-white" />
                     </div>
-                    <h2 className="text-xl font-semibold">Build a Business, Not Just Sales</h2>
+                    <div className="flex-1">
+                      <h2 className="text-lg sm:text-xl font-semibold">Build a Business, Not Just Sales</h2>
+                      <p className="text-xs sm:text-sm text-white/90 mt-1">
+                        Turn your hustle into a real income with DataFlex Ghana.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowBeyondDataModal(false)}
+                      className="p-2 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
+                      aria-label="Close modal"
+                    >
+                      <X className="w-5 h-5 text-white" />
+                    </button>
                   </div>
-                  <p className="text-sm text-white/90 mt-2">Turn your hustle into a real income with DataFlex Ghana.</p>
                 </div>
 
                 {/* Modal Content */}
-                <div className="p-6 space-y-6">
+                <div className="p-4 sm:p-6 space-y-6">
                   {/* Introduction */}
                   <div className="bg-amber-50 rounded-lg p-5 border-l-4 border-amber-300">
                     <p className="text-lg font-semibold text-gray-800 mb-3">
@@ -676,7 +686,7 @@ export default function RegisterPage() {
                   {/* The Problem */}
                   <div className="space-y-4">
                     <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                      <AlertTriangle className="h-6 w-6 text-red-500" />
+                      <X className="h-6 w-6 text-red-500" />
                       The Truth About Data Reselling
                     </h3>
                     <p className="text-gray-700 leading-relaxed text-base">
@@ -685,7 +695,7 @@ export default function RegisterPage() {
                     <div className="space-y-4">
                       <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
                         <div className="p-2 rounded-full bg-red-100 flex-shrink-0">
-                          <AlertTriangle className="h-5 w-5 text-red-500" />
+                          <X className="h-5 w-5 text-red-500" />
                         </div>
                         <div>
                           <p className="font-medium text-gray-800">Endless Complaints</p>
@@ -699,7 +709,7 @@ export default function RegisterPage() {
                       </div>
                       <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
                         <div className="p-2 rounded-full bg-red-100 flex-shrink-0">
-                          <AlertTriangle className="h-5 w-5 text-red-500" />
+                          <X className="h-5 w-5 text-red-500" />
                         </div>
                         <div>
                           <p className="font-medium text-gray-800">Small Earnings, Big Effort</p>
@@ -711,7 +721,7 @@ export default function RegisterPage() {
                       </div>
                       <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
                         <div className="p-2 rounded-full bg-red-100 flex-shrink-0">
-                          <AlertTriangle className="h-5 w-5 text-red-500" />
+                          <X className="h-5 w-5 text-red-500" />
                         </div>
                         <div>
                           <p className="font-medium text-gray-800">No Growth</p>
@@ -727,7 +737,7 @@ export default function RegisterPage() {
                   {/* The Solution */}
                   <div className="space-y-5">
                     <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                      <CheckCircle className="h-6 w-6 text-green-600" />
+                      <X className="h-6 w-6 text-green-600" />
                       How DataFlex Ghana Helps You
                     </h3>
                     <p className="text-gray-700 leading-relaxed text-base">
@@ -744,46 +754,46 @@ export default function RegisterPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4">
                       <div className="bg-green-50 rounded-lg p-5 border border-green-100">
                         <h4 className="font-medium text-green-800 flex items-center gap-2 mb-3">
-                          <Smartphone className="h-5 w-5" /> Digital Services
+                          <X className="h-5 w-5" /> Digital Services
                         </h4>
                         <ul className="space-y-3 text-sm text-gray-700">
                           <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            <X className="h-4 w-4 text-green-500 flex-shrink-0" />
                             Birth Certificate Applications
                           </li>
                           <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            <X className="h-4 w-4 text-green-500 flex-shrink-0" />
                             TIN & Business Registration
                           </li>
                           <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            <X className="h-4 w-4 text-green-500 flex-shrink-0" />
                             Professional Document Writing
                           </li>
                           <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            <X className="h-4 w-4 text-green-500 flex-shrink-0" />
                             Resume & CV Services
                           </li>
                         </ul>
                       </div>
                       <div className="bg-blue-50 rounded-lg p-5 border border-blue-100">
                         <h4 className="font-medium text-blue-800 flex items-center gap-2 mb-3">
-                          <Wallet className="h-5 w-5" /> Financial Services
+                          <X className="h-5 w-5" /> Financial Services
                         </h4>
                         <ul className="space-y-3 text-sm text-gray-700">
                           <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            <X className="h-4 w-4 text-blue-500 flex-shrink-0" />
                             Investment Opportunities
                           </li>
                           <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            <X className="h-4 w-4 text-blue-500 flex-shrink-0" />
                             Bulk Data for Businesses
                           </li>
                           <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            <X className="h-4 w-4 text-blue-500 flex-shrink-0" />
                             Commission-Based Referrals
                           </li>
                           <li className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            <X className="h-4 w-4 text-blue-500 flex-shrink-0" />
                             Real Estate Listings
                           </li>
                         </ul>
@@ -794,7 +804,7 @@ export default function RegisterPage() {
                   {/* Call to Action */}
                   <div className="bg-amber-50 rounded-lg p-6 border-l-4 border-amber-300 space-y-5">
                     <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                      <Lightbulb className="h-6 w-6 text-amber-600" />
+                      <X className="h-6 w-6 text-amber-600" />
                       Your Next Step
                     </h3>
                     <p className="text-gray-700 leading-relaxed text-base">
@@ -842,7 +852,7 @@ export default function RegisterPage() {
           <Card className="mb-4 sm:mb-6 border-amber-200 bg-amber-50">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <X className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 mt-0.5 flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="font-medium text-amber-800 mb-1 text-xs sm:text-sm">Important Notice</p>
                   <p className="text-xs sm:text-sm text-amber-700 leading-relaxed">
@@ -862,7 +872,7 @@ export default function RegisterPage() {
               className="w-full border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent text-xs sm:text-sm"
             >
               <a href="https://agentwelcome.netlify.app/" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2 flex-shrink-0" />
+                <X className="h-4 w-4 mr-2 flex-shrink-0" />
                 Learn How It Works
               </a>
             </Button>

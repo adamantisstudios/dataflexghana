@@ -48,10 +48,12 @@ import {
   Router,
   Download,
   Search,
+  Play,
 } from "lucide-react"
 import Link from "next/link"
 import PropertiesShowcase from "@/components/homepage/PropertiesShowcase"
 import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
+import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
 
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([])
@@ -374,6 +376,37 @@ export default function HomePage() {
 
       {/* Hero Section with 4 Sliders */}
       <HeroSlider />
+
+      <section className="py-8 sm:py-12 bg-gradient-to-b from-white to-emerald-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <Card className="border-emerald-100 bg-emerald-50/50 shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col gap-4 sm:gap-6">
+                  {/* Header */}
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="p-2 sm:p-3 rounded-full bg-emerald-100 flex-shrink-0">
+                      <Play className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-emerald-800 text-base sm:text-lg">See What's Inside</h3>
+                      <p className="text-xs sm:text-sm text-emerald-700 mt-1 leading-relaxed">
+                        Watch a quick tour of the DataFlex Ghana platform and discover all the earning opportunities
+                        waiting for you.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Video Player Button */}
+                  <div className="flex justify-center sm:justify-start">
+                    <PlatformSneakPeakButton variant="default" size="sm" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
 
       <div className="mb-16">
         <Card className="mx-auto max-w-5xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
@@ -1047,7 +1080,7 @@ export default function HomePage() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
+                          d="M12 8v13m0-13V5.5A2.5 2.5 0 109.5 8H12zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
                         />
                       </svg>
                     </div>
