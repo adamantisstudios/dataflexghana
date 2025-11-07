@@ -1,6 +1,7 @@
 /**
  * Search Tracking & Rate Limiting Utility
  * Manages daily search quotas and device identification
+ * Added client-side guard to prevent window usage on server
  */
 
 const STORAGE_KEY_PREFIX = "candidate_search_"
@@ -17,6 +18,10 @@ export interface SearchQuota {
  * This helps identify unique devices without storing personal data
  */
 export function generateDeviceFingerprint(): string {
+  if (typeof window === "undefined") {
+    return "server-side-default"
+  }
+
   const navigator_info = window.navigator
   const screen_info = window.screen
 
@@ -43,6 +48,10 @@ export function generateDeviceFingerprint(): string {
  */
 export function getSearchQuota(): SearchQuota {
   try {
+    if (typeof localStorage === "undefined") {
+      return { date: new Date().toISOString().split("T")[0], count: 0, lastSearchTime: 0 }
+    }
+
     const deviceId = generateDeviceFingerprint()
     const storageKey = STORAGE_KEY_PREFIX + deviceId
     const today = new Date().toISOString().split("T")[0]
@@ -71,6 +80,10 @@ export function getSearchQuota(): SearchQuota {
  */
 export function incrementSearchCount(): SearchQuota {
   try {
+    if (typeof localStorage === "undefined") {
+      return { date: new Date().toISOString().split("T")[0], count: 0, lastSearchTime: 0 }
+    }
+
     const deviceId = generateDeviceFingerprint()
     const storageKey = STORAGE_KEY_PREFIX + deviceId
     const today = new Date().toISOString().split("T")[0]
@@ -123,6 +136,10 @@ export function getSearchLimitMessage(): string {
  */
 export function clearSearchData(): void {
   try {
+    if (typeof localStorage === "undefined") {
+      return
+    }
+
     const deviceId = generateDeviceFingerprint()
     const storageKey = STORAGE_KEY_PREFIX + deviceId
     localStorage.removeItem(storageKey)
