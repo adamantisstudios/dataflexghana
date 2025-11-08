@@ -22,6 +22,7 @@ import LocationBasedNotification from "@/components/public/candidates-search/Loc
 import CandidatesHeroSlider from "@/components/public/candidates-search/CandidatesHeroSlider"
 import { isLocationInGhana } from "@/lib/ghana-locations"
 import { Footer } from "@/components/footer"
+import { SearchAdsOverlay } from "@/components/public/candidates-search/SearchAdsOverlay"
 import {
   Pagination,
   PaginationContent,
@@ -42,6 +43,8 @@ export default function BoldCandidatesSearchEngine() {
   const [searchLimitExceeded, setSearchLimitExceeded] = useState(false)
   const [searchedLocation, setSearchedLocation] = useState("")
   const [showLocationNotification, setShowLocationNotification] = useState(false)
+  const [showSearchAd, setShowSearchAd] = useState(false)
+  const [searchCountToday, setSearchCountToday] = useState(0)
   const heroSearchInputRef = useRef<HTMLInputElement>(null)
   const resultsSearchInputRef = useRef<HTMLInputElement>(null)
   const itemsPerPage = 12
@@ -56,6 +59,8 @@ export default function BoldCandidatesSearchEngine() {
       setCurrentPage(cache.currentPage)
       setHasSearched(true)
     }
+    const storedCount = localStorage.getItem("candidate_search_count_today") || "0"
+    setSearchCountToday(Number.parseInt(storedCount))
   }, [])
 
   // Search handler
@@ -69,6 +74,7 @@ export default function BoldCandidatesSearchEngine() {
       setLoading(true)
       setSearchLimitExceeded(false)
       setShowLocationNotification(false)
+      setShowSearchAd(false)
 
       const response = await fetch(`/api/candidates/search?query=${encodeURIComponent(searchTerm)}`, {
         method: "GET",
@@ -98,6 +104,14 @@ export default function BoldCandidatesSearchEngine() {
 
       saveSearchCache(searchTerm, limitedCandidates, 1)
       incrementSearchCount()
+
+      const newCount = searchCountToday + 1
+      setSearchCountToday(newCount)
+      localStorage.setItem("candidate_search_count_today", newCount.toString())
+
+      if (newCount === 4) {
+        setShowSearchAd(true)
+      }
     } catch (error) {
       console.error("[v0] Error loading candidates:", error)
       setCandidates([])
@@ -507,6 +521,9 @@ export default function BoldCandidatesSearchEngine() {
         </main>
         <SearchTipsNotification />
         <ATSInfoNotification searchInputRef={resultsSearchInputRef} />
+
+        {showSearchAd && <SearchAdsOverlay onClose={() => setShowSearchAd(false)} />}
+
         <Footer />
       </div>
     )

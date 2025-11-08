@@ -25,6 +25,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     console.log("[v0] Approving invitation:", referralId)
 
+    const { data: referralLink, error: fetchError } = await supabase
+      .from("referral_links")
+      .select("agent_id, referral_code")
+      .eq("id", referralId)
+      .single()
+
+    if (fetchError) {
+      console.error("[v0] Error fetching referral link:", fetchError)
+      throw new Error("Referral link not found")
+    }
+
+    console.log("[v0] Referral link found:", referralLink)
+
     const { error: updateError } = await supabase
       .from("referral_links")
       .update({
@@ -34,7 +47,35 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       })
       .eq("id", referralId)
 
-    if (updateError) throw updateError
+    if (updateError) {
+      console.error("[v0] Error updating referral link:", updateError)
+      throw updateError
+    }
+
+    console.log("[v0] Referral link updated to approved")
+
+    // Using upsert to avoid 409 conflict if the record already exists
+    const { error: creditError } = await supabase.from("referral_credits").upsert(
+      {
+        referring_agent_id: referralLink.agent_id,
+        referred_agent_id: referralLink.agent_id, // Same agent for now
+        referral_code: referralLink.referral_code,
+        status: "credited",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "referring_agent_id,referred_agent_id", // Handle conflict on these columns
+        ignoreDuplicates: false, // Update if exists
+      },
+    )
+
+    if (creditError) {
+      console.error("[v0] Error upserting referral credit:", creditError)
+      // Don't throw - log it but continue since the main approval worked
+    }
+
+    console.log("[v0] Referral credit processed")
 
     const { error: auditError } = await supabase.from("invitation_audit_log").insert({
       admin_id,

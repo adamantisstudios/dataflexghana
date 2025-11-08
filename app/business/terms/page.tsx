@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Building2, ArrowLeft, Shield, Users, CreditCard, AlertCircle } from "lucide-react"
+import { Building2, ArrowLeft, Shield, Users, CreditCard, AlertCircle, HelpCircle } from "lucide-react"
 import Link from "next/link"
 
 export default function BusinessTermsPage() {
@@ -219,6 +219,30 @@ export default function BusinessTermsPage() {
                   <span>Businesses may request data deletion upon account termination</span>
                 </li>
               </ul>
+            </CardContent>
+          </Card>
+
+          {/* FAQ Link Card */}
+          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg">
+            <CardContent className="p-8">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
+                  <HelpCircle className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-blue-800 mb-2">Have Questions About These Terms?</h3>
+                  <p className="text-sm text-blue-700 mb-4">
+                    Check out our comprehensive FAQ section for answers to common questions about business registration,
+                    service packages, pricing, and platform support.
+                  </p>
+                  <Link href="/faq">
+                    <Button variant="outline" className="border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent">
+                      <HelpCircle className="h-4 w-4 mr-2" />
+                      Visit FAQ & Help Center
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

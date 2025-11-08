@@ -42,9 +42,10 @@ import {
   ArrowRight,
   Users,
   CreditCard,
+  AlertTriangle,
+  Lightbulb,
+  Check,
 } from "lucide-react"
-import { BackToTop } from "@/components/back-to-top"
-import AgentReminderPopup from "@/components/agent-reminder-popup"
 import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -52,15 +53,20 @@ import { supabase } from "@/lib/supabase"
 import type { Job } from "@/lib/supabase"
 import { RichTextRenderer } from "@/components/ui/rich-text-renderer"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
-import { ImageModal } from "@/components/ui/image-modal"
 import { calculateCompleteEarnings } from "@/lib/earnings-calculator"
 import { AgentMenuCards } from "@/components/agent/AgentMenuCards"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { ProductSlider } from "@/components/agent/ProductSlider"
 import AgentPropertiesShowcase from "@/components/agent/dashboard/AgentPropertiesShowcase"
-import DashboardFloatingChat from "@/components/agent/dashboard/DashboardFloatingChat"
 import { ComplianceTab } from "@/components/agent/compliance/ComplianceTab"
 import { ProfessionalWritingTab } from "@/components/agent/professional-writing/ProfessionalWritingTab"
 import TeachingPlatformPage from "@/app/agent/teaching/page"
@@ -130,6 +136,12 @@ export default function AgentDashboard() {
   const [agentId, setAgentId] = useState<string | null>(null) // Keep agentId for specific functionalities
 
   const [notificationVisible, setNotificationVisible] = useState(false)
+
+  // ADDED STATE FOR CLEAR REFERRALS DIALOG
+  const [showClearReferralsDialog, setShowClearReferralsDialog] = useState(false)
+  const [clearReferralsType, setClearReferralsType] = useState<"day" | "month">("day")
+  // ADDED STATE FOR THE "MORE THAN JUST DATA" MODULE
+  const [showBeyondDataModal, setShowBeyondDataModal] = useState(false)
 
   const [currentServicesPage, setCurrentServicesPage] = useState(1)
   const [currentReferralsPage, setCurrentReferralsPage] = useState(1)
@@ -778,6 +790,58 @@ DataFlex Ghana Agent 🇬🇭`
     setDomesticReferralWhatsAppError("")
   }
 
+  // ADDED FUNCTION TO CLEAR OLD REFERRAL RECORDS
+  const clearOldReferrals = async () => {
+    if (
+      !confirm(
+        `Are you sure you want to clear referral records from ${clearReferralsType === "day" ? "today" : "this month"}? This action cannot be undone.`,
+      )
+    ) {
+      return
+    }
+    try {
+      const now = new Date()
+      let cutoffDate: Date
+      if (clearReferralsType === "day") {
+        cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      } else {
+        cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      }
+
+      const response = await fetch("/api/agent/clear-old-records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent_id: agent?.id,
+          cutoff_date: cutoffDate.toISOString(),
+          record_type: "referrals",
+          time_range: clearReferralsType,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert(`Cleared ${result.count} referral records`)
+        setShowClearReferralsDialog(false)
+        // Reload referrals tab data after clearing
+        if (agent?.id) {
+          setTabLoadingStates((prev) => ({ ...prev, referrals: true }))
+          const data = await loadTabData("referrals", agent.id)
+          if (data) {
+            setTabData((prev) => ({ ...prev, referrals: data }))
+          }
+          setTabLoadingStates((prev) => ({ ...prev, referrals: false }))
+        }
+      } else {
+        alert(result.error || "Failed to clear records")
+      }
+    } catch (error) {
+      console.error("Error clearing records:", error)
+      alert("Failed to clear records")
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center">
@@ -859,6 +923,40 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         )}
         <AgentMenuCards activeTab={activeTab} onTabChange={handleTabChange} />
+
+        {/* CHANGE: Insert "More Than Just Data" module right after menu items */}
+        <div className="mb-8">
+          <Card className="border-amber-100 bg-amber-50/50 shadow-sm hover:shadow-md transition-shadow w-full">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col gap-3 sm:gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 rounded-full bg-amber-100 flex-shrink-0">
+                    <Lightbulb className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-amber-800 text-base sm:text-lg">More Than Just Data</h3>
+                    <p className="text-xs sm:text-sm text-amber-700 mt-2 leading-relaxed">
+                      Data reselling is just the start. Discover how to earn{" "}
+                      <strong>GH₵50 to GH₵1,000+ per transaction</strong> with our trusted services and business
+                      opportunities.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => setShowBeyondDataModal(true)}
+                  variant="outline"
+                  size="sm"
+                  className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 transition-colors w-full bg-transparent text-xs sm:text-sm font-medium"
+                >
+                  Learn How to Earn More
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {/* End of More Than Just Data module */}
+
         <div className="mb-8">
           <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
@@ -1091,7 +1189,7 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         </div>
 
-        {/* Remove the old duplicated sections below - they're now in the grid above */}
+        {/* Removed the old duplicated sections as they are now in the grid above */}
         <div className="max-w-7xl mx-auto mb-8">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsContent value="voucher-cards" className="space-y-4"></TabsContent>
@@ -1464,6 +1562,15 @@ DataFlex Ghana Agent 🇬🇭`
                           <SelectItem value="Rejected">Rejected</SelectItem>
                         </SelectContent>
                       </Select>
+                      {/* ADDED CLEAR REFERRALS BUTTON */}
+                      <Button
+                        onClick={() => setShowClearReferralsDialog(true)}
+                        variant="outline"
+                        className="border-red-300 text-red-600 hover:bg-red-50 whitespace-nowrap"
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Clear Old Records
+                      </Button>
                       <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
                         {filteredReferrals.length} referrals
                       </Badge>
@@ -2165,6 +2272,49 @@ DataFlex Ghana Agent 🇬🇭`
           </Tabs>
         </div>
       </div>
+      {/* ADDED CLEAR REFERRALS DIALOG */}
+      <Dialog open={showClearReferralsDialog} onOpenChange={setShowClearReferralsDialog}>
+        <DialogContent className="w-[95vw] sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="h-5 w-5" />
+              Clear Referral Records
+            </DialogTitle>
+            <DialogDescription className="text-red-700">
+              Remove old referral records to keep your dashboard clean
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 block">Time Range</label>
+              <Select value={clearReferralsType} onValueChange={(value: any) => setClearReferralsType(value)}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">Today</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-xs md:text-sm font-medium text-red-900 mb-1">Warning:</p>
+              <p className="text-xs text-red-700">
+                This will permanently delete referral records older than the selected date. This action cannot be
+                undone.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowClearReferralsDialog(false)} className="text-xs md:text-sm">
+              Cancel
+            </Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-xs md:text-sm" onClick={clearOldReferrals}>
+              Clear Records
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={showDomesticReferralDialog} onOpenChange={setShowDomesticReferralDialog}>
         <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm border-blue-200">
           <DialogHeader>
@@ -2279,17 +2429,213 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         </DialogContent>
       </Dialog>
-      <ImageModal
-        isOpen={showImageModal}
-        onClose={() => setShowImageModal(false)}
-        images={modalImages}
-        currentIndex={modalImageIndex}
-        onIndexChange={setModalImageIndex}
-        alt={modalImageAlt}
-      />
-      <AgentReminderPopup />
-      <BackToTop />
-      {agent && <DashboardFloatingChat agent={agent} />}
+
+      {/* ADDED Beyond Data Modal */}
+      {showBeyondDataModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-none sm:rounded-xl shadow-xl w-screen sm:w-full sm:max-w-3xl mx-0 sm:mx-4 my-0 sm:my-8 max-h-screen sm:max-h-[95vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 sm:px-6 py-5 text-white sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-white/20">
+                  <Lightbulb className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg sm:text-xl font-semibold">Build a Business, Not Just Sales</h2>
+                  <p className="text-xs sm:text-sm text-white/90 mt-1">
+                    Turn your hustle into a real income with DataFlex Ghana.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowBeyondDataModal(false)}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
+                  aria-label="Close modal"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4 sm:p-6 space-y-6">
+              {/* Introduction */}
+              <div className="bg-amber-50 rounded-lg p-5 border-l-4 border-amber-300">
+                <p className="text-lg font-semibold text-gray-800 mb-3">
+                  💡 <strong>Want More Than Just Pocket Money?</strong>
+                </p>
+                <p className="text-gray-700 leading-relaxed text-base">
+                  Selling data bundles is a good start, but it shouldn't be your only source of income. Imagine earning{" "}
+                  <strong>GH₵50 to GH₵1,000+ per transaction</strong>—not just small change. With DataFlex Ghana, you
+                  can turn your phone into a real business tool.
+                </p>
+              </div>
+
+              {/* The Problem */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
+                  The Truth About Data Reselling
+                </h3>
+                <p className="text-gray-700 leading-relaxed text-base">
+                  Selling data bundles alone won't take you far. Here's why:
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
+                    <div className="p-2 rounded-full bg-red-100 flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">Endless Complaints</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Customers often blame you for issues—even when the data is delivered.
+                        <span className="block mt-2 text-xs italic">*"I didn't get my data!"* —Sound familiar?</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
+                    <div className="p-2 rounded-full bg-red-100 flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">Small Earnings, Big Effort</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        After fees and costs, you're left with very little.
+                        <span className="block mt-2 text-xs italic">Can GH₵10 pay your bills? Your dreams?</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg">
+                    <div className="p-2 rounded-full bg-red-100 flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-800">No Growth</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        You're stuck in the same cycle—selling, explaining, and repeating.
+                        <span className="block mt-2 text-xs italic">Is this really the business you want?</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* The Solution */}
+              <div className="space-y-5">
+                <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                  <Check className="h-6 w-6 text-green-600" />
+                  How DataFlex Ghana Helps You
+                </h3>
+                <p className="text-gray-700 leading-relaxed text-base">
+                  We don't just sell data. We help you <strong>build a real business</strong>—one that pays you what you
+                  deserve.
+                </p>
+                <p className="text-gray-700 leading-relaxed text-base">
+                  With DataFlex Ghana, you can earn <strong>GH₵50 to GH₵1,000+ per transaction</strong>. No more stress.
+                  No more small change. Just real income.
+                </p>
+                <p className="text-gray-700 leading-relaxed text-base">
+                  We offer <strong>50+ trusted services</strong> that people need every day:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4">
+                  <div className="bg-green-50 rounded-lg p-5 border border-green-100">
+                    <h4 className="font-semibold text-green-800 flex items-center gap-2 mb-3">
+                      <Lightbulb className="h-5 w-5" /> Digital Services
+                    </h4>
+                    <ul className="space-y-3 text-sm text-gray-700">
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        Birth Certificate Applications
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        TIN & Business Registration
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        Professional Document Writing
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        Resume & CV Services
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="bg-blue-50 rounded-lg p-5 border border-blue-100">
+                    <h4 className="font-semibold text-blue-800 flex items-center gap-2 mb-3">
+                      <Lightbulb className="h-5 w-5" /> Financial Services
+                    </h4>
+                    <ul className="space-y-3 text-sm text-gray-700">
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        Investment Opportunities
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        Bulk Data for Businesses
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        Commission-Based Referrals
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                        Real Estate Listings
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Call to Action */}
+              <div className="bg-amber-50 rounded-lg p-6 border-l-4 border-amber-300 space-y-5">
+                <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                  <Lightbulb className="h-6 w-6 text-amber-600" />
+                  Your Next Step
+                </h3>
+                <p className="text-gray-700 leading-relaxed text-base">
+                  You can keep selling data and earning small amounts.
+                </p>
+                <p className="text-gray-700 leading-relaxed text-base font-medium">
+                  Or you can embrace the full potential of DataFlex Ghana and start building a business that pays you
+                  well.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 mt-5">
+                  <Button
+                    onClick={() => setShowBeyondDataModal(false)}
+                    className="bg-amber-600 hover:bg-amber-700 text-white py-3 text-base flex-1 font-medium"
+                  >
+                    Let's Build It Together
+                  </Button>
+                  <Button
+                    onClick={() => setShowBeyondDataModal(false)}
+                    variant="outline"
+                    className="border-amber-300 text-amber-700 hover:bg-amber-50 py-3 text-base flex-1"
+                  >
+                    Maybe Later
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end">
+              <Button
+                onClick={() => setShowBeyondDataModal(false)}
+                variant="ghost"
+                className="text-gray-600 hover:text-gray-800 text-base"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* End of Beyond Data Modal */}
+
+      {/* Rest of dashboard content */}
+      <div className="rounded-lg bg-red-50 border-2 border-red-200 p-4 mb-8 text-center">
+        {/* Removed the unnecessary section here as it was a duplicate */}
+      </div>
     </div>
   )
 }

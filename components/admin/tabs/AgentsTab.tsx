@@ -191,7 +191,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       if (agentToApprove.referral_code) {
         console.log("[v0] Looking up referrer with code:", agentToApprove.referral_code)
 
-        const { data: referringAgent, error: lookupError } = await supabase
+        const { data: referralLink, error: lookupError } = await supabase
           .from("referral_links")
           .select("agent_id")
           .eq("referral_code", agentToApprove.referral_code)
@@ -201,16 +201,27 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
           console.log("[v0] Lookup error (may be expected if no referrer):", lookupError.message)
         }
 
-        if (referringAgent) {
-          console.log("[v0] Found referring agent:", referringAgent.agent_id)
-          // Create referral credit record with "pending" status for manual payout
-          await supabase.from("referral_credits").insert({
-            referring_agent_id: referringAgent.agent_id,
-            referred_agent_id: agentId,
-            credit_amount: 15.0,
-            status: "pending", // Admin will manually process this later
-            created_at: new Date().toISOString(),
-          })
+        if (referralLink) {
+          console.log("[v0] Found referring agent:", referralLink.agent_id)
+
+          const { error: creditError } = await supabase.from("referral_credits").upsert(
+            {
+              referring_agent_id: referralLink.agent_id,
+              referred_agent_id: agentId,
+              credit_amount: 15.0,
+              status: "pending",
+              created_at: new Date().toISOString(),
+            },
+            {
+              onConflict: "referring_agent_id,referred_agent_id",
+            },
+          )
+
+          if (creditError) {
+            console.error("[v0] Error upserting referral credit:", creditError)
+          } else {
+            console.log("[v0] Referral credit processed successfully")
+          }
 
           const { error: updateInvError } = await supabase
             .from("referral_links")
@@ -219,6 +230,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
               referred_user_registered_at: new Date().toISOString(),
               admin_approval_status: "approved",
               admin_approved_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
             })
             .eq("referral_code", agentToApprove.referral_code)
 

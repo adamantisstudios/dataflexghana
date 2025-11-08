@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -15,34 +14,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Check, X, Phone, Calendar, User, LinkIcon, Loader2, Clock } from "lucide-react"
+import { Check, Phone, Calendar, User, DollarSign, Loader2, Clock, AlertTriangle, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getCurrentAdmin } from "@/lib/auth"
 
 interface Invitation {
   id: string
-  referral_code: string
-  referred_agent_id: string
-  referred_phone: string
-  referred_name: string
-  admin_approval_status: "pending" | "approved" | "rejected"
-  admin_rejection_reason?: string
-  referred_user_registered: boolean
-  referred_user_registered_at?: string
-  admin_approved_at?: string
+  credit_amount: number
+  status: "pending" | "confirmed" | "credited" | "paid_out"
   created_at: string
-  updated_at: string
-  referral_links: {
-    id: string
-    code: string
-    agent_id: string
-    agents: {
-      id: string
-      agent_name: string
-      full_name: string
-      email: string
-    }
-  }
+  referring_agent_id: string
+  referred_agent_id: string
+  referring_agent_name: string
+  referred_agent_name: string
+  referred_phone: string
+  referring_phone: string
 }
 
 interface InvitationManagementTabProps {
@@ -52,39 +38,34 @@ interface InvitationManagementTabProps {
 
 export default function InvitationManagementTab({ getCachedData, setCachedData }: InvitationManagementTabProps) {
   const [invitations, setInvitations] = useState<Invitation[]>([])
-  const [filteredInvitations, setFilteredInvitations] = useState<Invitation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("pending")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [selectedInvitation, setSelectedInvitation] = useState<Invitation | null>(null)
-  const [approveDialogOpen, setApproveDialogOpen] = useState(false)
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
-  const [approveNotes, setApproveNotes] = useState("")
-  const [rejectReason, setRejectReason] = useState("")
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false)
+  const [newStatus, setNewStatus] = useState<"confirmed" | "credited" | "paid_out">("confirmed")
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [showClearDialog, setShowClearDialog] = useState(false)
+  const [clearDataType, setClearDataType] = useState<"day" | "month">("day")
 
   const admin = getCurrentAdmin()
 
   const loadInvitations = async (page = 1) => {
     try {
       setLoading(true)
-      const cachedData = getCachedData()
+      const response = await fetch(
+        `/api/admin/invitations?status=${statusFilter}&page=${page}&search=${encodeURIComponent(searchTerm)}`,
+      )
+      const result = await response.json()
 
-      if (cachedData && page === 1) {
-        setInvitations(cachedData)
+      if (result.success) {
+        setInvitations(result.data)
+        setCachedData(result.data)
+        setTotalPages(result.totalPages)
       } else {
-        const response = await fetch(
-          `/api/admin/invitations?status=${statusFilter}&page=${page}&search=${encodeURIComponent(searchTerm)}`,
-        )
-        const result = await response.json()
-
-        if (result.success) {
-          setInvitations(result.data)
-          setCachedData(result.data)
-          setTotalPages(result.totalPages)
-        }
+        toast.error(result.error || "Failed to load invitations")
       }
     } catch (error) {
       console.error("Error loading invitations:", error)
@@ -103,68 +84,85 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
     loadInvitations(currentPage)
   }, [currentPage])
 
-  const handleApprove = async () => {
+  const handleUpdateStatus = async () => {
     if (!selectedInvitation || !admin) return
 
     try {
       setProcessingId(selectedInvitation.id)
-      const response = await fetch(`/api/admin/invitations/${selectedInvitation.id}/approve`, {
+      const response = await fetch(`/api/admin/invitations/${selectedInvitation.id}/update-status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           admin_id: admin.id,
-          notes: approveNotes,
+          status: newStatus,
         }),
       })
 
       const result = await response.json()
 
       if (result.success) {
-        toast.success("Invitation approved successfully")
-        setApproveDialogOpen(false)
-        setApproveNotes("")
-        loadInvitations(currentPage)
+        toast.success(`Payment status updated to ${newStatus}`)
+        setUpdateDialogOpen(false)
+
+        // Instead of trying to keep it visible, just reload all data to ensure consistency
+        setInvitations((prev) => prev.filter((inv) => inv.id !== selectedInvitation.id))
+
+        // Reload the current page to show fresh data
+        setTimeout(() => {
+          loadInvitations(currentPage)
+        }, 300)
       } else {
-        toast.error(result.error || "Failed to approve invitation")
+        toast.error(result.error || "Failed to update status")
       }
     } catch (error) {
-      console.error("Error approving invitation:", error)
-      toast.error("Failed to approve invitation")
+      console.error("Error updating status:", error)
+      toast.error("Failed to update status")
     } finally {
       setProcessingId(null)
     }
   }
 
-  const handleReject = async () => {
-    if (!selectedInvitation || !admin || !rejectReason.trim()) {
-      toast.error("Please provide a rejection reason")
+  const clearOldInvitations = async () => {
+    if (
+      !confirm(
+        `Are you sure you want to clear invitation records from ${clearDataType === "day" ? "today" : "this month"}? This action cannot be undone.`,
+      )
+    ) {
       return
     }
-
     try {
-      setProcessingId(selectedInvitation.id)
-      const response = await fetch(`/api/admin/invitations/${selectedInvitation.id}/reject`, {
+      setProcessingId("clearing")
+      const now = new Date()
+      let cutoffDate: Date
+      if (clearDataType === "day") {
+        cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      } else {
+        cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      }
+
+      const response = await fetch("/api/admin/clear-old-records", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          admin_id: admin.id,
-          reason: rejectReason,
+          admin_id: admin?.id,
+          cutoff_date: cutoffDate.toISOString(),
+          record_type: "invitations",
+          time_range: clearDataType,
         }),
       })
 
       const result = await response.json()
 
       if (result.success) {
-        toast.success("Invitation rejected successfully")
-        setRejectDialogOpen(false)
-        setRejectReason("")
-        loadInvitations(currentPage)
+        toast.success(`Cleared ${result.count} invitation records`)
+        setShowClearDialog(false)
+        loadInvitations(1)
       } else {
-        toast.error(result.error || "Failed to reject invitation")
+        toast.error(result.error || "Failed to clear records")
       }
     } catch (error) {
-      console.error("Error rejecting invitation:", error)
-      toast.error("Failed to reject invitation")
+      console.error("Error clearing records:", error)
+      toast.error("Failed to clear records")
     } finally {
       setProcessingId(null)
     }
@@ -174,10 +172,12 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800"
-      case "approved":
+      case "confirmed":
+        return "bg-blue-100 text-blue-800"
+      case "credited":
         return "bg-green-100 text-green-800"
-      case "rejected":
-        return "bg-red-100 text-red-800"
+      case "paid_out":
+        return "bg-emerald-100 text-emerald-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
@@ -193,200 +193,186 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
     })
   }
 
+  const stats = {
+    pending: invitations.filter((i) => i.status === "pending").length,
+    confirmed: invitations.filter((i) => i.status === "confirmed").length,
+    credited: invitations.filter((i) => i.status === "credited").length,
+    paid_out: invitations.filter((i) => i.status === "paid_out").length,
+    total_amount: invitations.reduce((sum, i) => sum + i.credit_amount, 0),
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 md:gap-4">
         <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-800 flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Pending
+            <CardTitle className="text-xs md:text-sm font-medium text-yellow-800 flex items-center gap-2">
+              <Clock className="h-3 w-3 md:h-4 md:w-4" />
+              <span>Pending</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-900">
-              {invitations.filter((i) => i.admin_approval_status === "pending").length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-green-800 flex items-center gap-2">
-              <Check className="h-4 w-4" />
-              Approved
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-900">
-              {invitations.filter((i) => i.admin_approval_status === "approved").length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-red-800 flex items-center gap-2">
-              <X className="h-4 w-4" />
-              Rejected
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-900">
-              {invitations.filter((i) => i.admin_approval_status === "rejected").length}
-            </div>
+            <div className="text-xl md:text-2xl font-bold text-yellow-900">{stats.pending}</div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Registered
+            <CardTitle className="text-xs md:text-sm font-medium text-blue-800 flex items-center gap-2">
+              <Check className="h-3 w-3 md:h-4 md:w-4" />
+              <span>Confirmed</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-900">
-              {invitations.filter((i) => i.referred_user_registered).length}
-            </div>
+            <div className="text-xl md:text-2xl font-bold text-blue-900">{stats.confirmed}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-green-800 flex items-center gap-2">
+              <Check className="h-3 w-3 md:h-4 md:w-4" />
+              <span>Credited</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl md:text-2xl font-bold text-green-900">{stats.credited}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-emerald-800 flex items-center gap-2">
+              <Check className="h-3 w-3 md:h-4 md:w-4" />
+              <span>Paid Out</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl md:text-2xl font-bold text-emerald-900">{stats.paid_out}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-purple-800 flex items-center gap-2">
+              <DollarSign className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0 text-blue-600" />
+              <span>Total</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl md:text-2xl font-bold text-purple-900">${stats.total_amount.toFixed(2)}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
       <Card className="border-blue-200 bg-white/90 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-blue-800">Filters & Search</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm md:text-base text-blue-800">Filters & Search</CardTitle>
+            <Button
+              onClick={() => setShowClearDialog(true)}
+              variant="outline"
+              size="sm"
+              className="border-red-300 text-red-600 hover:bg-red-50 text-xs"
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Clear Old Records
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
+              <label className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 block">Payment Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="credited">Credited</SelectItem>
+                  <SelectItem value="paid_out">Paid Out</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Search</label>
+              <label className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 block">Search</label>
               <Input
-                placeholder="Search by name, phone, or referral code..."
+                placeholder="Search by agent name or phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="text-sm"
               />
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Invitations List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {loading ? (
-          <Card className="p-8 text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
-            <p className="text-gray-600">Loading invitations...</p>
+          <Card className="p-6 md:p-8 text-center">
+            <Loader2 className="h-6 md:h-8 w-6 md:w-8 animate-spin mx-auto mb-2 text-blue-600" />
+            <p className="text-sm md:text-base text-gray-600">Loading payment records...</p>
           </Card>
         ) : invitations.length === 0 ? (
-          <Card className="p-8 text-center bg-blue-50 border-blue-200">
-            <p className="text-gray-600">No invitations found</p>
+          <Card className="p-6 md:p-8 text-center bg-blue-50 border-blue-200">
+            <p className="text-sm md:text-base text-gray-600">
+              {statusFilter !== "pending" ? "No records found with this status" : "No payment records found"}
+            </p>
           </Card>
         ) : (
           invitations.map((invitation) => (
             <Card key={invitation.id} className="border-blue-200 hover:shadow-lg transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="font-semibold text-lg text-blue-900">{invitation.referred_name}</h3>
-                      <Badge className={getStatusBadgeColor(invitation.admin_approval_status)}>
-                        {invitation.admin_approval_status.replace("_", " ")}
-                      </Badge>
-                      {invitation.referred_user_registered && (
-                        <Badge className="bg-emerald-100 text-emerald-800">Registered</Badge>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Phone className="h-4 w-4 text-blue-600" />
-                        {invitation.referred_phone}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <LinkIcon className="h-4 w-4 text-blue-600" />
-                        Code: {invitation.referral_code}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <User className="h-4 w-4 text-blue-600" />
-                        Agent: {invitation.referral_links?.agents?.agent_name || "Unknown"}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Calendar className="h-4 w-4 text-blue-600" />
-                        {formatDate(invitation.created_at)}
+              <CardContent className="pt-4">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                      <h3 className="font-semibold text-sm md:text-base text-blue-900 truncate">
+                        {invitation.referring_agent_name}
+                      </h3>
+                      <div className="flex gap-2 flex-wrap">
+                        <Badge className={`${getStatusBadgeColor(invitation.status)} text-xs`}>
+                          {invitation.status.replace("_", " ")}
+                        </Badge>
+                        <Badge className="bg-purple-100 text-purple-800 text-xs">
+                          ${invitation.credit_amount.toFixed(2)}
+                        </Badge>
                       </div>
                     </div>
 
-                    {invitation.admin_rejection_reason && (
-                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm font-medium text-red-800 mb-1">Rejection Reason:</p>
-                        <p className="text-sm text-red-700">{invitation.admin_rejection_reason}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm">
+                      <div className="flex items-center gap-2 text-gray-700 truncate">
+                        <Phone className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0 text-blue-600" />
+                        <span className="truncate">{invitation.referring_phone}</span>
                       </div>
-                    )}
-
-                    {invitation.referred_user_registered_at && (
-                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-sm font-medium text-green-800">
-                          Registered: {formatDate(invitation.referred_user_registered_at)}
-                        </p>
+                      <div className="flex items-center gap-2 text-gray-700 truncate">
+                        <User className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0 text-blue-600" />
+                        <span className="truncate">Referred: {invitation.referred_agent_name}</span>
                       </div>
-                    )}
+                      <div className="flex items-center gap-2 text-gray-700 truncate">
+                        <Calendar className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0 text-blue-600" />
+                        <span className="truncate text-xs">{formatDate(invitation.created_at)}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {invitation.admin_approval_status === "pending" && (
-                    <div className="flex gap-2 flex-shrink-0">
-                      <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => {
-                          setSelectedInvitation(invitation)
-                          setApproveDialogOpen(true)
-                        }}
-                        disabled={processingId === invitation.id}
-                      >
-                        {processingId === invitation.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Check className="h-4 w-4 mr-1" />
-                            Approve
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          setSelectedInvitation(invitation)
-                          setRejectDialogOpen(true)
-                        }}
-                        disabled={processingId === invitation.id}
-                      >
-                        {processingId === invitation.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <X className="h-4 w-4 mr-1" />
-                            Reject
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                  {invitation.status !== "paid_out" && (
+                    <Button
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0 text-xs md:text-sm"
+                      onClick={() => {
+                        setSelectedInvitation(invitation)
+                        setUpdateDialogOpen(true)
+                      }}
+                      disabled={processingId === invitation.id}
+                    >
+                      {processingId === invitation.id ? (
+                        <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                      ) : (
+                        "Update Status"
+                      )}
+                    </Button>
                   )}
                 </div>
               </CardContent>
@@ -395,14 +381,14 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-1 md:gap-2 flex-wrap">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <Button
               key={page}
               variant={currentPage === page ? "default" : "outline"}
               size="sm"
+              className="text-xs md:text-sm"
               onClick={() => setCurrentPage(page)}
             >
               {page}
@@ -411,75 +397,92 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
         </div>
       )}
 
-      {/* Approve Dialog */}
-      <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
-        <DialogContent>
+      <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Approve Invitation</DialogTitle>
-            <DialogDescription>
-              Approving this invitation will allow {selectedInvitation?.referred_name} to complete registration using
-              the referral code.
+            <DialogTitle className="text-base md:text-lg">Update Payment Status</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">
+              Update the payment status for {selectedInvitation?.referring_agent_name}'s referral credit.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Admin Notes (Optional)</label>
-              <Textarea
-                placeholder="Add any notes about this approval..."
-                value={approveNotes}
-                onChange={(e) => setApproveNotes(e.target.value)}
-                className="min-h-24"
-              />
+              <label className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 block">New Status</label>
+              <Select value={newStatus} onValueChange={(value: any) => setNewStatus(value)}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="credited">Credited</SelectItem>
+                  <SelectItem value="paid_out">Paid Out</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs md:text-sm font-medium text-blue-900 mb-1">Amount:</p>
+              <p className="text-sm md:text-base font-bold text-blue-900">
+                ${selectedInvitation?.credit_amount.toFixed(2)}
+              </p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setUpdateDialogOpen(false)} className="text-xs md:text-sm">
               Cancel
             </Button>
             <Button
-              className="bg-green-600 hover:bg-green-700"
-              onClick={handleApprove}
+              className="bg-blue-600 hover:bg-blue-700 text-xs md:text-sm"
+              onClick={handleUpdateStatus}
               disabled={processingId !== null}
             >
-              {processingId ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Approve Invitation
+              {processingId ? <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin mr-2" /> : null}
+              Update
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Reject Dialog */}
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
+      <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <DialogContent className="w-[95vw] sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Reject Invitation</DialogTitle>
-            <DialogDescription>
-              Rejecting this invitation will prevent {selectedInvitation?.referred_name} from using this referral code
-              to register.
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="h-5 w-5" />
+              Clear Invitation Records
+            </DialogTitle>
+            <DialogDescription>Remove old invitation records to keep your system clean</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Rejection Reason (Required)</label>
-              <Textarea
-                placeholder="Explain why this invitation is being rejected..."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                className="min-h-24"
-              />
+              <label className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 block">Time Range</label>
+              <Select value={clearDataType} onValueChange={(value: any) => setClearDataType(value)}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="day">Today</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-xs md:text-sm font-medium text-red-900 mb-1">Warning:</p>
+              <p className="text-xs text-red-700">
+                This will permanently delete invitation records older than the selected date. This action cannot be
+                undone.
+              </p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowClearDialog(false)} className="text-xs md:text-sm">
               Cancel
             </Button>
             <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={processingId !== null || !rejectReason.trim()}
+              className="bg-red-600 hover:bg-red-700 text-xs md:text-sm"
+              onClick={clearOldInvitations}
+              disabled={processingId !== null}
             >
-              {processingId ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Reject Invitation
+              {processingId ? <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin mr-2" /> : null}
+              Clear Records
             </Button>
           </DialogFooter>
         </DialogContent>

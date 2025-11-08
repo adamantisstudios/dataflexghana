@@ -142,6 +142,17 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
     }
   }
 
+  const formatReferralDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -334,8 +345,13 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
                           {referral.referred_agent_id ? `Agent: ${referral.referred_agent_id}` : "Pending Signup"}
                         </p>
                         <p className="text-xs text-emerald-600 mt-1">
-                          Clicked: {new Date(referral.clicked_at).toLocaleDateString()}
+                          Clicked: {formatReferralDate(referral.clicked_at)}
                         </p>
+                        {referral.confirmed_at && (
+                          <p className="text-xs text-emerald-600">
+                            Confirmed: {formatReferralDate(referral.confirmed_at)}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
                         <Badge

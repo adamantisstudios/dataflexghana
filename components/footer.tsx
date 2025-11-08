@@ -2,9 +2,8 @@
 
 import Link from "next/link"
 import { useState, useCallback } from "react"
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Shield, Mail, Phone, MapPin, Facebook, Twitter, Instagram } from "lucide-react"
+import { Shield, Mail, Phone, MapPin, Facebook, Twitter, Instagram, HelpCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export function Footer() {
@@ -16,19 +15,17 @@ export function Footer() {
     const currentTime = Date.now()
     const timeDiff = currentTime - lastClickTime
 
-    // Reset counter if more than 2 seconds between clicks
     if (timeDiff > 2000) {
       setClickCount(1)
     } else {
-      setClickCount(prev => prev + 1)
+      setClickCount((prev) => prev + 1)
     }
 
     setLastClickTime(currentTime)
 
-    // Navigate to admin login after 3 clicks
-    if (clickCount >= 2) { // Will be 3 after increment
+    if (clickCount >= 2) {
       setClickCount(0)
-      router.push('/admin')
+      router.push("/admin")
     }
   }, [clickCount, lastClickTime, router])
 
@@ -94,6 +91,12 @@ export function Footer() {
                   Terms & Conditions
                 </Link>
               </li>
+              <li>
+                <Link href="/faq" className="text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4" />
+                  FAQ
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -147,6 +150,10 @@ export function Footer() {
             </Link>
             <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
               Cookie Policy
+            </Link>
+            <Link href="/faq" className="text-gray-400 hover:text-white transition-colors flex items-center gap-1">
+              <HelpCircle className="h-4 w-4" />
+              FAQ & Help
             </Link>
           </div>
         </div>

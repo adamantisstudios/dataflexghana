@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "sonner"
 import { DevConsoleDetector } from "@/components/dev-console-detector"
+import { MenuScrollHandler } from "@/components/menu-scroll-handler"
 
 export const metadata: Metadata = {
   title: "DataFlex Agents Ghana - Earn ₵700+ Daily | Multi-Service Platform with Commissions",
@@ -623,6 +624,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           disableTransitionOnChange
           suppressHydrationWarning
         >
+          <MenuScrollHandler />
           {children}
           <Toaster />
           <SonnerToaster position="top-right" richColors closeButton />

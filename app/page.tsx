@@ -409,11 +409,11 @@ export default function HomePage() {
       </section>
 
       <div className="mb-16">
-        <Card className="mx-auto max-w-5xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+        <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-4 sm:p-6 md:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 sm:p-6 lg:p-8">
               {/* Left Content */}
-              <div className="space-y-6 text-left">
+              <div className="space-y-6 text-left flex flex-col justify-center">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center">
@@ -496,7 +496,7 @@ export default function HomePage() {
                 </p>
               </div>
               {/* Right Image */}
-              <div className="relative">
+              <div className="relative order-first lg:order-last">
                 <div className="relative rounded-xl overflow-hidden shadow-lg">
                   <img
                     src="/happy-african-family-with-domestic-worker-at-home.jpg"
@@ -537,11 +537,11 @@ export default function HomePage() {
       </div>
 
       <div className="mb-16">
-        <Card className="mx-auto max-w-5xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-red-50">
+        <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-red-50">
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 sm:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 sm:p-6 lg:p-8">
               {/* Left Content */}
-              <div className="space-y-6 text-left">
+              <div className="space-y-6 text-left flex flex-col justify-center">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center">
@@ -642,11 +642,11 @@ export default function HomePage() {
 
       {/* 100% Free Job search support Section */}
       <div className="mb-16">
-        <Card className="mx-auto max-w-5xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+        <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 sm:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 sm:p-6 lg:p-8">
               {/* Left Content */}
-              <div className="space-y-6 text-left">
+              <div className="space-y-6 text-left flex flex-col justify-center">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center">
@@ -753,13 +753,12 @@ export default function HomePage() {
         </Card>
       </div>
 
-      {/* Second Card */}
       <div className="mb-16">
-        <Card className="mx-auto max-w-5xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 sm:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 sm:p-6 lg:p-8">
               {/* Left Content */}
-              <div className="space-y-6 text-left">
+              <div className="space-y-6 text-left flex flex-col justify-center">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -819,7 +818,7 @@ export default function HomePage() {
                 </Button>
               </div>
               {/* Right Image */}
-              <div className="relative">
+              <div className="relative order-first lg:order-last">
                 <div className="relative rounded-xl overflow-hidden shadow-lg">
                   <img
                     src="/images/happy-ghanaian-children-with-school-books-and-unif.jpg"
@@ -856,11 +855,11 @@ export default function HomePage() {
 
       {/* Business Registration & Compliance Section */}
       <div className="mb-16">
-        <Card className="mx-auto max-w-5xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
+        <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 sm:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 sm:p-6 lg:p-8">
               {/* Left Content */}
-              <div className="space-y-6 text-left">
+              <div className="space-y-6 text-left flex flex-col justify-center">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center">
@@ -963,11 +962,11 @@ export default function HomePage() {
       </div>
 
       <div className="mb-16">
-        <Card className="mx-auto max-w-5xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 sm:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 sm:p-6 lg:p-8">
               {/* Left Content */}
-              <div className="space-y-6 text-left">
+              <div className="space-y-6 text-left flex flex-col justify-center">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -1031,7 +1030,7 @@ export default function HomePage() {
                 <p className="text-center text-sm text-gray-600">Perfect for students and educational needs!</p>
               </div>
               {/* Right Image */}
-              <div className="relative">
+              <div className="relative order-first lg:order-last">
                 <div className="relative rounded-xl overflow-hidden shadow-lg">
                   <img
                     src="/educational-card.jpg"
@@ -1067,11 +1066,11 @@ export default function HomePage() {
       </div>
 
       <div className="mb-16">
-        <Card className="mx-auto max-w-5xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+        <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 sm:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 sm:p-6 lg:p-8">
               {/* Left Content */}
-              <div className="space-y-6 text-left">
+              <div className="space-y-6 text-left flex flex-col justify-center">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center">
@@ -1162,11 +1161,11 @@ export default function HomePage() {
       </div>
 
       <div className="mb-16">
-        <Card className="mx-auto max-w-5xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
+        <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 sm:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-4 sm:p-6 lg:p-8">
               {/* Left Content */}
-              <div className="space-y-6 text-left">
+              <div className="space-y-6 text-left flex flex-col justify-center">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-teal-600 rounded-xl flex items-center justify-center">
@@ -1225,7 +1224,7 @@ export default function HomePage() {
                 </p>
               </div>
               {/* Right Image */}
-              <div className="relative">
+              <div className="relative order-first lg:order-last">
                 <div className="relative rounded-xl overflow-hidden shadow-lg">
                   <img
                     src="/happy-ghanaian-students-with-books-and-laptops-cel.jpg"

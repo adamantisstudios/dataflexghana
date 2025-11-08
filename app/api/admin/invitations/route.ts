@@ -29,57 +29,123 @@ export async function GET(request: NextRequest) {
 
     console.log("[v0] Fetching invitations with status:", status, "search:", search)
 
-    let countQuery = supabase
-      .from("referral_links")
+    const countQuery = supabase
+      .from("referral_credits")
       .select("id", { count: "exact", head: true })
-      .eq("admin_approval_status", status)
+      .eq("status", status)
 
-    // Build data query
-    let dataQuery = supabase
-      .from("referral_links")
+    const dataQuery = supabase
+      .from("referral_credits")
       .select(
         `
         id,
-        referral_code,
-        agent_id as referred_agent_id,
-        referred_phone,
-        referred_name,
-        admin_approval_status,
-        admin_rejection_reason,
-        referred_user_registered,
-        referred_user_registered_at,
-        admin_approved_at,
+        credit_amount,
+        status,
         created_at,
-        updated_at,
-        id as referral_link_id,
-        agent_id,
-        agents (
+        referring_agent_id,
+        referred_agent_id,
+        agents!referral_credits_referring_agent_id_fkey (
           id,
-          agent_name,
           full_name,
+          phone_number,
+          agent_name,
+          referral_code
+        ),
+        agents_referred:agents!referral_credits_referred_agent_id_fkey (
+          id,
+          full_name,
+          phone_number,
           email
         )
       `,
       )
-      .eq("admin_approval_status", status)
+      .eq("status", status)
       .order("created_at", { ascending: false })
       .range(offset, offset + pageSize - 1)
 
-    // Apply search filters if provided
-    if (search) {
-      const searchFilter = `referred_name.ilike.%${search}%,referred_phone.ilike.%${search}%,referral_code.ilike.%${search}%`
-      countQuery = countQuery.or(searchFilter)
-      dataQuery = dataQuery.or(searchFilter)
+    // Apply search filter if provided
+    if (search && search.trim()) {
+      // Search across agent names and phone numbers
+      const searchFilter = search.trim().toLowerCase()
+
+      // Fetch all data first, then filter client-side for complex searches
+      const { data: allData, error: allDataError } = await supabase
+        .from("referral_credits")
+        .select(
+          `
+          id,
+          credit_amount,
+          status,
+          created_at,
+          referring_agent_id,
+          referred_agent_id,
+          agents!referral_credits_referring_agent_id_fkey (
+            id,
+            full_name,
+            phone_number,
+            agent_name,
+            referral_code
+          ),
+          agents_referred:agents!referral_credits_referred_agent_id_fkey (
+            id,
+            full_name,
+            phone_number,
+            email
+          )
+        `,
+        )
+        .eq("status", status)
+
+      if (allDataError) throw allDataError
+
+      // Filter data based on search term
+      const filtered = (allData || []).filter((item: any) => {
+        const referringName = item.agents?.full_name?.toLowerCase() || ""
+        const referringPhone = item.agents?.phone_number?.toLowerCase() || ""
+        const referredName = item.agents_referred?.full_name?.toLowerCase() || ""
+        const referredPhone = item.agents_referred?.phone_number?.toLowerCase() || ""
+
+        return (
+          referringName.includes(searchFilter) ||
+          referringPhone.includes(searchFilter) ||
+          referredName.includes(searchFilter) ||
+          referredPhone.includes(searchFilter)
+        )
+      })
+
+      const paginatedData = filtered.slice(offset, offset + pageSize)
+      const total = filtered.length
+
+      const mappedData = paginatedData.map((item: any) => ({
+        id: item.id,
+        credit_amount: item.credit_amount,
+        status: item.status,
+        created_at: item.created_at,
+        referring_agent_id: item.referring_agent_id,
+        referred_agent_id: item.referred_agent_id,
+        referring_agent_name: item.agents?.full_name || "Unknown",
+        referred_agent_name: item.agents_referred?.full_name || "Unknown",
+        referred_phone: item.agents_referred?.phone_number,
+        referring_phone: item.agents?.phone_number,
+      }))
+
+      return NextResponse.json({
+        success: true,
+        data: mappedData,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      })
     }
 
     const { count, error: countError } = await countQuery
-    const { data, error: dataError } = await dataQuery
-
     if (countError) {
       console.error("[v0] Count error:", countError)
       throw countError
     }
 
+    const { data, error: dataError } = await dataQuery
     if (dataError) {
       console.error("[v0] Data error:", dataError)
       throw dataError
@@ -87,14 +153,17 @@ export async function GET(request: NextRequest) {
 
     console.log("[v0] Found invitations:", data?.length || 0)
 
-    const mappedData = (data || []).map((inv: any) => ({
-      ...inv,
-      referral_links: {
-        id: inv.referral_link_id,
-        code: inv.referral_code,
-        agent_id: inv.agent_id,
-        agents: inv.agents,
-      },
+    const mappedData = (data || []).map((item: any) => ({
+      id: item.id,
+      credit_amount: item.credit_amount,
+      status: item.status,
+      created_at: item.created_at,
+      referring_agent_id: item.referring_agent_id,
+      referred_agent_id: item.referred_agent_id,
+      referring_agent_name: item.agents?.full_name || "Unknown",
+      referred_agent_name: item.agents_referred?.full_name || "Unknown",
+      referred_phone: item.agents_referred?.phone_number,
+      referring_phone: item.agents?.phone_number,
     }))
 
     return NextResponse.json({

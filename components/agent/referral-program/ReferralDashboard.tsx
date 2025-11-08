@@ -52,6 +52,7 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null)
 
   const generateReferralLink = async () => {
     setGenerating(true)
@@ -103,6 +104,15 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
       const result = await response.json()
 
       console.log("[v0] Stats result:", result)
+      if (result.recentReferrals) {
+        console.log(
+          "[v0] Recent referrals with statuses:",
+          result.recentReferrals.map((r) => ({
+            name: r.full_name,
+            status: r.status,
+          })),
+        )
+      }
 
       if (result.success) {
         setStats(result.stats)
@@ -120,6 +130,17 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
 
   useEffect(() => {
     fetchStats()
+
+    const interval = setInterval(() => {
+      console.log("[v0] Auto-refreshing referral stats...")
+      fetchStats()
+    }, 10000)
+
+    setRefreshInterval(interval)
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
   }, [agentId])
 
   const copyToClipboard = (text: string) => {
@@ -152,6 +173,17 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
       const body = `Hi! I'm inviting you to join DataFlex Ghana. Click here to register: ${referralLink}\n\nEarn 15 GHS per successful registration!`
       window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     }
+  }
+
+  const formatCreditDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   if (loading) {
@@ -278,19 +310,32 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
                       key={referral.id}
                       className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200 text-xs"
                     >
-                      <div>
-                        <p className="font-medium text-emerald-800">{referral.full_name}</p>
-                        <p className="text-gray-500">{referral.phone_number}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-emerald-800 truncate">{referral.full_name}</p>
+                        <p className="text-gray-500 text-xs truncate">{referral.phone_number}</p>
+                        <p className="text-gray-400 text-xs mt-0.5">
+                          Credited: {formatCreditDate(referral.credited_at)}
+                        </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right ml-2 flex-shrink-0">
                         <Badge
                           className={
-                            referral.status === "credited"
-                              ? "bg-green-100 text-green-800 text-xs"
-                              : "bg-yellow-100 text-yellow-800 text-xs"
+                            referral.status === "paid_out"
+                              ? "bg-emerald-100 text-emerald-800 text-xs"
+                              : referral.status === "credited"
+                                ? "bg-green-100 text-green-800 text-xs"
+                                : referral.status === "confirmed"
+                                  ? "bg-blue-100 text-blue-800 text-xs"
+                                  : "bg-yellow-100 text-yellow-800 text-xs"
                           }
                         >
-                          {referral.status === "credited" ? "Done" : "Pending"}
+                          {referral.status === "paid_out"
+                            ? "Paid Out"
+                            : referral.status === "credited"
+                              ? "Credited"
+                              : referral.status === "confirmed"
+                                ? "Confirmed"
+                                : "Pending"}
                         </Badge>
                         <p className="text-emerald-600 font-semibold mt-1">₵{referral.credit_amount.toFixed(1)}</p>
                       </div>

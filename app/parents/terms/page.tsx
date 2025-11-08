@@ -1,6 +1,16 @@
 "use client"
 
-import { ArrowLeft, Shield, FileText, Users, CreditCard, Truck, AlertTriangle, CheckCircle } from "lucide-react"
+import {
+  ArrowLeft,
+  Shield,
+  FileText,
+  Users,
+  CreditCard,
+  Truck,
+  AlertTriangle,
+  CheckCircle,
+  HelpCircle,
+} from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -297,6 +307,30 @@ export default function ParentTermsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* FAQ Link Card */}
+        <Card className="mb-8 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <HelpCircle className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-800 mb-2">Have Questions?</h3>
+                <p className="text-sm text-blue-700 mb-4">
+                  Check out our comprehensive FAQ section for answers to common questions about registration, pricing,
+                  delivery, and more.
+                </p>
+                <Link href="/faq">
+                  <Button variant="outline" className="border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent">
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    Visit FAQ & Help Center
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Action Buttons */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">

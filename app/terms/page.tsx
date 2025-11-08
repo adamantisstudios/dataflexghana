@@ -14,8 +14,13 @@ import {
   BookOpen,
   GraduationCap,
   ShoppingCart,
+  HelpCircle,
+  Clock,
 } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 
 export const metadata: Metadata = {
   title: "Terms & Policies | Dataflexghana.com",
@@ -163,6 +168,40 @@ export default function TermsPage() {
         </ul>
       </section>
 
+      {/* DATA DELIVERY & PROCESSING TIMES SECTION */}
+      <section id="data-delivery" className="pt-8">
+        <h2 className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          {"Data Delivery & Processing Times"}
+        </h2>
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-lg border-l-4 border-amber-500 space-y-4">
+          <div>
+            <h3 className="font-semibold mb-2 text-amber-900">Question: Does it really take long to deliver data?</h3>
+            <p className="text-sm mb-3">
+              <strong>Answer:</strong> Delivery usually takes 10 minutes and upwards, depending on several factors:
+            </p>
+            <ol className="list-decimal pl-6 space-y-2 text-sm">
+              <li>
+                <strong>Time of Order</strong> - Orders placed early morning (6–10am) are typically processed faster.
+                Between 11am–4pm, delivery may take up to an hour or more. From 5pm–9pm, it may vary — sometimes under
+                an hour, sometimes longer.
+              </li>
+              <li>
+                <strong>Network Conditions</strong> - Network providers occasionally perform maintenance, upgrades, or
+                system audits, which can slow down delivery.
+              </li>
+              <li>
+                <strong>Operational Hours</strong> - Data delivery may halt or slow after business hours. We're
+                generally closed from 9:50pm to 6am, so orders placed during this period will process after we reopen.
+              </li>
+              <li>
+                <strong>Sundays</strong> - We also operate on Sundays, but Sunday delivery may or may not be fast.
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
       {/* AGENT REGISTRATION & FEES */}
       <section id="agent-registration">
         <h2 className="flex items-center gap-2">
@@ -171,30 +210,49 @@ export default function TermsPage() {
         </h2>
         <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-lg border-l-4 border-amber-500">
           <h3 className="text-lg font-semibold mb-3">Platform Entry Fee: ₵50 (Non-Refundable)</h3>
-          <p className="mb-4">
-            Think of this as your ticket to enter a movie theater – once you pay, you gain access to all the
-            entertainment inside. Similarly, your ₵50 platform entry fee grants you access to our comprehensive business
-            ecosystem with unlimited earning potential.
-          </p>
-          <div className="space-y-2">
-            <p>
-              <strong>What you get access to:</strong>
-            </p>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>Wholesale data bundle pricing (up to 40% profit margins)</li>
-              <li>Exclusive service referral opportunities</li>
-              <li>Wholesale product catalog access</li>
-              <li>Job board with premium listings</li>
-              <li>Commission tracking and withdrawal system</li>
-              <li>24/7 platform support</li>
-              <li>Agent training materials and resources</li>
-            </ul>
+
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-amber-900 mb-2">1. PLATFORM ENTRY FEE</h4>
+              <p className="text-sm mb-2">
+                Dataflex Ghana is not a free platform. To gain access, you are required to pay a Platform Entry Fee —
+                think of it as a gate fee you pay to watch a movie. Without payment, access cannot be granted.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-amber-900 mb-2">2. REGISTRATION RESPONSIBILITY</h4>
+              <p className="text-sm mb-2">
+                We have provided all necessary information to guide and educate potential members before registration.
+                This includes a clear notice that if you are not ready to make payment, please do not register. Despite
+                these instructions, some still register without paying. Please note that such accounts will be blocked
+                and denied access to the platform.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-amber-900 mb-2">3. PAYMENT TIMELINE</h4>
+              <p className="text-sm mb-4">
+                After registration, you have one (1) hour to complete your Platform Entry Fee payment. Failure to do so
+                within this period will result in automatic denial of access. Kindly take this seriously.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-amber-900 mb-2">4. OUR VISION AND SERVICES</h4>
+              <p className="text-sm">
+                Dataflex Ghana has partnered with numerous businesses and companies nationwide, offering over 50
+                services. Our platform was not built solely for data sales — it's a full-fledged business ecosystem. We
+                encourage only serious and committed individuals to join us.
+              </p>
+            </div>
+
+            <div className="mt-4 p-3 bg-amber-100 border border-amber-300 rounded">
+              <p className="text-sm font-medium text-amber-900">
+                If the client wants it instantly, advise them to buy it directly from MTN or their network provider.
+              </p>
+            </div>
           </div>
-          <p className="mt-4 font-medium text-amber-800 dark:text-amber-200">
-            <strong>Important:</strong> This fee is non-refundable. Your account may be automatically put on "pending"
-            mode when you are inactive on the platform for a period of 1 month. You can request re-activation if you
-            notice you cannot login.
-          </p>
         </div>
       </section>
 
@@ -570,6 +628,33 @@ export default function TermsPage() {
           </p>
         </div>
       </section>
+
+      {/* FAQ Link Card */}
+      <Card className="my-12 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg flex-shrink-0">
+              <HelpCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-emerald-800 dark:text-emerald-300 mb-2">Have Questions?</h3>
+              <p className="text-sm text-emerald-700 dark:text-emerald-400 mb-4">
+                Check out our comprehensive FAQ section for answers to common questions about the platform, agent
+                registration, data bundles, commissions, and more.
+              </p>
+              <Link href="/faq">
+                <Button
+                  variant="outline"
+                  className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20 bg-transparent"
+                >
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  Visit FAQ & Help Center
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* EFFECTIVE DATE */}
       <section id="effective-date" className="pt-8 border-t">
