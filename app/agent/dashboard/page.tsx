@@ -843,46 +843,54 @@ DataFlex Ghana Agent 🇬🇭`
           </Card>
         </div>
        {/* CHANGE: Redesigned announcement notice below "More Than Just Data" section */}
-      <div className="mb-8">
-      <Card className="bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 shadow-lg border-2 border-emerald-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-        <CardContent className="p-4 sm:p-6">
-          <div className="space-y-4">
-            {/* Support Section */}
-            <div className="flex items-start gap-3 sm:gap-4">
-              <div className="p-2 sm:p-3 rounded-full bg-white/20 flex-shrink-0 shadow-sm">
-                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-white text-base sm:text-lg">Need Support?</h3>
-                <p className="text-sm text-green-50 mt-1 leading-relaxed">
-                  For any questions or assistance, call <strong className="font-bold text-white">0242799990</strong> for dedicated support.
-                </p>
-              </div>
-            </div>
+        <div className="mb-8">
+          <Card className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-2xl border-[3px] border-emerald-800 hover:shadow-[0_0_35px_rgba(16,185,129,0.7)] transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.01] rounded-2xl">
+            <CardContent className="p-5 sm:p-7">
+              <div className="space-y-6">
 
-            {/* Teacher Channel Section */}
-            <div className="bg-white/90 border-2 border-emerald-300 rounded-lg p-4 space-y-3 shadow-md">
-              <div className="flex items-start gap-2">
-                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-emerald-800 text-sm sm:text-base">Join Our Teacher Channel</h4>
-                  <p className="text-sm text-emerald-700 mt-1">
-                    Join the official channel <strong className="font-bold text-emerald-900">"Make ¢700.00 A Day"</strong> to learn how to make money and become an effective Dataflex Ghana agent. Discover proven strategies and best practices from experienced mentors.
-                  </p>
-                  <p className="text-xs text-emerald-600 mt-2 italic font-medium">
-                    This is the official agent community group. We do not have a WhatsApp Group.
-                  </p>
+                {/* Support Section */}
+                <div className="flex items-start gap-4 bg-white/10 rounded-xl p-4 border border-white/20 shadow-inner backdrop-blur-sm">
+                  <div className="p-3 rounded-full bg-white/30 shadow-lg flex-shrink-0">
+                    <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-extrabold text-white text-lg sm:text-xl tracking-wide drop-shadow-md">Need Support?</h3>
+                    <p className="text-sm text-green-50 mt-2 leading-relaxed">
+                      For help or inquiries, call
+                      <strong className="font-bold text-white ml-1 text-base">0242799990</strong> — we’re here for you.
+                    </p>
+                  </div>
                 </div>
+
+                {/* Teacher Channel Section */}
+                <div className="bg-white/95 border-2 border-emerald-300 rounded-xl p-5 space-y-4 shadow-xl hover:shadow-emerald-300/50 transition-all duration-300">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-emerald-100 rounded-full shadow-md">
+                      <svg className="h-6 w-6 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+
+                    <div className="flex-1">
+                      <h4 className="font-bold text-emerald-900 text-base sm:text-lg">Join Our Teacher Channel</h4>
+                      <p className="text-sm text-emerald-700 leading-relaxed mt-1">
+                        Join the official channel
+                        <strong className="font-bold text-emerald-900 ml-1">"Make ¢700.00 A Day"</strong>
+                        to learn how to earn more and become a high-performing Dataflex Ghana agent. Get guidance, strategies, and mentorship from top agents.
+                      </p>
+                      <p className="text-xs text-emerald-600 italic font-medium mt-2">
+                        This is the ONLY official community. We do NOT operate any WhatsApp group.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </CardContent>
+          </Card>
+        </div>
 
 
         <div className="mb-8">
