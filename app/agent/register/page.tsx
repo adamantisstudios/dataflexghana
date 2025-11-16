@@ -581,7 +581,7 @@ export default function RegisterPage() {
                     className="border-emerald-300 data-[state=checked]:bg-emerald-600 mt-0.5 flex-shrink-0"
                   />
                   <Label htmlFor="terms" className="text-xs sm:text-sm leading-relaxed cursor-pointer">
-                    I agree to the{" "}
+                    I have fully read and agree to the{" "}
                     <Link href="/terms" className="text-emerald-600 hover:underline font-medium">
                       Terms and Conditions
                     </Link>{" "}

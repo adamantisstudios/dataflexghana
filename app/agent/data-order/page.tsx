@@ -624,7 +624,7 @@ export default function DataOrderPage() {
                           </Label>
                         </div>
                         <Badge variant="secondary" className="text-xs">
-                          Pay Before Order
+                          Manual Momo Pay
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
@@ -784,21 +784,50 @@ export default function DataOrderPage() {
 
                 {paymentMethod === "manual" && (
                   <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-3">
                       <Phone className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm font-medium text-amber-800">Payment Required</span>
+                      <span className="text-sm font-medium text-amber-800">Payment Instructions</span>
                     </div>
-                    <p className="text-amber-700 text-sm mb-2">
-                      <strong>Step 1:</strong> Compute the total cost of order:{" "}
-                      <strong>GH₵ {selectedBundle?.price.toFixed(2)}</strong> and add payment reference.
-                    </p>
-                    <p className="text-amber-700 text-sm mb-2">
-                      <strong>Step 2:</strong> Pay to <strong>0557943392</strong>
-                    </p>
-                    <div className="bg-white rounded border border-amber-300 p-2 text-center">
-                      <span className="font-mono text-sm text-amber-900 font-bold">
-                        {generatedReference}
-                      </span>
+                    <div className="space-y-2">
+                      <p className="text-amber-700 text-sm">
+                        <strong>Step 1:</strong> Pay the amount <strong>GH₵ {selectedBundle?.price.toFixed(2)}</strong>
+                      </p>
+                      <p className="text-amber-700 text-sm">
+                        <strong>Step 2:</strong> Use this reference number when paying:
+                      </p>
+                      <div className="bg-white rounded border border-amber-300 p-2 flex items-center justify-between gap-2">
+                        <span className="font-mono text-sm text-amber-900 font-bold flex-1 text-center">
+                          {generatedReference}
+                        </span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(generatedReference)
+                            alert("Reference copied!")
+                          }}
+                          className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded text-xs font-semibold transition"
+                          title="Copy reference"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      <p className="text-amber-700 text-sm">
+                        <strong>Step 3:</strong> Pay to
+                      </p>
+                      <div className="bg-white rounded border border-amber-300 p-2 flex items-center justify-between gap-2">
+                        <span className="font-mono text-sm text-amber-900 font-bold flex-1 text-center">
+                          0557943392
+                        </span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText("0557943392")
+                            alert("Payment number copied!")
+                          }}
+                          className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded text-xs font-semibold transition"
+                          title="Copy payment number"
+                        >
+                          Copy
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
