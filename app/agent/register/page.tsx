@@ -280,41 +280,26 @@ export default function RegisterPage() {
                 <CardTitle className="text-red-600">Important Notice</CardTitle>
               </div>
             </CardHeader>
-
             <CardContent className="space-y-4">
               <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-
                 <p className="text-sm font-semibold text-red-900 mb-3">
-                  Please register only if you are fully ready to pay the one-time Agent platform entry fee of 50 GHS.
+                  Please confirm you are ready to pay the one-time 50 GHS entry fee before registering.
                 </p>
-
                 <p className="text-sm text-red-800 leading-relaxed mb-3">
-                  This platform is designed for individuals who genuinely want to work as agents, earn commissions,  
-                  and make extra income remotely from anywhere in Ghana.
+                  This platform is for serious individuals committed to working as agents and earning commissions remotely.
                 </p>
-
                 <p className="text-sm text-red-800 leading-relaxed mb-3">
-                  We work with reputable businesses and rely on committed agents.  
-                  For that reason, we accept only SERIOUS individuals who are motivated, ready to start,  
-                  and willing to follow our processes.
+                  Register only if you are motivated, prepared, and willing to follow our processes.
                 </p>
-
-                <p className="text-sm text-red-800 leading-relaxed mb-3">
-                  Registering when you are not prepared may only waste your time, energy, and resources.
-                </p>
-
                 <p className="text-sm font-semibold text-red-900">
-                  Before continuing, please make sure you are willing and able to pay the 50 GHS entry fee.
+                  Proceed only if you are ready to pay the 50 GHS fee.
                 </p>
-
               </div>
-
               <div className="flex items-center justify-between pt-2">
                 <span className="text-sm font-medium text-gray-600">
                   {canClosePopup ? "You may close this now" : `Please wait: ${popupTimeRemaining}s`}
                 </span>
               </div>
-
               <Button
                 onClick={() => setShowWarningPopup(false)}
                 disabled={!canClosePopup}
@@ -326,7 +311,6 @@ export default function RegisterPage() {
           </Card>
         </div>
       )}
-
 
 
       {/* Header - Responsive */}

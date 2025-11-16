@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from "react"
 import type React from "react"
 
-import { useRouter } from "next/navigation"
-import { useSearchParams } from "next/navigation"
+import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,19 +31,7 @@ import {
   type DataBundle,
 } from "@/lib/supabase"
 import { getCurrentAgent } from "@/lib/auth"
-import {
-  ArrowLeft,
-  Smartphone,
-  CheckCircle,
-  AlertTriangle,
-  Phone,
-  Wallet,
-  CreditCard,
-  ArrowDown,
-  ShoppingCart,
-  X,
-  Clock,
-} from "lucide-react"
+import { ArrowLeft, Smartphone, CheckCircle, AlertTriangle, Phone, Wallet, CreditCard, ArrowDown, ShoppingCart, X, Clock } from 'lucide-react'
 
 export default function DataOrderPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -802,14 +790,14 @@ export default function DataOrderPage() {
                     </div>
                     <p className="text-amber-700 text-sm mb-2">
                       <strong>Step 1:</strong> Compute the total cost of order:{" "}
-                      <strong>GH₵ {successNotificationData.amount.toFixed(2)}</strong> and add payment reference.
+                      <strong>GH₵ {selectedBundle?.price.toFixed(2)}</strong> and add payment reference.
                     </p>
                     <p className="text-amber-700 text-sm mb-2">
                       <strong>Step 2:</strong> Pay to <strong>0557943392</strong>
                     </p>
                     <div className="bg-white rounded border border-amber-300 p-2 text-center">
                       <span className="font-mono text-sm text-amber-900 font-bold">
-                        {successNotificationData.reference}
+                        {generatedReference}
                       </span>
                     </div>
                   </div>
