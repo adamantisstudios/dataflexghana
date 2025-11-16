@@ -54,19 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (duration > 60) {
-      return NextResponse.json(
-        { success: false, error: "Video must be 60 seconds or less" },
-        { status: 400 }
-      );
-    }
-
-    if (height > 0 && width > 0 && height <= width) {
-      return NextResponse.json(
-        { success: false, error: "Video must be in vertical (portrait) format" },
-        { status: 400 }
-      );
-    }
+    // Previously checked: if (height > 0 && width > 0 && height <= width)
 
     const buffer = await readFileBuffer(file);
     const sizeMB = buffer.byteLength / 1024 / 1024;

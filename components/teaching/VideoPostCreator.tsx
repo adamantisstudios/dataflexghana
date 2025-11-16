@@ -57,17 +57,8 @@ export function VideoPostCreator({
       errors.push(`File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Max 500MB.`);
     }
 
-    if (height <= width) {
-      errors.push("Video must be vertical (portrait orientation, like TikTok/Reels)");
-    }
-
     if (duration > 60) {
       errors.push("Video must be 60 seconds or less");
-    }
-
-    const aspectRatio = width / height;
-    if (aspectRatio > 0.75) {
-      errors.push("Video aspect ratio too wide. Use vertical format.");
     }
 
     return errors;
@@ -271,9 +262,9 @@ export function VideoPostCreator({
 
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-full">
         <DialogHeader>
-          <DialogTitle>Post Vertical Video</DialogTitle>
+          <DialogTitle>Post Video</DialogTitle>
           <DialogDescription>
-            Upload a vertical educational video (max 60 seconds, portrait format)
+            Upload an educational video (max 60 seconds, max 500MB)
           </DialogDescription>
         </DialogHeader>
 
@@ -310,7 +301,7 @@ export function VideoPostCreator({
                 <Upload className="h-8 w-8 mx-auto mb-2 text-purple-600" />
                 <p className="text-sm font-medium">Click to upload or drag a file</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Vertical videos only • Max 60 sec • Max 500MB • With sound
+                  Max 60 sec • Max 500MB • With sound
                 </p>
               </label>
             </div>

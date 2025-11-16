@@ -349,12 +349,18 @@ export function VideoPostDisplay({
           )}
 
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors">
-            {/* Play/Pause Button */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handlePlayPause}
+              className="absolute inset-0 w-full h-full cursor-pointer"
+              title={isPlaying ? "Pause" : "Play"}
+              aria-label={isPlaying ? "Pause video" : "Play video"}
+            />
+
+            {/* Play/Pause Icon */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               <button
-                onClick={handlePlayPause}
-                className="bg-white/80 hover:bg-white rounded-full p-3 transition-all"
-                title={isPlaying ? "Pause" : "Play"}
+                disabled
+                className="bg-white/80 rounded-full p-3"
               >
                 {isPlaying ? (
                   <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">

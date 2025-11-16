@@ -4,10 +4,8 @@
  * Core rules for all commission calculations:
  * 1. Commission = rate * order_amount
  * 2. Round to 2 decimal places AFTER applying caps
- * 3. Maximum commission per order: 0.40 GHS
- * 4. Minimum commission per order: 0.01 GHS (if calculated > 0)
- * 5. If calculated < 0.01, set to 0.01 to satisfy DB constraint
- * 6. If calculated > 0.40, set to 0.40
+ * 3. Minimum commission per order: 0.01 GHS (if calculated > 0)
+ * 4. If calculated < 0.01, set to 0.01 to satisfy DB constraint
  */
 
 /**
@@ -32,7 +30,6 @@ export interface CommissionCalculationResult {
 // Commission business rules - configurable constants
 export const COMMISSION_RULES = {
   MIN_COMMISSION: 0.01, // Minimum commission per order
-  MAX_COMMISSION: 0.4, // Maximum commission per order
   DECIMAL_PLACES: 2, // Always round to 2 decimal places
 }
 
@@ -67,18 +64,14 @@ export function calculateCommissionWithCaps(input: CommissionCalculationInput): 
     appliedMinimum = true
   }
 
-  // Apply maximum cap: if commission > 0.40, set to 0.40
-  if (cappedCommission > COMMISSION_RULES.MAX_COMMISSION) {
-    cappedCommission = COMMISSION_RULES.MAX_COMMISSION
-    appliedMaximum = true
-  }
+  // Commission can now be any value without upper limit
 
   return {
     rawCommission,
     roundedCommission,
     cappedCommission,
     minCap: COMMISSION_RULES.MIN_COMMISSION,
-    maxCap: COMMISSION_RULES.MAX_COMMISSION,
+    maxCap: Infinity, // No maximum cap anymore
     appliedMinimum,
     appliedMaximum,
   }
@@ -104,6 +97,7 @@ export function batchCalculateCommissions(
     amount: number
     rate: number
   }>,
+
 ): Map<string, CommissionCalculationResult> {
   const results = new Map<string, CommissionCalculationResult>()
 
@@ -187,12 +181,6 @@ export function meetsConstraints(commission: number): {
     return {
       valid: false,
       error: `Commission ${commission} is below minimum ${COMMISSION_RULES.MIN_COMMISSION}`,
-    }
-  }
-  if (commission > COMMISSION_RULES.MAX_COMMISSION) {
-    return {
-      valid: false,
-      error: `Commission ${commission} exceeds maximum ${COMMISSION_RULES.MAX_COMMISSION}`,
     }
   }
   // Verify it's rounded to 2 decimal places

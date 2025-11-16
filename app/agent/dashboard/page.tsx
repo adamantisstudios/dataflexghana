@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,35 +17,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import {
-  LogOut,
-  Plus,
-  MessageCircle,
-  Banknote,
-  ExternalLink,
-  Smartphone,
-  Settings,
-  Search,
-  TrendingUp,
-  Package,
-  Filter,
-  Briefcase,
-  MapPin,
-  DollarSign,
-  Building2,
-  Mail,
-  Wallet,
-  X,
-  ShoppingBag,
-  PiggyBank,
-  Shield,
-  ArrowRight,
-  Users,
-  CreditCard,
-  AlertTriangle,
-  Lightbulb,
-  Check,
-} from "lucide-react"
+import { LogOut, Plus, MessageCircle, Banknote, ExternalLink, Smartphone, Settings, Search, TrendingUp, Package, Filter, Briefcase, MapPin, DollarSign, Building2, Mail, Wallet, X, ShoppingBag, PiggyBank, Shield, ArrowRight, Users, CreditCard, AlertTriangle, Lightbulb, Check } from 'lucide-react'
 import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -870,6 +842,49 @@ DataFlex Ghana Agent 🇬🇭`
             </CardContent>
           </Card>
         </div>
+       {/* CHANGE: Redesigned announcement notice below "More Than Just Data" section */}
+      <div className="mb-8">
+      <Card className="bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 shadow-lg border-2 border-emerald-700 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+        <CardContent className="p-4 sm:p-6">
+          <div className="space-y-4">
+            {/* Support Section */}
+            <div className="flex items-start gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 rounded-full bg-white/20 flex-shrink-0 shadow-sm">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-white text-base sm:text-lg">Need Support?</h3>
+                <p className="text-sm text-green-50 mt-1 leading-relaxed">
+                  For any questions or assistance, call <strong className="font-bold text-white">0242799990</strong> for dedicated support.
+                </p>
+              </div>
+            </div>
+
+            {/* Teacher Channel Section */}
+            <div className="bg-white/90 border-2 border-emerald-300 rounded-lg p-4 space-y-3 shadow-md">
+              <div className="flex items-start gap-2">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-emerald-800 text-sm sm:text-base">Join Our Teacher Channel</h4>
+                  <p className="text-sm text-emerald-700 mt-1">
+                    Join the official channel <strong className="font-bold text-emerald-900">"Make ¢700.00 A Day"</strong> to learn how to make money and become an effective Dataflex Ghana agent. Discover proven strategies and best practices from experienced mentors.
+                  </p>
+                  <p className="text-xs text-emerald-600 mt-2 italic font-medium">
+                    This is the official agent community group. We do not have a WhatsApp Group.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+
         <div className="mb-8">
           <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
@@ -1286,7 +1301,7 @@ DataFlex Ghana Agent 🇬🇭`
                                 className="text-xs sm:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg px-2 sm:px-3 py-2 flex flex-col sm:flex-row items-center justify-center gap-1 whitespace-normal min-h-16 sm:min-h-12"
                               >
                                 <img
-                                  src={logoMap[provider]}
+                                  src={logoMap[provider] || "/placeholder.svg"}
                                   alt={`${provider} logo`}
                                   className="w-6 h-6 sm:w-5 sm:h-5 rounded object-cover"
                                 />
@@ -1708,7 +1723,7 @@ DataFlex Ghana Agent 🇬🇭`
                       <Button
                         asChild
                         variant="outline"
-                        className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
+                        className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
                       >
                         <Link href="/agent/settings">
                           <Settings className="h-4 w-4 mr-2" />
