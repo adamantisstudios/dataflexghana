@@ -19,19 +19,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { supabase } from "@/lib/supabase"
-import {
-  BookOpen,
-  Users,
-  CheckCircle2,
-  Trash2,
-  Search,
-  Plus,
-  Eye,
-  Award,
-  MessageSquare,
-  UserPlus,
-  Edit2,
-} from "lucide-react"
+import { BookOpen, Users, CheckCircle2, Trash2, Search, Plus, Eye, Award, MessageSquare, UserPlus, Edit2, ImageIcon } from 'lucide-react'
 import { toast } from "sonner"
 
 interface TeachingChannel {
@@ -43,6 +31,7 @@ interface TeachingChannel {
   is_active: boolean
   is_public: boolean
   max_members: number
+  image_url?: string // Added image_url field
   created_at: string
   member_count?: number
 }
@@ -109,10 +98,19 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     category: "General",
     is_public: false,
     max_members: 50,
+    image_url: "", // Added image_url to form state
   })
 
   const [editingChannelId, setEditingChannelId] = useState<string | null>(null)
   const [editingChannelName, setEditingChannelName] = useState("")
+  const [editingChannelForm, setEditingChannelForm] = useState({
+    description: "",
+    category: "",
+    is_public: false,
+    max_members: 50,
+    image_url: "", // Added image_url to editing form
+  })
+  const [showEditChannelDialog, setShowEditChannelDialog] = useState(false)
 
   const [teacherForm, setTeacherForm] = useState({
     qualifications: "",
@@ -121,6 +119,10 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     expertise_areas: "",
     approval_notes: "",
   })
+
+  const [uploading, setUploading] = useState(false) // Added upload state
+  const fileInputRef = useRef<HTMLInputElement>(null) // Added file input ref
+  const editFileInputRef = useRef<HTMLInputElement>(null) // Added edit file input ref
 
   const itemsPerPage = 10
   const listRef = useRef<HTMLDivElement>(null)
@@ -209,9 +211,59 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     }
   }
 
+  const handleImageUpload = async (file: File, isEditing: boolean = false) => {
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file")
+      return
+    }
+
+    try {
+      setUploading(true)
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload/image", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "x-agent-id": "admin",
+          "x-agent-phone": "admin",
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to upload image")
+      }
+
+      const data = await response.json()
+      console.log("[v0] Image uploaded successfully:", data.url)
+
+      if (isEditing) {
+        setEditingChannelForm({ ...editingChannelForm, image_url: data.url })
+      } else {
+        setChannelForm({ ...channelForm, image_url: data.url })
+      }
+
+      toast.success("Image uploaded successfully")
+    } catch (error) {
+      console.error("[v0] Error uploading image:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to upload image")
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleCreateChannel = async () => {
     if (!channelForm.name.trim()) {
       toast.error("Channel name is required")
+      return
+    }
+
+    if (channelForm.max_members < 1) {
+      toast.error("Max members must be at least 1")
       return
     }
 
@@ -223,6 +275,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           category: channelForm.category,
           is_public: channelForm.is_public,
           max_members: channelForm.max_members,
+          image_url: channelForm.image_url || null, // Include image_url
           created_by: "admin",
           is_active: true,
         },
@@ -241,6 +294,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         category: "General",
         is_public: false,
         max_members: 50,
+        image_url: "",
       })
       loadData()
     } catch (error) {
@@ -328,6 +382,25 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     }
   }
 
+  const handleChangeemberRole = async (memberId: string, newRole: "admin" | "teacher" | "member") => {
+    try {
+      const { error } = await supabase
+        .from("channel_members")
+        .update({ role: newRole })
+        .eq("id", memberId)
+
+      if (error) throw error
+
+      toast.success(`Member role updated to ${newRole}`)
+      if (selectedChannel) {
+        loadChannelMembers(selectedChannel.id)
+      }
+    } catch (error) {
+      console.error("[v0] Error changing member role:", error)
+      toast.error("Failed to change member role")
+    }
+  }
+
   const handleDeleteMemberFromChannel = async (memberId: string, memberName: string) => {
     if (!confirm(`Are you sure you want to remove ${memberName} from this channel?`)) return
 
@@ -369,6 +442,64 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       toast.error("Failed to update channel name")
     }
   }
+
+  const handleUpdateChannelMaxMembers = async (channelId: string, newMaxMembers: number) => {
+    if (newMaxMembers < 1) {
+      toast.error("Max members must be at least 1")
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("teaching_channels")
+        .update({ max_members: newMaxMembers })
+        .eq("id", channelId)
+
+      if (error) throw error
+
+      toast.success("Channel member limit updated successfully")
+      loadData()
+    } catch (error) {
+      console.error("[v0] Error updating channel member limit:", error)
+      toast.error("Failed to update channel member limit")
+    }
+  }
+
+  const handleUpdateChannelDetails = async (channelId: string) => {
+    if (!editingChannelForm.description.trim()) {
+      toast.error("Description cannot be empty")
+      return
+    }
+
+    if (editingChannelForm.max_members < 1) {
+      toast.error("Max members must be at least 1")
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from("teaching_channels")
+        .update({
+          description: editingChannelForm.description,
+          category: editingChannelForm.category,
+          is_public: editingChannelForm.is_public,
+          max_members: editingChannelForm.max_members,
+          image_url: editingChannelForm.image_url || null, // Include image_url in update
+        })
+        .eq("id", channelId)
+
+      if (error) throw error
+
+      toast.success("Channel updated successfully")
+      setShowEditChannelDialog(false)
+      setEditingChannelId(null)
+      loadData()
+    } catch (error) {
+      console.error("[v0] Error updating channel:", error)
+      toast.error("Failed to update channel")
+    }
+  }
+
 
   const handleApproveTeacher = async (teacherId: string) => {
     try {
@@ -586,6 +717,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             className="pl-10 border-blue-200 focus:border-blue-500 bg-white/80"
           />
         </div>
+        {/* Create Channel Dialog - Add image upload */}
         {activeSubTab === "channels" && (
           <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
             <DialogTrigger asChild>
@@ -594,11 +726,45 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                 New Channel
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Teaching Channel</DialogTitle>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>Channel Image</Label>
+                  {channelForm.image_url && (
+                    <div className="rounded-lg overflow-hidden h-40 bg-gray-100 mb-2">
+                      <img
+                        src={channelForm.image_url || "/placeholder.svg"}
+                        alt="Channel preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file, false)
+                    }}
+                    disabled={uploading}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="border-blue-300"
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    {uploading ? "Uploading..." : "Upload Image"}
+                  </Button>
+                </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="channel-name">Channel Name</Label>
                   <Input
@@ -681,9 +847,19 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             </Card>
           ) : (
             paginatedData.map((channel: TeachingChannel) => (
-              <Card key={channel.id} className="border-blue-200 bg-white/90 hover:shadow-lg transition-all">
+              <Card key={channel.id} className="border-blue-200 bg-white/90 hover:shadow-lg transition-all overflow-hidden">
                 <CardContent className="pt-6">
                   <div className="space-y-3">
+                    {channel.image_url && (
+                      <div className="mb-4 rounded-lg overflow-hidden h-48 bg-gray-100">
+                        <img
+                          src={channel.image_url || "/placeholder.svg"}
+                          alt={channel.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    
                     <div className="flex items-start justify-between">
                       <div>
                         {editingChannelId === channel.id ? (
@@ -750,6 +926,143 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                     </div>
                     <div className="flex gap-2 pt-2 border-t border-gray-200 flex-wrap">
                       <Dialog
+                        open={showEditChannelDialog && selectedChannel?.id === channel.id}
+                        onOpenChange={setShowEditChannelDialog}
+                      >
+                        <DialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-600 border-blue-300 bg-transparent"
+                            onClick={() => {
+                              setSelectedChannel(channel)
+                              setEditingChannelId(channel.id)
+                              setEditingChannelForm({
+                                description: channel.description,
+                                category: channel.category,
+                                is_public: channel.is_public,
+                                max_members: channel.max_members,
+                                image_url: channel.image_url || "",
+                              })
+                            }}
+                          >
+                            <Edit2 className="h-4 w-4 mr-1" />
+                            Edit Channel
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Edit Channel Details</DialogTitle>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                              <Label>Channel Image</Label>
+                              {editingChannelForm.image_url && (
+                                <div className="rounded-lg overflow-hidden h-40 bg-gray-100 mb-2">
+                                  <img
+                                    src={editingChannelForm.image_url || "/placeholder.svg"}
+                                    alt="Channel preview"
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                              <input
+                                ref={editFileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handleImageUpload(file, true)
+                                }}
+                                disabled={uploading}
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => editFileInputRef.current?.click()}
+                                disabled={uploading}
+                                className="border-blue-300"
+                              >
+                                <ImageIcon className="h-4 w-4 mr-2" />
+                                {uploading ? "Uploading..." : "Upload Image"}
+                              </Button>
+                            </div>
+
+                            <div className="grid gap-2">
+                              <Label htmlFor="edit-desc">Description</Label>
+                              <Textarea
+                                id="edit-desc"
+                                value={editingChannelForm.description}
+                                onChange={(e) =>
+                                  setEditingChannelForm({ ...editingChannelForm, description: e.target.value })
+                                }
+                                placeholder="Channel description"
+                              />
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="edit-category">Category</Label>
+                              <Select
+                                value={editingChannelForm.category}
+                                onValueChange={(val) =>
+                                  setEditingChannelForm({ ...editingChannelForm, category: val })
+                                }
+                              >
+                                <SelectTrigger id="edit-category">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="General">General</SelectItem>
+                                  <SelectItem value="Technology">Technology</SelectItem>
+                                  <SelectItem value="Business">Business</SelectItem>
+                                  <SelectItem value="Skills">Skills</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="grid gap-2">
+                              <Label htmlFor="edit-max-members">Max Members (Set to 999999 for unlimited)</Label>
+                              <Input
+                                id="edit-max-members"
+                                type="number"
+                                min="1"
+                                value={editingChannelForm.max_members}
+                                onChange={(e) =>
+                                  setEditingChannelForm({
+                                    ...editingChannelForm,
+                                    max_members: Number.parseInt(e.target.value) || 50,
+                                  })
+                                }
+                                placeholder="Maximum number of members"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id="edit-public"
+                                checked={editingChannelForm.is_public}
+                                onChange={(e) =>
+                                  setEditingChannelForm({ ...editingChannelForm, is_public: e.target.checked })
+                                }
+                                className="rounded"
+                              />
+                              <Label htmlFor="edit-public">Public Channel</Label>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowEditChannelDialog(false)}>
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={() => handleUpdateChannelDetails(channel.id)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Save Changes
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      <Dialog
                         open={showChannelDetailsDialog && selectedChannel?.id === channel.id}
                         onOpenChange={setShowChannelDetailsDialog}
                       >
@@ -772,6 +1085,17 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                             <DialogTitle>{selectedChannel?.name}</DialogTitle>
                             <DialogDescription>{selectedChannel?.description}</DialogDescription>
                           </DialogHeader>
+
+                          {selectedChannel?.image_url && (
+                            <div className="rounded-lg overflow-hidden h-48 bg-gray-100">
+                              <img
+                                src={selectedChannel.image_url || "/placeholder.svg"}
+                                alt={selectedChannel.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
                               <div>
@@ -804,7 +1128,21 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                                         </p>
                                       </div>
                                       <div className="flex items-center gap-2">
-                                        <Badge variant="secondary">{member.role}</Badge>
+                                        <Select
+                                          value={member.role}
+                                          onValueChange={(newRole) =>
+                                            handleChangeemberRole(member.id, newRole as any)
+                                          }
+                                        >
+                                          <SelectTrigger className="h-7 w-24 text-xs">
+                                            <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="member">Member</SelectItem>
+                                            <SelectItem value="teacher">Teacher</SelectItem>
+                                            <SelectItem value="admin">Admin</SelectItem>
+                                          </SelectContent>
+                                        </Select>
                                         <Button
                                           size="sm"
                                           variant="ghost"
@@ -986,6 +1324,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             </Card>
           ) : (
             paginatedData.map((teacher: TeacherApproval) => {
+              // Filter channels where this teacher is explicitly a 'teacher' role member
               const teacherChannels = channels.filter((ch) =>
                 selectedChannelMembers?.some((m) => m.agent_id === teacher.agent_id && m.role === "teacher"),
               )
@@ -1057,7 +1396,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                           size="sm"
                           variant="destructive"
                           onClick={() => {
-                            if (confirm(`Remove ${teacher.agent_name} as a teacher?`)) {
+                            if (confirm(`Remove ${teacher.agent_name} as a teacher? This will remove them from all channels.`)) {
                               handleRemoveTeacherFromAllChannels(teacher.agent_id)
                             }
                           }}
@@ -1112,12 +1451,13 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
 
   const handleRemoveTeacherFromAllChannels = async (agentId: string) => {
     try {
+      // Delete member entries where the role is 'teacher' for the given agentId
       const { error } = await supabase.from("channel_members").delete().eq("agent_id", agentId).eq("role", "teacher")
 
       if (error) throw error
 
       toast.success("Teacher removed from all channels")
-      loadData()
+      loadData() // Reload data to reflect changes
     } catch (error) {
       console.error("[v0] Error removing teacher:", error)
       toast.error("Failed to remove teacher")

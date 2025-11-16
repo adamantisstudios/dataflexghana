@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
-import { Eye, MessageSquare, Heart, Share2, Bookmark } from "lucide-react"
+import { Eye, MessageSquare, Heart, Share2, Bookmark } from 'lucide-react'
 import { ContentRenderer } from "./media/ContentRenderer"
 import { CommentThread } from "./CommentThread"
 import { FontSizeControl } from "./FontSizeControl"
@@ -18,6 +18,7 @@ interface Channel {
   description: string
   category: string
   is_active: boolean
+  image_url?: string // Added image_url field
   created_at: string
 }
 
@@ -265,6 +266,18 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
       <FontSizeControl onFontSizeChange={setFontSize} initialSize={16} />
 
       <div className="w-full py-6">
+        {channel?.image_url && (
+          <div className="w-full mb-4 px-4 sm:px-6 lg:px-8">
+            <div className="rounded-lg overflow-hidden h-48 bg-gray-100 shadow-md">
+              <img
+                src={channel.image_url || "/placeholder.svg"}
+                alt={channel.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Channel Header */}
         <div className="border-b-2 border-blue-200 pb-4 w-full mb-6 px-4 sm:px-6 lg:px-8">
           <div className="space-y-2">

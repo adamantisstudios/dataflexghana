@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,19 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  LogOut,
-  Search,
-  BookOpen,
-  Users,
-  MessageCircle,
-  Plus,
-  MessageSquare,
-  ChevronRight,
-  Eye,
-  Award,
-  CheckCircle2,
-} from "lucide-react"
+import { LogOut, Search, BookOpen, Users, MessageCircle, Plus, MessageSquare, ChevronRight, Eye, Award, CheckCircle2 } from 'lucide-react'
 import { supabase } from "@/lib/supabase"
 import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
 import { BackToTop } from "@/components/back-to-top"
@@ -41,6 +29,7 @@ interface TeachingChannel {
   category: string
   is_public: boolean
   max_members: number
+  image_url?: string // Added image_url field
   created_at: string
   member_count?: number
   is_member?: boolean
@@ -228,12 +217,46 @@ export default function TeachingPlatformPage() {
     if (!selectedChannelForJoin || !agent) return
 
     try {
-      const { data: existing } = await supabase
+      console.log("[v0] Checking existing join request for channel:", selectedChannelForJoin.id)
+      
+      const { data: existingRequest, error: requestCheckError } = await supabase
+        .from("channel_join_requests")
+        .select("id, status")
+        .eq("channel_id", selectedChannelForJoin.id)
+        .eq("agent_id", agent.id)
+        .maybeSingle() // Use maybeSingle() instead of single() to handle zero results gracefully
+
+      if (requestCheckError) {
+        console.error("[v0] Error checking existing request:", requestCheckError)
+        toast.error("Error checking join status")
+        return
+      }
+
+      if (existingRequest) {
+        if (existingRequest.status === "pending") {
+          toast.error("You already have a pending join request for this channel")
+        } else if (existingRequest.status === "approved") {
+          toast.error("You are already a member of this channel")
+        } else {
+          toast.error(`Your join request was ${existingRequest.status}`)
+        }
+        setShowJoinDialog(false)
+        setSelectedChannelForJoin(null)
+        return
+      }
+
+      const { data: existing, error: memberCheckError } = await supabase
         .from("channel_members")
         .select("id")
         .eq("channel_id", selectedChannelForJoin.id)
         .eq("agent_id", agent.id)
-        .single()
+        .maybeSingle()
+
+      if (memberCheckError) {
+        console.error("[v0] Error checking membership:", memberCheckError)
+        toast.error("Error checking membership status")
+        return
+      }
 
       if (existing) {
         toast.error("You are already a member of this channel")
@@ -242,16 +265,21 @@ export default function TeachingPlatformPage() {
         return
       }
 
+      console.log("[v0] Creating join request for channel:", selectedChannelForJoin.id)
+      
       const { error: requestError } = await supabase.from("channel_join_requests").insert([
         {
           channel_id: selectedChannelForJoin.id,
           agent_id: agent.id,
-          request_message: joinMessage,
+          request_message: joinMessage || "",
           status: "pending",
         },
       ])
 
-      if (requestError) throw requestError
+      if (requestError) {
+        console.error("[v0] Error inserting join request:", requestError)
+        throw requestError
+      }
 
       toast.success("Join request sent! Waiting for approval.")
       setShowJoinDialog(false)
@@ -260,7 +288,7 @@ export default function TeachingPlatformPage() {
       await loadChannels()
     } catch (error) {
       console.error("[v0] Error joining channel:", error)
-      toast.error("Failed to send join request")
+      toast.error("Failed to send join request. Please try again.")
     }
   }
 
@@ -415,8 +443,18 @@ export default function TeachingPlatformPage() {
                   {filteredChannels.map((channel) => (
                     <Card
                       key={channel.id}
-                      className="border-blue-200 bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group w-full"
+                      className="border-blue-200 bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group w-full overflow-hidden"
                     >
+                      {channel.image_url && (
+                        <div className="h-32 bg-gray-100 overflow-hidden">
+                          <img
+                            src={channel.image_url || "/placeholder.svg"}
+                            alt={channel.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                      )}
+                      
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-1 flex-wrap">
                           <div className="flex-1 min-w-0">
@@ -662,13 +700,24 @@ export default function TeachingPlatformPage() {
           </TabsContent>
         </Tabs>
 
-        {selectedChannel && selectedChannel.user_role !== "admin" && selectedChannel.user_role !== "teacher" && (
+        {selectedChannel && (
           <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
             <DialogContent className="max-w-sm max-h-[70vh] overflow-y-auto w-[95vw]">
               <DialogHeader>
                 <DialogTitle className="text-sm">{selectedChannel.name}</DialogTitle>
                 <DialogDescription className="text-xs">{selectedChannel.description}</DialogDescription>
               </DialogHeader>
+              
+              {selectedChannel.image_url && (
+                <div className="rounded-lg overflow-hidden h-40 bg-gray-100">
+                  <img
+                    src={selectedChannel.image_url || "/placeholder.svg"}
+                    alt={selectedChannel.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50 rounded-lg">
                   <div>

@@ -3,23 +3,81 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getPlatformName } from "@/lib/config"
-import {
-  Clock,
-  CreditCard,
-  Shield,
-  CheckCircle,
-  Sparkles,
-  TrendingUp,
-  Users,
-  Award,
-  ArrowRight,
-  Phone,
-  Copy,
-  Zap,
-  Target,
-  DollarSign,
-} from "lucide-react"
+import { Clock, CreditCard, Shield, CheckCircle, Sparkles, TrendingUp, Users, Award, ArrowRight, Phone, Copy, Zap, Target, DollarSign, X, MessageCircle } from 'lucide-react'
 import Link from "next/link"
+
+function AdminConfirmationPopup({ onClose }: { onClose: () => void }) {
+  const handleContactAdmin = () => {
+    const message = encodeURIComponent("I just completed regsitration on Dataflex Ghana as an agent. I need more info in order to make payment and activate my account")
+    const whatsappUrl = `https://wa.me/233242799990?text=${message}`
+    window.open(whatsappUrl, "_blank")
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full animate-in fade-in zoom-in-95 duration-300">
+        <div className="bg-gradient-to-r from-emerald-600 to-green-600 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+              <MessageCircle className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-lg font-bold text-white">Verify Registration</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/80 hover:text-white transition-colors p-1"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="space-y-2">
+            <p className="text-gray-800 font-semibold text-base">Faster Processing</p>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Confirm your registration details with our admin team for faster verification and payment processing. This ensures your account is activated quickly.
+            </p>
+          </div>
+
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-2">
+            <p className="text-xs font-semibold text-emerald-900 uppercase tracking-wide">Benefits of early confirmation:</p>
+            <ul className="space-y-1 text-xs text-emerald-800">
+              <li className="flex items-start gap-2">
+                <CheckCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span>Priority account review</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span>Faster payment activation</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span>Direct support from admin team</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <Button
+              onClick={handleContactAdmin}
+              className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-semibold py-3 rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Contact Admin on WhatsApp
+            </Button>
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 py-2 rounded-lg"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function PaymentReminderPage() {
   const [timeLeft, setTimeLeft] = useState({
@@ -28,6 +86,8 @@ export default function PaymentReminderPage() {
     seconds: 0,
   })
   const [copied, setCopied] = useState(false)
+  const [showAdminPopup, setShowAdminPopup] = useState(false)
+  const [hasShownPopup, setHasShownPopup] = useState(false)
 
   useEffect(() => {
     // Start countdown from 1 hour
@@ -52,6 +112,17 @@ export default function PaymentReminderPage() {
     return () => clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    if (!hasShownPopup) {
+      const popupTimer = setTimeout(() => {
+        setShowAdminPopup(true)
+        setHasShownPopup(true)
+      }, 10000) // 10 seconds
+
+      return () => clearTimeout(popupTimer)
+    }
+  }, [hasShownPopup])
+
   const copyPaymentNumber = () => {
     navigator.clipboard.writeText("0557943392")
     setCopied(true)
@@ -66,6 +137,8 @@ export default function PaymentReminderPage() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-green-200/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-200/20 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
+
+      {showAdminPopup && <AdminConfirmationPopup onClose={() => setShowAdminPopup(false)} />}
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-2 sm:p-4">
         <div className="w-full max-w-6xl mx-auto">
