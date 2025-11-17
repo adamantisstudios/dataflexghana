@@ -915,26 +915,6 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         )}
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="flex border-t border-gray-200 bg-white">
-        <button className="flex-1 p-3 text-center text-gray-500 hover:text-blue-600">
-          <Home className="h-5 w-5 mx-auto" />
-          <span className="text-xs">Home</span>
-        </button>
-        <button className="flex-1 p-3 text-center text-blue-600 border-t-2 border-blue-600">
-          <BookOpen className="h-5 w-5 mx-auto" />
-          <span className="text-xs">Channels</span>
-        </button>
-        <button className="flex-1 p-3 text-center text-gray-500 hover:text-blue-600">
-          <Bell className="h-5 w-5 mx-auto" />
-          <span className="text-xs">Notifications</span>
-        </button>
-        <button className="flex-1 p-3 text-center text-gray-500 hover:text-blue-600">
-          <User className="h-5 w-5 mx-auto" />
-          <span className="text-xs">Profile</span>
-        </button>
-      </div>
-
       {/* Channel Details Dialog */}
       <Dialog open={showChannelDetailsDialog} onOpenChange={setShowChannelDetailsDialog}>
         <DialogContent className="sm:max-w-md">
