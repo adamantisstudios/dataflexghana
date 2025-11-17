@@ -13,15 +13,8 @@ async function readFileBuffer(file: File): Promise<Buffer> {
 
 export async function POST(request: NextRequest) {
   try {
-    const authToken = request.headers.get("x-agent-id");
-    const agentPhone = request.headers.get("x-agent-phone");
-
-    if (!authToken || !agentPhone) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized: Missing authentication headers" },
-        { status: 401 }
-      );
-    }
+    const authToken = request.headers.get("x-agent-id") || request.headers.get("authorization")?.split(" ")[1] || "guest";
+    const agentPhone = request.headers.get("x-agent-phone") || "unknown";
 
     const formData = await request.formData();
     const file = formData.get("file") as File;

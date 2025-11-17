@@ -1,15 +1,49 @@
-"use client"
-import { useState, useEffect, useRef } from "react"
-import { DialogDescription } from "@/components/ui/dialog"
-
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
+"use client";
+import { useState, useEffect, useRef } from "react";
+import {
+  BookOpen,
+  Users,
+  CheckCircle2,
+  Trash2,
+  Search,
+  Plus,
+  Eye,
+  Award,
+  MessageSquare,
+  UserPlus,
+  Edit2,
+  ImageIcon,
+  MoreVertical,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  Bell,
+  User,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -17,213 +51,168 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
-import { supabase } from "@/lib/supabase"
-import { BookOpen, Users, CheckCircle2, Trash2, Search, Plus, Eye, Award, MessageSquare, UserPlus, Edit2, ImageIcon } from 'lucide-react'
-import { toast } from "sonner"
+} from "@/components/ui/pagination";
 
-interface TeachingChannel {
-  id: string
-  name: string
-  description: string
-  category: string
-  created_by: string
-  is_active: boolean
-  is_public: boolean
-  max_members: number
-  image_url?: string // Added image_url field
-  created_at: string
-  member_count?: number
-}
+// Types
+type TeachingChannel = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  created_by: string;
+  is_active: boolean;
+  is_public: boolean;
+  max_members: number;
+  image_url?: string;
+  created_at: string;
+  member_count?: number;
+};
 
-interface TeacherApproval {
-  id: string
-  agent_id: string
-  status: "pending" | "approved" | "rejected"
-  qualifications: string
-  experience_years: number
-  bio: string
-  expertise_areas: string[]
-  approved_by?: string
-  approval_notes?: string
-  approved_at?: string
-  created_at: string
-  agent_name?: string
-  agent_contact?: string
-}
+type TeacherApproval = {
+  id: string;
+  agent_id: string;
+  status: "pending" | "approved" | "rejected";
+  qualifications: string;
+  experience_years: number;
+  bio: string;
+  expertise_areas: string[];
+  approved_by?: string;
+  approval_notes?: string;
+  approved_at?: string;
+  created_at: string;
+  agent_name?: string;
+  agent_contact?: string;
+};
 
-interface Agent {
-  id: string
-  full_name: string
-  phone_number: string
-}
+type Agent = {
+  id: string;
+  full_name: string;
+  phone_number: string;
+};
 
-interface ChannelMember {
-  id: string
-  agent_id: string
-  agent_name: string
-  phone_number?: string
-  role: "admin" | "teacher" | "member"
-  status: "active" | "suspended" | "left"
-  joined_at: string
-}
+type ChannelMember = {
+  id: string;
+  agent_id: string;
+  agent_name: string;
+  phone_number?: string;
+  role: "admin" | "teacher" | "member";
+  status: "active" | "suspended" | "left";
+  joined_at: string;
+};
 
-interface TeacherHubTabProps {
-  getCachedData: () => any
-  setCachedData: (data: any) => void
-}
+type TeacherHubTabProps = {
+  getCachedData: () => any;
+  setCachedData: (data: any) => void;
+};
 
 export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherHubTabProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"channels" | "teachers" | "join-requests">("channels")
-  const [channels, setChannels] = useState<TeachingChannel[]>([])
-  const [teachers, setTeachers] = useState<TeacherApproval[]>([])
-  const [agents, setAgents] = useState<Agent[]>([])
-  const [joinRequests, setJoinRequests] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [showChannelDialog, setShowChannelDialog] = useState(false)
-  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false)
-  const [showChannelDetailsDialog, setShowChannelDetailsDialog] = useState(false)
-  const [selectedChannel, setSelectedChannel] = useState<TeachingChannel | null>(null)
-  const [selectedChannelMembers, setSelectedChannelMembers] = useState<ChannelMember[]>([])
-  const [selectedTeacher, setSelectedTeacher] = useState<TeacherApproval | null>(null)
-  const [selectedAgentForAdd, setSelectedAgentForAdd] = useState<string>("")
-  const [selectedRoleForAdd, setSelectedRoleForAdd] = useState<"member" | "teacher" | "admin">("member")
-  const [agentSearchTerm, setAgentSearchTerm] = useState("")
-
+  // State
+  const [activeSubTab, setActiveSubTab] = useState<"channels" | "teachers" | "join-requests">("channels");
+  const [channels, setChannels] = useState<TeachingChannel[]>([]);
+  const [teachers, setTeachers] = useState<TeacherApproval[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [joinRequests, setJoinRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showChannelDialog, setShowChannelDialog] = useState(false);
+  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
+  const [showChannelDetailsDialog, setShowChannelDetailsDialog] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState<TeachingChannel | null>(null);
+  const [selectedChannelMembers, setSelectedChannelMembers] = useState<ChannelMember[]>([]);
+  const [selectedTeacher, setSelectedTeacher] = useState<TeacherApproval | null>(null);
+  const [selectedAgentForAdd, setSelectedAgentForAdd] = useState("");
+  const [selectedRoleForAdd, setSelectedRoleForAdd] = useState<"member" | "teacher" | "admin">("member");
+  const [agentSearchTerm, setAgentSearchTerm] = useState("");
   const [channelForm, setChannelForm] = useState({
     name: "",
     description: "",
     category: "General",
     is_public: false,
     max_members: 50,
-    image_url: "", // Added image_url to form state
-  })
-
-  const [editingChannelId, setEditingChannelId] = useState<string | null>(null)
-  const [editingChannelName, setEditingChannelName] = useState("")
+    image_url: "",
+  });
+  const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
+  const [editingChannelName, setEditingChannelName] = useState("");
   const [editingChannelForm, setEditingChannelForm] = useState({
     description: "",
     category: "",
     is_public: false,
     max_members: 50,
-    image_url: "", // Added image_url to editing form
-  })
-  const [showEditChannelDialog, setShowEditChannelDialog] = useState(false)
-
+    image_url: "",
+  });
+  const [showEditChannelDialog, setShowEditChannelDialog] = useState(false);
   const [teacherForm, setTeacherForm] = useState({
     qualifications: "",
     experience_years: 0,
     bio: "",
     expertise_areas: "",
     approval_notes: "",
-  })
+  });
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+  const itemsPerPage = 10;
+  const listRef = useRef<HTMLDivElement>(null);
 
-  const [uploading, setUploading] = useState(false) // Added upload state
-  const fileInputRef = useRef<HTMLInputElement>(null) // Added file input ref
-  const editFileInputRef = useRef<HTMLInputElement>(null) // Added edit file input ref
-
-  const itemsPerPage = 10
-  const listRef = useRef<HTMLDivElement>(null)
-
+  // Load Data
   useEffect(() => {
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      setLoading(true)
-      console.log("[v0] Loading teacher hub data...")
-
       const [channelsRes, teachersRes, agentsRes, joinRequestsRes] = await Promise.all([
         supabase.from("teaching_channels").select("*").order("created_at", { ascending: false }),
         supabase.from("teacher_approvals").select("*").order("created_at", { ascending: false }),
         supabase.from("agents").select("id, full_name, phone_number").eq("isapproved", true),
         supabase
           .from("channel_join_requests_with_agents")
-          .select(
-            "id, channel_id, agent_id, request_message, status, requested_at, full_name, phone_number, teaching_channels(name)",
-          )
+          .select("id, channel_id, agent_id, request_message, status, requested_at, full_name, phone_number, teaching_channels(name)")
           .eq("status", "pending")
           .order("requested_at", { ascending: false }),
-      ])
+      ]);
 
-      if (channelsRes.error) {
-        console.error("[v0] Error loading channels:", channelsRes.error)
-        throw channelsRes.error
-      }
-      if (teachersRes.error) {
-        console.error("[v0] Error loading teachers:", teachersRes.error)
-        throw teachersRes.error
-      }
-      if (agentsRes.error) {
-        console.error("[v0] Error loading agents:", agentsRes.error)
-        throw agentsRes.error
-      }
-
-      const { data: memberCounts, error: countError } = await supabase.from("channel_members").select("channel_id")
-
-      if (countError) {
-        console.error("[v0] Error loading member counts:", countError)
-      }
-
-      const countMap = new Map()
-      memberCounts?.forEach((m) => {
-        countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1)
-      })
+      const { data: memberCounts } = await supabase.from("channel_members").select("channel_id");
+      const countMap = new Map();
+      memberCounts?.forEach((m) => countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1));
 
       const channelsWithCounts = (channelsRes.data || []).map((channel) => ({
         ...channel,
         member_count: countMap.get(channel.id) || 0,
-      }))
+      }));
 
-      const agentMap = new Map()
-      agentsRes.data?.forEach((agent: any) => {
-        agentMap.set(agent.id, agent)
-      })
+      const agentMap = new Map();
+      agentsRes.data?.forEach((agent: any) => agentMap.set(agent.id, agent));
 
-      const teachersWithAgentInfo = (teachersRes.data || []).map((teacher: any) => {
-        const agent = agentMap.get(teacher.agent_id)
-        return {
-          ...teacher,
-          agent_name: agent?.full_name || teacher.agent_id,
-          agent_contact: agent?.phone_number || "No contact",
-        }
-      })
+      const teachersWithAgentInfo = (teachersRes.data || []).map((teacher: any) => ({
+        ...teacher,
+        agent_name: agentMap.get(teacher.agent_id)?.full_name || teacher.agent_id,
+        agent_contact: agentMap.get(teacher.agent_id)?.phone_number || "No contact",
+      }));
 
-      setChannels(channelsWithCounts)
-      setTeachers(teachersWithAgentInfo)
-      setAgents(agentsRes.data || [])
-      setJoinRequests(joinRequestsRes.data || [])
-
-      console.log("[v0] Loaded:", {
-        channels: channelsRes.data?.length,
-        teachers: teachersRes.data?.length,
-        agents: agentsRes.data?.length,
-        joinRequests: joinRequestsRes.data?.length,
-      })
+      setChannels(channelsWithCounts);
+      setTeachers(teachersWithAgentInfo);
+      setAgents(agentsRes.data || []);
+      setJoinRequests(joinRequestsRes.data || []);
     } catch (error) {
-      console.error("[v0] Error loading data:", error)
-      toast.error("Failed to load Teacher Hub data. Please try again.")
+      toast.error("Failed to load data. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
+  // Image Upload
   const handleImageUpload = async (file: File, isEditing: boolean = false) => {
-    if (!file) return
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file")
-      return
+    if (!file || !file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file.");
+      return;
     }
-
+    setUploading(true);
     try {
-      setUploading(true)
-      const formData = new FormData()
-      formData.append("file", file)
-
+      const formData = new FormData();
+      formData.append("file", file);
       const response = await fetch("/api/upload/image", {
         method: "POST",
         body: formData,
@@ -231,63 +220,41 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           "x-agent-id": "admin",
           "x-agent-phone": "admin",
         },
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to upload image")
-      }
-
-      const data = await response.json()
-      console.log("[v0] Image uploaded successfully:", data.url)
-
+      });
+      if (!response.ok) throw new Error("Failed to upload image.");
+      const data = await response.json();
       if (isEditing) {
-        setEditingChannelForm({ ...editingChannelForm, image_url: data.url })
+        setEditingChannelForm({ ...editingChannelForm, image_url: data.url });
       } else {
-        setChannelForm({ ...channelForm, image_url: data.url })
+        setChannelForm({ ...channelForm, image_url: data.url });
       }
-
-      toast.success("Image uploaded successfully")
+      toast.success("Image uploaded successfully!");
     } catch (error) {
-      console.error("[v0] Error uploading image:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to upload image")
+      toast.error("Failed to upload image.");
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
+  // Create Channel
   const handleCreateChannel = async () => {
     if (!channelForm.name.trim()) {
-      toast.error("Channel name is required")
-      return
+      toast.error("Channel name is required.");
+      return;
     }
-
-    if (channelForm.max_members < 1) {
-      toast.error("Max members must be at least 1")
-      return
-    }
-
     try {
-      const { data, error } = await supabase.from("teaching_channels").insert([
-        {
-          name: channelForm.name,
-          description: channelForm.description,
-          category: channelForm.category,
-          is_public: channelForm.is_public,
-          max_members: channelForm.max_members,
-          image_url: channelForm.image_url || null, // Include image_url
-          created_by: "admin",
-          is_active: true,
-        },
-      ])
-
-      if (error) {
-        console.error("[v0] Error creating channel:", error)
-        throw error
-      }
-
-      toast.success("Channel created successfully")
-      setShowChannelDialog(false)
+      await supabase.from("teaching_channels").insert([{
+        name: channelForm.name,
+        description: channelForm.description,
+        category: channelForm.category,
+        is_public: channelForm.is_public,
+        max_members: channelForm.max_members,
+        image_url: channelForm.image_url || null,
+        created_by: "admin",
+        is_active: true,
+      }]);
+      toast.success("Channel created successfully!");
+      setShowChannelDialog(false);
       setChannelForm({
         name: "",
         description: "",
@@ -295,24 +262,21 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         is_public: false,
         max_members: 50,
         image_url: "",
-      })
-      loadData()
+      });
+      loadData();
     } catch (error) {
-      console.error("[v0] Error creating channel:", error)
-      toast.error("Failed to create channel. Please try again.")
+      toast.error("Failed to create channel.");
     }
-  }
+  };
 
+  // Load Channel Members
   const loadChannelMembers = async (channelId: string) => {
     try {
-      const { data: members, error } = await supabase
+      const { data: members } = await supabase
         .from("channel_members_with_agents")
         .select("id, agent_id, role, status, joined_at, full_name, phone_number")
         .eq("channel_id", channelId)
-        .eq("status", "active")
-
-      if (error) throw error
-
+        .eq("status", "active");
       const mappedMembers = (members || []).map((m: any) => ({
         id: m.id,
         agent_id: m.agent_id,
@@ -321,976 +285,487 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         role: m.role,
         status: m.status,
         joined_at: m.joined_at,
-      }))
-
-      setSelectedChannelMembers(mappedMembers)
+      }));
+      setSelectedChannelMembers(mappedMembers);
     } catch (error) {
-      console.error("[v0] Error loading channel members:", error)
-      toast.error("Failed to load channel members")
+      toast.error("Failed to load channel members.");
     }
-  }
+  };
 
+  // Add Member to Channel
   const handleAddMemberToChannel = async () => {
     if (!selectedChannel || !selectedAgentForAdd) {
-      toast.error("Please select an agent")
-      return
+      toast.error("Please select an agent.");
+      return;
     }
-
     try {
-      const { data: existing, error: checkError } = await supabase
-        .from("channel_members")
-        .select("id")
-        .eq("channel_id", selectedChannel.id)
-        .eq("agent_id", selectedAgentForAdd)
-        .single()
-
-      if (checkError && checkError.code !== "PGRST116") {
-        console.error("[v0] Error checking membership:", checkError)
-        throw checkError
-      }
-
-      if (existing) {
-        toast.error("Agent is already a member of this channel")
-        return
-      }
-
-      const { error: insertError } = await supabase.from("channel_members").insert([
-        {
-          channel_id: selectedChannel.id,
-          agent_id: selectedAgentForAdd,
-          role: selectedRoleForAdd,
-          status: "active",
-        },
-      ])
-
-      if (insertError) {
-        console.error("[v0] Error adding member:", insertError)
-        throw insertError
-      }
-
-      toast.success(`Member added as ${selectedRoleForAdd}`)
-      setShowAddMemberDialog(false)
-      setSelectedAgentForAdd("")
-      setSelectedRoleForAdd("member")
-      loadData()
-      if (selectedChannel) {
-        loadChannelMembers(selectedChannel.id)
-      }
+      const { error: insertError } = await supabase.from("channel_members").insert([{
+        channel_id: selectedChannel.id,
+        agent_id: selectedAgentForAdd,
+        role: selectedRoleForAdd,
+        status: "active",
+      }]);
+      if (insertError) throw insertError;
+      toast.success(`Member added as ${selectedRoleForAdd}!`);
+      setShowAddMemberDialog(false);
+      setSelectedAgentForAdd("");
+      setSelectedRoleForAdd("member");
+      loadData();
+      if (selectedChannel) loadChannelMembers(selectedChannel.id);
     } catch (error) {
-      console.error("[v0] Error adding member:", error)
-      toast.error("Failed to add member. Please try again.")
+      toast.error("Failed to add member.");
     }
-  }
+  };
 
-  const handleChangeemberRole = async (memberId: string, newRole: "admin" | "teacher" | "member") => {
+  // Change Member Role
+  const handleChangeMemberRole = async (memberId: string, newRole: "admin" | "teacher" | "member") => {
     try {
-      const { error } = await supabase
-        .from("channel_members")
-        .update({ role: newRole })
-        .eq("id", memberId)
-
-      if (error) throw error
-
-      toast.success(`Member role updated to ${newRole}`)
-      if (selectedChannel) {
-        loadChannelMembers(selectedChannel.id)
-      }
+      await supabase.from("channel_members").update({ role: newRole }).eq("id", memberId);
+      toast.success(`Member role updated to ${newRole}!`);
+      if (selectedChannel) loadChannelMembers(selectedChannel.id);
     } catch (error) {
-      console.error("[v0] Error changing member role:", error)
-      toast.error("Failed to change member role")
+      toast.error("Failed to change member role.");
     }
-  }
+  };
 
+  // Delete Member from Channel
   const handleDeleteMemberFromChannel = async (memberId: string, memberName: string) => {
-    if (!confirm(`Are you sure you want to remove ${memberName} from this channel?`)) return
-
+    if (!confirm(`Remove ${memberName} from this channel?`)) return;
     try {
-      const { error } = await supabase.from("channel_members").delete().eq("id", memberId)
-
-      if (error) throw error
-
-      toast.success("Member removed from channel")
-      if (selectedChannel) {
-        loadChannelMembers(selectedChannel.id)
-      }
+      await supabase.from("channel_members").delete().eq("id", memberId);
+      toast.success("Member removed!");
+      if (selectedChannel) loadChannelMembers(selectedChannel.id);
     } catch (error) {
-      console.error("[v0] Error deleting member:", error)
-      toast.error("Failed to remove member")
+      toast.error("Failed to remove member.");
     }
-  }
+  };
 
+  // Edit Channel Name
   const handleEditChannelName = async (channelId: string) => {
     if (!editingChannelName.trim()) {
-      toast.error("Channel name cannot be empty")
-      return
+      toast.error("Channel name cannot be empty.");
+      return;
     }
-
     try {
-      const { error } = await supabase
-        .from("teaching_channels")
-        .update({ name: editingChannelName })
-        .eq("id", channelId)
-
-      if (error) throw error
-
-      toast.success("Channel name updated successfully")
-      setEditingChannelId(null)
-      setEditingChannelName("")
-      loadData()
+      await supabase.from("teaching_channels").update({ name: editingChannelName }).eq("id", channelId);
+      toast.success("Channel name updated!");
+      setEditingChannelId(null);
+      setEditingChannelName("");
+      loadData();
     } catch (error) {
-      console.error("[v0] Error updating channel name:", error)
-      toast.error("Failed to update channel name")
+      toast.error("Failed to update channel name.");
     }
-  }
+  };
 
-  const handleUpdateChannelMaxMembers = async (channelId: string, newMaxMembers: number) => {
-    if (newMaxMembers < 1) {
-      toast.error("Max members must be at least 1")
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from("teaching_channels")
-        .update({ max_members: newMaxMembers })
-        .eq("id", channelId)
-
-      if (error) throw error
-
-      toast.success("Channel member limit updated successfully")
-      loadData()
-    } catch (error) {
-      console.error("[v0] Error updating channel member limit:", error)
-      toast.error("Failed to update channel member limit")
-    }
-  }
-
+  // Update Channel Details
   const handleUpdateChannelDetails = async (channelId: string) => {
     if (!editingChannelForm.description.trim()) {
-      toast.error("Description cannot be empty")
-      return
+      toast.error("Description cannot be empty.");
+      return;
     }
-
-    if (editingChannelForm.max_members < 1) {
-      toast.error("Max members must be at least 1")
-      return
-    }
-
     try {
-      const { error } = await supabase
-        .from("teaching_channels")
-        .update({
-          description: editingChannelForm.description,
-          category: editingChannelForm.category,
-          is_public: editingChannelForm.is_public,
-          max_members: editingChannelForm.max_members,
-          image_url: editingChannelForm.image_url || null, // Include image_url in update
-        })
-        .eq("id", channelId)
-
-      if (error) throw error
-
-      toast.success("Channel updated successfully")
-      setShowEditChannelDialog(false)
-      setEditingChannelId(null)
-      loadData()
+      await supabase.from("teaching_channels").update({
+        description: editingChannelForm.description,
+        category: editingChannelForm.category,
+        is_public: editingChannelForm.is_public,
+        max_members: editingChannelForm.max_members,
+        image_url: editingChannelForm.image_url || null,
+      }).eq("id", channelId);
+      toast.success("Channel updated!");
+      setShowEditChannelDialog(false);
+      setEditingChannelId(null);
+      loadData();
     } catch (error) {
-      console.error("[v0] Error updating channel:", error)
-      toast.error("Failed to update channel")
+      toast.error("Failed to update channel.");
     }
-  }
+  };
 
-
+  // Approve/Reject Teacher
   const handleApproveTeacher = async (teacherId: string) => {
     try {
-      const { error } = await supabase
-        .from("teacher_approvals")
-        .update({ status: "approved", approved_at: new Date().toISOString() })
-        .eq("id", teacherId)
-
-      if (error) throw error
-
-      toast.success("Teacher approved successfully")
-      loadData()
+      await supabase.from("teacher_approvals").update({
+        status: "approved",
+        approved_at: new Date().toISOString(),
+      }).eq("id", teacherId);
+      toast.success("Teacher approved!");
+      loadData();
     } catch (error) {
-      console.error("[v0] Error approving teacher:", error)
-      toast.error("Failed to approve teacher")
+      toast.error("Failed to approve teacher.");
     }
-  }
+  };
 
   const handleRejectTeacher = async (teacherId: string) => {
     try {
-      const { error } = await supabase.from("teacher_approvals").update({ status: "rejected" }).eq("id", teacherId)
-
-      if (error) throw error
-
-      toast.success("Teacher rejected")
-      loadData()
+      await supabase.from("teacher_approvals").update({ status: "rejected" }).eq("id", teacherId);
+      toast.success("Teacher rejected.");
+      loadData();
     } catch (error) {
-      console.error("[v0] Error rejecting teacher:", error)
-      toast.error("Failed to reject teacher")
+      toast.error("Failed to reject teacher.");
     }
-  }
+  };
 
+  // Delete Channel
   const handleDeleteChannel = async (channelId: string) => {
-    if (!confirm("Are you sure you want to delete this channel?")) return
-
+    if (!confirm("Delete this channel?")) return;
     try {
-      const { error } = await supabase.from("teaching_channels").delete().eq("id", channelId)
-
-      if (error) throw error
-
-      toast.success("Channel deleted successfully")
-      loadData()
+      await supabase.from("teaching_channels").delete().eq("id", channelId);
+      toast.success("Channel deleted!");
+      loadData();
     } catch (error) {
-      console.error("[v0] Error deleting channel:", error)
-      toast.error("Failed to delete channel")
+      toast.error("Failed to delete channel.");
     }
-  }
+  };
 
+  // Approve/Reject Join Request
   const handleApproveJoinRequest = async (requestId: string, agentId: string, channelId: string) => {
     try {
-      const { error: memberError } = await supabase.from("channel_members").insert([
-        {
-          channel_id: channelId,
-          agent_id: agentId,
-          role: "member",
-          status: "active",
-          joined_at: new Date().toISOString(),
-        },
-      ])
-
-      if (memberError) throw memberError
-
-      const { error: requestError } = await supabase
-        .from("channel_join_requests")
-        .update({ status: "approved", responded_at: new Date().toISOString() })
-        .eq("id", requestId)
-
-      if (requestError) throw requestError
-
-      toast.success("Join request approved!")
-      loadData()
+      await supabase.from("channel_members").insert([{
+        channel_id: channelId,
+        agent_id: agentId,
+        role: "member",
+        status: "active",
+        joined_at: new Date().toISOString(),
+      }]);
+      await supabase.from("channel_join_requests").update({
+        status: "approved",
+        responded_at: new Date().toISOString(),
+      }).eq("id", requestId);
+      toast.success("Join request approved!");
+      loadData();
     } catch (error) {
-      console.error("[v0] Error approving request:", error)
-      toast.error("Failed to approve request")
+      toast.error("Failed to approve request.");
     }
-  }
+  };
 
   const handleRejectJoinRequest = async (requestId: string) => {
     try {
-      const { error } = await supabase
-        .from("channel_join_requests")
-        .update({ status: "rejected", responded_at: new Date().toISOString() })
-        .eq("id", requestId)
-
-      if (error) throw error
-
-      toast.success("Join request rejected")
-      loadData()
+      await supabase.from("channel_join_requests").update({
+        status: "rejected",
+        responded_at: new Date().toISOString(),
+      }).eq("id", requestId);
+      toast.success("Join request rejected.");
+      loadData();
     } catch (error) {
-      console.error("[v0] Error rejecting request:", error)
-      toast.error("Failed to reject request")
+      toast.error("Failed to reject request.");
     }
-  }
+  };
 
+  // Filter Data
   const getFilteredData = () => {
-    let data: any[] = []
-
-    if (activeSubTab === "channels") {
-      data = channels
-    } else if (activeSubTab === "teachers") {
-      data = teachers
-    } else if (activeSubTab === "join-requests") {
-      data = joinRequests
-    }
-
-    return data.filter((item) => {
-      const searchLower = searchTerm.toLowerCase()
+    const data = activeSubTab === "channels" ? channels :
+                 activeSubTab === "teachers" ? teachers :
+                 joinRequests;
+    const searchLower = searchTerm.toLowerCase();
+    return data.filter((item: any) => {
       if (activeSubTab === "channels") {
-        return (
-          item.name.toLowerCase().includes(searchLower) ||
-          item.description?.toLowerCase().includes(searchLower) ||
-          item.category.toLowerCase().includes(searchLower)
-        )
+        return item.name.toLowerCase().includes(searchLower) ||
+               item.description?.toLowerCase().includes(searchLower) ||
+               item.category.toLowerCase().includes(searchLower);
       } else if (activeSubTab === "join-requests") {
-        return (
-          item.full_name?.toLowerCase().includes(searchLower) ||
-          item.phone_number?.toLowerCase().includes(searchLower) ||
-          item.teaching_channels?.name?.toLowerCase().includes(searchLower)
-        )
+        return item.full_name?.toLowerCase().includes(searchLower) ||
+               item.phone_number?.toLowerCase().includes(searchLower) ||
+               item.teaching_channels?.name?.toLowerCase().includes(searchLower);
       } else {
-        return (
-          item.agent_name?.toLowerCase().includes(searchLower) ||
-          item.agent_contact?.toLowerCase().includes(searchLower) ||
-          item.bio?.toLowerCase().includes(searchLower)
-        )
+        return item.agent_name?.toLowerCase().includes(searchLower) ||
+               item.agent_contact?.toLowerCase().includes(searchLower) ||
+               item.bio?.toLowerCase().includes(searchLower);
       }
-    })
-  }
+    });
+  };
 
-  const filteredAgents = agents.filter((agent) => {
-    if (!agent || !agent.full_name) return false
-    const searchLower = agentSearchTerm.toLowerCase()
-    return (
-      agent.full_name.toLowerCase().includes(searchLower) ||
-      (agent.phone_number && agent.phone_number.toLowerCase().includes(searchLower))
-    )
-  })
+  // Pagination
+  const filteredData = getFilteredData();
+  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-  const filteredData = getFilteredData()
-  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
-
+  // Render
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-20 bg-gray-200 rounded animate-pulse"></div>
-          ))}
-        </div>
+      <div className="flex flex-col items-center justify-center h-64">
+        <p className="text-gray-500">Loading...</p>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Sub-tabs */}
-      <div className="flex gap-2 border-b border-blue-200 overflow-x-auto">
-        <button
-          onClick={() => {
-            setActiveSubTab("channels")
-            setCurrentPage(1)
-          }}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-            activeSubTab === "channels"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-600 hover:text-gray-800"
-          }`}
-        >
-          <BookOpen className="inline h-4 w-4 mr-2" />
-          Channels
-        </button>
-        <button
-          onClick={() => {
-            setActiveSubTab("join-requests")
-            setCurrentPage(1)
-          }}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-            activeSubTab === "join-requests"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-600 hover:text-gray-800"
-          }`}
-        >
-          <UserPlus className="inline h-4 w-4 mr-2" />
-          Join Requests ({joinRequests.length})
-        </button>
-        <button
-          onClick={() => {
-            setActiveSubTab("teachers")
-            setCurrentPage(1)
-          }}
-          className={`px-4 py-2 font-medium transition-colors whitespace-nowrap ${
-            activeSubTab === "teachers"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-600 hover:text-gray-800"
-          }`}
-        >
-          <Award className="inline h-4 w-4 mr-2" />
-          Teachers
-        </button>
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 h-4 w-4" />
-          <Input
-            placeholder={`Search ${activeSubTab}...`}
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value)
-              setCurrentPage(1)
-            }}
-            className="pl-10 border-blue-200 focus:border-blue-500 bg-white/80"
-          />
-        </div>
-        {/* Create Channel Dialog - Add image upload */}
-        {activeSubTab === "channels" && (
-          <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600">
-                <Plus className="h-4 w-4 mr-2" />
-                New Channel
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create Teaching Channel</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label>Channel Image</Label>
-                  {channelForm.image_url && (
-                    <div className="rounded-lg overflow-hidden h-40 bg-gray-100 mb-2">
-                      <img
-                        src={channelForm.image_url || "/placeholder.svg"}
-                        alt="Channel preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleImageUpload(file, false)
-                    }}
-                    disabled={uploading}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="border-blue-300"
-                  >
-                    <ImageIcon className="h-4 w-4 mr-2" />
-                    {uploading ? "Uploading..." : "Upload Image"}
-                  </Button>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="channel-name">Channel Name</Label>
-                  <Input
-                    id="channel-name"
-                    value={channelForm.name}
-                    onChange={(e) => setChannelForm({ ...channelForm, name: e.target.value })}
-                    placeholder="e.g., Advanced Python Programming"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="channel-desc">Description</Label>
-                  <Textarea
-                    id="channel-desc"
-                    value={channelForm.description}
-                    onChange={(e) => setChannelForm({ ...channelForm, description: e.target.value })}
-                    placeholder="Channel description"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="channel-category">Category</Label>
-                  <Select
-                    value={channelForm.category}
-                    onValueChange={(val) => setChannelForm({ ...channelForm, category: val })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="General">General</SelectItem>
-                      <SelectItem value="Technology">Technology</SelectItem>
-                      <SelectItem value="Business">Business</SelectItem>
-                      <SelectItem value="Skills">Skills</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="max-members">Max Members</Label>
-                  <Input
-                    id="max-members"
-                    type="number"
-                    min="1"
-                    value={channelForm.max_members}
-                    onChange={(e) =>
-                      setChannelForm({ ...channelForm, max_members: Number.parseInt(e.target.value) || 50 })
-                    }
-                    placeholder="Maximum number of members"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="public"
-                    checked={channelForm.is_public}
-                    onChange={(e) => setChannelForm({ ...channelForm, is_public: e.target.checked })}
-                    className="rounded"
-                  />
-                  <Label htmlFor="public">Public Channel</Label>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={handleCreateChannel} className="bg-blue-600 hover:bg-blue-700">
-                  Create Channel
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Top Navigation */}
+      <div className="flex items-center justify-between p-4 bg-white shadow-sm">
+        <h1 className="text-xl font-bold text-blue-600">Teacher Hub</h1>
+        <div className="flex items-center gap-2">
+          <Button size="icon" variant="ghost">
+            <Search className="h-5 w-5 text-gray-600" />
+          </Button>
+          {activeSubTab === "channels" && (
+            <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
+              <DialogTrigger asChild>
+                <Button size="icon" className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="h-5 w-5 text-white" />
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-
-      {/* Channels View */}
-      {activeSubTab === "channels" && (
-        <div ref={listRef} className="space-y-4">
-          {paginatedData.length === 0 ? (
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="pt-6 text-center text-blue-600">
-                <BookOpen className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>No channels found</p>
-              </CardContent>
-            </Card>
-          ) : (
-            paginatedData.map((channel: TeachingChannel) => (
-              <Card key={channel.id} className="border-blue-200 bg-white/90 hover:shadow-lg transition-all overflow-hidden">
-                <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    {channel.image_url && (
-                      <div className="mb-4 rounded-lg overflow-hidden h-48 bg-gray-100">
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Create New Channel</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="relative w-24 h-24 rounded-full bg-gray-100 overflow-hidden">
+                      {channelForm.image_url ? (
                         <img
-                          src={channel.image_url || "/placeholder.svg"}
-                          alt={channel.name}
+                          src={channelForm.image_url}
+                          alt="Channel"
                           className="w-full h-full object-cover"
                         />
+                      ) : (
+                        <div className="flex items-center justify-center w-full h-full text-gray-400">
+                          <ImageIcon className="h-8 w-8" />
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? "Uploading..." : "Upload Image"}
+                    </Button>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Channel Name</Label>
+                    <Input
+                      id="name"
+                      value={channelForm.name}
+                      onChange={(e) => setChannelForm({ ...channelForm, name: e.target.value })}
+                      placeholder="e.g., Advanced Math"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={channelForm.description}
+                      onChange={(e) => setChannelForm({ ...channelForm, description: e.target.value })}
+                      placeholder="Channel description"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select
+                      value={channelForm.category}
+                      onValueChange={(val) => setChannelForm({ ...channelForm, category: val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="General">General</SelectItem>
+                        <SelectItem value="Technology">Technology</SelectItem>
+                        <SelectItem value="Business">Business</SelectItem>
+                        <SelectItem value="Skills">Skills</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="max-members">Max Members</Label>
+                    <Input
+                      id="max-members"
+                      type="number"
+                      min="1"
+                      value={channelForm.max_members}
+                      onChange={(e) => setChannelForm({ ...channelForm, max_members: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="is-public"
+                      checked={channelForm.is_public}
+                      onChange={(e) => setChannelForm({ ...channelForm, is_public: e.target.checked })}
+                    />
+                    <Label htmlFor="is-public">Public Channel</Label>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleCreateChannel} className="bg-blue-600 hover:bg-blue-700">
+                    Create Channel
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+      </div>
+
+      {/* Sub-Tabs */}
+      <div className="flex border-b border-gray-200">
+        <button
+          onClick={() => { setActiveSubTab("channels"); setCurrentPage(1); }}
+          className={`flex-1 p-3 text-center ${activeSubTab === "channels" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
+        >
+          <BookOpen className="h-5 w-5 mx-auto" />
+          <span className="text-xs">Channels</span>
+        </button>
+        <button
+          onClick={() => { setActiveSubTab("join-requests"); setCurrentPage(1); }}
+          className={`flex-1 p-3 text-center ${activeSubTab === "join-requests" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
+        >
+          <UserPlus className="h-5 w-5 mx-auto" />
+          <span className="text-xs">Join Requests</span>
+        </button>
+        <button
+          onClick={() => { setActiveSubTab("teachers"); setCurrentPage(1); }}
+          className={`flex-1 p-3 text-center ${activeSubTab === "teachers" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
+        >
+          <Award className="h-5 w-5 mx-auto" />
+          <span className="text-xs">Teachers</span>
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {/* Channels View */}
+        {activeSubTab === "channels" && (
+          <div className="space-y-3">
+            {paginatedData.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <BookOpen className="h-12 w-12 mx-auto text-gray-300" />
+                  <p className="mt-2 text-gray-500">No channels found</p>
+                </CardContent>
+              </Card>
+            ) : (
+              paginatedData.map((channel: TeachingChannel) => (
+                <Card key={channel.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-0">
+                    <div className="flex items-center gap-3 p-3">
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100">
+                          <img
+                            src={channel.image_url || "/placeholder.svg"}
+                            alt={channel.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {channel.is_active && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white" />
+                        )}
                       </div>
-                    )}
-                    
-                    <div className="flex items-start justify-between">
-                      <div>
-                        {editingChannelId === channel.id ? (
-                          <div className="flex gap-2 mb-2">
-                            <Input
-                              value={editingChannelName}
-                              onChange={(e) => setEditingChannelName(e.target.value)}
-                              className="border-blue-200 focus:border-blue-500"
-                              placeholder="Channel name"
-                            />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-800 truncate">{channel.name}</h3>
+                        <p className="text-xs text-gray-500 truncate">{channel.description}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {channel.category}
+                          </Badge>
+                          <Badge variant={channel.is_public ? "default" : "secondary"} className="text-xs">
+                            {channel.is_public ? "Public" : "Private"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-xs">
+                          <DialogHeader>
+                            <DialogTitle>Channel Actions</DialogTitle>
+                          </DialogHeader>
+                          <div className="grid gap-2">
                             <Button
                               size="sm"
-                              onClick={() => handleEditChannelName(channel.id)}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedChannel(channel);
+                                setShowChannelDetailsDialog(true);
+                                loadChannelMembers(channel.id);
+                              }}
                             >
-                              Save
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                setEditingChannelId(null)
-                                setEditingChannelName("")
+                                setSelectedChannel(channel);
+                                setShowEditChannelDialog(true);
+                                setEditingChannelForm({
+                                  description: channel.description,
+                                  category: channel.category,
+                                  is_public: channel.is_public,
+                                  max_members: channel.max_members,
+                                  image_url: channel.image_url || "",
+                                });
                               }}
                             >
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <h3 className="font-semibold text-blue-800 text-lg">{channel.name}</h3>
-                        )}
-                        <p className="text-sm text-gray-600 mt-1">{channel.description}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge variant={channel.is_public ? "default" : "secondary"}>
-                          {channel.is_public ? "Public" : "Private"}
-                        </Badge>
-                        {editingChannelId !== channel.id && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditingChannelId(channel.id)
-                              setEditingChannelName(channel.name)
-                            }}
-                            className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-sm">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">{channel.category}</span>
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
-                        <Users className="inline h-3 w-3 mr-1" />
-                        {channel.member_count || 0} / {channel.max_members}
-                      </span>
-                      <span
-                        className={`px-2 py-1 rounded ${channel.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-                      >
-                        {channel.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-                    <div className="flex gap-2 pt-2 border-t border-gray-200 flex-wrap">
-                      <Dialog
-                        open={showEditChannelDialog && selectedChannel?.id === channel.id}
-                        onOpenChange={setShowEditChannelDialog}
-                      >
-                        <DialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-blue-600 border-blue-300 bg-transparent"
-                            onClick={() => {
-                              setSelectedChannel(channel)
-                              setEditingChannelId(channel.id)
-                              setEditingChannelForm({
-                                description: channel.description,
-                                category: channel.category,
-                                is_public: channel.is_public,
-                                max_members: channel.max_members,
-                                image_url: channel.image_url || "",
-                              })
-                            }}
-                          >
-                            <Edit2 className="h-4 w-4 mr-1" />
-                            Edit Channel
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Edit Channel Details</DialogTitle>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                              <Label>Channel Image</Label>
-                              {editingChannelForm.image_url && (
-                                <div className="rounded-lg overflow-hidden h-40 bg-gray-100 mb-2">
-                                  <img
-                                    src={editingChannelForm.image_url || "/placeholder.svg"}
-                                    alt="Channel preview"
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              )}
-                              <input
-                                ref={editFileInputRef}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0]
-                                  if (file) handleImageUpload(file, true)
-                                }}
-                                disabled={uploading}
-                              />
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => editFileInputRef.current?.click()}
-                                disabled={uploading}
-                                className="border-blue-300"
-                              >
-                                <ImageIcon className="h-4 w-4 mr-2" />
-                                {uploading ? "Uploading..." : "Upload Image"}
-                              </Button>
-                            </div>
-
-                            <div className="grid gap-2">
-                              <Label htmlFor="edit-desc">Description</Label>
-                              <Textarea
-                                id="edit-desc"
-                                value={editingChannelForm.description}
-                                onChange={(e) =>
-                                  setEditingChannelForm({ ...editingChannelForm, description: e.target.value })
-                                }
-                                placeholder="Channel description"
-                              />
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="edit-category">Category</Label>
-                              <Select
-                                value={editingChannelForm.category}
-                                onValueChange={(val) =>
-                                  setEditingChannelForm({ ...editingChannelForm, category: val })
-                                }
-                              >
-                                <SelectTrigger id="edit-category">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="General">General</SelectItem>
-                                  <SelectItem value="Technology">Technology</SelectItem>
-                                  <SelectItem value="Business">Business</SelectItem>
-                                  <SelectItem value="Skills">Skills</SelectItem>
-                                  <SelectItem value="Other">Other</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="edit-max-members">Max Members (Set to 999999 for unlimited)</Label>
-                              <Input
-                                id="edit-max-members"
-                                type="number"
-                                min="1"
-                                value={editingChannelForm.max_members}
-                                onChange={(e) =>
-                                  setEditingChannelForm({
-                                    ...editingChannelForm,
-                                    max_members: Number.parseInt(e.target.value) || 50,
-                                  })
-                                }
-                                placeholder="Maximum number of members"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                id="edit-public"
-                                checked={editingChannelForm.is_public}
-                                onChange={(e) =>
-                                  setEditingChannelForm({ ...editingChannelForm, is_public: e.target.checked })
-                                }
-                                className="rounded"
-                              />
-                              <Label htmlFor="edit-public">Public Channel</Label>
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button variant="outline" onClick={() => setShowEditChannelDialog(false)}>
-                              Cancel
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              Edit Channel
                             </Button>
                             <Button
-                              onClick={() => handleUpdateChannelDetails(channel.id)}
-                              className="bg-blue-600 hover:bg-blue-700"
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteChannel(channel.id)}
                             >
-                              Save Changes
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Channel
                             </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                      <Dialog
-                        open={showChannelDetailsDialog && selectedChannel?.id === channel.id}
-                        onOpenChange={setShowChannelDetailsDialog}
-                      >
-                        <DialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-blue-600 border-blue-300 bg-transparent"
-                            onClick={() => {
-                              setSelectedChannel(channel)
-                              loadChannelMembers(channel.id)
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Channel
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>{selectedChannel?.name}</DialogTitle>
-                            <DialogDescription>{selectedChannel?.description}</DialogDescription>
-                          </DialogHeader>
-
-                          {selectedChannel?.image_url && (
-                            <div className="rounded-lg overflow-hidden h-48 bg-gray-100">
-                              <img
-                                src={selectedChannel.image_url || "/placeholder.svg"}
-                                alt={selectedChannel.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
-                              <div>
-                                <p className="text-xs text-gray-600">Category</p>
-                                <p className="font-semibold text-blue-800">{selectedChannel?.category}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-600">Members</p>
-                                <p className="font-semibold text-blue-800">
-                                  {selectedChannelMembers.length} / {selectedChannel?.max_members}
-                                </p>
-                              </div>
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-gray-800 mb-2">Channel Members</h4>
-                              {selectedChannelMembers.length === 0 ? (
-                                <p className="text-sm text-gray-600">No members yet</p>
-                              ) : (
-                                <div className="space-y-2 max-h-64 overflow-y-auto">
-                                  {selectedChannelMembers.map((member) => (
-                                    <div
-                                      key={member.id}
-                                      className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                                    >
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-800">{member.agent_name}</p>
-                                        <p className="text-xs text-gray-600">
-                                          {member.phone_number ? `📞 ${member.phone_number}` : "No contact"} • Joined{" "}
-                                          {new Date(member.joined_at).toLocaleDateString()}
-                                        </p>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Select
-                                          value={member.role}
-                                          onValueChange={(newRole) =>
-                                            handleChangeemberRole(member.id, newRole as any)
-                                          }
-                                        >
-                                          <SelectTrigger className="h-7 w-24 text-xs">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="member">Member</SelectItem>
-                                            <SelectItem value="teacher">Teacher</SelectItem>
-                                            <SelectItem value="admin">Admin</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleDeleteMemberFromChannel(member.id, member.agent_name)}
-                                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
                           </div>
                         </DialogContent>
                       </Dialog>
-                      <Dialog
-                        open={showAddMemberDialog && selectedChannel?.id === channel.id}
-                        onOpenChange={setShowAddMemberDialog}
-                      >
-                        <DialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-blue-600 border-blue-300 bg-transparent"
-                            onClick={() => setSelectedChannel(channel)}
-                          >
-                            <UserPlus className="h-4 w-4 mr-1" />
-                            Add Member
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[425px]">
-                          <DialogHeader>
-                            <DialogTitle>Add Member to Channel</DialogTitle>
-                            <DialogDescription>
-                              Select an agent and role to add to {selectedChannel?.name}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="agent-search">Search Agent</Label>
-                              <Input
-                                id="agent-search"
-                                placeholder="Search by name or phone..."
-                                value={agentSearchTerm}
-                                onChange={(e) => setAgentSearchTerm(e.target.value)}
-                                className="border-blue-200 focus:border-blue-500"
-                              />
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="agent-select">Select Agent</Label>
-                              <Select value={selectedAgentForAdd} onValueChange={setSelectedAgentForAdd}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Choose an agent..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {filteredAgents.map((agent) => (
-                                    <SelectItem key={agent.id} value={agent.id}>
-                                      {agent.full_name} {agent.phone_number ? `(${agent.phone_number})` : ""}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="member-role">Role</Label>
-                              <Select
-                                value={selectedRoleForAdd}
-                                onValueChange={(val) => setSelectedRoleForAdd(val as any)}
-                              >
-                                <SelectTrigger id="member-role">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="member">Member</SelectItem>
-                                  <SelectItem value="teacher">Teacher</SelectItem>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setShowAddMemberDialog(false)}>
-                              Cancel
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={handleAddMemberToChannel}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              Add Member
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                      <Button size="sm" variant="destructive" onClick={() => handleDeleteChannel(channel.id)}>
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Join Requests View */}
+        {activeSubTab === "join-requests" && (
+          <div className="space-y-3">
+            {paginatedData.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <UserPlus className="h-12 w-12 mx-auto text-gray-300" />
+                  <p className="mt-2 text-gray-500">No pending join requests</p>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Join Requests View */}
-      {activeSubTab === "join-requests" && (
-        <div ref={listRef} className="space-y-4">
-          {paginatedData.length === 0 ? (
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="pt-6 text-center text-blue-600">
-                <UserPlus className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>No pending join requests</p>
-              </CardContent>
-            </Card>
-          ) : (
-            paginatedData.map((request: any) => (
-              <Card key={request.id} className="border-amber-200 bg-white/90 hover:shadow-lg transition-all">
-                <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-blue-800 text-lg">{request.full_name}</h3>
-                        <p className="text-sm text-gray-600">📞 {request.phone_number || "No contact"}</p>
-                        <p className="text-sm text-gray-600 mt-1">
+            ) : (
+              paginatedData.map((request: any) => (
+                <Card key={request.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                        <UserPlus className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-800">{request.full_name}</h3>
+                        <p className="text-xs text-gray-500">📞 {request.phone_number || "No contact"}</p>
+                        <p className="text-xs text-gray-500 mt-1">
                           Requested to join: <span className="font-medium">{request.teaching_channels?.name}</span>
                         </p>
+                        {request.request_message && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                            "{request.request_message}"
+                          </div>
+                        )}
                       </div>
-                      <Badge variant="secondary">Pending</Badge>
                     </div>
-                    {request.request_message && (
-                      <div className="bg-amber-50 p-3 rounded border border-amber-200">
-                        <p className="text-xs text-gray-600 font-medium mb-1">Message:</p>
-                        <p className="text-sm text-gray-700">"{request.request_message}"</p>
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-500">
-                      Requested on {new Date(request.requested_at).toLocaleString()}
-                    </p>
-                    <div className="flex gap-2 pt-2 border-t border-gray-200">
+                    <div className="flex gap-2 mt-3">
                       <Button
                         size="sm"
+                        className="flex-1 bg-green-600 hover:bg-green-700"
                         onClick={() => handleApproveJoinRequest(request.id, request.agent_id, request.channel_id)}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                       >
                         <CheckCircle2 className="h-4 w-4 mr-1" />
                         Approve
@@ -1298,169 +773,415 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleRejectJoinRequest(request.id)}
                         className="flex-1"
+                        onClick={() => handleRejectJoinRequest(request.id)}
                       >
+                        <X className="h-4 w-4 mr-1" />
                         Reject
                       </Button>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Teachers View */}
+        {activeSubTab === "teachers" && (
+          <div className="space-y-3">
+            {paginatedData.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <Award className="h-12 w-12 mx-auto text-gray-300" />
+                  <p className="mt-2 text-gray-500">No teachers found</p>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Teachers View - REDESIGNED */}
-      {activeSubTab === "teachers" && (
-        <div ref={listRef} className="space-y-4">
-          {paginatedData.length === 0 ? (
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="pt-6 text-center text-blue-600">
-                <Award className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>No teachers found</p>
-              </CardContent>
-            </Card>
-          ) : (
-            paginatedData.map((teacher: TeacherApproval) => {
-              // Filter channels where this teacher is explicitly a 'teacher' role member
-              const teacherChannels = channels.filter((ch) =>
-                selectedChannelMembers?.some((m) => m.agent_id === teacher.agent_id && m.role === "teacher"),
-              )
-
-              return (
-                <Card key={teacher.id} className="border-blue-200 bg-white/90 hover:shadow-lg transition-all">
-                  <CardContent className="pt-6">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-blue-800 text-lg">{teacher.agent_name}</h3>
-                          <p className="text-sm text-gray-600">📞 {teacher.agent_contact}</p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            <span className="font-medium">Experience:</span> {teacher.experience_years} years
-                          </p>
+            ) : (
+              paginatedData.map((teacher: TeacherApproval) => (
+                <Card key={teacher.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                        <Award className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-800">{teacher.agent_name}</h3>
+                        <p className="text-xs text-gray-500">📞 {teacher.agent_contact}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Experience: {teacher.experience_years} years
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {teacher.expertise_areas?.map((area, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {area}
+                            </Badge>
+                          ))}
                         </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
                         <Badge
                           variant={
-                            teacher.status === "approved"
-                              ? "default"
-                              : teacher.status === "pending"
-                                ? "secondary"
-                                : "destructive"
+                            teacher.status === "approved" ? "default" :
+                            teacher.status === "pending" ? "secondary" : "destructive"
                           }
+                          className="text-xs"
                         >
-                          {teacher.status.charAt(0).toUpperCase() + teacher.status.slice(1)}
+                          {teacher.status}
                         </Badge>
-                      </div>
-
-                      <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                        <p className="text-sm font-medium text-blue-800 mb-2">Channels Teaching:</p>
-                        <div className="space-y-1">
-                          {teacherChannels.length > 0 ? (
-                            teacherChannels.map((ch) => (
-                              <div key={ch.id} className="text-sm text-blue-700 flex items-center justify-between">
-                                <span>{ch.name}</span>
-                                <Badge variant="outline" className="text-xs">
-                                  Teacher
-                                </Badge>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-xs text-gray-600">Not assigned to any channels yet</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="text-sm text-gray-700">
-                        <p>
-                          <span className="font-medium">Bio:</span> {teacher.bio}
-                        </p>
-                        {teacher.expertise_areas && teacher.expertise_areas.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {teacher.expertise_areas.map((area, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                                {area}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex gap-2 pt-2 border-t border-gray-200">
-                        <Button size="sm" variant="outline" className="text-blue-600 border-blue-300 bg-transparent">
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          View Profile
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => {
-                            if (confirm(`Remove ${teacher.agent_name} as a teacher? This will remove them from all channels.`)) {
-                              handleRemoveTeacherFromAllChannels(teacher.agent_id)
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Remove Teacher
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-xs">
+                            <DialogHeader>
+                              <DialogTitle>Teacher Actions</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedTeacher(teacher);
+                                }}
+                              >
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                View Profile
+                              </Button>
+                              {teacher.status === "pending" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => handleApproveTeacher(teacher.id)}
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleRejectTeacher(teacher.id)}
+                                  >
+                                    <X className="h-4 w-4 mr-2" />
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              )
-            })
-          )}
-        </div>
-      )}
+              ))
+            )}
+          </div>
+        )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-6">
-          <Pagination>
-            <PaginationContent className="gap-1">
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
-                  className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    onClick={() => setCurrentPage(page)}
-                    isActive={currentPage === page}
-                    className="cursor-pointer"
-                  >
-                    {page}
-                  </PaginationLink>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => currentPage > 1 && setCurrentPage(currentPage - 1)}
+                    className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                  />
                 </PaginationItem>
-              ))}
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
-                  className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(page)}
+                      isActive={currentPage === page}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => currentPage < totalPages && setCurrentPage(currentPage + 1)}
+                    className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="flex border-t border-gray-200 bg-white">
+        <button className="flex-1 p-3 text-center text-gray-500 hover:text-blue-600">
+          <Home className="h-5 w-5 mx-auto" />
+          <span className="text-xs">Home</span>
+        </button>
+        <button className="flex-1 p-3 text-center text-blue-600 border-t-2 border-blue-600">
+          <BookOpen className="h-5 w-5 mx-auto" />
+          <span className="text-xs">Channels</span>
+        </button>
+        <button className="flex-1 p-3 text-center text-gray-500 hover:text-blue-600">
+          <Bell className="h-5 w-5 mx-auto" />
+          <span className="text-xs">Notifications</span>
+        </button>
+        <button className="flex-1 p-3 text-center text-gray-500 hover:text-blue-600">
+          <User className="h-5 w-5 mx-auto" />
+          <span className="text-xs">Profile</span>
+        </button>
+      </div>
+
+      {/* Channel Details Dialog */}
+      <Dialog open={showChannelDetailsDialog} onOpenChange={setShowChannelDetailsDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedChannel?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedChannel?.image_url && (
+            <div className="w-full h-40 rounded-lg overflow-hidden bg-gray-100 mb-4">
+              <img
+                src={selectedChannel.image_url}
+                alt={selectedChannel.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          <div className="grid gap-4 py-2">
+            <div>
+              <p className="text-sm text-gray-500">Description</p>
+              <p className="text-gray-800">{selectedChannel?.description}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Category</p>
+                <p className="font-medium">{selectedChannel?.category}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Members</p>
+                <p className="font-medium">
+                  {selectedChannelMembers.length} / {selectedChannel?.max_members}
+                </p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Channel Members</h4>
+              {selectedChannelMembers.length === 0 ? (
+                <p className="text-sm text-gray-500">No members yet</p>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {selectedChannelMembers.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div>
+                        <p className="text-sm font-medium">{member.agent_name}</p>
+                        <p className="text-xs text-gray-500">
+                          {member.phone_number ? `📞 ${member.phone_number}` : "No contact"} • Joined{" "}
+                          {new Date(member.joined_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={member.role}
+                          onValueChange={(val) => handleChangeMemberRole(member.id, val as any)}
+                        >
+                          <SelectTrigger className="h-8 w-24 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="member">Member</SelectItem>
+                            <SelectItem value="teacher">Teacher</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDeleteMemberFromChannel(member.id, member.agent_name)}
+                          className="h-8 w-8 text-red-500 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedChannel(null);
+                setShowChannelDetailsDialog(false);
+              }}
+            >
+              Close
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Member
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add Member to {selectedChannel?.name}</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="agent-search">Search Agent</Label>
+                    <Input
+                      id="agent-search"
+                      placeholder="Search by name or phone..."
+                      value={agentSearchTerm}
+                      onChange={(e) => setAgentSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="agent-select">Select Agent</Label>
+                    <Select value={selectedAgentForAdd} onValueChange={setSelectedAgentForAdd}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose an agent..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {agents
+                          .filter((agent) =>
+                            agent.full_name.toLowerCase().includes(agentSearchTerm.toLowerCase()) ||
+                            agent.phone_number?.toLowerCase().includes(agentSearchTerm.toLowerCase())
+                          )
+                          .map((agent) => (
+                            <SelectItem key={agent.id} value={agent.id}>
+                              {agent.full_name} {agent.phone_number ? `(${agent.phone_number})` : ""}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="member-role">Role</Label>
+                    <Select value={selectedRoleForAdd} onValueChange={(val) => setSelectedRoleForAdd(val as any)}>
+                      <SelectTrigger id="member-role">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="member">Member</SelectItem>
+                        <SelectItem value="teacher">Teacher</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowAddMemberDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddMemberToChannel} className="bg-blue-600 hover:bg-blue-700">
+                    Add Member
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Channel Dialog */}
+      <Dialog open={showEditChannelDialog} onOpenChange={setShowEditChannelDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Channel</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex flex-col items-center gap-2">
+              <div className="relative w-24 h-24 rounded-full bg-gray-100 overflow-hidden">
+                {editingChannelForm.image_url ? (
+                  <img
+                    src={editingChannelForm.image_url}
+                    alt="Channel"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full text-gray-400">
+                    <ImageIcon className="h-8 w-8" />
+                  </div>
+                )}
+              </div>
+              <input
+                ref={editFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0], true)}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => editFileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? "Uploading..." : "Change Image"}
+              </Button>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editingChannelForm.description}
+                onChange={(e) => setEditingChannelForm({ ...editingChannelForm, description: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-category">Category</Label>
+              <Select
+                value={editingChannelForm.category}
+                onValueChange={(val) => setEditingChannelForm({ ...editingChannelForm, category: val })}
+              >
+                <SelectTrigger id="edit-category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="General">General</SelectItem>
+                  <SelectItem value="Technology">Technology</SelectItem>
+                  <SelectItem value="Business">Business</SelectItem>
+                  <SelectItem value="Skills">Skills</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-max-members">Max Members</Label>
+              <Input
+                id="edit-max-members"
+                type="number"
+                min="1"
+                value={editingChannelForm.max_members}
+                onChange={(e) => setEditingChannelForm({ ...editingChannelForm, max_members: Number(e.target.value) })}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="edit-is-public"
+                checked={editingChannelForm.is_public}
+                onChange={(e) => setEditingChannelForm({ ...editingChannelForm, is_public: e.target.checked })}
+              />
+              <Label htmlFor="edit-is-public">Public Channel</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditChannelDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => selectedChannel && handleUpdateChannelDetails(selectedChannel.id)} className="bg-blue-600 hover:bg-blue-700">
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
-
-  const handleRemoveTeacherFromAllChannels = async (agentId: string) => {
-    try {
-      // Delete member entries where the role is 'teacher' for the given agentId
-      const { error } = await supabase.from("channel_members").delete().eq("agent_id", agentId).eq("role", "teacher")
-
-      if (error) throw error
-
-      toast.success("Teacher removed from all channels")
-      loadData() // Reload data to reflect changes
-    } catch (error) {
-      console.error("[v0] Error removing teacher:", error)
-      toast.error("Failed to remove teacher")
-    }
-  }
+  );
 }

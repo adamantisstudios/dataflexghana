@@ -268,7 +268,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
       <div className="w-full py-6">
         {channel?.image_url && (
           <div className="w-full mb-4 px-4 sm:px-6 lg:px-8">
-            <div className="rounded-lg overflow-hidden h-48 bg-gray-100 shadow-md">
+            <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden bg-gray-100 shadow-md border-4 border-white">
               <img
                 src={channel.image_url || "/placeholder.svg"}
                 alt={channel.name}
