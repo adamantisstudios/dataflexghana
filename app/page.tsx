@@ -19,41 +19,12 @@ import { WhatsAppWidget } from "@/components/whatsapp-widget"
 import { BackToTop } from "@/components/back-to-top"
 import { HeroSlider } from "@/components/hero-slider"
 import WholesaleProductSlider from "@/components/WholesaleProductSlider"
-import {
-  Users,
-  Shield,
-  Clock,
-  Star,
-  ArrowRight,
-  Smartphone,
-  Banknote,
-  Globe,
-  Award,
-  MessageCircle,
-  Phone,
-  Mail,
-  Menu,
-  X,
-  Briefcase,
-  Calendar,
-  DollarSign,
-  Building2,
-  ShoppingCart,
-  Target,
-  CheckCircle,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  Zap,
-  Router,
-  Download,
-  Search,
-  Play,
-} from "lucide-react"
+import { Users, Shield, Clock, Star, ArrowRight, Smartphone, Banknote, Globe, Award, MessageCircle, Phone, Mail, Menu, X, Briefcase, Calendar, DollarSign, Building2, ShoppingCart, Target, CheckCircle, ChevronDown, ChevronUp, ExternalLink, Zap, Router, Download, Search, Play, MapPin } from 'lucide-react'
 import Link from "next/link"
 import PropertiesShowcase from "@/components/homepage/PropertiesShowcase"
 import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
 import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
+import Image from "next/image"
 
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([])
@@ -70,9 +41,15 @@ export default function HomePage() {
 
   const loadData = async () => {
     try {
+      const { supabaseJobs } = await import("@/lib/supabase-client-jobs")
       const [servicesData, jobsData] = await Promise.all([
         supabase.from("services").select("*").order("created_at", { ascending: false }),
-        supabase.from("jobs").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
+        supabaseJobs
+          .from("jobs")
+          .select("*")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(5),
       ])
       // @ts-ignore
       setServices(servicesData.data || [])
@@ -248,6 +225,18 @@ export default function HomePage() {
     return job
   }
 
+  const getJobTitle = (job: any): string => {
+    return job.job_title || job.title || job.industry || "Job Position"
+  }
+
+  const getJobCompany = (job: any): string => {
+    return job.employer_name || job.company || "Company"
+  }
+
+  const getJobLocation = (job: any): string => {
+    return job.location || "Location not specified"
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <WhatsAppChannelPopup />
@@ -407,6 +396,137 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      
+     {/* Latest Jobs Section */}
+<section id="jobs" className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
+  <div className="container mx-auto px-4">
+
+    <div className="text-center mb-16">
+      <Badge className="bg-blue-100 text-blue-800 border-blue-200 mb-4">Latest Opportunities</Badge>
+
+      <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+        Find Your Next <span className="text-blue-600">Career</span>
+      </h2>
+
+      <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+        Discover authentic, verified job opportunities from trusted companies, homeowners, and businesses across Ghana
+      </p>
+
+      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-4xl mx-auto">
+        <p className="text-sm text-blue-700">
+          <strong>Disclaimer:</strong> All job postings are screened for authenticity. We prioritize verified,
+          credible jobs from trusted companies, homeowners, and businesses that comply with Ghana's labor laws and
+          employee rights.
+        </p>
+      </div>
+    </div>
+
+    {loading ? (
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="border-blue-100">
+            <CardHeader>
+              <div className="space-y-3">
+                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    ) : jobs.length > 0 ? (
+      <div className="space-y-8">
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {jobs.slice(0, 6).map((job) => (
+            <Card
+              key={job.id}
+              className="border-blue-100 hover:border-blue-200 transition-all duration-300 hover:shadow-lg overflow-hidden bg-white"
+            >
+              <CardHeader>
+                <div className="flex items-start gap-3 mb-2">
+                  <Image
+                    src={job.employer_logo_url || "/placeholder.svg"}
+                    alt={job.employer_name}
+                    width={48}
+                    height={48}
+                    className="w-12 h-12 rounded-lg object-cover bg-gray-100"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base text-blue-800 line-clamp-2">
+                      {job.job_title}
+                    </CardTitle>
+                    <div className="flex items-center gap-1 text-xs text-blue-600 mt-0.5">
+                      <Building2 className="h-3 w-3" />
+                      <span className="line-clamp-1">{job.employer_name}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-blue-600">
+                    <MapPin className="h-4 w-4" />
+                    <span className="line-clamp-1">{job.location}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 font-semibold text-green-700">
+                    <span className="text-xs text-gray-500">Salary:</span>
+
+                    {job.salary_type === "negotiable" ? (
+                      <span>Negotiable</span>
+                    ) : job.salary_type === "fixed_range" ? (
+                      <span>{job.salary_min} - {job.salary_max}</span>
+                    ) : job.salary_type === "exact_amount" ? (
+                      <span>{job.salary_exact}</span>
+                    ) : job.salary_custom ? (
+                      <span>{job.salary_custom}</span>
+                    ) : (
+                      <span>{job.salary_min} - {job.salary_max}</span>
+                    )}
+                  </div>
+
+                  <div className="text-xs text-gray-500">
+                    Posted: {new Date(job.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+
+                {/* FORCE REGISTRATION ON VIEW DETAILS */}
+                <Link href="/agent/register" className="block">
+                  <Button className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700">
+                    View Details
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* REMOVED VIEW ALL JOBS BUTTON — nothing renders here */}
+
+      </div>
+    ) : (
+      <div className="text-center py-12">
+        <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">No job opportunities</h3>
+        <p className="text-gray-600">Check back soon for new opportunities.</p>
+      </div>
+    )}
+
+  </div>
+</section>
+
 
       <div className="mb-16">
         <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
@@ -1514,162 +1634,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Latest Jobs Section */}
-      <section id="jobs" className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="bg-blue-100 text-blue-800 border-blue-200 mb-4">Latest Opportunities</Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Find Your Next <span className="text-blue-600">Career</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Discover authentic, verified job opportunities from trusted companies, homeowners, and businesses across
-              Ghana
-            </p>
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-4xl mx-auto">
-              <p className="text-sm text-blue-700">
-                <strong>Disclaimer:</strong> All job postings are screened for authenticity. We prioritize verified,
-                credible jobs from trusted companies, homeowners, and businesses that comply with Ghana's labor laws and
-                employee rights.
-              </p>
-            </div>
-          </div>
-          {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="border-blue-100">
-                  <CardHeader>
-                    <div className="space-y-3">
-                      <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : jobs.length > 0 ? (
-            <div className="space-y-8">
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {jobs.slice(0, 5).map((job) => {
-                  const jobWithTitle = ensureJobTitle(job)
-                  return (
-                    <Card
-                      key={job.id}
-                      className="border-blue-100 hover:border-blue-200 transition-all duration-300 hover:shadow-lg overflow-hidden bg-white"
-                    >
-                      <CardHeader>
-                        <CardTitle className="text-xl text-blue-800 mb-2">{jobWithTitle.title}</CardTitle>
-                        <div className="flex items-center gap-2 text-sm text-blue-600">
-                          <Building2 className="h-4 w-4" />
-                          <span>{jobWithTitle.company}</span>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Briefcase className="h-4 w-4 text-blue-600" />
-                            <span className="text-blue-600">{jobWithTitle.industry}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-4 w-4 text-blue-600" />
-                            <span className="text-blue-600">
-                              Deadline: {new Date(jobWithTitle.application_deadline).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <DollarSign className="h-4 w-4 text-blue-600" />
-                            <span className="text-blue-600">{jobWithTitle.salary_range || "Not specified"}</span>
-                          </div>
-                        </div>
-                        <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                          <div
-                            className="text-sm text-blue-700 line-clamp-3"
-                            dangerouslySetInnerHTML={{
-                              __html: jobWithTitle.description
-                                .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                                .replace(/• (.*?)(?=\n|$)/g, "• $1")
-                                .split("\n")
-                                .slice(0, 3)
-                                .join("<br>"),
-                            }}
-                          />
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {jobWithTitle.contact_email && (
-                            <Button
-                              className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 flex-1"
-                              asChild
-                            >
-                              <a
-                                href={`mailto:${jobWithTitle.contact_email}?subject=Application for ${jobWithTitle.title}`}
-                              >
-                                <Mail className="mr-2 h-4 w-4" />
-                                Apply via Email
-                              </a>
-                            </Button>
-                          )}
-                          {jobWithTitle.contact_phone && (
-                            <Button
-                              variant="outline"
-                              className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 flex-1 bg-transparent"
-                              asChild
-                            >
-                              <a href={`tel:${jobWithTitle.contact_phone}`}>
-                                <Smartphone className="mr-2 h-4 w-4" />
-                                Call Now
-                              </a>
-                            </Button>
-                          )}
-                          {jobWithTitle.application_url && (
-                            <Button
-                              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-600 flex-1"
-                              asChild
-                            >
-                              <a href={jobWithTitle.application_url} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                Apply Online
-                              </a>
-                            </Button>
-                          )}
-                          {/* Fallback for jobs without new contact fields */}
-                          {!jobWithTitle.contact_email &&
-                            !jobWithTitle.contact_phone &&
-                            !jobWithTitle.application_url && (
-                              <Button
-                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-600"
-                                asChild
-                              >
-                                <Link href="/agent/login">
-                                  Apply Now
-                                  <ArrowRight className="ml-2 h-4 w-4" />
-                                </Link>
-                              </Button>
-                            )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Briefcase className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">
-                No job opportunities are available at the moment. Please check back later!
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+      
 
       {/* Additional Services Section */}
       <section className="py-20 bg-white">

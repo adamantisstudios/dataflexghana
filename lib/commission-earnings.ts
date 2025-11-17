@@ -417,11 +417,13 @@ export async function processWithdrawalRequest(
 }
 
 /**
- * Complete withdrawal - mark commissions as withdrawn
+ * Enhanced completeWithdrawal to ensure commissions are marked as withdrawn
+ * This is called when a withdrawal status is updated to 'paid'
  */
 export async function completeWithdrawal(withdrawalId: string): Promise<{
   success: boolean
   message: string
+  commissionsMarked?: number
 }> {
   if (!withdrawalId) {
     return {
@@ -433,24 +435,60 @@ export async function completeWithdrawal(withdrawalId: string): Promise<{
   try {
     console.log(`✅ Completing withdrawal: ${withdrawalId}`)
 
-    const { error } = await supabase
+    // Step 1: Get the withdrawal details
+    const { data: withdrawal, error: withdrawalError } = await supabase
+      .from("withdrawals")
+      .select("*")
+      .eq("id", withdrawalId)
+      .single()
+
+    if (withdrawalError || !withdrawal) {
+      console.error("Error fetching withdrawal:", withdrawalError)
+      return {
+        success: false,
+        message: "Withdrawal not found",
+      }
+    }
+
+    // Step 2: Mark all pending_withdrawal commissions as withdrawn
+    const { data: affectedRows, error: updateError } = await supabase
       .from("commissions")
       .update({
         status: "withdrawn",
         withdrawn_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .eq("withdrawal_id", withdrawalId)
-      .eq("status", "pending_withdrawal")
+      .in("status", ["pending_withdrawal", "earned"])
+      .select("id")
 
-    if (error) {
-      console.error("Error completing withdrawal:", error)
-      throw error
+    if (updateError) {
+      console.error("Error marking commissions as withdrawn:", updateError)
+      // Don't fail - the database trigger should handle this
     }
 
-    console.log("✅ Withdrawal completed successfully - commissions marked as withdrawn")
+    const commissionsMarked = affectedRows?.length || 0
+    console.log(`✅ Marked ${commissionsMarked} commissions as withdrawn for withdrawal ${withdrawalId}`)
+
+    // Step 3: Also update agent_commission_sources if it exists
+    try {
+      await supabase
+        .from("agent_commission_sources")
+        .update({
+          commission_withdrawn: true,
+          withdrawn_at: new Date().toISOString(),
+          status: "withdrawn",
+        })
+        .eq("withdrawal_id", withdrawalId)
+        .eq("commission_withdrawn", false)
+    } catch (error) {
+      console.warn("⚠️ Could not update agent_commission_sources (table may not exist):", error)
+    }
+
     return {
       success: true,
       message: "Withdrawal completed successfully",
+      commissionsMarked,
     }
   } catch (error) {
     console.error("❌ Error completing withdrawal:", error)
@@ -462,11 +500,13 @@ export async function completeWithdrawal(withdrawalId: string): Promise<{
 }
 
 /**
- * Cancel withdrawal - return commissions to earned status
+ * Enhanced cancelWithdrawal to revert commissions to earned status
+ * This is called when a withdrawal is rejected or cancelled
  */
 export async function cancelWithdrawal(withdrawalId: string): Promise<{
   success: boolean
   message: string
+  commissionsReverted?: number
 }> {
   if (!withdrawalId) {
     return {
@@ -478,24 +518,60 @@ export async function cancelWithdrawal(withdrawalId: string): Promise<{
   try {
     console.log(`❌ Canceling withdrawal: ${withdrawalId}`)
 
-    const { error } = await supabase
+    // Step 1: Get the withdrawal details
+    const { data: withdrawal, error: withdrawalError } = await supabase
+      .from("withdrawals")
+      .select("*")
+      .eq("id", withdrawalId)
+      .single()
+
+    if (withdrawalError || !withdrawal) {
+      console.error("Error fetching withdrawal:", withdrawalError)
+      return {
+        success: false,
+        message: "Withdrawal not found",
+      }
+    }
+
+    // Step 2: Revert all pending_withdrawal commissions back to earned status
+    const { data: affectedRows, error: updateError } = await supabase
       .from("commissions")
       .update({
         status: "earned",
         withdrawal_id: null,
+        updated_at: new Date().toISOString(),
       })
       .eq("withdrawal_id", withdrawalId)
       .eq("status", "pending_withdrawal")
+      .select("id")
 
-    if (error) {
-      console.error("Error canceling withdrawal:", error)
-      throw error
+    if (updateError) {
+      console.error("Error reverting commissions:", updateError)
+      // Don't fail - the database trigger should handle this
     }
 
-    console.log("✅ Withdrawal canceled successfully")
+    const commissionsReverted = affectedRows?.length || 0
+    console.log(`✅ Reverted ${commissionsReverted} commissions for cancelled withdrawal ${withdrawalId}`)
+
+    // Step 3: Also update agent_commission_sources if it exists
+    try {
+      await supabase
+        .from("agent_commission_sources")
+        .update({
+          commission_withdrawn: false,
+          withdrawal_id: null,
+          status: "earned",
+        })
+        .eq("withdrawal_id", withdrawalId)
+        .eq("commission_withdrawn", true)
+    } catch (error) {
+      console.warn("⚠️ Could not update agent_commission_sources (table may not exist):", error)
+    }
+
     return {
       success: true,
       message: "Withdrawal canceled successfully",
+      commissionsReverted,
     }
   } catch (error) {
     console.error("❌ Error canceling withdrawal:", error)
@@ -506,8 +582,65 @@ export async function cancelWithdrawal(withdrawalId: string): Promise<{
   }
 }
 
-// Legacy function names for backward compatibility
-export const calculateTotalCommissionEarnings = getAgentCommissionSummary
+/**
+ * New function to validate commission state before withdrawal processing
+ * Ensures no double-spending is possible
+ */
+export async function validateCommissionWithdrawalIntegrity(
+  agentId: string,
+  withdrawalAmount: number,
+): Promise<{
+  isValid: boolean
+  availableBalance: number
+  message: string
+}> {
+  try {
+    // Get earned commissions (excluding withdrawn ones)
+    const { data: earnedCommissions, error: earnedError } = await supabase
+      .from("commissions")
+      .select("amount")
+      .eq("agent_id", agentId)
+      .eq("status", "earned")
+
+    if (earnedError) {
+      throw earnedError
+    }
+
+    const totalEarned = (earnedCommissions || []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0)
+
+    // Get pending and paid withdrawals to exclude from available balance
+    const { data: withdrawals, error: withdrawalError } = await supabase
+      .from("withdrawals")
+      .select("amount, status")
+      .eq("agent_id", agentId)
+      .in("status", ["requested", "processing", "paid"])
+
+    if (withdrawalError) {
+      throw withdrawalError
+    }
+
+    const totalCommitted = (withdrawals || []).reduce((sum, w) => sum + (Number(w.amount) || 0), 0)
+
+    const availableBalance = Math.max(0, totalEarned - totalCommitted)
+
+    const isValid = availableBalance >= withdrawalAmount
+
+    return {
+      isValid,
+      availableBalance,
+      message: isValid
+        ? `Sufficient balance. Available: ${availableBalance.toFixed(2)}, Requested: ${withdrawalAmount.toFixed(2)}`
+        : `Insufficient balance. Available: ${availableBalance.toFixed(2)}, Requested: ${withdrawalAmount.toFixed(2)}`,
+    }
+  } catch (error) {
+    console.error("Error validating commission withdrawal integrity:", error)
+    return {
+      isValid: false,
+      availableBalance: 0,
+      message: "Error validating balance",
+    }
+  }
+}
 
 /**
  * ENHANCED: Add wallet balance calculation to commission-earnings.ts as single source

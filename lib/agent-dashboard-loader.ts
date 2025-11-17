@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase"
+import { supabaseJobs } from "@/lib/supabase-client-jobs"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
 
 export interface AgentDashboardData {
@@ -115,11 +116,16 @@ export async function loadTabData(tabName: string, agentId: string): Promise<any
         return withdrawalsData || []
 
       case "jobs":
-        const { data: jobsData } = await supabase
+        const { data: jobsData, error: jobsError } = await supabaseJobs
           .from("jobs")
           .select("*")
           .eq("is_active", true)
           .order("created_at", { ascending: false })
+        
+        if (jobsError) {
+          console.error("Error loading jobs:", jobsError)
+          return []
+        }
         return jobsData || []
 
       case "paid-commissions":

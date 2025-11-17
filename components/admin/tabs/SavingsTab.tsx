@@ -20,19 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  PiggyBank,
-  TrendingUp,
-  Users,
-  Plus,
-  Edit,
-  Download,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Search,
-  Settings,
-} from "lucide-react"
+import { PiggyBank, TrendingUp, Users, Plus, Edit, Download, CheckCircle, XCircle, Clock, Search, Settings } from 'lucide-react'
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 
@@ -71,6 +59,25 @@ interface WithdrawalRequest {
   }
 }
 
+// New interface for savings accounts
+interface SavingsAccount {
+  id: string
+  agent_id: string
+  savings_plan_id: string
+  current_balance: number
+  interest_earned: number
+  status: "active" | "paused" | "stopped" | "completed"
+  created_at: string
+  agents: {
+    full_name: string
+    phone_number: string
+  }
+  savings_plans: {
+    name: string
+    duration_months: number
+  }
+}
+
 interface SavingsStats {
   totalSavings: number
   totalInterest: number
@@ -83,6 +90,8 @@ export default function SavingsTab() {
   const [activeTab, setActiveTab] = useState("overview")
   const [savingsPlans, setSavingsPlans] = useState<SavingsPlan[]>([])
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([])
+  // State for savings accounts
+  const [savingsAccounts, setSavingsAccounts] = useState<SavingsAccount[]>([])
   const [stats, setStats] = useState<SavingsStats>({
     totalSavings: 0,
     totalInterest: 0,
@@ -95,6 +104,11 @@ export default function SavingsTab() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [showPlanDialog, setShowPlanDialog] = useState(false)
   const [editingPlan, setEditingPlan] = useState<SavingsPlan | null>(null)
+  // State for account action dialog
+  const [showAccountActionDialog, setShowAccountActionDialog] = useState(false)
+  const [selectedAccount, setSelectedAccount] = useState<SavingsAccount | null>(null)
+  const [accountAction, setAccountAction] = useState<"pause" | "resume" | "stop" | "delete" | null>(null)
+  const [actionReason, setActionReason] = useState("")
   const [planForm, setPlanForm] = useState({
     name: "",
     description: "",
@@ -112,7 +126,8 @@ export default function SavingsTab() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      await Promise.all([fetchSavingsPlans(), fetchWithdrawalRequests(), fetchStats()])
+      // Fetch savings accounts
+      await Promise.all([fetchSavingsPlans(), fetchWithdrawalRequests(), fetchSavingsAccounts(), fetchStats()])
     } catch (error) {
       // Fix: Properly serialize error messages instead of showing '[object Object]'
       let errorMessage = "Unknown error occurred"
@@ -167,6 +182,25 @@ export default function SavingsTab() {
       setWithdrawalRequests(data || [])
     } catch (error) {
       console.error("Error in fetchWithdrawalRequests:", error)
+      throw error
+    }
+  }
+
+  const fetchSavingsAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("agent_savings")
+        .select(`
+          *,
+          agents (full_name, phone_number),
+          savings_plans (name, duration_months)
+        `)
+        .order("created_at", { ascending: false })
+
+      if (error) throw error
+      setSavingsAccounts(data || [])
+    } catch (error) {
+      console.error("Error fetching savings accounts:", error)
       throw error
     }
   }
@@ -327,6 +361,54 @@ export default function SavingsTab() {
     }
   }
 
+  // Handler for savings account actions
+  const handleSavingsAccountAction = async () => {
+    if (!selectedAccount || !accountAction) return
+
+    try {
+      let updateData: any = {
+        status: accountAction === "resume" ? "active" : accountAction === "pause" ? "paused" : "stopped",
+        admin_notes: actionReason || `Account ${accountAction}d by admin`,
+      }
+
+      if (accountAction === "delete") {
+        // For delete, set status to stopped and mark as deleted
+        updateData.status = "stopped"
+        updateData.admin_notes = `Account deleted: ${actionReason || "Deleted by admin"}`
+        updateData.deleted_at = new Date().toISOString()
+      }
+
+      const { error } = await supabase
+        .from("agent_savings")
+        .update(updateData)
+        .eq("id", selectedAccount.id)
+
+      if (error) throw error
+
+      await supabase.from("admin_logs").insert([
+        {
+          action: `savings_account_${accountAction}`,
+          details: {
+            account_id: selectedAccount.id,
+            agent_id: selectedAccount.agent_id,
+            reason: actionReason,
+            timestamp: new Date().toISOString(),
+          },
+        },
+      ])
+
+      toast.success(`Savings account ${accountAction}d successfully`)
+      setShowAccountActionDialog(false)
+      setSelectedAccount(null)
+      setAccountAction(null)
+      setActionReason("")
+      fetchSavingsAccounts()
+    } catch (error) {
+      console.error("Error updating savings account:", error)
+      toast.error("Failed to update savings account")
+    }
+  }
+
   const exportData = async (type: "plans" | "withdrawals" | "reports") => {
     try {
       const response = await fetch(`/api/admin/savings/export?type=${type}`)
@@ -441,12 +523,16 @@ export default function SavingsTab() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 text-xs sm:text-sm">
+        {/* Added 'Accounts' tab */}
+        <TabsList className="grid w-full grid-cols-5 text-xs sm:text-sm">
           <TabsTrigger value="overview" className="px-2 sm:px-4">
             Overview
           </TabsTrigger>
           <TabsTrigger value="plans" className="px-2 sm:px-4">
             Plans
+          </TabsTrigger>
+          <TabsTrigger value="accounts" className="px-2 sm:px-4">
+            Accounts
           </TabsTrigger>
           <TabsTrigger value="withdrawals" className="px-2 sm:px-4">
             Withdrawals
@@ -622,6 +708,169 @@ export default function SavingsTab() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="accounts" className="space-y-6">
+          <div className="flex flex-col space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold">Savings Accounts</h3>
+              <p className="text-sm text-gray-600">Manage agent savings accounts and their status</p>
+            </div>
+            <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+              <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search accounts..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-full sm:w-64"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
+                    <SelectItem value="stopped">Stopped</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button variant="outline" onClick={() => exportData("reports")} className="w-full sm:w-auto">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </div>
+          </div>
+
+          <Card>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[120px]">Agent</TableHead>
+                    <TableHead className="min-w-[100px]">Plan</TableHead>
+                    <TableHead className="min-w-[80px]">Balance</TableHead>
+                    <TableHead className="min-w-[80px]">Interest</TableHead>
+                    <TableHead className="min-w-[80px]">Status</TableHead>
+                    <TableHead className="min-w-[100px]">Started</TableHead>
+                    <TableHead className="min-w-[120px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {savingsAccounts
+                    .filter(
+                      (account) =>
+                        (searchTerm === "" ||
+                          account.agents.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          account.agents.phone_number.includes(searchTerm)) &&
+                        (statusFilter === "all" || account.status === statusFilter),
+                    )
+                    .map((account) => (
+                      <TableRow key={account.id}>
+                        <TableCell className="min-w-[120px]">
+                          <div>
+                            <p className="font-medium text-sm">{account.agents.full_name}</p>
+                            <p className="text-xs text-gray-600">{account.agents.phone_number}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="min-w-[100px] text-sm">{account.savings_plans.name}</TableCell>
+                        <TableCell className="font-semibold text-sm min-w-[80px]">
+                          {formatCurrency(account.current_balance)}
+                        </TableCell>
+                        <TableCell className="text-sm min-w-[80px] text-green-600">
+                          {formatCurrency(account.interest_earned)}
+                        </TableCell>
+                        <TableCell className="min-w-[80px]">
+                          <Badge
+                            variant={
+                              account.status === "active"
+                                ? "default"
+                                : account.status === "paused"
+                                  ? "secondary"
+                                  : "destructive"
+                            }
+                            className="text-xs"
+                          >
+                            {account.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs min-w-[100px]">
+                          {new Date(account.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="min-w-[120px]">
+                          <div className="flex gap-1">
+                            {account.status === "active" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-xs"
+                                  onClick={() => {
+                                    setSelectedAccount(account)
+                                    setAccountAction("pause")
+                                    setShowAccountActionDialog(true)
+                                  }}
+                                >
+                                  Pause
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-8 text-xs"
+                                  onClick={() => {
+                                    setSelectedAccount(account)
+                                    setAccountAction("stop")
+                                    setShowAccountActionDialog(true)
+                                  }}
+                                >
+                                  Stop
+                                </Button>
+                              </>
+                            )}
+                            {account.status === "paused" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="h-8 text-xs"
+                                  onClick={() => {
+                                    setSelectedAccount(account)
+                                    setAccountAction("resume")
+                                    setShowAccountActionDialog(true)
+                                  }}
+                                >
+                                  Resume
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-8 text-xs"
+                                  onClick={() => {
+                                    setSelectedAccount(account)
+                                    setAccountAction("delete")
+                                    setShowAccountActionDialog(true)
+                                  }}
+                                >
+                                  Delete
+                                </Button>
+                              </>
+                            )}
+                            {account.status !== "active" && account.status !== "paused" && (
+                              <span className="text-xs text-gray-500">No actions</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
         </TabsContent>
 
         <TabsContent value="withdrawals" className="space-y-6">
@@ -896,6 +1145,81 @@ export default function SavingsTab() {
               <Button type="submit">{editingPlan ? "Update Plan" : "Create Plan"}</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAccountActionDialog} onOpenChange={setShowAccountActionDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {accountAction === "pause"
+                ? "Pause Savings Account"
+                : accountAction === "resume"
+                  ? "Resume Savings Account"
+                  : accountAction === "stop"
+                    ? "Stop Savings Account"
+                    : "Delete Savings Account"}
+            </DialogTitle>
+            <DialogDescription>
+              {accountAction === "pause"
+                ? "The account will be paused and no further interest will accrue."
+                : accountAction === "resume"
+                  ? "The account will be resumed and interest accrual will continue."
+                  : accountAction === "stop"
+                    ? "The account will be stopped. The agent can still withdraw their balance."
+                    : "The account and all associated data will be permanently deleted."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {selectedAccount && (
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                <p>
+                  <span className="text-gray-600">Agent:</span> <span className="font-medium">{selectedAccount.agents.full_name}</span>
+                </p>
+                <p>
+                  <span className="text-gray-600">Balance:</span> <span className="font-medium">{formatCurrency(selectedAccount.current_balance)}</span>
+                </p>
+                <p>
+                  <span className="text-gray-600">Current Status:</span> <span className="font-medium capitalize">{selectedAccount.status}</span>
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="reason">Reason for this action</Label>
+              <Textarea
+                id="reason"
+                placeholder="Enter reason for pausing, stopping, or deleting this account..."
+                value={actionReason}
+                onChange={(e) => setActionReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowAccountActionDialog(false)
+                setSelectedAccount(null)
+                setActionReason("")
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSavingsAccountAction}
+              variant={accountAction === "delete" ? "destructive" : "default"}
+            >
+              {accountAction === "pause" && "Pause Account"}
+              {accountAction === "resume" && "Resume Account"}
+              {accountAction === "stop" && "Stop Account"}
+              {accountAction === "delete" && "Delete Account"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

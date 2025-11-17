@@ -127,12 +127,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     if (status === "paid") {
       console.log("[v0] Calling completeWithdrawal...")
-      // Mark commissions as withdrawn
+      // This ensures the same commission cannot be withdrawn again
       commissionResult = await completeWithdrawal(withdrawalId)
       console.log("[v0] completeWithdrawal result:", commissionResult)
     } else if (status === "rejected") {
       console.log("[v0] Calling cancelWithdrawal...")
-      // Return commissions to earned status
+      // This ensures rejected withdrawals don't lose the commission
       commissionResult = await cancelWithdrawal(withdrawalId)
       console.log("[v0] cancelWithdrawal result:", commissionResult)
     }

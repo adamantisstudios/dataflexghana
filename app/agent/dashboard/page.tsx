@@ -17,7 +17,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { LogOut, Plus, MessageCircle, Banknote, ExternalLink, Smartphone, Settings, Search, TrendingUp, Package, Filter, Briefcase, MapPin, DollarSign, Building2, Mail, Wallet, X, ShoppingBag, PiggyBank, Shield, ArrowRight, Users, CreditCard, AlertTriangle, Lightbulb, Check } from 'lucide-react'
+import { LogOut, Plus, MessageCircle, Banknote, ExternalLink, Smartphone, Settings, Search, TrendingUp, Package, Filter, Briefcase, MapPin, DollarSign, Building2, Mail, Wallet, X, ShoppingBag, PiggyBank, Shield, ArrowRight, Users, CreditCard, AlertTriangle, Lightbulb, Check, Activity, Phone, AlertCircle } from 'lucide-react'
 import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -46,6 +46,7 @@ import { useAgentDashboardCache } from "@/hooks/use-agent-dashboard-cache"
 import { loadAgentDashboardData, loadTabData } from "@/lib/agent-dashboard-loader"
 import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
 import ReferralDashboard from "@/components/agent/referral-program/ReferralDashboard"
+import Image from "next/image"
 
 const safeCommissionDisplay = (value: number | null | undefined): number => {
   if (value === null || value === undefined || isNaN(value)) {
@@ -53,6 +54,40 @@ const safeCommissionDisplay = (value: number | null | undefined): number => {
   }
   return Number(value)
 }
+
+const formatDateAgo = (dateString: string) => {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  let interval = seconds / 31536000; // years
+  if (interval >= 1) return Math.floor(interval) + " years ago";
+
+  interval = seconds / 2592000; // months
+  if (interval >= 1) return Math.floor(interval) + " months ago";
+
+  interval = seconds / 86400; // days
+  if (interval >= 1) return Math.floor(interval) + " days ago";
+
+  interval = seconds / 3600; // hours
+  if (interval >= 1) return Math.floor(interval) + " hours ago";
+
+  interval = seconds / 60; // minutes
+  if (interval >= 1) return Math.floor(interval) + " minutes ago";
+
+  return Math.floor(seconds) + " seconds ago";
+};
+
+const generateSlug = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, '-') // Replace spaces with -
+    .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+    .replace(/\-\-+/g, '-') // Replace multiple - with single -
+    .replace(/^-+/, '') // Trim - from start of text
+    .replace(/-+$/, ''); // Trim - from end of text
+};
 
 export default function AgentDashboard() {
   // State Management
@@ -116,7 +151,12 @@ export default function AgentDashboard() {
   const [referralsFilter, setReferralsFilter] = useState("All Referrals")
   const [dataBundlesFilter, setDataBundlesFilter] = useState("All Networks")
   const [jobSearchTerm, setJobSearchTerm] = useState("")
-  const [jobsFilterAgent, setJobsFilterAgent] = useState("All Jobs")
+  const [jobsFilterAgent, setJobsFilterAgent] = useState("All Jobs") // State for filtering jobs
+
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false)
+  const [daysInactive, setDaysInactive] = useState(0)
+  // Added state for deactivation alert
+  const [showAgentDeactivationAlert, setShowAgentDeactivationAlert] = useState(false)
 
   // Refs
   const menuSectionRef = useRef<HTMLDivElement>(null)
@@ -177,19 +217,28 @@ export default function AgentDashboard() {
 
   const filteredJobs = useMemo(() => {
     if (!loadedTabs.jobs) return []
-    let filtered = tabData.jobs.filter(
+    // Ensure job titles are present, falling back to industry if needed
+    const processedJobs = tabData.jobs.map(job => {
+      if (!job.job_title && job.industry) {
+        return { ...job, job_title: job.industry };
+      }
+      return job;
+    });
+
+    let filtered = processedJobs.filter(
       (job) =>
         job.is_active &&
-        (job.title?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
-          job.company?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
+        (job.job_title?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
+          job.employer_name?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
           job.location?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
           job.industry?.toLowerCase().includes(jobSearchTerm.toLowerCase())),
-    )
+    );
+
     if (jobsFilterAgent !== "All Jobs") {
       filtered = filtered.filter((job) => {
         switch (jobsFilterAgent) {
           case "Featured":
-            return job.is_featured === true
+            return job.is_featured === true;
           case "Technology":
           case "Finance":
           case "Healthcare":
@@ -197,33 +246,57 @@ export default function AgentDashboard() {
           case "Marketing":
           case "Sales":
           case "Customer Service":
-            return job.industry === jobsFilterAgent
+            return job.industry === jobsFilterAgent;
           default:
-            return true
+            return true;
         }
-      })
+      });
     }
-    return filtered
-  }, [jobSearchTerm, tabData.jobs, jobsFilterAgent, loadedTabs.jobs])
+    return filtered;
+  }, [jobSearchTerm, tabData.jobs, jobsFilterAgent, loadedTabs.jobs]);
 
-  // Effects
-  useEffect(() => {
-    const wasClosed = localStorage.getItem("dashboardAudioPlayerClosed")
-    if (!wasClosed) {
-      setShowDashboardAudioPlayer(true)
-    }
-    checkWalletStrategyDisplay()
-    const notificationTimer = setTimeout(() => {
-      setNotificationVisible(true)
-    }, 7000)
-    const hideTimer = setTimeout(() => {
-      setNotificationVisible(false)
-    }, 14000)
-    return () => {
-      clearTimeout(notificationTimer)
-      clearTimeout(hideTimer)
-    }
-  }, [])
+
+    useEffect(() => {
+      let timer: NodeJS.Timeout | null = null;
+
+      const checkDeactivationStatus = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user) return;
+
+          const { data: agent } = await supabase
+            .from("agents")
+            .select("auto_deactivated_at")
+            .eq("user_id", session.user.id)
+            .single();
+
+          if (agent?.auto_deactivated_at) {
+            const lastShownKey = `deactivation_alert_shown_${session.user.id}`;
+            const lastShownDate = localStorage.getItem(lastShownKey);
+            const today = new Date().toDateString();
+
+            if (lastShownDate !== today) {
+              setShowAgentDeactivationAlert(true);
+              localStorage.setItem(lastShownKey, today);
+
+              // Auto-hide after 8 seconds
+              timer = setTimeout(() => {
+                setShowAgentDeactivationAlert(false);
+              }, 8000);
+            }
+          }
+        } catch (error) {
+          console.error("Error checking agent status:", error);
+        }
+      };
+
+      checkDeactivationStatus();
+
+      return () => {
+        if (timer) clearTimeout(timer);
+      };
+    }, []);
+
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -302,6 +375,38 @@ export default function AgentDashboard() {
     loadInitialData()
   }, [])
 
+  useEffect(() => {
+    if (agent?.last_activity_at) {
+      const lastActivityDate = new Date(agent.last_activity_at)
+      const today = new Date()
+      const daysDiff = Math.floor((today.getTime() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24))
+      setDaysInactive(daysDiff)
+
+      if (daysDiff >= 20) {
+        setShowInactivityWarning(true)
+      }
+    }
+    // Agent deactivation alert logic - check status after loading agent data
+    const checkDeactivationStatus = () => {
+      const agentData = localStorage.getItem("agent");
+      if (!agentData) return;
+      const agent = JSON.parse(agentData);
+      const lastActivityDate = new Date(agent.last_activity_at);
+      const today = new Date();
+      const daysDiff = Math.floor((today.getTime() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      const lastShown = localStorage.getItem('deactivationAlertLastShown');
+      if (daysDiff >= 30 && lastShown !== new Date().toDateString()) {
+        setShowAgentDeactivationAlert(true);
+        localStorage.setItem('deactivationAlertLastShown', new Date().toDateString());
+      } else {
+        setShowAgentDeactivationAlert(false);
+      }
+    };
+    checkDeactivationStatus();
+    // </CHANGE>
+  }, [agent?.last_activity_at])
+
   // Handlers
   const handleTabChange = useCallback(
     async (tab: string) => {
@@ -320,7 +425,25 @@ export default function AgentDashboard() {
               dataOrders: data.dataOrders,
             }))
           } else if (tab === "jobs") {
-            setTabData((prev) => ({ ...prev, jobs: data }))
+            const { supabaseJobs } = await import("@/lib/supabase-client-jobs")
+            const { data: fetchedJobs, error } = await supabaseJobs
+              .from("jobs")
+              .select("*")
+              .eq("is_active", true)
+              .order("created_at", { ascending: false });
+
+            if (error) {
+              console.error("Error fetching jobs:", error);
+              setTabData((prev) => ({ ...prev, jobs: [] })); // Clear jobs on error
+            } else {
+              const jobsWithTitles = fetchedJobs.map((job: any) => {
+                if (!job.job_title && job.industry) {
+                  return { ...job, job_title: job.industry };
+                }
+                return job;
+              });
+              setTabData((prev) => ({ ...prev, jobs: jobsWithTitles }));
+            }
           }
           if (tab === "referrals") setTabData((prev) => ({ ...prev, referrals: data }))
           if (tab === "withdrawals") setTabData((prev) => ({ ...prev, withdrawals: data }))
@@ -725,8 +848,8 @@ DataFlex Ghana Agent 🇬🇭`
   }
 
   const ensureJobTitle = (job: Job): Job => {
-    if (!job.title && job.industry) {
-      return { ...job, title: job.industry }
+    if (!job.job_title && job.industry) {
+      return { ...job, job_title: job.industry }
     }
     return job
   }
@@ -752,6 +875,29 @@ DataFlex Ghana Agent 🇬🇭`
           onClose={handleCloseAudioPlayer}
         />
       )}
+      {/* Agent deactivation notification */}
+      {showAgentDeactivationAlert && (
+        <div className="fixed bottom-6 right-6 max-w-md z-50 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-amber-50 border-2 border-amber-200 rounded-lg shadow-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-900">Account Status Update</h3>
+                <p className="text-sm text-amber-800 mt-1">
+                  Your account has been deactivated due to inactivity. Place an order or buy a data bundle to reactivate your account.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAgentDeactivationAlert(false)}
+                className="text-amber-600 hover:text-amber-800 flex-shrink-0"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* </CHANGE> */}
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 shadow-lg border-b-2 border-emerald-700">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -788,6 +934,51 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         </div>
       </div>
+
+      {showInactivityWarning && (
+      <div className="container mx-auto px-4 py-6">
+        <Card className="border-red-100 bg-gradient-to-br from-red-50 to-orange-50 shadow-md hover:shadow-lg transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-full bg-red-100 flex-shrink-0">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-red-800 text-xl mb-2">Account Inactivity Alert</h3>
+                <p className="text-red-700 mb-4 leading-relaxed">
+                  Your account has been inactive for{" "}
+                  <span className="font-semibold text-red-900">{daysInactive} days</span>.
+                  To avoid automatic deactivation after 30 days, please make a transaction or contact support.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    asChild
+                    className="bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                  >
+                    <Link href="/agent/data-order" className="flex items-center">
+                      <Activity className="h-4 w-4 mr-2" />
+                      Make a Transaction
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 transition-colors"
+                  >
+                    <a href="tel:0242799990" className="flex items-center">
+                      <Phone className="h-4 w-4 mr-2" />
+                      Contact Support
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )}
+
+
       <div className="container mx-auto px-4 py-8 space-y-8">
         {showNotification && (
           <div className="relative mb-6 p-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg shadow-lg border-l-4 border-l-emerald-700">
@@ -1455,7 +1646,7 @@ DataFlex Ghana Agent 🇬🇭`
                             <p className="text-emerald-600 text-sm">Upload multiple orders efficiently</p>
                             <Button
                               asChild
-                              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
+                              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-500"
                             >
                               <Link href="/agent/bulk-data-order">
                                 <Plus className="h-4 w-4 mr-2" />
@@ -1752,7 +1943,7 @@ DataFlex Ghana Agent 🇬🇭`
               ) : (
                 <>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h2 className="text-2xl font-bold text-emerald-800">Job Board</h2>
+                    <h2 className="text-2xl font-bold text-emerald-800">Job Opportunities</h2>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                       <Select value={jobsFilterAgent} onValueChange={setJobsFilterAgent}>
                         <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
@@ -1784,138 +1975,87 @@ DataFlex Ghana Agent 🇬🇭`
                       </Badge>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    {getPaginatedData(filteredJobs, currentJobsPage).map((job) => {
-                      const jobWithTitle = ensureJobTitle(job)
-                      return (
-                        <Card
-                          key={job.id}
-                          className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
-                        >
-                          <CardContent className="pt-6">
-                            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                              <div className="flex-1 space-y-3">
-                                <h3 className="font-semibold text-emerald-800 text-lg">{jobWithTitle.title}</h3>
-                                <div className="flex flex-wrap items-center gap-4 text-sm text-emerald-600">
-                                  <div className="flex items-center gap-1">
-                                    <Building2 className="h-4 w-4" />
-                                    <span>{job.company}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <MapPin className="h-4 w-4" />
-                                    <span>{job.location}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Briefcase className="h-4 w-4" />
-                                    <span>{job.industry}</span>
-                                  </div>
+                  <div className="space-y-3 md:space-y-4">
+                    {filteredJobs.slice(0, 5).map((job) => (
+                      <div
+                        key={job.id}
+                        className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center justify-between">
+                          <div className="flex gap-3 md:gap-4 flex-1 min-w-0">
+                            <div className="flex-shrink-0">
+                              <Image
+                                src={job.employer_logo_url || "/placeholder.svg"}
+                                alt={job.employer_name}
+                                width={64}
+                                height={64}
+                                className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover bg-gray-100"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              {job.is_featured && (
+                                <div className="mb-2">
+                                  <Badge className="bg-amber-100 text-amber-800 text-xs">⭐ Featured</Badge>
                                 </div>
-                                <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                                  <div
-                                    className="text-sm text-emerald-700 prose prose-sm max-w-none"
-                                    dangerouslySetInnerHTML={{
-                                      __html: job.description
-                                        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                                        .replace(/• (.*?)(?=\n|$)/g, "<li>$1</li>")
-                                        .replace(
-                                          /(<li>.*<\/li>)/gs,
-                                          '<ul class="list-disc list-inside space-y-1">$1</ul>',
-                                        )
-                                        .replace(/\n/g, "<br>"),
-                                    }}
-                                  />
+                              )}
+                              <h3 className="font-bold text-base md:text-lg text-gray-900 line-clamp-1">
+                                {job.job_title}
+                              </h3>
+                              <p className="text-sm text-gray-600 mb-2">{job.employer_name}</p>
+                              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm">
+                                <div className="flex items-center gap-2 text-gray-700">
+                                  <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                  <span className="line-clamp-1">{job.location}</span>
                                 </div>
-                                <p className="text-emerald-500 text-xs">
-                                  <span className="font-medium">Posted:</span> {formatTimestamp(job.created_at)}
-                                </p>
-                              </div>
-                              <div className="flex flex-wrap gap-2 pt-3 border-t border-emerald-100">
-                                {jobWithTitle.contact_email && (
-                                  <Button
-                                    asChild
-                                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-                                  >
-                                    <a
-                                      href={`mailto:${jobWithTitle.contact_email}?subject=Application for ${jobWithTitle.title}`}
-                                    >
-                                      <Mail className="h-4 w-4 mr-2" />
-                                      Apply via Email
-                                    </a>
-                                  </Button>
-                                )}
-                                {jobWithTitle.contact_phone && (
-                                  <Button
-                                    asChild
-                                    variant="outline"
-                                    className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
-                                  >
-                                    <a href={`tel:${jobWithTitle.contact_phone}`}>
-                                      <Smartphone className="h-4 w-4 mr-2" />
-                                      Call Now
-                                    </a>
-                                  </Button>
-                                )}
-                                {jobWithTitle.application_url && (
-                                  <Button
-                                    asChild
-                                    className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-500"
-                                  >
-                                    <a href={jobWithTitle.application_url} target="_blank" rel="noopener noreferrer">
-                                      <ExternalLink className="h-4 w-4 mr-2" />
-                                      Apply Online
-                                    </a>
-                                  </Button>
-                                )}
-                                {!job.contact_email &&
-                                  !job.contact_phone &&
-                                  !job.application_url &&
-                                  job.application_contact && (
-                                    <Button
-                                      asChild
-                                      className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-                                    >
-                                      {job.application_method === "email" ? (
-                                        <a
-                                          href={`mailto:${job.application_contact}?subject=Application for ${job.title}`}
-                                        >
-                                          <Mail className="h-4 w-4 mr-2" />
-                                          Apply via Email
-                                        </a>
-                                      ) : (
-                                        <a href={job.application_contact} target="_blank" rel="noopener noreferrer">
-                                          <ExternalLink className="h-4 w-4 mr-2" />
-                                          Apply Online
-                                        </a>
-                                      )}
-                                    </Button>
+                                <div className="flex items-center gap-1 font-semibold text-green-700">
+                                  <span className="text-xs text-gray-500">Salary:</span>
+                                  {job.salary_type === "negotiable" ? (
+                                    <span>Negotiable</span>
+                                  ) : job.salary_type === "fixed_range" ? (
+                                    <span>
+                                      {job.salary_min} - {job.salary_max}
+                                    </span>
+                                  ) : job.salary_type === "exact_amount" ? (
+                                    <span>{job.salary_exact}</span>
+                                  ) : job.salary_custom ? (
+                                    <span>{job.salary_custom}</span>
+                                  ) : (
+                                    <span>
+                                      {job.salary_min} - {job.salary_max}
+                                    </span>
                                   )}
+                                </div>
+                                <div className="text-xs text-gray-500">{formatDateAgo(job.created_at)}</div>
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    })}
-                    {getPaginatedData(filteredJobs, currentJobsPage).length === 0 && (
-                      <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                        <CardContent className="text-center py-8">
-                          <div className="text-gray-500 mb-4">
-                            <Briefcase className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                            <p>
-                              {jobsFilterAgent === "All Jobs"
-                                ? "No jobs available at the moment."
-                                : `No ${jobsFilterAgent.toLowerCase()} jobs found.`}
-                            </p>
-                            <p className="text-sm">Check back later for new opportunities!</p>
                           </div>
-                        </CardContent>
-                      </Card>
-                    )}
+
+                          <div className="w-full md:w-auto flex-shrink-0">
+                            <Link href={`/job-details/${generateSlug(job.job_title)}`} className="block w-full md:w-auto">
+                              <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap">
+                                View Details
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <PaginationControls
-                    currentPage={currentJobsPage}
-                    totalPages={getTotalPages(filteredJobs.length)}
-                    onPageChange={(page) => handlePageChange(page, setCurrentJobsPage)}
-                  />
+                  {filteredJobs.length === 0 && (
+                    <div className="text-center py-8">
+                      <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-600">No jobs found matching your search</p>
+                    </div>
+                  )}
+                  <div className="text-center pt-4">
+                    <Link href="/jobboard">
+                      <Button variant="outline" className="bg-transparent border-blue-300 text-blue-600 hover:bg-blue-50">
+                        View All Jobs ({filteredJobs.length})
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
                 </>
               )}
             </TabsContent>
@@ -1935,7 +2075,7 @@ DataFlex Ghana Agent 🇬🇭`
                   <Button
                     asChild
                     variant="outline"
-                    className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
+                    className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
                   >
                     <Link href="/agent/savings/commit">
                       <Plus className="h-4 w-4 mr-2" />
@@ -2450,7 +2590,7 @@ DataFlex Ghana Agent 🇬🇭`
                   We don't just sell data. We help you <strong>build a real business</strong>—one that pays you what you
                   deserve.
                 </p>
-                <p className="text-gray-700 leading-relaxed text-base">
+                <p className="text-gray-700 leading-relaxed text-base font-medium">
                   With DataFlex Ghana, you can earn <strong>GH₵50 to GH₵1,000+ per transaction</strong>. No more stress.
                   No more small change. Just real income.
                 </p>

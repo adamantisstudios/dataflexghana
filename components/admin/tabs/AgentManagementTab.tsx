@@ -85,42 +85,35 @@ export default function AgentManagementTab() {
       setSearchInitiated(false)
       return
     }
-
     try {
       setLoading(true)
       setSearchInitiated(true)
       console.log("🔍 Searching for agents with query:", searchQuery)
-
       let searchResults, searchError
-
       try {
         const result = await supabase
           .from("agents")
           .select(`
-    id,
-    full_name,
-    phone_number,
-    wallet_balance,
-    status,
-    created_at,
-    last_login,
-    isapproved,
-    region,
-    last_activity_at
-  `)
+            id,
+            full_name,
+            phone_number,
+            wallet_balance,
+            status,
+            created_at,
+            last_login,
+            isapproved,
+            region,
+            last_activity_at
+          `)
           .or(`full_name.ilike.%${searchQuery}%,phone_number.ilike.%${searchQuery}%`)
           .order("created_at", { ascending: false })
           .limit(50)
-
-        // if query looks like a UUID, add a direct match
         if (!result.error && searchQuery.match(/^[0-9a-fA-F-]{36}$/)) {
           const byId = await supabase.from("agents").select("*").eq("id", searchQuery)
-
           if (!byId.error && byId.data.length > 0) {
             result.data = [...result.data, ...byId.data]
           }
         }
-
         searchResults = result.data
         searchError = result.error
       } catch (queryError) {
@@ -128,10 +121,8 @@ export default function AgentManagementTab() {
         searchError = queryError
         searchResults = null
       }
-
       if (searchError) {
         console.error("❌ Search query failed:", searchError?.message || searchError)
-
         try {
           console.log("🔄 Attempting fallback search...")
           const fallbackResult = await supabase
@@ -139,11 +130,9 @@ export default function AgentManagementTab() {
             .select("id, full_name, phone_number, created_at, wallet_balance, isapproved")
             .ilike("full_name", `%${searchQuery}%`)
             .limit(20)
-
           if (fallbackResult.error) {
             throw fallbackResult.error
           }
-
           console.log("✅ Fallback search successful")
           searchResults = fallbackResult.data
           searchError = null
@@ -153,9 +142,7 @@ export default function AgentManagementTab() {
           return
         }
       }
-
       console.log("✅ Search successful, found agents:", searchResults?.length || 0)
-
       const agentsWithStats = await Promise.all(
         (searchResults || []).map(async (agent) => {
           try {
@@ -163,45 +150,38 @@ export default function AgentManagementTab() {
             let totalReferrals = 0
             let commissionBalance = 0
             let liveWalletBalance = agent.wallet_balance || 0
-
             try {
               const ordersResult = await supabase
                 .from("data_orders")
                 .select("id", { count: "exact", head: true })
                 .eq("agent_id", agent.id)
                 .eq("status", "completed")
-
               totalOrders = ordersResult.count || 0
             } catch {
               console.warn("Could not fetch orders for agent:", agent.id)
             }
-
             try {
               const referralsResult = await supabase
                 .from("referrals")
                 .select("id", { count: "exact", head: true })
                 .eq("referrer_id", agent.id)
                 .eq("status", "completed")
-
               totalReferrals = referralsResult.count || 0
             } catch {
               console.warn("Could not fetch referrals for agent:", agent.id)
             }
-
             try {
               const commissionSummary = await getAgentCommissionSummary(agent.id)
               commissionBalance = commissionSummary.availableForWithdrawal || 0
             } catch (commissionError) {
               console.warn("Could not fetch commission balance for agent:", agent.id, commissionError)
             }
-
             try {
               liveWalletBalance = await calculateWalletBalance(agent.id)
               console.log(`✅ Admin Management: Live wallet balance for ${agent.full_name}: ${liveWalletBalance}`)
             } catch (walletError) {
               console.warn("Could not calculate live wallet balance for agent:", agent.id, walletError)
             }
-
             return {
               ...agent,
               wallet_balance: liveWalletBalance,
@@ -231,10 +211,7 @@ export default function AgentManagementTab() {
           }
         }),
       )
-
-      // 🔥 The log you wanted
       console.log("✅ Successfully processed", agentsWithStats.length, "agents")
-
       setAgents(agentsWithStats)
       setFilteredAgents(agentsWithStats)
     } catch (error) {
@@ -245,31 +222,25 @@ export default function AgentManagementTab() {
     }
   }, [])
 
-  // Debounced search effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       searchAgents(searchTerm)
-    }, 500) // 500ms debounce
-
+    }, 500)
     return () => clearTimeout(timeoutId)
   }, [searchTerm, searchAgents])
 
-  // Fetch agent transaction summary
   const fetchAgentSummary = async (agentId: string) => {
     try {
       setOperationLoading(true)
-
       const response = await fetch(`/api/admin/agents/${agentId}/summary`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       })
-
       if (!response.ok) {
         throw new Error("Failed to fetch agent summary")
       }
-
       const responseText = await response.text()
       try {
         const summary = JSON.parse(responseText)
@@ -287,24 +258,19 @@ export default function AgentManagementTab() {
     }
   }
 
-  // Download agent data with CSV export functionality
   const downloadAgentData = async (agent: Agent) => {
     try {
       setOperationLoading(true)
       toast.info("Preparing agent data for download...")
-
       const response = await fetch(`/api/admin/agents/${agent.id}/export-csv`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       })
-
       if (!response.ok) {
         throw new Error("Failed to export agent data")
       }
-
-      // Handle ZIP file download
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement("a")
@@ -314,7 +280,6 @@ export default function AgentManagementTab() {
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-
       toast.success("Agent data exported successfully!")
     } catch (error) {
       console.error("Error downloading agent data:", error?.message || error)
@@ -324,12 +289,10 @@ export default function AgentManagementTab() {
     }
   }
 
-  // Clear agent records with improved error handling
   const clearAgentRecords = async (agent: Agent) => {
     try {
       setOperationLoading(true)
-      toast.info("Clearing agent records... This may take a moment.")
-
+      toast.info("Clearing agent records...")
       const response = await fetch(`/api/admin/agents/${agent.id}/clear-records`, {
         method: "POST",
         headers: {
@@ -341,7 +304,6 @@ export default function AgentManagementTab() {
           agent_name: agent.full_name,
         }),
       })
-
       const responseText = await response.text()
       let result
       try {
@@ -351,19 +313,13 @@ export default function AgentManagementTab() {
         console.error("Response text:", responseText)
         throw new Error("Invalid JSON response from clear records endpoint")
       }
-
       if (!response.ok) {
         throw new Error(result.error || "Failed to clear agent records")
       }
-
       toast.success(`Successfully cleared all records for ${agent.full_name}`)
-
-      // Refresh search results
       if (searchTerm.trim()) {
         await searchAgents(searchTerm)
       }
-
-      // Close dialogs
       setShowClearDialog(false)
       setClearingAgent(null)
     } catch (error) {
@@ -374,14 +330,12 @@ export default function AgentManagementTab() {
     }
   }
 
-  // Handle agent details view
   const handleViewDetails = async (agent: Agent) => {
     setSelectedAgent(agent)
     setShowDetailsDialog(true)
     await fetchAgentSummary(agent.id)
   }
 
-  // Handle clear records confirmation
   const handleClearRecords = (agent: Agent) => {
     setClearingAgent(agent)
     setShowClearDialog(true)
@@ -417,7 +371,6 @@ export default function AgentManagementTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -427,8 +380,6 @@ export default function AgentManagementTab() {
           <p className="text-gray-600 mt-1">Search for specific agents to manage their records and data</p>
         </div>
       </div>
-
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         <Input
@@ -438,20 +389,15 @@ export default function AgentManagementTab() {
           className="pl-10 pr-4 py-2 w-full"
         />
       </div>
-
-      {/* Search Instructions */}
       {!searchInitiated && !searchTerm && (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Search for Agents</h3>
           <p className="text-gray-500 max-w-md mx-auto">
-            Enter an agent's name, phone number, or ID in the search box above to find and manage their records. This
-            prevents loading all agents at once for better performance.
+            Enter an agent's name, phone number, or ID in the search box above to find and manage their records.
           </p>
         </div>
       )}
-
-      {/* Results Summary */}
       {searchInitiated && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-600">
@@ -464,8 +410,6 @@ export default function AgentManagementTab() {
           )}
         </div>
       )}
-
-      {/* Agents Grid */}
       {searchInitiated && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAgents.map((agent) => (
@@ -490,7 +434,6 @@ export default function AgentManagementTab() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Agent Info */}
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-gray-400" />
@@ -501,8 +444,6 @@ export default function AgentManagementTab() {
                     <span>Joined {new Date(agent.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
-
-                {/* Stats - Using Ghana Cedi symbol only */}
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1">
@@ -527,8 +468,6 @@ export default function AgentManagementTab() {
                     <p className="text-xs text-gray-500">Referrals</p>
                   </div>
                 </div>
-
-                {/* Action Buttons */}
                 <div className="flex gap-2 pt-2">
                   <Button
                     variant="outline"
@@ -551,8 +490,6 @@ export default function AgentManagementTab() {
                     Clear Records
                   </Button>
                 </div>
-
-                {/* View Details Button */}
                 <Button variant="secondary" size="sm" onClick={() => handleViewDetails(agent)} className="w-full">
                   <FileText className="h-4 w-4 mr-2" />
                   View Details
@@ -562,8 +499,6 @@ export default function AgentManagementTab() {
           ))}
         </div>
       )}
-
-      {/* No Results */}
       {searchInitiated && filteredAgents.length === 0 && !loading && (
         <div className="text-center py-12">
           <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -573,8 +508,6 @@ export default function AgentManagementTab() {
           </p>
         </div>
       )}
-
-      {/* Agent Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -584,10 +517,8 @@ export default function AgentManagementTab() {
             </DialogTitle>
             <DialogDescription>Comprehensive overview of agent data and transaction history</DialogDescription>
           </DialogHeader>
-
           {selectedAgent && (
             <div className="space-y-6">
-              {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                   <CardHeader>
@@ -614,7 +545,6 @@ export default function AgentManagementTab() {
                     </div>
                   </CardContent>
                 </Card>
-
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm">Account Summary</CardTitle>
@@ -643,8 +573,6 @@ export default function AgentManagementTab() {
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Transaction Summary */}
               {operationLoading ? (
                 <Card>
                   <CardHeader>
@@ -710,71 +638,50 @@ export default function AgentManagementTab() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Clear Records Confirmation Dialog */}
       <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-orange-600">
-              <Database className="h-5 w-5" />
-              Clear Agent Data Records
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3 text-sm">
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                <p className="font-medium text-orange-800 mb-2">⚠️ Data Clearing Confirmation</p>
-                <p className="text-orange-700">
-                  This will <strong>clear all data records</strong> for agent:
-                </p>
-                <p className="font-semibold text-orange-900 mt-1">{clearingAgent?.full_name}</p>
-              </div>
-
-              <div className="space-y-2 text-gray-700">
-                <p className="font-medium">The following data will be cleared:</p>
-                <ul className="list-disc list-inside space-y-1 text-xs ml-2">
-                  <li>All transaction records (wallet, topups, commissions)</li>
-                  <li>All referral history and project chats</li>
-                  <li>All data order records</li>
-                  <li>All wholesale order records</li>
-                  <li>All withdrawal requests and history</li>
-                  <li>All commission records and deposits</li>
-                  <li>All pending transactions</li>
-                  <li>All activity logs and sessions</li>
-                  <li>
-                    <strong>All financial balances reset to zero</strong>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="font-bold text-red-800 text-center">🚨 THIS ACTION CANNOT BE UNDONE 🚨</p>
-                <p className="text-red-700 text-xs mt-1 text-center">Data clearing is permanent and irreversible</p>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel disabled={operationLoading} className="bg-gray-100 hover:bg-gray-200">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => clearingAgent && clearAgentRecords(clearingAgent)}
-              disabled={operationLoading}
-              className="bg-orange-600 hover:bg-orange-700 text-white"
-            >
-              {operationLoading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Clearing Data...
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4 mr-2" />
-                  Clear Data Records
-                </>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2 text-orange-600">
+            <Database className="h-5 w-5" />
+            Clear Agent Data Records
+          </AlertDialogTitle>
+        </AlertDialogHeader>
+        <div className="space-y-3 text-sm">
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <span className="font-medium text-orange-800 block mb-2">⚠️ Confirm Data Clearing</span>
+            <span className="text-orange-700 block">
+              You are about to clear all data records for: <strong>{clearingAgent?.full_name}</strong>
+            </span>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <span className="font-bold text-red-800 block text-center">🚨 THIS ACTION CANNOT BE UNDONE 🚨</span>
+          </div>
+        </div>
+        <AlertDialogFooter className="gap-2">
+          <AlertDialogCancel disabled={operationLoading} className="bg-gray-100 hover:bg-gray-200">
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => clearingAgent && clearAgentRecords(clearingAgent)}
+            disabled={operationLoading}
+            className="bg-orange-600 hover:bg-orange-700 text-white"
+          >
+            {operationLoading ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Clearing Data...
+              </>
+            ) : (
+              <>
+                <Database className="h-4 w-4 mr-2" />
+                Clear Data Records
+              </>
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
       </AlertDialog>
+
     </div>
   )
 }

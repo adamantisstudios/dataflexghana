@@ -1,23 +1,7 @@
 "use client"
-import {
-  ArrowLeft,
-  RefreshCw,
-  Clock,
-  X,
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  CheckCircle,
-  Download,
-  Calendar,
-  Plus,
-  Shuffle,
-  Info,
-  Search,
-  DollarSign,
-} from "lucide-react"
+import { ArrowLeft, RefreshCw, Clock, X, TrendingUp, TrendingDown, Wallet, CheckCircle, Download, Calendar, Plus, Shuffle, Info, Search, DollarSign } from 'lucide-react'
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -200,7 +184,7 @@ export default function WalletPage() {
 
   const loadWalletData = async (agentId: string) => {
     try {
-      console.log("Loading wallet data for agent:", agentId)
+      console.log("[v0] Loading wallet data for agent:", agentId)
 
       const { getAgentCommissionSummary } = await import("@/lib/commission-earnings")
       const { calculateWalletBalance, getUnifiedTransactionHistory } = await import("@/lib/earnings-calculator")
@@ -211,6 +195,12 @@ export default function WalletPage() {
         calculateWalletBalance(agentId),
         getUnifiedTransactionHistory(agentId),
       ])
+
+      console.log("[v0] Promise.allSettled results:", {
+        commissionSummaryStatus: commissionSummary.status,
+        walletBalanceStatus: walletBalance.status,
+        transactionHistoryStatus: transactionHistory.status,
+      })
 
       // Process results with validation
       let finalBalance = 0
@@ -229,19 +219,19 @@ export default function WalletPage() {
         const summary = commissionSummary.value
         finalSummary = {
           walletBalance: walletBalance.status === "fulfilled" ? walletBalance.value : 0,
-          totalTopups: 0, // Not needed for display
-          totalCommissions: summary.totalCommissions || 0, // Use consolidated calculation
-          availableCommissions: summary.availableForWithdrawal || 0, // Use availableForWithdrawal instead of availableCommissions for accurate withdrawal amount
+          totalTopups: 0,
+          totalCommissions: summary.totalCommissions || 0,
+          availableCommissions: summary.availableForWithdrawal || 0,
           totalWithdrawals: summary.totalPaidOut || 0,
-          totalDeductions: 0, // Not needed for display
+          totalDeductions: 0,
           pendingTransactions: summary.pendingPayout || 0,
           lastTransactionDate: null,
         }
         finalBalance = finalSummary.walletBalance
-        console.log("✅ Wallet data synchronized with consolidated calculation:", finalSummary)
+        console.log("[v0] Wallet data synchronized:", finalSummary)
       } else {
-        console.error("❌ Error calculating commission summary:", commissionSummary.reason)
-        // Try fallback method using stored agent data
+        console.warn("[v0] Commission summary failed, using fallback:", commissionSummary.reason)
+        // Try fallback method
         try {
           const { data: agentData, error: agentError } = await supabase
             .from("agents")
@@ -257,38 +247,39 @@ export default function WalletPage() {
               (Number(agentData.totalcommissions) || 0) - (Number(agentData.totalpaidout) || 0),
               0,
             )
-            console.log("⚠️ Using stored agent data as fallback:", finalSummary)
+            console.log("[v0] Using stored agent data fallback:", finalSummary)
           }
         } catch (fallbackError) {
-          console.warn("❌ Fallback calculation failed:", fallbackError)
+          console.warn("[v0] Fallback failed:", fallbackError)
         }
       }
 
-      // Process transaction history result
       let finalTransactionHistory: any[] = []
       if (transactionHistory.status === "fulfilled") {
         finalTransactionHistory = transactionHistory.value || []
-        console.log("✅ Transaction history loaded:", finalTransactionHistory.length, "transactions")
+        console.log("[v0] Transaction history loaded:", finalTransactionHistory.length, "transactions")
       } else {
-        console.error("❌ Error getting transaction history:", transactionHistory.reason)
-        // Try direct query as fallback
+        console.warn("[v0] Transaction history failed, trying direct query:", transactionHistory.reason)
         try {
           const { data: fallbackTransactions, error: fallbackError } = await supabase
             .from("wallet_transactions")
             .select("*")
             .eq("agent_id", agentId)
             .order("created_at", { ascending: false })
+            .limit(100)
 
           if (!fallbackError && fallbackTransactions) {
             finalTransactionHistory = fallbackTransactions
-            console.log("⚠️ Using direct query for transaction history as fallback")
+            console.log("[v0] Using direct query for transaction history")
+          } else {
+            console.warn("[v0] Direct query failed:", fallbackError?.message)
           }
         } catch (fallbackError) {
-          console.warn("❌ Fallback transaction history retrieval failed:", fallbackError)
+          console.warn("[v0] Transaction history fallback error:", fallbackError)
         }
       }
 
-      console.log("✅ Wallet data loaded successfully:", {
+      console.log("[v0] Final wallet data loaded successfully:", {
         balance: finalBalance,
         summary: finalSummary,
         transactionCount: finalTransactionHistory?.length || 0,
@@ -298,9 +289,8 @@ export default function WalletPage() {
       setWalletSummary(finalSummary)
       setTransactions(finalTransactionHistory || [])
     } catch (error) {
-      console.error("❌ Critical error loading wallet data:", error)
+      console.error("[v0] Critical error loading wallet data:", error)
 
-      // CRITICAL FIX: Enhanced error handling with user-friendly messages and relationship validation
       let errorMessage = "Unable to load wallet information. "
       if (error instanceof Error) {
         if (error.message.includes("network") || error.message.includes("connection")) {
@@ -314,37 +304,35 @@ export default function WalletPage() {
         errorMessage += "Please refresh the page and try again."
       }
 
-      // Show user-friendly error message
       alert(errorMessage)
-
-      // CRITICAL FIX: Enhanced fallback to old method with better error handling
       await loadTransactionsFallback(agentId)
     } finally {
       setLoading(false)
+      console.log("[v0] Wallet loading complete, setting loading to false")
     }
   }
 
   const loadTransactionsFallback = async (agentId: string) => {
     try {
-      console.log("Using fallback method to load wallet data for agent:", agentId)
+      console.log("[v0] Using fallback method to load wallet data")
 
       const { data, error } = await supabase
         .from("wallet_transactions")
         .select("*")
         .eq("agent_id", agentId)
         .order("created_at", { ascending: false })
+        .limit(100)
 
       if (error) {
-        console.error("Error in fallback transaction loading:", error)
+        console.error("[v0] Fallback query error:", error)
         throw error
       }
 
       const transactions = data || []
+      console.log("[v0] Fallback loaded", transactions.length, "transactions")
       setTransactions(transactions)
 
-      // Calculate balance manually for fallback
       const balance = await calculateWalletBalance(agentId).catch(() => {
-        // Manual calculation if function fails
         let manualBalance = 0
         transactions.forEach((transaction) => {
           if (transaction.status === "approved") {
@@ -367,11 +355,9 @@ export default function WalletPage() {
       })
 
       setWalletBalance(balance)
-      console.log("Fallback wallet data loaded:", { balance, transactionCount: transactions.length })
+      console.log("[v0] Fallback complete - balance:", balance, "transactions:", transactions.length)
     } catch (error) {
-      console.error("Error in fallback wallet loading:", error)
-
-      // Set default values if everything fails
+      console.error("[v0] Fallback loading failed:", error)
       setWalletBalance(0)
       setTransactions([])
       setWalletSummary({
@@ -383,9 +369,7 @@ export default function WalletPage() {
         pendingTransactions: 0,
         lastTransactionDate: null,
       })
-
-      // Show error to user
-      alert("Unable to load wallet information. Please contact support if this issue persists.")
+      alert("Unable to load wallet information. Please contact support if this persists.")
     }
   }
 
