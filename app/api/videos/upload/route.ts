@@ -59,14 +59,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const actualMimeType = file.type || "video/webm";
+    const fileExtension = actualMimeType.includes("webm") ? "webm" : "mp4";
     const filePath = `${channelId}/${Date.now()}-${Math.random()
       .toString(36)
-      .substring(7)}.mp4`;
+      .substring(7)}.${fileExtension}`;
 
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from("videos")
       .upload(filePath, buffer, { 
-        contentType: "video/mp4",
+        contentType: actualMimeType,
         upsert: false,
         duplex: "half"
       });

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { AlertCircle, Play, Square, Upload } from "lucide-react"
+import { AlertCircle, Play, Square, Upload } from 'lucide-react'
 
 interface RecordVerticalVideoProps {
   channelId: string
@@ -94,10 +94,13 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
     setIsUploading(true)
     try {
       const formData = new FormData()
-      formData.append("video", recordedBlob)
+      formData.append("file", recordedBlob)
       formData.append("channelId", channelId)
       formData.append("title", title)
       formData.append("duration", duration.toString())
+      formData.append("description", "Mobile recorded video")
+      formData.append("width", "576")
+      formData.append("height", "1024")
 
       const response = await fetch("/api/videos/upload", {
         method: "POST",
@@ -105,7 +108,8 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
       })
 
       if (!response.ok) {
-        throw new Error("Upload failed")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Upload failed with status ${response.status}`)
       }
 
       const data = await response.json()
