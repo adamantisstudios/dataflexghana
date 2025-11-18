@@ -2,9 +2,6 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { tmpdir } from "os";
-import path from "path";
-import fs from "fs";
 
 async function readFileBuffer(file: File): Promise<Buffer> {
   const arrayBuffer = await file.arrayBuffer();
@@ -13,7 +10,7 @@ async function readFileBuffer(file: File): Promise<Buffer> {
 
 export async function POST(request: NextRequest) {
   try {
-    const authToken = request.headers.get("x-agent-id") || request.headers.get("authorization")?.split(" ")[1] || "guest";
+    const authToken = request.headers.get("x-agent-id") || request.headers.get("authorization")?.split(" ")[1] || "mobile-user";
     const agentPhone = request.headers.get("x-agent-phone") || "unknown";
 
     const formData = await request.formData();
@@ -40,14 +37,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!file.type.startsWith("video/")) {
+    if (!file.type.startsWith("video/") && file.type !== "application/octet-stream") {
       return NextResponse.json(
-        { success: false, error: "File must be a video type" },
+        { success: false, error: `Unsupported file type: ${file.type}. Must be a video.` },
         { status: 400 }
       );
     }
-
-    // Previously checked: if (height > 0 && width > 0 && height <= width)
 
     const buffer = await readFileBuffer(file);
     const sizeMB = buffer.byteLength / 1024 / 1024;
@@ -59,8 +54,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const actualMimeType = file.type || "video/webm";
-    const fileExtension = actualMimeType.includes("webm") ? "webm" : "mp4";
+    let fileExtension = "webm";
+    let actualMimeType = file.type || "video/webm";
+    
+    if (file.type.includes("mp4") || file.name?.endsWith(".mp4")) {
+      fileExtension = "mp4";
+      actualMimeType = "video/mp4";
+    } else if (file.type.includes("webm") || file.type === "application/octet-stream") {
+      fileExtension = "webm";
+      actualMimeType = "video/webm";
+    }
+
     const filePath = `${channelId}/${Date.now()}-${Math.random()
       .toString(36)
       .substring(7)}.${fileExtension}`;

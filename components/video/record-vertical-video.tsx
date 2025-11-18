@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { AlertCircle, Play, Square, Upload } from 'lucide-react'
+import { toast } from "sonner"
 
 interface RecordVerticalVideoProps {
   channelId: string
@@ -22,7 +23,7 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const MAX_DURATION = 60 // 60 seconds
+  const MAX_DURATION = 60
 
   const startRecording = async () => {
     try {
@@ -41,9 +42,24 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
         videoRef.current.srcObject = stream
       }
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: "video/webm;codecs=vp9,opus",
-      })
+      const codecOptions = [
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm",
+        "video/mp4",
+      ]
+
+      let mediaRecorder: MediaRecorder | null = null
+      for (const codec of codecOptions) {
+        if (MediaRecorder.isTypeSupported(codec)) {
+          mediaRecorder = new MediaRecorder(stream, { mimeType: codec })
+          break
+        }
+      }
+
+      if (!mediaRecorder) {
+        mediaRecorder = new MediaRecorder(stream)
+      }
 
       chunksRef.current = []
       mediaRecorder.ondataavailable = (e) => {
@@ -53,7 +69,8 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
       }
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "video/webm" })
+        const mimeType = mediaRecorder?.mimeType || "video/webm"
+        const blob = new Blob(chunksRef.current, { type: mimeType })
         setRecordedBlob(blob)
         stream.getTracks().forEach((track) => track.stop())
       }
@@ -63,7 +80,6 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
       setIsRecording(true)
       setDuration(0)
 
-      // Auto-stop after MAX_DURATION
       timerRef.current = setInterval(() => {
         setDuration((prev) => {
           if (prev >= MAX_DURATION - 1) {
@@ -74,7 +90,9 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
         })
       }, 1000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to access camera. Please check permissions.")
+      const errorMsg = err instanceof Error ? err.message : "Failed to access camera. Please check permissions."
+      setError(errorMsg)
+      console.error("[v0] Recording error:", err)
     }
   }
 
@@ -92,7 +110,11 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
     if (!recordedBlob) return
 
     setIsUploading(true)
+    setError(null)
     try {
+      const storedAgent = localStorage.getItem("agent")
+      const agent = storedAgent ? JSON.parse(storedAgent) : null
+
       const formData = new FormData()
       formData.append("file", recordedBlob)
       formData.append("channelId", channelId)
@@ -102,22 +124,44 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
       formData.append("width", "576")
       formData.append("height", "1024")
 
+      const headers: any = {}
+      if (agent?.id) {
+        headers["x-agent-id"] = agent.id
+      }
+      if (agent?.phone_number) {
+        headers["x-agent-phone"] = agent.phone_number
+      }
+
       const response = await fetch("/api/videos/upload", {
         method: "POST",
         body: formData,
+        headers,
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
+        let errorData: any = {}
+        try {
+          errorData = await response.json()
+        } catch {
+          errorData = { error: `Upload failed with status ${response.status}` }
+        }
         throw new Error(errorData.error || `Upload failed with status ${response.status}`)
       }
 
       const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.error || "Upload failed")
+      }
+
       setRecordedBlob(null)
       setDuration(0)
+      toast.success("Video uploaded successfully!")
       onUploadComplete?.(data.videoUrl)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed")
+      const errorMsg = err instanceof Error ? err.message : "Upload failed"
+      setError(errorMsg)
+      console.error("[v0] Upload error:", err)
+      toast.error(errorMsg)
     } finally {
       setIsUploading(false)
     }
@@ -139,7 +183,6 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Record Video</h2>
 
-        {/* Video Preview */}
         <div className="aspect-[9/16] bg-black rounded-lg overflow-hidden">
           {!recordedBlob ? (
             <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
@@ -148,7 +191,6 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
           )}
         </div>
 
-        {/* Duration Display */}
         {isRecording && (
           <div className="text-center">
             <p className="text-lg font-semibold">
@@ -157,7 +199,6 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
           </div>
         )}
 
-        {/* Error Message */}
         {error && (
           <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
             <AlertCircle className="w-5 h-5 text-red-600" />
@@ -165,7 +206,6 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
           </div>
         )}
 
-        {/* Controls */}
         <div className="flex gap-2">
           {!isRecording && !recordedBlob && (
             <Button onClick={startRecording} className="flex-1" size="lg">
@@ -194,7 +234,6 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
           )}
         </div>
 
-        {/* Info */}
         <p className="text-xs text-gray-500 text-center">Maximum 60 seconds • Vertical format (576x1024)</p>
       </div>
     </Card>
