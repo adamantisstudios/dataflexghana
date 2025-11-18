@@ -2,8 +2,9 @@
 
 import type React from "react"
 import { useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter, usePathname } from 'next/navigation'
 import { getStoredAgent, type Agent, logoutAgent } from "@/lib/unified-auth-system"
+import { AgentSecurityProvider } from "@/components/agent/AgentSecurityProvider"
 
 interface AgentLayoutProps {
   children: React.ReactNode
@@ -93,5 +94,13 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     return null
   }
 
-  return <>{children}</>
+  return (
+    <AgentSecurityProvider
+      enabled={true}
+      inactivityTimeoutMinutes={60}
+      showWarningMinutes={15}
+    >
+      {children}
+    </AgentSecurityProvider>
+  )
 }

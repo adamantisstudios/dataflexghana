@@ -17,7 +17,9 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { LogOut, Plus, MessageCircle, Banknote, ExternalLink, Smartphone, Settings, Search, TrendingUp, Package, Filter, Briefcase, MapPin, DollarSign, Building2, Mail, Wallet, X, ShoppingBag, PiggyBank, Shield, ArrowRight, Users, CreditCard, AlertTriangle, Lightbulb, Check, Activity, Phone, AlertCircle } from 'lucide-react'
+import {
+  LogOut, Plus, MessageCircle, Banknote, ExternalLink, Smartphone, Settings, Search, TrendingUp, Package, Filter, Briefcase, MapPin, DollarSign, Building2, Mail, Wallet, X, ShoppingBag, PiggyBank, Shield, ArrowRight, Users, CreditCard, AlertTriangle, Lightbulb, Check, Activity, Phone, AlertCircle
+} from 'lucide-react'
 import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -47,6 +49,7 @@ import { loadAgentDashboardData, loadTabData } from "@/lib/agent-dashboard-loade
 import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
 import ReferralDashboard from "@/components/agent/referral-program/ReferralDashboard"
 import Image from "next/image"
+import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
 
 const safeCommissionDisplay = (value: number | null | undefined): number => {
   if (value === null || value === undefined || isNaN(value)) {
@@ -59,22 +62,16 @@ const formatDateAgo = (dateString: string) => {
   const now = new Date();
   const date = new Date(dateString);
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  let interval = seconds / 31536000; // years
+  let interval = seconds / 31536000;
   if (interval >= 1) return Math.floor(interval) + " years ago";
-
-  interval = seconds / 2592000; // months
+  interval = seconds / 2592000;
   if (interval >= 1) return Math.floor(interval) + " months ago";
-
-  interval = seconds / 86400; // days
+  interval = seconds / 86400;
   if (interval >= 1) return Math.floor(interval) + " days ago";
-
-  interval = seconds / 3600; // hours
+  interval = seconds / 3600;
   if (interval >= 1) return Math.floor(interval) + " hours ago";
-
-  interval = seconds / 60; // minutes
+  interval = seconds / 60;
   if (interval >= 1) return Math.floor(interval) + " minutes ago";
-
   return Math.floor(seconds) + " seconds ago";
 };
 
@@ -82,11 +79,11 @@ const generateSlug = (text: string) => {
   return text
     .toString()
     .toLowerCase()
-    .replace(/\s+/g, '-') // Replace spaces with -
-    .replace(/[^\w\-]+/g, '') // Remove all non-word chars
-    .replace(/\-\-+/g, '-') // Replace multiple - with single -
-    .replace(/^-+/, '') // Trim - from start of text
-    .replace(/-+$/, ''); // Trim - from end of text
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 };
 
 export default function AgentDashboard() {
@@ -151,11 +148,7 @@ export default function AgentDashboard() {
   const [referralsFilter, setReferralsFilter] = useState("All Referrals")
   const [dataBundlesFilter, setDataBundlesFilter] = useState("All Networks")
   const [jobSearchTerm, setJobSearchTerm] = useState("")
-  const [jobsFilterAgent, setJobsFilterAgent] = useState("All Jobs") // State for filtering jobs
-
-  const [showInactivityWarning, setShowInactivityWarning] = useState(false)
-  const [daysInactive, setDaysInactive] = useState(0)
-  // Added state for deactivation alert
+  const [jobsFilterAgent, setJobsFilterAgent] = useState("All Jobs")
   const [showAgentDeactivationAlert, setShowAgentDeactivationAlert] = useState(false)
 
   // Refs
@@ -217,14 +210,12 @@ export default function AgentDashboard() {
 
   const filteredJobs = useMemo(() => {
     if (!loadedTabs.jobs) return []
-    // Ensure job titles are present, falling back to industry if needed
     const processedJobs = tabData.jobs.map(job => {
       if (!job.job_title && job.industry) {
         return { ...job, job_title: job.industry };
       }
       return job;
     });
-
     let filtered = processedJobs.filter(
       (job) =>
         job.is_active &&
@@ -233,7 +224,6 @@ export default function AgentDashboard() {
           job.location?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
           job.industry?.toLowerCase().includes(jobSearchTerm.toLowerCase())),
     );
-
     if (jobsFilterAgent !== "All Jobs") {
       filtered = filtered.filter((job) => {
         switch (jobsFilterAgent) {
@@ -255,48 +245,38 @@ export default function AgentDashboard() {
     return filtered;
   }, [jobSearchTerm, tabData.jobs, jobsFilterAgent, loadedTabs.jobs]);
 
-
-    useEffect(() => {
-      let timer: NodeJS.Timeout | null = null;
-
-      const checkDeactivationStatus = async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user) return;
-
-          const { data: agent } = await supabase
-            .from("agents")
-            .select("auto_deactivated_at")
-            .eq("user_id", session.user.id)
-            .single();
-
-          if (agent?.auto_deactivated_at) {
-            const lastShownKey = `deactivation_alert_shown_${session.user.id}`;
-            const lastShownDate = localStorage.getItem(lastShownKey);
-            const today = new Date().toDateString();
-
-            if (lastShownDate !== today) {
-              setShowAgentDeactivationAlert(true);
-              localStorage.setItem(lastShownKey, today);
-
-              // Auto-hide after 8 seconds
-              timer = setTimeout(() => {
-                setShowAgentDeactivationAlert(false);
-              }, 8000);
-            }
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    const checkDeactivationStatus = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        const { data: agent } = await supabase
+          .from("agents")
+          .select("auto_deactivated_at")
+          .eq("user_id", session.user.id)
+          .single();
+        if (agent?.auto_deactivated_at) {
+          const lastShownKey = `deactivation_alert_shown_${session.user.id}`;
+          const lastShownDate = localStorage.getItem(lastShownKey);
+          const today = new Date().toDateString();
+          if (lastShownDate !== today) {
+            setShowAgentDeactivationAlert(true);
+            localStorage.setItem(lastShownKey, today);
+            timer = setTimeout(() => {
+              setShowAgentDeactivationAlert(false);
+            }, 8000);
           }
-        } catch (error) {
-          console.error("Error checking agent status:", error);
         }
-      };
-
-      checkDeactivationStatus();
-
-      return () => {
-        if (timer) clearTimeout(timer);
-      };
-    }, []);
-
+      } catch (error) {
+        console.error("Error checking agent status:", error);
+      }
+    };
+    checkDeactivationStatus();
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -375,38 +355,6 @@ export default function AgentDashboard() {
     loadInitialData()
   }, [])
 
-  useEffect(() => {
-    if (agent?.last_activity_at) {
-      const lastActivityDate = new Date(agent.last_activity_at)
-      const today = new Date()
-      const daysDiff = Math.floor((today.getTime() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24))
-      setDaysInactive(daysDiff)
-
-      if (daysDiff >= 20) {
-        setShowInactivityWarning(true)
-      }
-    }
-    // Agent deactivation alert logic - check status after loading agent data
-    const checkDeactivationStatus = () => {
-      const agentData = localStorage.getItem("agent");
-      if (!agentData) return;
-      const agent = JSON.parse(agentData);
-      const lastActivityDate = new Date(agent.last_activity_at);
-      const today = new Date();
-      const daysDiff = Math.floor((today.getTime() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      const lastShown = localStorage.getItem('deactivationAlertLastShown');
-      if (daysDiff >= 30 && lastShown !== new Date().toDateString()) {
-        setShowAgentDeactivationAlert(true);
-        localStorage.setItem('deactivationAlertLastShown', new Date().toDateString());
-      } else {
-        setShowAgentDeactivationAlert(false);
-      }
-    };
-    checkDeactivationStatus();
-    // </CHANGE>
-  }, [agent?.last_activity_at])
-
   // Handlers
   const handleTabChange = useCallback(
     async (tab: string) => {
@@ -431,10 +379,9 @@ export default function AgentDashboard() {
               .select("*")
               .eq("is_active", true)
               .order("created_at", { ascending: false });
-
             if (error) {
               console.error("Error fetching jobs:", error);
-              setTabData((prev) => ({ ...prev, jobs: [] })); // Clear jobs on error
+              setTabData((prev) => ({ ...prev, jobs: [] }));
             } else {
               const jobsWithTitles = fetchedJobs.map((job: any) => {
                 if (!job.job_title && job.industry) {
@@ -864,7 +811,8 @@ DataFlex Ghana Agent 🇬🇭`
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-blue-50 to-indigo-50">
+      <InactivityNotificationManager agentId={agent?.id} />
       <DashboardLoginNotification />
       <AgentDashboardNotification />
       {showDashboardAudioPlayer && (
@@ -875,29 +823,21 @@ DataFlex Ghana Agent 🇬🇭`
           onClose={handleCloseAudioPlayer}
         />
       )}
-      {/* Agent deactivation notification */}
-      {showAgentDeactivationAlert && (
-        <div className="fixed bottom-6 right-6 max-w-md z-50 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-amber-50 border-2 border-amber-200 rounded-lg shadow-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-amber-900">Account Status Update</h3>
-                <p className="text-sm text-amber-800 mt-1">
-                  Your account has been deactivated due to inactivity. Place an order or buy a data bundle to reactivate your account.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAgentDeactivationAlert(false)}
-                className="text-amber-600 hover:text-amber-800 flex-shrink-0"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <Dialog open={showAgentDeactivationAlert} onOpenChange={setShowAgentDeactivationAlert}>
+        <DialogContent className="sm:max-w-md bg-amber-50 border-2 border-amber-200">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-900">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+              Account Status Update
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="text-sm text-amber-800">
+              Your account has been deactivated due to inactivity. Place an order or buy a data bundle to reactivate your account.
+            </p>
           </div>
-        </div>
-      )}
-      {/* </CHANGE> */}
+        </DialogContent>
+      </Dialog>
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 shadow-lg border-b-2 border-emerald-700">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
@@ -934,51 +874,6 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         </div>
       </div>
-
-      {showInactivityWarning && (
-      <div className="container mx-auto px-4 py-6">
-        <Card className="border-red-100 bg-gradient-to-br from-red-50 to-orange-50 shadow-md hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-full bg-red-100 flex-shrink-0">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-red-800 text-xl mb-2">Account Inactivity Alert</h3>
-                <p className="text-red-700 mb-4 leading-relaxed">
-                  Your account has been inactive for{" "}
-                  <span className="font-semibold text-red-900">{daysInactive} days</span>.
-                  To avoid automatic deactivation after 30 days, please make a transaction or contact support.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    asChild
-                    className="bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
-                  >
-                    <Link href="/agent/data-order" className="flex items-center">
-                      <Activity className="h-4 w-4 mr-2" />
-                      Make a Transaction
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 transition-colors"
-                  >
-                    <a href="tel:0242799990" className="flex items-center">
-                      <Phone className="h-4 w-4 mr-2" />
-                      Contact Support
-                    </a>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )}
-
-
       <div className="container mx-auto px-4 py-8 space-y-8">
         {showNotification && (
           <div className="relative mb-6 p-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg shadow-lg border-l-4 border-l-emerald-700">
@@ -1033,13 +928,10 @@ DataFlex Ghana Agent 🇬🇭`
             </CardContent>
           </Card>
         </div>
-       {/* CHANGE: Redesigned announcement notice below "More Than Just Data" section */}
         <div className="mb-8">
           <Card className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-2xl border-[3px] border-emerald-800 hover:shadow-[0_0_35px_rgba(16,185,129,0.7)] transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.01] rounded-2xl">
             <CardContent className="p-5 sm:p-7">
               <div className="space-y-6">
-
-                {/* Support Section */}
                 <div className="flex items-start gap-4 bg-white/10 rounded-xl p-4 border border-white/20 shadow-inner backdrop-blur-sm">
                   <div className="p-3 rounded-full bg-white/30 shadow-lg flex-shrink-0">
                     <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1054,8 +946,6 @@ DataFlex Ghana Agent 🇬🇭`
                     </p>
                   </div>
                 </div>
-
-                {/* Teacher Channel Section */}
                 <div className="bg-white/95 border-2 border-emerald-300 rounded-xl p-5 space-y-4 shadow-xl hover:shadow-emerald-300/50 transition-all duration-300">
                   <div className="flex items-start gap-3">
                     <div className="p-2 bg-emerald-100 rounded-full shadow-md">
@@ -1063,7 +953,6 @@ DataFlex Ghana Agent 🇬🇭`
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-
                     <div className="flex-1">
                       <h4 className="font-bold text-emerald-900 text-base sm:text-lg">Join Our Teacher Channel</h4>
                       <p className="text-sm text-emerald-700 leading-relaxed mt-1">
@@ -1077,13 +966,10 @@ DataFlex Ghana Agent 🇬🇭`
                     </div>
                   </div>
                 </div>
-
               </div>
             </CardContent>
           </Card>
         </div>
-
-
         <div className="mb-8">
           <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
@@ -1095,7 +981,7 @@ DataFlex Ghana Agent 🇬🇭`
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253"
                       />
                     </svg>
                   </div>
@@ -2029,7 +1915,6 @@ DataFlex Ghana Agent 🇬🇭`
                               </div>
                             </div>
                           </div>
-
                           <div className="w-full md:w-auto flex-shrink-0">
                             <Link href={`/job-details/${generateSlug(job.job_title)}`} className="block w-full md:w-auto">
                               <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap">
@@ -2500,6 +2385,7 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         </DialogContent>
       </Dialog>
+
       {showBeyondDataModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4">
           <div className="bg-white rounded-none sm:rounded-xl shadow-xl w-screen sm:w-full sm:max-w-3xl mx-0 sm:mx-4 my-0 sm:my-8 max-h-screen sm:max-h-[95vh] overflow-y-auto">
