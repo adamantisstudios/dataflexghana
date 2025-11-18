@@ -70,7 +70,6 @@ export async function POST(request: NextRequest) {
       .upload(filePath, buffer, { 
         contentType: actualMimeType,
         upsert: false,
-        duplex: "half"
       });
 
     if (uploadError) {
@@ -95,7 +94,6 @@ export async function POST(request: NextRequest) {
           .upload(thumbName, thumbnailBuffer, { 
             contentType: "image/jpeg",
             upsert: false,
-            duplex: "half"
           });
 
         if (!thumbError) {
