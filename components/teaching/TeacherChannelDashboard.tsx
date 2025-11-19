@@ -55,6 +55,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ChannelSubscriptionManager } from "./channel-subscription-manager"
 
 interface Channel {
   id: string
@@ -117,7 +118,7 @@ interface TeacherChannelDashboardProps {
 
 export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: TeacherChannelDashboardProps) {
   const [activeTab, setActiveTab] = useState<
-    "feeds" | "overview" | "members" | "requests" | "lesson-notes" | "qa" | "videos" | "youtube-videos"
+    "feeds" | "overview" | "members" | "requests" | "lesson-notes" | "qa" | "videos" | "youtube-videos" | "subscriptions"
   >("feeds")
   const [channel, setChannel] = useState<Channel | null>(null)
   const [members, setMembers] = useState<ChannelMember[]>([])
@@ -931,7 +932,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
   }
 
   const parseLinksFromContent = (content: string): SharedLink[] => {
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
+    const linkRegex = /\[([^\]]+)\]$$([^)]+)$$/g
     const links: SharedLink[] = []
     let match
     while ((match = linkRegex.exec(content)) !== null) {
@@ -972,16 +973,6 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           </div>
         </div>
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-2 w-full">
-          <TabsList className="hidden">
-            <TabsTrigger value="feeds">Feeds</TabsTrigger>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-            <TabsTrigger value="requests">Requests</TabsTrigger>
-            <TabsTrigger value="lesson-notes">Lesson Notes</TabsTrigger>
-            <TabsTrigger value="videos">Videos</TabsTrigger>
-            <TabsTrigger value="qa">Q&A</TabsTrigger>
-            <TabsTrigger value="youtube-videos">YouTube Videos</TabsTrigger>
-          </TabsList>
           {/* Feeds Tab */}
           <TabsContent value="feeds" className="space-y-2 w-full px-2 sm:px-3">
             <div className="flex gap-1 w-full">
@@ -1438,114 +1429,140 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
               </div>
             </div>
           </TabsContent>
-          {/* Members Tab */}
-          <TabsContent value="members" className="space-y-2 w-full px-2 sm:px-3">
-            <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
-              <DialogTrigger asChild>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-2 text-xs h-8">
-                  <Plus className="h-3 w-3 mr-1" />
-                  Add Member Directly
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[400px]">
-                <DialogHeader>
-                  <DialogTitle className="text-base">Add Member to Channel</DialogTitle>
-                  <DialogDescription className="text-xs">Add an agent directly to this channel</DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-3 py-3">
-                  <div className="grid gap-1">
-                    <Label htmlFor="agent-id" className="text-xs">
-                      Agent Name or Contact Number
-                    </Label>
-                    <Input
-                      id="agent-id"
-                      value={addMemberForm.agentId}
-                      onChange={(e) => setAddMemberForm({ ...addMemberForm, agentId: e.target.value })}
-                      placeholder="Enter agent name or phone"
-                      autoComplete="off"
-                      className="h-8 text-xs"
-                    />
-                    <p className="text-xs text-gray-500">Search by name or phone number</p>
-                  </div>
-                  <div className="grid gap-1">
-                    <Label htmlFor="member-role" className="text-xs">
-                      Role
-                    </Label>
-                    <Select
-                      value={addMemberForm.role}
-                      onValueChange={(val) => setAddMemberForm({ ...addMemberForm, role: val as any })}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="member">Member</SelectItem>
-                        <SelectItem value="teacher">Teacher</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+         {/* Members Tab */}
+        <TabsContent value="members" className="space-y-2 w-full px-2 sm:px-3">
+
+          <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
+            <DialogTrigger asChild>
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-2 text-xs h-8">
+                <Plus className="h-3 w-3 mr-1" />
+                Add Member Directly
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle className="text-base">Add Member to Channel</DialogTitle>
+                <DialogDescription className="text-xs">
+                  Add an agent directly to this channel
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid gap-3 py-3">
+                {/* Agent Input */}
+                <div className="grid gap-1">
+                  <Label htmlFor="agent-id" className="text-xs">
+                    Agent Name or Contact Number
+                  </Label>
+                  <Input
+                    id="agent-id"
+                    value={addMemberForm.agentId}
+                    onChange={(e) =>
+                      setAddMemberForm({ ...addMemberForm, agentId: e.target.value })
+                    }
+                    placeholder="Enter agent name or phone"
+                    autoComplete="off"
+                    className="h-8 text-xs"
+                  />
+                  <p className="text-xs text-gray-500">Search by name or phone number</p>
                 </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddMemberDialog(false)
-                      setAddMemberForm({ agentId: "", role: "member" })
-                    }}
-                    className="text-xs h-8"
+
+                {/* Role Select */}
+                <div className="grid gap-1">
+                  <Label htmlFor="member-role" className="text-xs">
+                    Role
+                  </Label>
+                  <Select
+                    value={addMemberForm.role}
+                    onValueChange={(val) =>
+                      setAddMemberForm({ ...addMemberForm, role: val as any })
+                    }
                   >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleAddMemberDirectly}
-                    className="bg-blue-600 hover:bg-blue-700 text-xs h-8"
-                  >
-                    Add Member
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            {members.length === 0 ? (
-              <div className="bg-blue-50 border-b-2 border-blue-200 rounded p-3 text-center text-blue-600 text-xs">
-                <Users className="h-6 w-6 mx-auto mb-1 opacity-50" />
-                <p>No members yet</p>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      <SelectItem value="teacher">Teacher</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-1 w-full">
-                {members.map((member) => (
-                  <div key={member.id} className="border-b border-gray-200 pb-2 w-full">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-800 text-sm">{member.agent_name}</p>
-                        <p className="text-xs text-gray-600">
-                          {member.agent_contact ? `📞 ${member.agent_contact}` : "No contact"}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          Joined {new Date(member.joined_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Badge variant="secondary" className="text-xs">
-                          {member.role}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleRemoveMember(member.id)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Trash2 className="h-2.5 w-2.5" />
-                        </Button>
-                      </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddMemberDialog(false)
+                    setAddMemberForm({ agentId: "", role: "member" })
+                  }}
+                  className="text-xs h-8"
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={handleAddMemberDirectly}
+                  className="bg-blue-600 hover:bg-blue-700 text-xs h-8"
+                >
+                  Add Member
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Members List */}
+          {members.length === 0 ? (
+            <div className="bg-blue-50 border-b-2 border-blue-200 rounded p-3 text-center text-blue-600 text-xs">
+              <Users className="h-6 w-6 mx-auto mb-1 opacity-50" />
+              <p>No members yet</p>
+            </div>
+          ) : (
+            <div className="space-y-1 w-full">
+              {members.map((member) => (
+                <div
+                  key={member.id}
+                  className="border-b border-gray-200 pb-2 w-full"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-800 text-sm">
+                        {member.agent_name}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {member.agent_contact
+                          ? `📞 ${member.agent_contact}`
+                          : "No contact"}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Joined {new Date(member.joined_at).toLocaleDateString()}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <Badge variant="secondary" className="text-xs">
+                        {member.role}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleRemoveMember(member.id)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Trash2 className="h-2.5 w-2.5" />
+                      </Button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
+                </div>
+              ))}
+            </div>
+          )}
+
+        </TabsContent>
+
           {/* Requests Tab */}
           <TabsContent value="requests" className="space-y-2 w-full px-2 sm:px-3">
             {joinRequests.length === 0 ? (
@@ -1738,6 +1755,10 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                 </div>
               )}
             </div>
+          </TabsContent>
+          {/* Subscriptions Tab */}
+          <TabsContent value="subscriptions" className="space-y-2 w-full px-2 sm:px-3">
+            <ChannelSubscriptionManager channelId={channelId} />
           </TabsContent>
         </Tabs>
       </div>

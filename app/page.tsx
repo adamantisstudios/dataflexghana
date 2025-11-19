@@ -26,6 +26,115 @@ import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
 import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
 import Image from "next/image"
 
+// CHANGE: Replace placeholder ViewChannelsSection with actual component
+
+const ViewChannelsSection = () => {
+  const [channels, setChannels] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadChannels()
+  }, [])
+
+  const loadChannels = async () => {
+    try {
+      const { data } = await supabase
+        .from("teaching_channels")
+        .select("id, name, description, image_url, is_public, category")
+        .eq("is_public", true)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(5)
+
+      setChannels(data || [])
+    } catch (error) {
+      console.error("Error loading channels:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-2">
+              View <span className="text-blue-600">Channels</span>
+            </h2>
+            <p className="text-gray-600">Loading channels...</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="py-16 bg-white">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200 mb-4">Educational Channels</Badge>
+          <h2 className="text-3xl lg:text-4xl font-bold mb-2">
+            View <span className="text-blue-600">Channels</span>
+          </h2>
+          <p className="text-gray-600">Join our teaching platform and learn from expert teachers</p>
+        </div>
+        {channels.length === 0 ? (
+          <div className="text-center py-8 text-gray-600">No channels available yet</div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {channels.map((channel) => (
+              <Card
+                key={channel.id}
+                className="border-blue-200 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-row items-center p-0"
+              >
+                {/* Left: Circular Channel Image */}
+                <div className="w-24 h-24 p-2 flex-shrink-0">
+                  <Avatar className="w-full h-full border-2 border-blue-200">
+                    <AvatarImage
+                      src={channel.image_url || "/placeholder.svg?height=96&width=96&query=channel"}
+                      alt={channel.name}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="bg-blue-100 text-blue-800 text-lg font-semibold">
+                      {channel.name.split(" ").map((n: string) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+
+                {/* Right: Channel Info and Buttons */}
+                <div className="flex-1 p-4">
+                  <h3 className="font-semibold text-blue-800 mb-1 line-clamp-1">{channel.name}</h3>
+                  <p className="text-xs text-gray-600 mb-3 line-clamp-2">{channel.description}</p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-xs h-8 border-blue-200 text-blue-600 hover:bg-blue-50"
+                      asChild
+                    >
+                      <Link href="/agent/register">View</Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="flex-1 text-xs h-8 bg-blue-600 hover:bg-blue-700 text-white"
+                      asChild
+                    >
+                      <Link href="/agent/register">Join</Link>
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+
+
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([])
   const [dataBundles, setDataBundles] = useState<DataBundle[]>([])
@@ -527,6 +636,8 @@ export default function HomePage() {
   </div>
 </section>
 
+      {/* CHANGE: Add View Channels section right after Jobs section */}
+      <ViewChannelsSection />
 
       <div className="mb-16">
         <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
@@ -1383,9 +1494,9 @@ export default function HomePage() {
       <section id="services" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 mb-4">Our Services</Badge>
+            <Badge className="bg-purple-100 text-purple-800 border-purple-200 mb-4">Our Services</Badge>
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Four Ways to <span className="text-emerald-600">Build Your Income</span>
+              Four Ways to <span className="text-purple-600">Build Your Income</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Choose your path to financial freedom. Mix and match services to maximize your earning potential.

@@ -58,7 +58,6 @@ interface TeachingChannel {
   is_member?: boolean;
   user_role?: string;
 }
-
 interface ChannelPost {
   id: string;
   channel_id: string;
@@ -139,26 +138,21 @@ export default function TeachingPlatformPage() {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
       if (channelsError) throw channelsError;
-
       const { data: memberChannels, error: memberError } = await supabase
         .from("channel_members")
         .select("channel_id, role")
         .eq("agent_id", agent.id);
       if (memberError) throw memberError;
-
       const memberChannelIds = memberChannels?.map((m) => m.channel_id) || [];
       const roleMap = new Map(memberChannels?.map((m) => [m.channel_id, m.role]) || []);
-
       const { data: memberCounts, error: countError } = await supabase
         .from("channel_members")
         .select("channel_id");
       if (countError) console.error("Error loading member counts:", countError);
-
       const countMap = new Map<string, number>();
       memberCounts?.forEach((m: any) => {
         countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1);
       });
-
       const enrichedChannels = (publicChannels || []).map((channel: any) => ({
         ...channel,
         is_member: memberChannelIds.includes(channel.id),
@@ -166,9 +160,7 @@ export default function TeachingPlatformPage() {
         user_role: roleMap.get(channel.id),
         is_active: true,
       }));
-
       setChannels(enrichedChannels);
-
       if (memberChannelIds.length > 0) {
         const { data: userChannels, error: userChannelsError } = await supabase
           .from("teaching_channels")
@@ -176,14 +168,12 @@ export default function TeachingPlatformPage() {
           .in("id", memberChannelIds)
           .order("created_at", { ascending: false });
         if (userChannelsError) throw userChannelsError;
-
         const enrichedUserChannels = (userChannels || []).map((channel: any) => ({
           ...channel,
           member_count: countMap.get(channel.id) || 0,
           user_role: roleMap.get(channel.id),
           is_active: true,
         }));
-
         setMyChannels(enrichedUserChannels);
       }
     } catch (error) {
@@ -221,7 +211,6 @@ export default function TeachingPlatformPage() {
         .eq("channel_id", selectedChannelForJoin.id)
         .eq("agent_id", agent.id)
         .maybeSingle();
-
       if (existingRequest) {
         if (existingRequest.status === "pending") {
           toast.error("You already have a pending join request for this channel.");
@@ -234,21 +223,18 @@ export default function TeachingPlatformPage() {
         setSelectedChannelForJoin(null);
         return;
       }
-
       const { data: existing } = await supabase
         .from("channel_members")
         .select("id")
         .eq("channel_id", selectedChannelForJoin.id)
         .eq("agent_id", agent.id)
         .maybeSingle();
-
       if (existing) {
         toast.error("You are already a member of this channel.");
         setShowJoinDialog(false);
         setSelectedChannelForJoin(null);
         return;
       }
-
       const { error: requestError } = await supabase
         .from("channel_join_requests")
         .insert([{
@@ -257,9 +243,7 @@ export default function TeachingPlatformPage() {
           request_message: joinMessage || "",
           status: "pending",
         }]);
-
       if (requestError) throw requestError;
-
       toast.success("Join request sent! Waiting for approval.");
       setShowJoinDialog(false);
       setJoinMessage("");
@@ -287,7 +271,6 @@ export default function TeachingPlatformPage() {
       channel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       channel.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
   const filteredMyChannels = myChannels.filter(
     (channel) =>
       channel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -445,16 +428,16 @@ export default function TeachingPlatformPage() {
                       <CardContent className="p-3">
                         <div className="flex items-start gap-3">
                           <div className="flex-shrink-0">
-                            <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm">
+                            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm">
                               <img
-                                src={channel.image_url || "/placeholder.svg?height=56&width=56&query=channel"}
+                                src={channel.image_url || "/placeholder.svg?height=64&width=64&query=channel"}
                                 alt={channel.name}
                                 className="w-full h-full object-cover"
                               />
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-blue-800 text-sm truncate group-hover:text-blue-600 transition-colors">
+                            <h3 className="font-semibold text-blue-800 text-sm break-words">
                               {channel.name}
                             </h3>
                             <p className="text-xs text-gray-600 mt-0.5 truncate">{channel.description}</p>
@@ -595,16 +578,16 @@ export default function TeachingPlatformPage() {
                             <CardContent className="p-3">
                               <div className="flex items-start gap-3">
                                 <div className="flex-shrink-0">
-                                  <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm">
+                                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm">
                                     <img
-                                      src={channel.image_url || "/placeholder.svg?height=56&width=56&query=channel"}
+                                      src={channel.image_url || "/placeholder.svg?height=64&width=64&query=channel"}
                                       alt={channel.name}
                                       className="w-full h-full object-cover"
                                     />
                                   </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-blue-800 text-sm truncate">
+                                  <h3 className="font-semibold text-blue-800 text-sm break-words">
                                     {channel.name}
                                   </h3>
                                   <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{channel.description}</p>
@@ -637,7 +620,6 @@ export default function TeachingPlatformPage() {
                         ))}
                     </div>
                   )}
-
                   {/* Channels You're a Member Of */}
                   {filteredMyChannels.filter((c) => c.user_role === "member").length > 0 && (
                     <div className="space-y-2 w-full mt-4">
@@ -655,16 +637,16 @@ export default function TeachingPlatformPage() {
                             <CardContent className="p-3">
                               <div className="flex items-start gap-3">
                                 <div className="flex-shrink-0">
-                                  <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm">
+                                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm">
                                     <img
-                                      src={channel.image_url || "/placeholder.svg?height=56&width=56&query=channel"}
+                                      src={channel.image_url || "/placeholder.svg?height=64&width=64&query=channel"}
                                       alt={channel.name}
                                       className="w-full h-full object-cover"
                                     />
                                   </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-gray-800 text-sm truncate">
+                                  <h3 className="font-semibold text-gray-800 text-sm break-words">
                                     {channel.name}
                                   </h3>
                                   <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{channel.description}</p>
@@ -713,12 +695,14 @@ export default function TeachingPlatformPage() {
               <DialogDescription className="text-xs">{selectedChannel.description}</DialogDescription>
             </DialogHeader>
             {selectedChannel.image_url && (
-              <div className="rounded-lg overflow-hidden h-40 bg-gray-100 my-2">
-                <img
-                  src={selectedChannel.image_url || "/placeholder.svg"}
-                  alt={selectedChannel.name}
-                  className="w-full h-full object-cover"
-                />
+              <div className="flex justify-center my-2">
+                <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-blue-200">
+                  <img
+                    src={selectedChannel.image_url || "/placeholder.svg"}
+                    alt={selectedChannel.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </div>
             )}
             <div className="space-y-2">

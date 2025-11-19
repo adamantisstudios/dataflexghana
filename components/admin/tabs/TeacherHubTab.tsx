@@ -67,7 +67,6 @@ type TeachingChannel = {
   created_at: string;
   member_count?: number;
 };
-
 type TeacherApproval = {
   id: string;
   agent_id: string;
@@ -83,13 +82,11 @@ type TeacherApproval = {
   agent_name?: string;
   agent_contact?: string;
 };
-
 type Agent = {
   id: string;
   full_name: string;
   phone_number: string;
 };
-
 type ChannelMember = {
   id: string;
   agent_id: string;
@@ -99,7 +96,6 @@ type ChannelMember = {
   status: "active" | "suspended" | "left";
   joined_at: string;
 };
-
 type TeacherHubTabProps = {
   getCachedData: () => any;
   setCachedData: (data: any) => void;
@@ -173,25 +169,20 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           .eq("status", "pending")
           .order("requested_at", { ascending: false }),
       ]);
-
       const { data: memberCounts } = await supabase.from("channel_members").select("channel_id");
       const countMap = new Map();
       memberCounts?.forEach((m) => countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1));
-
       const channelsWithCounts = (channelsRes.data || []).map((channel) => ({
         ...channel,
         member_count: countMap.get(channel.id) || 0,
       }));
-
       const agentMap = new Map();
       agentsRes.data?.forEach((agent: any) => agentMap.set(agent.id, agent));
-
       const teachersWithAgentInfo = (teachersRes.data || []).map((teacher: any) => ({
         ...teacher,
         agent_name: agentMap.get(teacher.agent_id)?.full_name || teacher.agent_id,
         agent_contact: agentMap.get(teacher.agent_id)?.phone_number || "No contact",
       }));
-
       setChannels(channelsWithCounts);
       setTeachers(teachersWithAgentInfo);
       setAgents(agentsRes.data || []);
@@ -393,7 +384,6 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       toast.error("Failed to approve teacher.");
     }
   };
-
   const handleRejectTeacher = async (teacherId: string) => {
     try {
       await supabase.from("teacher_approvals").update({ status: "rejected" }).eq("id", teacherId);
@@ -436,7 +426,6 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       toast.error("Failed to approve request.");
     }
   };
-
   const handleRejectJoinRequest = async (requestId: string) => {
     try {
       await supabase.from("channel_join_requests").update({
@@ -647,7 +636,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                   <CardContent className="p-0">
                     <div className="flex items-center gap-3 p-3">
                       <div className="relative">
-                        <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100">
+                        <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100">
                           <img
                             src={channel.image_url || "/placeholder.svg"}
                             alt={channel.name}
@@ -659,7 +648,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-800 truncate">{channel.name}</h3>
+                        <h3 className="font-medium text-gray-800 break-words">{channel.name}</h3>
                         <p className="text-xs text-gray-500 truncate">{channel.description}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">
@@ -745,17 +734,17 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                 <Card key={request.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                        <UserPlus className="h-5 w-5 text-gray-400" />
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                        <UserPlus className="h-8 w-8 text-gray-400" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-800">{request.full_name}</h3>
+                        <h3 className="font-medium text-gray-800 break-words">{request.full_name}</h3>
                         <p className="text-xs text-gray-500">📞 {request.phone_number || "No contact"}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Requested to join: <span className="font-medium">{request.teaching_channels?.name}</span>
+                          Requested to join: <span className="font-medium break-words">{request.teaching_channels?.name}</span>
                         </p>
                         {request.request_message && (
-                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 break-words">
                             "{request.request_message}"
                           </div>
                         )}
@@ -802,18 +791,18 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                 <Card key={teacher.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-3">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                        <Award className="h-5 w-5 text-gray-400" />
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                        <Award className="h-8 w-8 text-gray-400" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium text-gray-800">{teacher.agent_name}</h3>
+                        <h3 className="font-medium text-gray-800 break-words">{teacher.agent_name}</h3>
                         <p className="text-xs text-gray-500">📞 {teacher.agent_contact}</p>
                         <p className="text-xs text-gray-500 mt-1">
                           Experience: {teacher.experience_years} years
                         </p>
                         <div className="flex flex-wrap gap-1 mt-2">
                           {teacher.expertise_areas?.map((area, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
+                            <Badge key={idx} variant="secondary" className="text-xs break-words">
                               {area}
                             </Badge>
                           ))}
@@ -922,27 +911,29 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             <DialogTitle>{selectedChannel?.name}</DialogTitle>
           </DialogHeader>
           {selectedChannel?.image_url && (
-            <div className="w-full h-40 rounded-lg overflow-hidden bg-gray-100 mb-4">
-              <img
-                src={selectedChannel.image_url}
-                alt={selectedChannel.name}
-                className="w-full h-full object-cover"
-              />
+            <div className="flex justify-center mb-4">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-blue-200">
+                <img
+                  src={selectedChannel.image_url}
+                  alt={selectedChannel.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
           )}
           <div className="grid gap-4 py-2">
             <div>
               <p className="text-sm text-gray-500">Description</p>
-              <p className="text-gray-800">{selectedChannel?.description}</p>
+              <p className="text-gray-800 break-words">{selectedChannel?.description}</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Category</p>
-                <p className="font-medium">{selectedChannel?.category}</p>
+                <p className="font-medium break-words">{selectedChannel?.category}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Members</p>
-                <p className="font-medium">
+                <p className="font-medium break-words">
                   {selectedChannelMembers.length} / {selectedChannel?.max_members}
                 </p>
               </div>
@@ -956,7 +947,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                   {selectedChannelMembers.map((member) => (
                     <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                       <div>
-                        <p className="text-sm font-medium">{member.agent_name}</p>
+                        <p className="text-sm font-medium break-words">{member.agent_name}</p>
                         <p className="text-xs text-gray-500">
                           {member.phone_number ? `📞 ${member.phone_number}` : "No contact"} • Joined{" "}
                           {new Date(member.joined_at).toLocaleDateString()}
