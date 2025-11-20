@@ -1,8 +1,7 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
+"use client"
+import { useState, useEffect, useRef } from "react"
 import {
   BookOpen,
-  Users,
   CheckCircle2,
   Trash2,
   Search,
@@ -14,36 +13,18 @@ import {
   Edit2,
   ImageIcon,
   MoreVertical,
-  ChevronLeft,
-  ChevronRight,
-  Home,
-  Bell,
-  User,
   X,
-} from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+} from "lucide-react"
+import { toast } from "sonner"
+import { supabase } from "@/lib/supabase"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import {
   Pagination,
   PaginationContent,
@@ -51,75 +32,75 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination";
+} from "@/components/ui/pagination"
 
 // Types
 type TeachingChannel = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  created_by: string;
-  is_active: boolean;
-  is_public: boolean;
-  max_members: number;
-  image_url?: string;
-  created_at: string;
-  member_count?: number;
-};
+  id: string
+  name: string
+  description: string
+  category: string
+  created_by: string
+  is_active: boolean
+  is_public: boolean
+  max_members: number
+  image_url?: string
+  created_at: string
+  member_count?: number
+}
 type TeacherApproval = {
-  id: string;
-  agent_id: string;
-  status: "pending" | "approved" | "rejected";
-  qualifications: string;
-  experience_years: number;
-  bio: string;
-  expertise_areas: string[];
-  approved_by?: string;
-  approval_notes?: string;
-  approved_at?: string;
-  created_at: string;
-  agent_name?: string;
-  agent_contact?: string;
-};
+  id: string
+  agent_id: string
+  status: "pending" | "approved" | "rejected"
+  qualifications: string
+  experience_years: number
+  bio: string
+  expertise_areas: string[]
+  approved_by?: string
+  approval_notes?: string
+  approved_at?: string
+  created_at: string
+  agent_name?: string
+  agent_contact?: string
+}
 type Agent = {
-  id: string;
-  full_name: string;
-  phone_number: string;
-};
+  id: string
+  full_name: string
+  phone_number: string
+}
 type ChannelMember = {
-  id: string;
-  agent_id: string;
-  agent_name: string;
-  phone_number?: string;
-  role: "admin" | "teacher" | "member";
-  status: "active" | "suspended" | "left";
-  joined_at: string;
-};
+  id: string
+  agent_id: string
+  agent_name: string
+  phone_number?: string
+  role: "admin" | "teacher" | "member"
+  status: "active" | "suspended" | "left"
+  joined_at: string
+}
 type TeacherHubTabProps = {
-  getCachedData: () => any;
-  setCachedData: (data: any) => void;
-};
+  getCachedData: () => any
+  setCachedData: (data: any) => void
+}
 
 export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherHubTabProps) {
   // State
-  const [activeSubTab, setActiveSubTab] = useState<"channels" | "teachers" | "join-requests">("channels");
-  const [channels, setChannels] = useState<TeachingChannel[]>([]);
-  const [teachers, setTeachers] = useState<TeacherApproval[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [joinRequests, setJoinRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showChannelDialog, setShowChannelDialog] = useState(false);
-  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
-  const [showChannelDetailsDialog, setShowChannelDetailsDialog] = useState(false);
-  const [selectedChannel, setSelectedChannel] = useState<TeachingChannel | null>(null);
-  const [selectedChannelMembers, setSelectedChannelMembers] = useState<ChannelMember[]>([]);
-  const [selectedTeacher, setSelectedTeacher] = useState<TeacherApproval | null>(null);
-  const [selectedAgentForAdd, setSelectedAgentForAdd] = useState("");
-  const [selectedRoleForAdd, setSelectedRoleForAdd] = useState<"member" | "teacher" | "admin">("member");
-  const [agentSearchTerm, setAgentSearchTerm] = useState("");
+  const [activeSubTab, setActiveSubTab] = useState<"channels" | "teachers" | "join-requests">("channels")
+  const [channels, setChannels] = useState<TeachingChannel[]>([])
+  const [teachers, setTeachers] = useState<TeacherApproval[]>([])
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [joinRequests, setJoinRequests] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [showChannelDialog, setShowChannelDialog] = useState(false)
+  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false)
+  const [showChannelDetailsDialog, setShowChannelDetailsDialog] = useState(false)
+  const [selectedChannel, setSelectedChannel] = useState<TeachingChannel | null>(null)
+  const [selectedChannelMembers, setSelectedChannelMembers] = useState<ChannelMember[]>([])
+  const [selectedTeacher, setSelectedTeacher] = useState<TeacherApproval | null>(null)
+  const [selectedAgentForAdd, setSelectedAgentForAdd] = useState("")
+  const [selectedRoleForAdd, setSelectedRoleForAdd] = useState<"member" | "teacher" | "admin">("member")
+  const [agentSearchTerm, setAgentSearchTerm] = useState("")
   const [channelForm, setChannelForm] = useState({
     name: "",
     description: "",
@@ -127,37 +108,37 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     is_public: false,
     max_members: 50,
     image_url: "",
-  });
-  const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
-  const [editingChannelName, setEditingChannelName] = useState("");
+  })
+  const [editingChannelId, setEditingChannelId] = useState<string | null>(null)
+  const [editingChannelName, setEditingChannelName] = useState("")
   const [editingChannelForm, setEditingChannelForm] = useState({
     description: "",
     category: "",
     is_public: false,
     max_members: 50,
     image_url: "",
-  });
-  const [showEditChannelDialog, setShowEditChannelDialog] = useState(false);
+  })
+  const [showEditChannelDialog, setShowEditChannelDialog] = useState(false)
   const [teacherForm, setTeacherForm] = useState({
     qualifications: "",
     experience_years: 0,
     bio: "",
     expertise_areas: "",
     approval_notes: "",
-  });
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const editFileInputRef = useRef<HTMLInputElement>(null);
-  const itemsPerPage = 10;
-  const listRef = useRef<HTMLDivElement>(null);
+  })
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
+  const itemsPerPage = 10
+  const listRef = useRef<HTMLDivElement>(null)
 
   // Load Data
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData()
+  }, [])
 
   const loadData = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
       const [channelsRes, teachersRes, agentsRes, joinRequestsRes] = await Promise.all([
         supabase.from("teaching_channels").select("*").order("created_at", { ascending: false }),
@@ -165,45 +146,47 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         supabase.from("agents").select("id, full_name, phone_number").eq("isapproved", true),
         supabase
           .from("channel_join_requests_with_agents")
-          .select("id, channel_id, agent_id, request_message, status, requested_at, full_name, phone_number, teaching_channels(name)")
+          .select(
+            "id, channel_id, agent_id, request_message, status, requested_at, full_name, phone_number, teaching_channels(name)",
+          )
           .eq("status", "pending")
           .order("requested_at", { ascending: false }),
-      ]);
-      const { data: memberCounts } = await supabase.from("channel_members").select("channel_id");
-      const countMap = new Map();
-      memberCounts?.forEach((m) => countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1));
+      ])
+      const { data: memberCounts } = await supabase.from("channel_members").select("channel_id")
+      const countMap = new Map()
+      memberCounts?.forEach((m) => countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1))
       const channelsWithCounts = (channelsRes.data || []).map((channel) => ({
         ...channel,
         member_count: countMap.get(channel.id) || 0,
-      }));
-      const agentMap = new Map();
-      agentsRes.data?.forEach((agent: any) => agentMap.set(agent.id, agent));
+      }))
+      const agentMap = new Map()
+      agentsRes.data?.forEach((agent: any) => agentMap.set(agent.id, agent))
       const teachersWithAgentInfo = (teachersRes.data || []).map((teacher: any) => ({
         ...teacher,
         agent_name: agentMap.get(teacher.agent_id)?.full_name || teacher.agent_id,
         agent_contact: agentMap.get(teacher.agent_id)?.phone_number || "No contact",
-      }));
-      setChannels(channelsWithCounts);
-      setTeachers(teachersWithAgentInfo);
-      setAgents(agentsRes.data || []);
-      setJoinRequests(joinRequestsRes.data || []);
+      }))
+      setChannels(channelsWithCounts)
+      setTeachers(teachersWithAgentInfo)
+      setAgents(agentsRes.data || [])
+      setJoinRequests(joinRequestsRes.data || [])
     } catch (error) {
-      toast.error("Failed to load data. Please try again.");
+      toast.error("Failed to load data. Please try again.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   // Image Upload
-  const handleImageUpload = async (file: File, isEditing: boolean = false) => {
+  const handleImageUpload = async (file: File, isEditing = false) => {
     if (!file || !file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file.");
-      return;
+      toast.error("Please select a valid image file.")
+      return
     }
-    setUploading(true);
+    setUploading(true)
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const formData = new FormData()
+      formData.append("file", file)
       const response = await fetch("/api/upload/image", {
         method: "POST",
         body: formData,
@@ -211,41 +194,43 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           "x-agent-id": "admin",
           "x-agent-phone": "admin",
         },
-      });
-      if (!response.ok) throw new Error("Failed to upload image.");
-      const data = await response.json();
+      })
+      if (!response.ok) throw new Error("Failed to upload image.")
+      const data = await response.json()
       if (isEditing) {
-        setEditingChannelForm({ ...editingChannelForm, image_url: data.url });
+        setEditingChannelForm({ ...editingChannelForm, image_url: data.url })
       } else {
-        setChannelForm({ ...channelForm, image_url: data.url });
+        setChannelForm({ ...channelForm, image_url: data.url })
       }
-      toast.success("Image uploaded successfully!");
+      toast.success("Image uploaded successfully!")
     } catch (error) {
-      toast.error("Failed to upload image.");
+      toast.error("Failed to upload image.")
     } finally {
-      setUploading(false);
+      setUploading(false)
     }
-  };
+  }
 
   // Create Channel
   const handleCreateChannel = async () => {
     if (!channelForm.name.trim()) {
-      toast.error("Channel name is required.");
-      return;
+      toast.error("Channel name is required.")
+      return
     }
     try {
-      await supabase.from("teaching_channels").insert([{
-        name: channelForm.name,
-        description: channelForm.description,
-        category: channelForm.category,
-        is_public: channelForm.is_public,
-        max_members: channelForm.max_members,
-        image_url: channelForm.image_url || null,
-        created_by: "admin",
-        is_active: true,
-      }]);
-      toast.success("Channel created successfully!");
-      setShowChannelDialog(false);
+      await supabase.from("teaching_channels").insert([
+        {
+          name: channelForm.name,
+          description: channelForm.description,
+          category: channelForm.category,
+          is_public: channelForm.is_public,
+          max_members: channelForm.max_members,
+          image_url: channelForm.image_url || null,
+          created_by: "admin",
+          is_active: true,
+        },
+      ])
+      toast.success("Channel created successfully!")
+      setShowChannelDialog(false)
       setChannelForm({
         name: "",
         description: "",
@@ -253,12 +238,12 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         is_public: false,
         max_members: 50,
         image_url: "",
-      });
-      loadData();
+      })
+      loadData()
     } catch (error) {
-      toast.error("Failed to create channel.");
+      toast.error("Failed to create channel.")
     }
-  };
+  }
 
   // Load Channel Members
   const loadChannelMembers = async (channelId: string) => {
@@ -267,7 +252,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         .from("channel_members_with_agents")
         .select("id, agent_id, role, status, joined_at, full_name, phone_number")
         .eq("channel_id", channelId)
-        .eq("status", "active");
+        .eq("status", "active")
       const mappedMembers = (members || []).map((m: any) => ({
         id: m.id,
         agent_id: m.agent_id,
@@ -276,196 +261,216 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         role: m.role,
         status: m.status,
         joined_at: m.joined_at,
-      }));
-      setSelectedChannelMembers(mappedMembers);
+      }))
+      setSelectedChannelMembers(mappedMembers)
     } catch (error) {
-      toast.error("Failed to load channel members.");
+      toast.error("Failed to load channel members.")
     }
-  };
+  }
 
   // Add Member to Channel
   const handleAddMemberToChannel = async () => {
     if (!selectedChannel || !selectedAgentForAdd) {
-      toast.error("Please select an agent.");
-      return;
+      toast.error("Please select an agent.")
+      return
     }
     try {
-      const { error: insertError } = await supabase.from("channel_members").insert([{
-        channel_id: selectedChannel.id,
-        agent_id: selectedAgentForAdd,
-        role: selectedRoleForAdd,
-        status: "active",
-      }]);
-      if (insertError) throw insertError;
-      toast.success(`Member added as ${selectedRoleForAdd}!`);
-      setShowAddMemberDialog(false);
-      setSelectedAgentForAdd("");
-      setSelectedRoleForAdd("member");
-      loadData();
-      if (selectedChannel) loadChannelMembers(selectedChannel.id);
+      const { error: insertError } = await supabase.from("channel_members").insert([
+        {
+          channel_id: selectedChannel.id,
+          agent_id: selectedAgentForAdd,
+          role: selectedRoleForAdd,
+          status: "active",
+        },
+      ])
+      if (insertError) throw insertError
+      toast.success(`Member added as ${selectedRoleForAdd}!`)
+      setShowAddMemberDialog(false)
+      setSelectedAgentForAdd("")
+      setSelectedRoleForAdd("member")
+      loadData()
+      if (selectedChannel) loadChannelMembers(selectedChannel.id)
     } catch (error) {
-      toast.error("Failed to add member.");
+      toast.error("Failed to add member.")
     }
-  };
+  }
 
   // Change Member Role
   const handleChangeMemberRole = async (memberId: string, newRole: "admin" | "teacher" | "member") => {
     try {
-      await supabase.from("channel_members").update({ role: newRole }).eq("id", memberId);
-      toast.success(`Member role updated to ${newRole}!`);
-      if (selectedChannel) loadChannelMembers(selectedChannel.id);
+      await supabase.from("channel_members").update({ role: newRole }).eq("id", memberId)
+      toast.success(`Member role updated to ${newRole}!`)
+      if (selectedChannel) loadChannelMembers(selectedChannel.id)
     } catch (error) {
-      toast.error("Failed to change member role.");
+      toast.error("Failed to change member role.")
     }
-  };
+  }
 
   // Delete Member from Channel
   const handleDeleteMemberFromChannel = async (memberId: string, memberName: string) => {
-    if (!confirm(`Remove ${memberName} from this channel?`)) return;
+    if (!confirm(`Remove ${memberName} from this channel?`)) return
     try {
-      await supabase.from("channel_members").delete().eq("id", memberId);
-      toast.success("Member removed!");
-      if (selectedChannel) loadChannelMembers(selectedChannel.id);
+      await supabase.from("channel_members").delete().eq("id", memberId)
+      toast.success("Member removed!")
+      if (selectedChannel) loadChannelMembers(selectedChannel.id)
     } catch (error) {
-      toast.error("Failed to remove member.");
+      toast.error("Failed to remove member.")
     }
-  };
+  }
 
   // Edit Channel Name
   const handleEditChannelName = async (channelId: string) => {
     if (!editingChannelName.trim()) {
-      toast.error("Channel name cannot be empty.");
-      return;
+      toast.error("Channel name cannot be empty.")
+      return
     }
     try {
-      await supabase.from("teaching_channels").update({ name: editingChannelName }).eq("id", channelId);
-      toast.success("Channel name updated!");
-      setEditingChannelId(null);
-      setEditingChannelName("");
-      loadData();
+      await supabase.from("teaching_channels").update({ name: editingChannelName }).eq("id", channelId)
+      toast.success("Channel name updated!")
+      setEditingChannelId(null)
+      setEditingChannelName("")
+      loadData()
     } catch (error) {
-      toast.error("Failed to update channel name.");
+      toast.error("Failed to update channel name.")
     }
-  };
+  }
 
   // Update Channel Details
   const handleUpdateChannelDetails = async (channelId: string) => {
     if (!editingChannelForm.description.trim()) {
-      toast.error("Description cannot be empty.");
-      return;
+      toast.error("Description cannot be empty.")
+      return
     }
     try {
-      await supabase.from("teaching_channels").update({
-        description: editingChannelForm.description,
-        category: editingChannelForm.category,
-        is_public: editingChannelForm.is_public,
-        max_members: editingChannelForm.max_members,
-        image_url: editingChannelForm.image_url || null,
-      }).eq("id", channelId);
-      toast.success("Channel updated!");
-      setShowEditChannelDialog(false);
-      setEditingChannelId(null);
-      loadData();
+      await supabase
+        .from("teaching_channels")
+        .update({
+          description: editingChannelForm.description,
+          category: editingChannelForm.category,
+          is_public: editingChannelForm.is_public,
+          max_members: editingChannelForm.max_members,
+          image_url: editingChannelForm.image_url || null,
+        })
+        .eq("id", channelId)
+      toast.success("Channel updated!")
+      setShowEditChannelDialog(false)
+      setEditingChannelId(null)
+      loadData()
     } catch (error) {
-      toast.error("Failed to update channel.");
+      toast.error("Failed to update channel.")
     }
-  };
+  }
 
   // Approve/Reject Teacher
   const handleApproveTeacher = async (teacherId: string) => {
     try {
-      await supabase.from("teacher_approvals").update({
-        status: "approved",
-        approved_at: new Date().toISOString(),
-      }).eq("id", teacherId);
-      toast.success("Teacher approved!");
-      loadData();
+      await supabase
+        .from("teacher_approvals")
+        .update({
+          status: "approved",
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", teacherId)
+      toast.success("Teacher approved!")
+      loadData()
     } catch (error) {
-      toast.error("Failed to approve teacher.");
+      toast.error("Failed to approve teacher.")
     }
-  };
+  }
   const handleRejectTeacher = async (teacherId: string) => {
     try {
-      await supabase.from("teacher_approvals").update({ status: "rejected" }).eq("id", teacherId);
-      toast.success("Teacher rejected.");
-      loadData();
+      await supabase.from("teacher_approvals").update({ status: "rejected" }).eq("id", teacherId)
+      toast.success("Teacher rejected.")
+      loadData()
     } catch (error) {
-      toast.error("Failed to reject teacher.");
+      toast.error("Failed to reject teacher.")
     }
-  };
+  }
 
   // Delete Channel
   const handleDeleteChannel = async (channelId: string) => {
-    if (!confirm("Delete this channel?")) return;
+    if (!confirm("Delete this channel?")) return
     try {
-      await supabase.from("teaching_channels").delete().eq("id", channelId);
-      toast.success("Channel deleted!");
-      loadData();
+      await supabase.from("teaching_channels").delete().eq("id", channelId)
+      toast.success("Channel deleted!")
+      loadData()
     } catch (error) {
-      toast.error("Failed to delete channel.");
+      toast.error("Failed to delete channel.")
     }
-  };
+  }
 
   // Approve/Reject Join Request
   const handleApproveJoinRequest = async (requestId: string, agentId: string, channelId: string) => {
     try {
-      await supabase.from("channel_members").insert([{
-        channel_id: channelId,
-        agent_id: agentId,
-        role: "member",
-        status: "active",
-        joined_at: new Date().toISOString(),
-      }]);
-      await supabase.from("channel_join_requests").update({
-        status: "approved",
-        responded_at: new Date().toISOString(),
-      }).eq("id", requestId);
-      toast.success("Join request approved!");
-      loadData();
+      await supabase.from("channel_members").insert([
+        {
+          channel_id: channelId,
+          agent_id: agentId,
+          role: "member",
+          status: "active",
+          joined_at: new Date().toISOString(),
+        },
+      ])
+      await supabase
+        .from("channel_join_requests")
+        .update({
+          status: "approved",
+          responded_at: new Date().toISOString(),
+        })
+        .eq("id", requestId)
+      toast.success("Join request approved!")
+      loadData()
     } catch (error) {
-      toast.error("Failed to approve request.");
+      toast.error("Failed to approve request.")
     }
-  };
+  }
   const handleRejectJoinRequest = async (requestId: string) => {
     try {
-      await supabase.from("channel_join_requests").update({
-        status: "rejected",
-        responded_at: new Date().toISOString(),
-      }).eq("id", requestId);
-      toast.success("Join request rejected.");
-      loadData();
+      await supabase
+        .from("channel_join_requests")
+        .update({
+          status: "rejected",
+          responded_at: new Date().toISOString(),
+        })
+        .eq("id", requestId)
+      toast.success("Join request rejected.")
+      loadData()
     } catch (error) {
-      toast.error("Failed to reject request.");
+      toast.error("Failed to reject request.")
     }
-  };
+  }
 
   // Filter Data
   const getFilteredData = () => {
-    const data = activeSubTab === "channels" ? channels :
-                 activeSubTab === "teachers" ? teachers :
-                 joinRequests;
-    const searchLower = searchTerm.toLowerCase();
+    const data = activeSubTab === "channels" ? channels : activeSubTab === "teachers" ? teachers : joinRequests
+    const searchLower = searchTerm.toLowerCase()
     return data.filter((item: any) => {
       if (activeSubTab === "channels") {
-        return item.name.toLowerCase().includes(searchLower) ||
-               item.description?.toLowerCase().includes(searchLower) ||
-               item.category.toLowerCase().includes(searchLower);
+        return (
+          item.name.toLowerCase().includes(searchLower) ||
+          item.description?.toLowerCase().includes(searchLower) ||
+          item.category.toLowerCase().includes(searchLower)
+        )
       } else if (activeSubTab === "join-requests") {
-        return item.full_name?.toLowerCase().includes(searchLower) ||
-               item.phone_number?.toLowerCase().includes(searchLower) ||
-               item.teaching_channels?.name?.toLowerCase().includes(searchLower);
+        return (
+          item.full_name?.toLowerCase().includes(searchLower) ||
+          item.phone_number?.toLowerCase().includes(searchLower) ||
+          item.teaching_channels?.name?.toLowerCase().includes(searchLower)
+        )
       } else {
-        return item.agent_name?.toLowerCase().includes(searchLower) ||
-               item.agent_contact?.toLowerCase().includes(searchLower) ||
-               item.bio?.toLowerCase().includes(searchLower);
+        return (
+          item.agent_name?.toLowerCase().includes(searchLower) ||
+          item.agent_contact?.toLowerCase().includes(searchLower) ||
+          item.bio?.toLowerCase().includes(searchLower)
+        )
       }
-    });
-  };
+    })
+  }
 
   // Pagination
-  const filteredData = getFilteredData();
-  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const filteredData = getFilteredData()
+  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
 
   // Render
   if (loading) {
@@ -473,7 +478,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       <div className="flex flex-col items-center justify-center h-64">
         <p className="text-gray-500">Loading...</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -501,7 +506,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                     <div className="relative w-24 h-24 rounded-full bg-gray-100 overflow-hidden">
                       {channelForm.image_url ? (
                         <img
-                          src={channelForm.image_url}
+                          src={channelForm.image_url || "/placeholder.svg"}
                           alt="Channel"
                           className="w-full h-full object-cover"
                         />
@@ -596,21 +601,30 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       {/* Sub-Tabs */}
       <div className="flex border-b border-gray-200">
         <button
-          onClick={() => { setActiveSubTab("channels"); setCurrentPage(1); }}
+          onClick={() => {
+            setActiveSubTab("channels")
+            setCurrentPage(1)
+          }}
           className={`flex-1 p-3 text-center ${activeSubTab === "channels" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
         >
           <BookOpen className="h-5 w-5 mx-auto" />
           <span className="text-xs">Channels</span>
         </button>
         <button
-          onClick={() => { setActiveSubTab("join-requests"); setCurrentPage(1); }}
+          onClick={() => {
+            setActiveSubTab("join-requests")
+            setCurrentPage(1)
+          }}
           className={`flex-1 p-3 text-center ${activeSubTab === "join-requests" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
         >
           <UserPlus className="h-5 w-5 mx-auto" />
           <span className="text-xs">Join Requests</span>
         </button>
         <button
-          onClick={() => { setActiveSubTab("teachers"); setCurrentPage(1); }}
+          onClick={() => {
+            setActiveSubTab("teachers")
+            setCurrentPage(1)
+          }}
           className={`flex-1 p-3 text-center ${activeSubTab === "teachers" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
         >
           <Award className="h-5 w-5 mx-auto" />
@@ -674,9 +688,9 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                setSelectedChannel(channel);
-                                setShowChannelDetailsDialog(true);
-                                loadChannelMembers(channel.id);
+                                setSelectedChannel(channel)
+                                setShowChannelDetailsDialog(true)
+                                loadChannelMembers(channel.id)
                               }}
                             >
                               <Eye className="h-4 w-4 mr-2" />
@@ -686,25 +700,22 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                               size="sm"
                               variant="outline"
                               onClick={() => {
-                                setSelectedChannel(channel);
-                                setShowEditChannelDialog(true);
+                                setSelectedChannel(channel)
+                                setEditingChannelName(channel.name) // Initialize editingChannelName
+                                setShowEditChannelDialog(true)
                                 setEditingChannelForm({
                                   description: channel.description,
                                   category: channel.category,
                                   is_public: channel.is_public,
                                   max_members: channel.max_members,
                                   image_url: channel.image_url || "",
-                                });
+                                })
                               }}
                             >
                               <Edit2 className="h-4 w-4 mr-2" />
                               Edit Channel
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteChannel(channel.id)}
-                            >
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteChannel(channel.id)}>
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete Channel
                             </Button>
@@ -741,7 +752,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                         <h3 className="font-medium text-gray-800 break-words">{request.full_name}</h3>
                         <p className="text-xs text-gray-500">📞 {request.phone_number || "No contact"}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Requested to join: <span className="font-medium break-words">{request.teaching_channels?.name}</span>
+                          Requested to join:{" "}
+                          <span className="font-medium break-words">{request.teaching_channels?.name}</span>
                         </p>
                         {request.request_message && (
                           <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 break-words">
@@ -797,9 +809,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-800 break-words">{teacher.agent_name}</h3>
                         <p className="text-xs text-gray-500">📞 {teacher.agent_contact}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Experience: {teacher.experience_years} years
-                        </p>
+                        <p className="text-xs text-gray-500 mt-1">Experience: {teacher.experience_years} years</p>
                         <div className="flex flex-wrap gap-1 mt-2">
                           {teacher.expertise_areas?.map((area, idx) => (
                             <Badge key={idx} variant="secondary" className="text-xs break-words">
@@ -811,8 +821,11 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       <div className="flex flex-col gap-1">
                         <Badge
                           variant={
-                            teacher.status === "approved" ? "default" :
-                            teacher.status === "pending" ? "secondary" : "destructive"
+                            teacher.status === "approved"
+                              ? "default"
+                              : teacher.status === "pending"
+                                ? "secondary"
+                                : "destructive"
                           }
                           className="text-xs"
                         >
@@ -833,7 +846,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
-                                  setSelectedTeacher(teacher);
+                                  setSelectedTeacher(teacher)
                                 }}
                               >
                                 <MessageSquare className="h-4 w-4 mr-2" />
@@ -884,10 +897,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                 </PaginationItem>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(page)}
-                      isActive={currentPage === page}
-                    >
+                    <PaginationLink onClick={() => setCurrentPage(page)} isActive={currentPage === page}>
                       {page}
                     </PaginationLink>
                   </PaginationItem>
@@ -914,7 +924,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             <div className="flex justify-center mb-4">
               <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-blue-200">
                 <img
-                  src={selectedChannel.image_url}
+                  src={selectedChannel.image_url || "/placeholder.svg"}
                   alt={selectedChannel.name}
                   className="w-full h-full object-cover"
                 />
@@ -986,8 +996,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             <Button
               variant="outline"
               onClick={() => {
-                setSelectedChannel(null);
-                setShowChannelDetailsDialog(false);
+                setSelectedChannel(null)
+                setShowChannelDetailsDialog(false)
               }}
             >
               Close
@@ -1021,9 +1031,10 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       </SelectTrigger>
                       <SelectContent>
                         {agents
-                          .filter((agent) =>
-                            agent.full_name.toLowerCase().includes(agentSearchTerm.toLowerCase()) ||
-                            agent.phone_number?.toLowerCase().includes(agentSearchTerm.toLowerCase())
+                          .filter(
+                            (agent) =>
+                              agent.full_name.toLowerCase().includes(agentSearchTerm.toLowerCase()) ||
+                              agent.phone_number?.toLowerCase().includes(agentSearchTerm.toLowerCase()),
                           )
                           .map((agent) => (
                             <SelectItem key={agent.id} value={agent.id}>
@@ -1072,7 +1083,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               <div className="relative w-24 h-24 rounded-full bg-gray-100 overflow-hidden">
                 {editingChannelForm.image_url ? (
                   <img
-                    src={editingChannelForm.image_url}
+                    src={editingChannelForm.image_url || "/placeholder.svg"}
                     alt="Channel"
                     className="w-full h-full object-cover"
                   />
@@ -1097,6 +1108,15 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               >
                 {uploading ? "Uploading..." : "Change Image"}
               </Button>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Channel Name</Label>
+              <Input
+                id="edit-name"
+                value={editingChannelName}
+                onChange={(e) => setEditingChannelName(e.target.value)}
+                placeholder="Enter channel name"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit-description">Description</Label>
@@ -1147,12 +1167,20 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             <Button variant="outline" onClick={() => setShowEditChannelDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={() => selectedChannel && handleUpdateChannelDetails(selectedChannel.id)} className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              onClick={() => {
+                if (selectedChannel) {
+                  handleUpdateChannelDetails(selectedChannel.id)
+                  handleEditChannelName(selectedChannel.id)
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

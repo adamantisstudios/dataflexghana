@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabase"
-import { CreditCard, ToggleLeft as Toggle, Plus, Trash2, Eye, EyeOff } from 'lucide-react'
+import { CreditCard } from "lucide-react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -24,9 +24,9 @@ interface SubscriptionSettings {
   channel_id: string
   is_enabled: boolean
   monthly_fee: number
-  currency: string
-  description: string
-  benefits: string[]
+  payment_contact_name?: string
+  payment_contact_number?: string
+  payment_instructions?: string
   created_at: string
   updated_at: string
 }
@@ -43,10 +43,9 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
   const [formData, setFormData] = useState({
     is_enabled: false,
     monthly_fee: 0,
-    currency: "GHS",
-    description: "",
-    benefits: [] as string[],
-    newBenefit: "",
+    payment_contact_name: "",
+    payment_contact_number: "",
+    payment_instructions: "",
   })
 
   useEffect(() => {
@@ -73,19 +72,17 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
         setFormData({
           is_enabled: data.is_enabled,
           monthly_fee: data.monthly_fee,
-          currency: data.currency || "GHS",
-          description: data.description || "",
-          benefits: data.benefits || [],
-          newBenefit: "",
+          payment_contact_name: data.payment_contact_name || "",
+          payment_contact_number: data.payment_contact_number || "",
+          payment_instructions: data.payment_instructions || "",
         })
       } else {
         setFormData({
           is_enabled: false,
           monthly_fee: 0,
-          currency: "GHS",
-          description: "",
-          benefits: [],
-          newBenefit: "",
+          payment_contact_name: "",
+          payment_contact_number: "",
+          payment_instructions: "",
         })
       }
     } catch (error) {
@@ -102,8 +99,8 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
       return
     }
 
-    if (formData.is_enabled && !formData.description.trim()) {
-      toast.error("Please enter a subscription description")
+    if (formData.is_enabled && !formData.payment_instructions.trim()) {
+      toast.error("Please enter payment instructions")
       return
     }
 
@@ -116,9 +113,9 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
           .update({
             is_enabled: formData.is_enabled,
             monthly_fee: formData.monthly_fee,
-            currency: formData.currency,
-            description: formData.description,
-            benefits: formData.benefits,
+            payment_contact_name: formData.payment_contact_name,
+            payment_contact_number: formData.payment_contact_number,
+            payment_instructions: formData.payment_instructions,
             updated_at: new Date().toISOString(),
           })
           .eq("id", settings.id)
@@ -126,18 +123,16 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
         if (error) throw error
         toast.success("Subscription settings updated")
       } else {
-        const { error } = await supabase
-          .from("channel_subscription_settings")
-          .insert([
-            {
-              channel_id: channelId,
-              is_enabled: formData.is_enabled,
-              monthly_fee: formData.monthly_fee,
-              currency: formData.currency,
-              description: formData.description,
-              benefits: formData.benefits,
-            },
-          ])
+        const { error } = await supabase.from("channel_subscription_settings").insert([
+          {
+            channel_id: channelId,
+            is_enabled: formData.is_enabled,
+            monthly_fee: formData.monthly_fee,
+            payment_contact_name: formData.payment_contact_name,
+            payment_contact_number: formData.payment_contact_number,
+            payment_instructions: formData.payment_instructions,
+          },
+        ])
 
         if (error) throw error
         toast.success("Subscription settings created")
@@ -151,25 +146,6 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
     } finally {
       setSaving(false)
     }
-  }
-
-  const handleAddBenefit = () => {
-    if (!formData.newBenefit.trim()) {
-      toast.error("Please enter a benefit")
-      return
-    }
-    setFormData({
-      ...formData,
-      benefits: [...formData.benefits, formData.newBenefit],
-      newBenefit: "",
-    })
-  }
-
-  const handleRemoveBenefit = (index: number) => {
-    setFormData({
-      ...formData,
-      benefits: formData.benefits.filter((_, i) => i !== index),
-    })
   }
 
   if (loading) {
@@ -201,26 +177,22 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
               <div className="bg-white rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-700">Monthly Fee</span>
-                  <span className="text-lg font-bold text-green-600">
-                    {formData.currency} {formData.monthly_fee.toFixed(2)}
-                  </span>
+                  <span className="text-lg font-bold text-green-600">GHS {formData.monthly_fee.toFixed(2)}</span>
                 </div>
-                <p className="text-xs text-gray-600 line-clamp-3">{formData.description}</p>
-                {formData.benefits.length > 0 && (
+                <p className="text-xs text-gray-600 line-clamp-3">{formData.payment_instructions}</p>
+                {formData.payment_contact_name && (
                   <div className="pt-2 border-t border-gray-200">
-                    <p className="text-xs font-semibold text-gray-700 mb-1">Subscription Benefits:</p>
-                    <ul className="space-y-1">
-                      {formData.benefits.map((benefit, idx) => (
-                        <li key={idx} className="text-xs text-gray-600 flex items-center gap-1">
-                          <span className="text-green-600">✓</span> {benefit}
-                        </li>
-                      ))}
-                    </ul>
+                    <p className="text-xs font-semibold text-gray-700 mb-1">Payment Contact:</p>
+                    <p className="text-xs text-gray-600">{formData.payment_contact_name}</p>
+                    {formData.payment_contact_number && (
+                      <p className="text-xs text-gray-600">📞 {formData.payment_contact_number}</p>
+                    )}
                   </div>
                 )}
               </div>
               <p className="text-xs text-green-700 bg-green-100 rounded p-2">
-                ℹ️ Your channel is set up for paid access. Members will need to subscribe to access full content.
+                ℹ️ Your channel subscriptions are enabled. Members must manually pay using the payment details you
+                provided.
               </p>
             </>
           ) : (
@@ -240,7 +212,7 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
               <DialogHeader>
                 <DialogTitle className="text-base">Manage Channel Subscription</DialogTitle>
                 <DialogDescription className="text-xs">
-                  Configure subscription settings for your teaching channel
+                  Configure subscription settings for your teaching channel. Payment is manual.
                 </DialogDescription>
               </DialogHeader>
 
@@ -272,94 +244,73 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
                     {/* Monthly Fee */}
                     <div className="grid gap-2">
                       <Label htmlFor="fee" className="text-xs font-medium">
-                        Monthly Fee
+                        Monthly Fee (GHS)
                       </Label>
-                      <div className="flex gap-2">
-                        <select
-                          value={formData.currency}
-                          onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                          className="px-2 py-2 border border-gray-300 rounded text-xs w-20"
-                        >
-                          <option value="GHS">GHS</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                        </select>
-                        <Input
-                          id="fee"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={formData.monthly_fee}
-                          onChange={(e) => setFormData({ ...formData, monthly_fee: parseFloat(e.target.value) || 0 })}
-                          placeholder="Enter monthly fee"
-                          className="flex-1 h-9 text-xs"
-                        />
-                      </div>
+                      <Input
+                        id="fee"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.monthly_fee || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            monthly_fee: e.target.value ? Number.parseFloat(e.target.value) : 0,
+                          })
+                        }
+                        placeholder="0.00"
+                        className="flex-1 h-9 text-xs"
+                      />
                     </div>
 
-                    {/* Description */}
+                    {/* Payment Instructions */}
                     <div className="grid gap-2">
-                      <Label htmlFor="description" className="text-xs font-medium">
-                        Subscription Description
+                      <Label htmlFor="payment-instructions" className="text-xs font-medium">
+                        Payment Instructions
                       </Label>
                       <textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="Describe what members will get with this subscription..."
+                        id="payment-instructions"
+                        value={formData.payment_instructions}
+                        onChange={(e) => setFormData({ ...formData, payment_instructions: e.target.value })}
+                        placeholder="How should members pay? (e.g., Mobile Money, Bank Transfer, etc.)"
                         rows={3}
                         className="px-3 py-2 border border-gray-300 rounded text-xs resize-none"
                       />
                     </div>
 
-                    {/* Benefits */}
+                    {/* Payment Contact Name */}
                     <div className="grid gap-2">
-                      <Label className="text-xs font-medium">Benefits</Label>
-                      <div className="space-y-2">
-                        {formData.benefits.map((benefit, idx) => (
-                          <div key={idx} className="flex items-center justify-between gap-2 bg-gray-50 p-2 rounded border border-gray-200">
-                            <span className="text-xs text-gray-700 flex-1">{benefit}</span>
-                            <button
-                              onClick={() => handleRemoveBenefit(idx)}
-                              className="p-1 hover:bg-red-100 text-red-600 rounded transition-colors"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <Input
-                          value={formData.newBenefit}
-                          onChange={(e) => setFormData({ ...formData, newBenefit: e.target.value })}
-                          placeholder="Add a benefit (e.g., Access to all lessons)"
-                          className="flex-1 h-8 text-xs"
-                          onKeyPress={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault()
-                              handleAddBenefit()
-                            }
-                          }}
-                        />
-                        <Button
-                          size="sm"
-                          onClick={handleAddBenefit}
-                          className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-3 text-xs"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      <Label htmlFor="contact-name" className="text-xs font-medium">
+                        Payment Contact Name (Optional)
+                      </Label>
+                      <Input
+                        id="contact-name"
+                        value={formData.payment_contact_name}
+                        onChange={(e) => setFormData({ ...formData, payment_contact_name: e.target.value })}
+                        placeholder="Your name or business name"
+                        className="h-9 text-xs"
+                      />
+                    </div>
+
+                    {/* Payment Contact Number */}
+                    <div className="grid gap-2">
+                      <Label htmlFor="contact-number" className="text-xs font-medium">
+                        Payment Contact Number (Optional)
+                      </Label>
+                      <Input
+                        id="contact-number"
+                        value={formData.payment_contact_number}
+                        onChange={(e) => setFormData({ ...formData, payment_contact_number: e.target.value })}
+                        placeholder="Phone number for payments"
+                        className="h-9 text-xs"
+                      />
                     </div>
                   </>
                 )}
               </div>
 
               <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDialog(false)}
-                  className="text-xs h-8"
-                >
+                <Button variant="outline" onClick={() => setShowDialog(false)} className="text-xs h-8">
                   Cancel
                 </Button>
                 <Button
@@ -379,12 +330,13 @@ export function ChannelSubscriptionManager({ channelId }: ChannelSubscriptionMan
       <Card className="border-blue-200 bg-blue-50">
         <CardContent className="pt-4">
           <div className="space-y-2 text-xs text-blue-800">
-            <p className="font-semibold">💡 How Subscriptions Work:</p>
+            <p className="font-semibold">💡 How Manual Subscriptions Work:</p>
             <ul className="space-y-1 list-disc list-inside">
-              <li>Enable subscriptions to restrict channel access to paid members</li>
-              <li>Members will need to pay the monthly fee to access your content</li>
-              <li>You can customize what benefits subscribers receive</li>
-              <li>All subscription payments are processed securely</li>
+              <li>Enable subscriptions and set your monthly fee</li>
+              <li>Provide payment instructions (Mobile Money, Bank, etc.)</li>
+              <li>Add your contact details so members can reach you</li>
+              <li>Members will see your subscription info in the channel</li>
+              <li>All payments are managed directly between you and members</li>
             </ul>
           </div>
         </CardContent>

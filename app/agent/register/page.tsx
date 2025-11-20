@@ -57,40 +57,39 @@ export default function RegisterPage() {
   const [showBeyondDataModal, setShowBeyondDataModal] = useState(false)
   const router = useRouter()
 
- // Auto-show warning popup after 30 seconds
-    useEffect(() => {
-      const warningTimer = setTimeout(() => {
-        setShowWarningPopup(true)
-      }, 30000) // 30 seconds
-      return () => clearTimeout(warningTimer)
-    }, [])
+  // Auto-show warning popup after 30 seconds
+  useEffect(() => {
+    const warningTimer = setTimeout(() => {
+      setShowWarningPopup(true)
+    }, 30000) // 30 seconds
+    return () => clearTimeout(warningTimer)
+  }, [])
 
-    // Auto-show audio player after 1 minute
-    useEffect(() => {
-      const audioTimer = setTimeout(() => {
-        setShowAudioPlayer(true)
-      }, 60000) // 60 seconds
-      return () => clearTimeout(audioTimer)
-    }, [])
+  // Auto-show audio player after 1 minute
+  useEffect(() => {
+    const audioTimer = setTimeout(() => {
+      setShowAudioPlayer(true)
+    }, 60000) // 60 seconds
+    return () => clearTimeout(audioTimer)
+  }, [])
 
-    // Countdown timer for warning popup
-    useEffect(() => {
-      if (!showWarningPopup) return
+  // Countdown timer for warning popup
+  useEffect(() => {
+    if (!showWarningPopup) return
 
-      const timer = setInterval(() => {
-        setPopupTimeRemaining((prev) => {
-          if (prev <= 1) {
-            setCanClosePopup(true)
-            clearInterval(timer)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 3000) // same 3-second decrement interval
+    const timer = setInterval(() => {
+      setPopupTimeRemaining((prev) => {
+        if (prev <= 1) {
+          setCanClosePopup(true)
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 3000) // same 3-second decrement interval
 
-      return () => clearInterval(timer)
-    }, [showWarningPopup])
-
+    return () => clearInterval(timer)
+  }, [showWarningPopup])
 
   // Track referral code from URL
   useEffect(() => {
@@ -174,6 +173,14 @@ export default function RegisterPage() {
 
       if (data && data[0]) {
         const newAgent = data[0]
+        localStorage.setItem(
+          "newRegistration",
+          JSON.stringify({
+            fullName: formData.fullName,
+            agentId: newAgent.id,
+            timestamp: new Date().toISOString(),
+          }),
+        )
         if (referralCode) {
           try {
             const { data: referralLink } = await supabase
@@ -270,7 +277,7 @@ export default function RegisterPage() {
         />
       )}
 
-     {/* Warning Popup */}
+      {/* Warning Popup */}
       {showWarningPopup && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full border-red-300 bg-white shadow-2xl">
@@ -286,7 +293,8 @@ export default function RegisterPage() {
                   Please confirm you are ready to pay the one-time 50 GHS entry fee before registering.
                 </p>
                 <p className="text-sm text-red-800 leading-relaxed mb-3">
-                  This platform is for serious individuals committed to working as agents and earning commissions remotely.
+                  This platform is for serious individuals committed to working as agents and earning commissions
+                  remotely.
                 </p>
                 <p className="text-sm text-red-800 leading-relaxed mb-3">
                   Register only if you are motivated, prepared, and willing to follow our processes.
@@ -311,7 +319,6 @@ export default function RegisterPage() {
           </Card>
         </div>
       )}
-
 
       {/* Header - Responsive */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-10">

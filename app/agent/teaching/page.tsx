@@ -1,6 +1,6 @@
-"use client";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+"use client"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   BookOpen,
   Users,
@@ -11,28 +11,17 @@ import {
   Award,
   CheckCircle2,
   MessageCircle,
-  ChevronRight,
   MessageSquare,
-  Home,
-  Bell,
-  User,
-  MoreVertical,
-  X,
-} from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system";
-import { BackToTop } from "@/components/back-to-top";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from "lucide-react"
+import { toast } from "sonner"
+import { supabase } from "@/lib/supabase"
+import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
+import { BackToTop } from "@/components/back-to-top"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -41,34 +30,39 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { TeacherChannelDashboard } from "@/components/teaching/TeacherChannelDashboard";
+} from "@/components/ui/dialog"
+import { TeacherChannelDashboard } from "@/components/teaching/TeacherChannelDashboard"
+import { ChannelSubscriptionBadge } from "@/components/teaching/channel-subscription-badge"
 
 // Types
 interface TeachingChannel {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  is_public: boolean;
-  max_members: number;
-  image_url?: string;
-  created_at: string;
-  member_count?: number;
-  is_member?: boolean;
-  user_role?: string;
+  id: string
+  name: string
+  description: string
+  category: string
+  is_public: boolean
+  max_members: number
+  image_url?: string
+  created_at: string
+  member_count?: number
+  is_member?: boolean
+  user_role?: string
+  subscription_enabled?: boolean
+  subscription_fee?: number
+  days_until_expiry?: number
+  is_subscription_active?: boolean
 }
 interface ChannelPost {
-  id: string;
-  channel_id: string;
-  title: string;
-  content: string;
-  post_type: string;
-  author_id: string;
-  author_name?: string;
-  view_count: number;
-  created_at: string;
-  comment_count?: number;
+  id: string
+  channel_id: string
+  title: string
+  content: string
+  post_type: string
+  author_id: string
+  author_name?: string
+  view_count: number
+  created_at: string
+  comment_count?: number
 }
 
 // Skeleton Loader
@@ -96,92 +90,131 @@ function ChannelCardSkeleton() {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 export default function TeachingPlatformPage() {
   // State
-  const router = useRouter();
-  const agent = getStoredAgent();
-  const [activeTab, setActiveTab] = useState<"channels" | "my-channels">("channels");
-  const [channels, setChannels] = useState<TeachingChannel[]>([]);
-  const [myChannels, setMyChannels] = useState<TeachingChannel[]>([]);
-  const [selectedChannel, setSelectedChannel] = useState<TeachingChannel | null>(null);
-  const [channelPosts, setChannelPosts] = useState<ChannelPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showJoinDialog, setShowJoinDialog] = useState(false);
-  const [joinMessage, setJoinMessage] = useState("");
-  const [selectedChannelForJoin, setSelectedChannelForJoin] = useState<TeachingChannel | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [showChannelDialog, setShowChannelDialog] = useState(false);
+  const router = useRouter()
+  const agent = getStoredAgent()
+  const [activeTab, setActiveTab] = useState<"channels" | "my-channels">("channels")
+  const [channels, setChannels] = useState<TeachingChannel[]>([])
+  const [myChannels, setMyChannels] = useState<TeachingChannel[]>([])
+  const [selectedChannel, setSelectedChannel] = useState<TeachingChannel | null>(null)
+  const [channelPosts, setChannelPosts] = useState<ChannelPost[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [showJoinDialog, setShowJoinDialog] = useState(false)
+  const [joinMessage, setJoinMessage] = useState("")
+  const [selectedChannelForJoin, setSelectedChannelForJoin] = useState<TeachingChannel | null>(null)
+  const [hasLoaded, setHasLoaded] = useState(false)
+  const [showChannelDialog, setShowChannelDialog] = useState(false)
 
   // Load Data
   useEffect(() => {
     if (!agent) {
-      router.push("/agent/login");
-      return;
+      router.push("/agent/login")
+      return
     }
     if (!hasLoaded) {
-      loadChannels();
-      setHasLoaded(true);
+      loadChannels()
+      setHasLoaded(true)
     }
-  }, [agent, router, hasLoaded]);
+  }, [agent, router, hasLoaded])
 
   const loadChannels = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
       const { data: publicChannels, error: channelsError } = await supabase
         .from("teaching_channels")
         .select("*")
         .eq("is_public", true)
         .eq("is_active", true)
-        .order("created_at", { ascending: false });
-      if (channelsError) throw channelsError;
+        .order("created_at", { ascending: false })
+      if (channelsError) throw channelsError
+
+      const { data: subscriptionSettings } = await supabase
+        .from("channel_subscription_settings")
+        .select("channel_id, is_enabled, monthly_fee")
+
+      const subscriptionMap = new Map(
+        subscriptionSettings?.map((s: any) => [s.channel_id, { enabled: s.is_enabled, fee: s.monthly_fee }]) || [],
+      )
+
       const { data: memberChannels, error: memberError } = await supabase
         .from("channel_members")
         .select("channel_id, role")
-        .eq("agent_id", agent.id);
-      if (memberError) throw memberError;
-      const memberChannelIds = memberChannels?.map((m) => m.channel_id) || [];
-      const roleMap = new Map(memberChannels?.map((m) => [m.channel_id, m.role]) || []);
-      const { data: memberCounts, error: countError } = await supabase
-        .from("channel_members")
-        .select("channel_id");
-      if (countError) console.error("Error loading member counts:", countError);
-      const countMap = new Map<string, number>();
+        .eq("agent_id", agent.id)
+      if (memberError) throw memberError
+
+      const { data: userSubscriptions } = await supabase
+        .from("member_subscription_status")
+        .select("channel_id, subscription_expires_at, is_active")
+        .eq("agent_id", agent.id)
+
+      const subscriptionStatusMap = new Map(
+        userSubscriptions?.map((s: any) => {
+          const expiresAt = new Date(s.subscription_expires_at)
+          const now = new Date()
+          const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+          return [s.channel_id, { isActive: s.is_active, daysUntilExpiry: daysLeft }]
+        }) || [],
+      )
+
+      const memberChannelIds = memberChannels?.map((m) => m.channel_id) || []
+      const roleMap = new Map(memberChannels?.map((m) => [m.channel_id, m.role]) || [])
+      const { data: memberCounts, error: countError } = await supabase.from("channel_members").select("channel_id")
+      if (countError) console.error("Error loading member counts:", countError)
+      const countMap = new Map<string, number>()
       memberCounts?.forEach((m: any) => {
-        countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1);
-      });
-      const enrichedChannels = (publicChannels || []).map((channel: any) => ({
-        ...channel,
-        is_member: memberChannelIds.includes(channel.id),
-        member_count: countMap.get(channel.id) || 0,
-        user_role: roleMap.get(channel.id),
-        is_active: true,
-      }));
-      setChannels(enrichedChannels);
+        countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1)
+      })
+      const enrichedChannels = (publicChannels || []).map((channel: any) => {
+        const subSettings = subscriptionMap.get(channel.id) || {}
+        const subStatus = subscriptionStatusMap.get(channel.id) || {}
+        return {
+          ...channel,
+          is_member: memberChannelIds.includes(channel.id),
+          member_count: countMap.get(channel.id) || 0,
+          user_role: roleMap.get(channel.id),
+          is_active: true,
+          subscription_enabled: subSettings.enabled || false,
+          subscription_fee: subSettings.fee || 0,
+          days_until_expiry: subStatus.daysUntilExpiry,
+          is_subscription_active: subStatus.isActive,
+        }
+      })
+      setChannels(enrichedChannels)
+
       if (memberChannelIds.length > 0) {
         const { data: userChannels, error: userChannelsError } = await supabase
           .from("teaching_channels")
           .select("*")
           .in("id", memberChannelIds)
-          .order("created_at", { ascending: false });
-        if (userChannelsError) throw userChannelsError;
-        const enrichedUserChannels = (userChannels || []).map((channel: any) => ({
-          ...channel,
-          member_count: countMap.get(channel.id) || 0,
-          user_role: roleMap.get(channel.id),
-          is_active: true,
-        }));
-        setMyChannels(enrichedUserChannels);
+          .order("created_at", { ascending: false })
+        if (userChannelsError) throw userChannelsError
+        const enrichedUserChannels = (userChannels || []).map((channel: any) => {
+          const subSettings = subscriptionMap.get(channel.id) || {}
+          const subStatus = subscriptionStatusMap.get(channel.id) || {}
+          return {
+            ...channel,
+            member_count: countMap.get(channel.id) || 0,
+            user_role: roleMap.get(channel.id),
+            is_active: true,
+            subscription_enabled: subSettings.enabled || false,
+            subscription_fee: subSettings.fee || 0,
+            days_until_expiry: subStatus.daysUntilExpiry,
+            is_subscription_active: subStatus.isActive,
+          }
+        })
+        setMyChannels(enrichedUserChannels)
       }
     } catch (error) {
-      toast.error("Failed to load channels. Please try again.");
+      toast.error("Failed to load channels. Please try again.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   // Load Channel Posts
   const loadChannelPosts = async (channelId: string) => {
@@ -193,92 +226,92 @@ export default function TeachingPlatformPage() {
         .eq("is_archived", false)
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(3);
-      if (error) throw error;
-      setChannelPosts(posts || []);
+        .limit(3)
+      if (error) throw error
+      setChannelPosts(posts || [])
     } catch (error) {
-      toast.error("Failed to load channel posts.");
+      toast.error("Failed to load channel posts.")
     }
-  };
+  }
 
   // Join Channel
   const handleJoinChannel = async () => {
-    if (!selectedChannelForJoin || !agent) return;
+    if (!selectedChannelForJoin || !agent) return
     try {
       const { data: existingRequest } = await supabase
         .from("channel_join_requests")
         .select("id, status")
         .eq("channel_id", selectedChannelForJoin.id)
         .eq("agent_id", agent.id)
-        .maybeSingle();
+        .maybeSingle()
       if (existingRequest) {
         if (existingRequest.status === "pending") {
-          toast.error("You already have a pending join request for this channel.");
+          toast.error("You already have a pending join request for this channel.")
         } else if (existingRequest.status === "approved") {
-          toast.error("You are already a member of this channel.");
+          toast.error("You are already a member of this channel.")
         } else {
-          toast.error(`Your join request was ${existingRequest.status}.`);
+          toast.error(`Your join request was ${existingRequest.status}.`)
         }
-        setShowJoinDialog(false);
-        setSelectedChannelForJoin(null);
-        return;
+        setShowJoinDialog(false)
+        setSelectedChannelForJoin(null)
+        return
       }
       const { data: existing } = await supabase
         .from("channel_members")
         .select("id")
         .eq("channel_id", selectedChannelForJoin.id)
         .eq("agent_id", agent.id)
-        .maybeSingle();
+        .maybeSingle()
       if (existing) {
-        toast.error("You are already a member of this channel.");
-        setShowJoinDialog(false);
-        setSelectedChannelForJoin(null);
-        return;
+        toast.error("You are already a member of this channel.")
+        setShowJoinDialog(false)
+        setSelectedChannelForJoin(null)
+        return
       }
-      const { error: requestError } = await supabase
-        .from("channel_join_requests")
-        .insert([{
+      const { error: requestError } = await supabase.from("channel_join_requests").insert([
+        {
           channel_id: selectedChannelForJoin.id,
           agent_id: agent.id,
           request_message: joinMessage || "",
           status: "pending",
-        }]);
-      if (requestError) throw requestError;
-      toast.success("Join request sent! Waiting for approval.");
-      setShowJoinDialog(false);
-      setJoinMessage("");
-      setSelectedChannelForJoin(null);
-      await loadChannels();
+        },
+      ])
+      if (requestError) throw requestError
+      toast.success("Join request sent! Waiting for approval.")
+      setShowJoinDialog(false)
+      setJoinMessage("")
+      setSelectedChannelForJoin(null)
+      await loadChannels()
     } catch (error) {
-      toast.error("Failed to send join request. Please try again.");
+      toast.error("Failed to send join request. Please try again.")
     }
-  };
+  }
 
   // Open Channel
   const handleOpenChannel = (channel: TeachingChannel) => {
-    router.push(`/agent/teaching/${channel.id}`);
-  };
+    router.push(`/agent/teaching/${channel.id}`)
+  }
 
   // Logout
   const handleLogout = () => {
-    logoutAgent();
-    router.push("/agent/login");
-  };
+    logoutAgent()
+    router.push("/agent/login")
+  }
 
   // Filter Channels
   const filteredChannels = channels.filter(
     (channel) =>
       channel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      channel.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      channel.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
   const filteredMyChannels = myChannels.filter(
     (channel) =>
       channel.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      channel.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      channel.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
   // Render
-  if (!agent) return null;
+  if (!agent) return null
 
   if (selectedChannel && (selectedChannel.user_role === "admin" || selectedChannel.user_role === "teacher")) {
     return (
@@ -299,9 +332,7 @@ export default function TeachingPlatformPage() {
                   <h1 className="text-sm sm:text-base font-bold text-white drop-shadow-lg truncate">
                     {selectedChannel.name}
                   </h1>
-                  <p className="text-xs text-blue-100 truncate">
-                    Teaching Channel - {selectedChannel.user_role}
-                  </p>
+                  <p className="text-xs text-blue-100 truncate">Teaching Channel - {selectedChannel.user_role}</p>
                 </div>
               </div>
               <Button
@@ -324,7 +355,7 @@ export default function TeachingPlatformPage() {
           />
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -346,9 +377,7 @@ export default function TeachingPlatformPage() {
                 <BookOpen className="w-full h-full text-blue-600" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-sm sm:text-base font-bold text-white drop-shadow-lg truncate">
-                  Teaching Platform
-                </h1>
+                <h1 className="text-sm sm:text-base font-bold text-white drop-shadow-lg truncate">Teaching Platform</h1>
                 <p className="text-xs text-blue-100 truncate">Learn from expert teachers</p>
               </div>
             </div>
@@ -437,9 +466,7 @@ export default function TeachingPlatformPage() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-blue-800 text-sm break-words">
-                              {channel.name}
-                            </h3>
+                            <h3 className="font-semibold text-blue-800 text-sm break-words">{channel.name}</h3>
                             <p className="text-xs text-gray-600 mt-0.5 truncate">{channel.description}</p>
                             <div className="flex items-center gap-3 text-xs text-gray-600 mt-1.5">
                               <span className="flex items-center gap-0.5">
@@ -458,9 +485,9 @@ export default function TeachingPlatformPage() {
                               variant="outline"
                               className="h-7 text-xs text-blue-600 border-blue-200 bg-transparent hover:bg-blue-50"
                               onClick={() => {
-                                setSelectedChannel(channel);
-                                setShowChannelDialog(true);
-                                loadChannelPosts(channel.id);
+                                setSelectedChannel(channel)
+                                setShowChannelDialog(true)
+                                loadChannelPosts(channel.id)
                               }}
                             >
                               <Eye className="h-3 w-3 mr-1" />
@@ -476,8 +503,8 @@ export default function TeachingPlatformPage() {
                                     size="sm"
                                     className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
                                     onClick={() => {
-                                      setSelectedChannelForJoin(channel);
-                                      setShowJoinDialog(true);
+                                      setSelectedChannelForJoin(channel)
+                                      setShowJoinDialog(true)
                                     }}
                                   >
                                     <Plus className="h-3 w-3 mr-1" />
@@ -508,9 +535,9 @@ export default function TeachingPlatformPage() {
                                       type="button"
                                       variant="outline"
                                       onClick={() => {
-                                        setShowJoinDialog(false);
-                                        setJoinMessage("");
-                                        setSelectedChannelForJoin(null);
+                                        setShowJoinDialog(false)
+                                        setJoinMessage("")
+                                        setSelectedChannelForJoin(null)
                                       }}
                                       className="text-xs h-7"
                                     >
@@ -534,6 +561,17 @@ export default function TeachingPlatformPage() {
                             )}
                           </div>
                         </div>
+                        {channel.subscription_enabled && (
+                          <div className="mt-2 pt-2 border-t border-blue-100">
+                            <ChannelSubscriptionBadge
+                              isEnabled={channel.subscription_enabled}
+                              monthlyFee={channel.subscription_fee}
+                              daysUntilExpiry={channel.days_until_expiry}
+                              isPaid={channel.is_member && channel.is_subscription_active}
+                              isExpired={channel.is_member && !channel.is_subscription_active}
+                            />
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -562,7 +600,8 @@ export default function TeachingPlatformPage() {
               ) : (
                 <div className="space-y-2 w-full">
                   {/* Channels You Manage */}
-                  {filteredMyChannels.filter((c) => c.user_role === "teacher" || c.user_role === "admin").length > 0 && (
+                  {filteredMyChannels.filter((c) => c.user_role === "teacher" || c.user_role === "admin").length >
+                    0 && (
                     <div className="space-y-2 w-full">
                       <h3 className="font-semibold text-blue-800 flex items-center gap-1 text-xs sm:text-sm mb-2">
                         <Award className="h-4 w-4 text-blue-600" />
@@ -587,9 +626,7 @@ export default function TeachingPlatformPage() {
                                   </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-blue-800 text-sm break-words">
-                                    {channel.name}
-                                  </h3>
+                                  <h3 className="font-semibold text-blue-800 text-sm break-words">{channel.name}</h3>
                                   <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{channel.description}</p>
                                   <div className="flex items-center gap-2 text-xs text-gray-600 mt-1.5 flex-wrap">
                                     <span className="flex items-center gap-0.5">
@@ -599,7 +636,9 @@ export default function TeachingPlatformPage() {
                                     <Badge variant="secondary" className="text-xs h-5">
                                       {channel.category}
                                     </Badge>
-                                    <Badge className={`text-xs h-5 ${channel.user_role === "admin" ? "bg-blue-600" : "bg-green-600"} text-white`}>
+                                    <Badge
+                                      className={`text-xs h-5 ${channel.user_role === "admin" ? "bg-blue-600" : "bg-green-600"} text-white`}
+                                    >
                                       {channel.user_role}
                                     </Badge>
                                   </div>
@@ -639,16 +678,14 @@ export default function TeachingPlatformPage() {
                                 <div className="flex-shrink-0">
                                   <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm">
                                     <img
-                                      src={channel.image_url || "/placeholder.svg?height=64&width=64&query=channel"}
+                                      src={channel.image_url || "/placeholder.svg"}
                                       alt={channel.name}
                                       className="w-full h-full object-cover"
                                     />
                                   </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-gray-800 text-sm break-words">
-                                    {channel.name}
-                                  </h3>
+                                  <h3 className="font-semibold text-gray-800 text-sm break-words">{channel.name}</h3>
                                   <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{channel.description}</p>
                                   <div className="flex items-center gap-2 text-xs text-gray-600 mt-1.5 flex-wrap">
                                     <span className="flex items-center gap-0.5">
@@ -757,5 +794,5 @@ export default function TeachingPlatformPage() {
       )}
       <BackToTop />
     </div>
-  );
+  )
 }

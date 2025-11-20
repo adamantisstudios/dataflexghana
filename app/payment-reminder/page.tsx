@@ -3,12 +3,45 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getPlatformName } from "@/lib/config"
-import { Clock, CreditCard, Shield, CheckCircle, Sparkles, TrendingUp, Users, Award, ArrowRight, Phone, Copy, Zap, Target, DollarSign, X, MessageCircle } from 'lucide-react'
+import {
+  Clock,
+  CreditCard,
+  Shield,
+  CheckCircle,
+  Sparkles,
+  TrendingUp,
+  Users,
+  Award,
+  ArrowRight,
+  Phone,
+  Copy,
+  Zap,
+  Target,
+  DollarSign,
+  X,
+  MessageCircle,
+} from "lucide-react"
 import Link from "next/link"
 
 function AdminConfirmationPopup({ onClose }: { onClose: () => void }) {
+  const [agentName, setAgentName] = useState<string>("New Agent")
+
+  useEffect(() => {
+    const registration = localStorage.getItem("newRegistration")
+    if (registration) {
+      try {
+        const data = JSON.parse(registration)
+        setAgentName(data.fullName || "New Agent")
+      } catch (error) {
+        console.error("[v0] Error parsing registration data:", error)
+      }
+    }
+  }, [])
+
   const handleContactAdmin = () => {
-    const message = encodeURIComponent("I just completed regsitration on Dataflex Ghana as an agent. I need more info in order to make payment and activate my account")
+    const message = encodeURIComponent(
+      `My name is ${agentName}. I just completed registration on Dataflex Ghana as an agent. I need more info in order to make payment and activate my account.`,
+    )
     const whatsappUrl = `https://wa.me/233242799990?text=${message}`
     window.open(whatsappUrl, "_blank")
   }
@@ -23,10 +56,7 @@ function AdminConfirmationPopup({ onClose }: { onClose: () => void }) {
             </div>
             <h2 className="text-lg font-bold text-white">Verify Registration</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white/80 hover:text-white transition-colors p-1"
-          >
+          <button onClick={onClose} className="text-white/80 hover:text-white transition-colors p-1">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -35,12 +65,15 @@ function AdminConfirmationPopup({ onClose }: { onClose: () => void }) {
           <div className="space-y-2">
             <p className="text-gray-800 font-semibold text-base">Faster Processing</p>
             <p className="text-gray-600 text-sm leading-relaxed">
-              Confirm your registration details with our admin team for faster verification and payment processing. This ensures your account is activated quickly.
+              Confirm your registration details with our admin team for faster verification and payment processing. This
+              ensures your account is activated quickly.
             </p>
           </div>
 
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-2">
-            <p className="text-xs font-semibold text-emerald-900 uppercase tracking-wide">Benefits of early confirmation:</p>
+            <p className="text-xs font-semibold text-emerald-900 uppercase tracking-wide">
+              Benefits of early confirmation:
+            </p>
             <ul className="space-y-1 text-xs text-emerald-800">
               <li className="flex items-start gap-2">
                 <CheckCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
@@ -68,7 +101,7 @@ function AdminConfirmationPopup({ onClose }: { onClose: () => void }) {
             <Button
               onClick={onClose}
               variant="outline"
-              className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 py-2 rounded-lg"
+              className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 py-2 rounded-lg bg-transparent"
             >
               Close
             </Button>
@@ -122,6 +155,14 @@ export default function PaymentReminderPage() {
       return () => clearTimeout(popupTimer)
     }
   }, [hasShownPopup])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.removeItem("newRegistration")
+    }, 5000) // Clear after 5 seconds to ensure payment reminder page has used it
+
+    return () => clearTimeout(timer)
+  }, [])
 
   const copyPaymentNumber = () => {
     navigator.clipboard.writeText("0557943392")

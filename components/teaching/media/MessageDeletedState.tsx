@@ -35,7 +35,7 @@ export function MessageDeletedState({ deletedAt, onPermanentlyDelete, isLoading 
               <p className="text-xs text-gray-600">Deleted {formatDateTime(deletedAt)}</p>
             </div>
             <p className="text-sm text-gray-700 italic">This message has been deleted</p>
-            <p className="text-xs text-gray-500 mt-1">💡 Right-click or long-press to permanently delete</p>
+            <p className="text-xs text-gray-500 mt-1">���� Right-click or long-press to permanently delete</p>
           </div>
           <Button
             size="sm"
