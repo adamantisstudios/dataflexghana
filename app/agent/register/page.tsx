@@ -173,14 +173,17 @@ export default function RegisterPage() {
 
       if (data && data[0]) {
         const newAgent = data[0]
+        const agentName = formData.fullName || "New Agent"
+
         localStorage.setItem(
           "newRegistration",
           JSON.stringify({
-            fullName: formData.fullName,
+            fullName: agentName,
             agentId: newAgent.id,
             timestamp: new Date().toISOString(),
           }),
         )
+
         if (referralCode) {
           try {
             const { data: referralLink } = await supabase
@@ -246,8 +249,9 @@ export default function RegisterPage() {
             console.error("[v0] Error processing referral:", referralError)
           }
         }
+
+        router.push(`/payment-reminder?name=${encodeURIComponent(agentName)}`)
       }
-      router.push("/payment-reminder")
     } catch (error) {
       console.error("Registration error:", error)
       setError("Registration failed. Please try again.")

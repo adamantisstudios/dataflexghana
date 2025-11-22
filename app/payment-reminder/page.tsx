@@ -27,13 +27,20 @@ function AdminConfirmationPopup({ onClose }: { onClose: () => void }) {
   const [agentName, setAgentName] = useState<string>("New Agent")
 
   useEffect(() => {
-    const registration = localStorage.getItem("newRegistration")
-    if (registration) {
-      try {
-        const data = JSON.parse(registration)
-        setAgentName(data.fullName || "New Agent")
-      } catch (error) {
-        console.error("[v0] Error parsing registration data:", error)
+    const params = new URLSearchParams(window.location.search)
+    const urlName = params.get("name")
+
+    if (urlName) {
+      setAgentName(decodeURIComponent(urlName))
+    } else {
+      const registration = localStorage.getItem("newRegistration")
+      if (registration) {
+        try {
+          const data = JSON.parse(registration)
+          setAgentName(data.fullName || "New Agent")
+        } catch (error) {
+          console.error("[v0] Error parsing registration data:", error)
+        }
       }
     }
   }, [])
@@ -159,7 +166,7 @@ export default function PaymentReminderPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       localStorage.removeItem("newRegistration")
-    }, 5000) // Clear after 5 seconds to ensure payment reminder page has used it
+    }, 15000) // Increased from 5 seconds to 15 seconds
 
     return () => clearTimeout(timer)
   }, [])

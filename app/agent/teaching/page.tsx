@@ -569,6 +569,7 @@ export default function TeachingPlatformPage() {
                               daysUntilExpiry={channel.days_until_expiry}
                               isPaid={channel.is_member && channel.is_subscription_active}
                               isExpired={channel.is_member && !channel.is_subscription_active}
+                              isTeacherOrAdmin={channel.user_role === "admin" || channel.user_role === "teacher"}
                             />
                           </div>
                         )}

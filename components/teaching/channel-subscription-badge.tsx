@@ -1,6 +1,6 @@
 "use client"
 
-import { Lock, Clock, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Lock, Clock, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 
@@ -21,7 +21,7 @@ export function ChannelSubscriptionBadge({
   isExpired = false,
   isTeacherOrAdmin = false,
 }: ChannelSubscriptionBadgeProps) {
-  if (!isEnabled) {
+  if (!isEnabled || isTeacherOrAdmin) {
     return null
   }
 
@@ -29,12 +29,7 @@ export function ChannelSubscriptionBadge({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          {isTeacherOrAdmin ? (
-            <Badge className="bg-green-100 text-green-800 border-green-300 flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3" />
-              Active
-            </Badge>
-          ) : isExpired ? (
+          {isExpired ? (
             <Badge className="bg-red-100 text-red-800 border-red-300 flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               Expired - Renew
@@ -58,17 +53,15 @@ export function ChannelSubscriptionBadge({
           )}
         </TooltipTrigger>
         <TooltipContent className="text-xs max-w-xs">
-          {isTeacherOrAdmin
-            ? "This is a paid channel. You are the channel owner/teacher."
-            : isExpired
-              ? "Your subscription has expired. Renew now to continue accessing this channel's content."
-              : isPaid && daysUntilExpiry !== undefined && daysUntilExpiry > 0
-                ? daysUntilExpiry <= 3
-                  ? `Your subscription expires in ${daysUntilExpiry} day${daysUntilExpiry === 1 ? "" : "s"}. Renew soon to avoid losing access!`
-                  : `Your subscription is active for ${daysUntilExpiry} more day${daysUntilExpiry === 1 ? "" : "s"}`
-                : "This is a paid channel. Monthly subscription of GHS " +
-                  monthlyFee.toFixed(2) +
-                  " per month required to access content."}
+          {isExpired
+            ? "Your subscription has expired. Renew now to continue accessing this channel's content."
+            : isPaid && daysUntilExpiry !== undefined && daysUntilExpiry > 0
+              ? daysUntilExpiry <= 3
+                ? `Your subscription expires in ${daysUntilExpiry} day${daysUntilExpiry === 1 ? "" : "s"}. Renew soon to avoid losing access!`
+                : `Your subscription is active for ${daysUntilExpiry} more day${daysUntilExpiry === 1 ? "" : "s"}`
+              : "This is a paid channel. Monthly subscription of GHS " +
+                monthlyFee.toFixed(2) +
+                " per month required to access content."}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
