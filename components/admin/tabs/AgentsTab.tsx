@@ -62,63 +62,78 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
     }
   }
 
-  useEffect(() => {
-    const loadAgents = async () => {
-      const cachedData = getCachedData()
-      if (cachedData) {
-        setAgents(cachedData)
-        setLoading(false)
-        return
-      }
-      try {
-        const { data: agentsData, error: agentsError } = await supabase
-          .from("agents")
-          .select("*")
-          .order("created_at", { ascending: false })
-        if (agentsError) throw agentsError
-        setAgents(agentsData || [])
-        if (agentsData && agentsData.length > 0) {
-          const agentsWithAccurateEarnings = await Promise.all(
-            agentsData.map(async (agent) => {
-              try {
-                const liveWalletBalance = await calculateWalletBalance(agent.id)
-                const commissionSummary = await getAgentCommissionSummary(agent.id)
-                const availableCommissions = commissionSummary.availableForWithdrawal
-                const storedBalance = agent.wallet_balance || 0
-                if (Math.abs(liveWalletBalance - storedBalance) > 0.01) {
-                  try {
-                    await supabase.from("agents").update({ wallet_balance: liveWalletBalance }).eq("id", agent.id)
-                  } catch (error) {
-                    console.error(`Error updating wallet balance for agent ${agent.id}:`, error)
-                  }
-                }
-                return {
-                  ...agent,
-                  wallet_balance: liveWalletBalance,
-                  commission_balance: availableCommissions,
-                }
-              } catch (error) {
-                console.error(`Error calculating earnings for agent ${agent.id}:`, error)
-                return {
-                  ...agent,
-                  wallet_balance: agent.wallet_balance || 0,
-                  commission_balance: 0,
+  const [totalAgents, setTotalAgents] = useState(0)
+
+  const loadAgents = useCallback(async (page: number = 1) => {
+    try {
+      setLoading(true)
+      const startIndex = (page - 1) * itemsPerPage
+      const endIndex = startIndex + itemsPerPage - 1
+
+      // Get total count first
+      const { count, error: countError } = await supabase
+        .from("agents")
+        .select("*", { count: "exact", head: true })
+      
+      if (countError) throw countError
+      setTotalAgents(count || 0)
+
+      // Fetch only the current page of agents
+      const { data: agentsData, error: agentsError } = await supabase
+        .from("agents")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(startIndex, endIndex)
+      
+      if (agentsError) throw agentsError
+      
+      if (agentsData && agentsData.length > 0) {
+        // Only calculate earnings for the loaded agents (12 at a time)
+        const agentsWithAccurateEarnings = await Promise.all(
+          agentsData.map(async (agent) => {
+            try {
+              const liveWalletBalance = await calculateWalletBalance(agent.id)
+              const commissionSummary = await getAgentCommissionSummary(agent.id)
+              const availableCommissions = commissionSummary.availableForWithdrawal
+              const storedBalance = agent.wallet_balance || 0
+              if (Math.abs(liveWalletBalance - storedBalance) > 0.01) {
+                try {
+                  await supabase.from("agents").update({ wallet_balance: liveWalletBalance }).eq("id", agent.id)
+                } catch (error) {
+                  console.error(`Error updating wallet balance for agent ${agent.id}:`, error)
                 }
               }
-            }),
-          )
-          setAgents(agentsWithAccurateEarnings)
-          setCachedData(agentsWithAccurateEarnings)
-        }
-      } catch (error) {
-        console.error("Error loading agents:", error)
-        alert("Failed to load agents data.")
-      } finally {
-        setLoading(false)
+              return {
+                ...agent,
+                wallet_balance: liveWalletBalance,
+                commission_balance: availableCommissions,
+              }
+            } catch (error) {
+              console.error(`Error calculating earnings for agent ${agent.id}:`, error)
+              return {
+                ...agent,
+                wallet_balance: agent.wallet_balance || 0,
+                commission_balance: 0,
+              }
+            }
+          }),
+        )
+        setAgents(agentsWithAccurateEarnings)
+        // Don't cache paginated data
+      } else {
+        setAgents([])
       }
+    } catch (error) {
+      console.error("Error loading agents:", error)
+      alert("Failed to load agents data.")
+    } finally {
+      setLoading(false)
     }
-    loadAgents()
-  }, [getCachedData, setCachedData])
+  }, [itemsPerPage])
+
+  useEffect(() => {
+    loadAgents(currentAgentsPage)
+  }, [currentAgentsPage, loadAgents])
 
   const filterAgents = useCallback((agents: AgentWithWallet[], searchTerm: string, statusFilter: string) => {
     let filtered = agents
@@ -172,8 +187,12 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
   // Update filtered agents when memoized result changes
   useEffect(() => {
     setFilteredAgents(memoizedFilteredAgents)
-    setCurrentAgentsPage(1)
   }, [memoizedFilteredAgents])
+
+  // Reload agents when search or filter changes - reset to page 1
+  useEffect(() => {
+    setCurrentAgentsPage(1)
+  }, [agentSearchTerm, agentsFilterAdmin])
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp)
@@ -394,6 +413,12 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
     return Math.ceil(totalItems / itemsPerPage)
   }
 
+  const handlePageChange = (page: number) => {
+    setCurrentAgentsPage(page)
+    scrollToTop()
+    loadAgents(page)
+  }
+
   const PaginationControls = ({
     currentPage,
     totalPages,
@@ -517,7 +542,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
         </div>
       </div>
       <div ref={agentsListRef} className="space-y-4">
-        {getPaginatedData(filteredAgents, currentAgentsPage).map((agent) => (
+        {filteredAgents.map((agent) => (
           <Card
             key={agent.id}
             className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
@@ -628,11 +653,8 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       </div>
       <PaginationControls
         currentPage={currentAgentsPage}
-        totalPages={getTotalPages(filteredAgents.length)}
-        onPageChange={(page) => {
-          setCurrentAgentsPage(page)
-          scrollToTop()
-        }}
+        totalPages={getTotalPages(totalAgents)}
+        onPageChange={handlePageChange}
       />
       <Dialog open={showAgentDialog} onOpenChange={setShowAgentDialog}>
         <DialogContent className="sm:max-w-[425px] w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto mx-auto">

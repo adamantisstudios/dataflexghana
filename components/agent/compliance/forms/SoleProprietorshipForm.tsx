@@ -12,6 +12,7 @@ import { ChevronLeft, ChevronRight, Upload, X, Building2, Save } from "lucide-re
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { SignatureCanvas } from "../SignatureCanvas"
+import { PaymentReminderModal } from "@/components/shared/PaymentReminderModal"
 
 interface SoleProprietorshipFormProps {
   agentId: string
@@ -99,6 +100,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
   const [isSaving, setIsSaving] = useState(false)
   const [submissionId, setSubmissionId] = useState<string | null>(null)
   const [showCostPopup, setShowCostPopup] = useState(true)
+  const [showPaymentReminder, setShowPaymentReminder] = useState(false)
 
   const [formData, setFormData] = useState({
     // Section 1: Business Information
@@ -171,8 +173,10 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
   })
 
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null)
-  const [ghanaCardFile, setGhanaCardFile] = useState<File | null>(null)
-  const [ghanaCardPreview, setGhanaCardPreview] = useState<string | null>(null)
+  const [ghanaCardFront, setGhanaCardFront] = useState<File | null>(null)
+  const [ghanaCardFrontPreview, setGhanaCardFrontPreview] = useState<string | null>(null)
+  const [ghanaCardBack, setGhanaCardBack] = useState<File | null>(null)
+  const [ghanaCardBackPreview, setGhanaCardBackPreview] = useState<string | null>(null)
 
   useEffect(() => {
     setShowCostPopup(true)
@@ -192,7 +196,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleGhanaCardChange = (file: File | null) => {
+  const handleGhanaCardFrontChange = (file: File | null) => {
     if (!file) return
 
     if (file.size > 5 * 1024 * 1024) {
@@ -207,15 +211,41 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
 
     const reader = new FileReader()
     reader.onloadend = () => {
-      setGhanaCardFile(file)
-      setGhanaCardPreview(reader.result as string)
+      setGhanaCardFront(file)
+      setGhanaCardFrontPreview(reader.result as string)
     }
     reader.readAsDataURL(file)
   }
 
-  const removeGhanaCard = () => {
-    setGhanaCardFile(null)
-    setGhanaCardPreview(null)
+  const handleGhanaCardBackChange = (file: File | null) => {
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB")
+      return
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files are allowed")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setGhanaCardBack(file)
+      setGhanaCardBackPreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeGhanaCardFront = () => {
+    setGhanaCardFront(null)
+    setGhanaCardFrontPreview(null)
+  }
+
+  const removeGhanaCardBack = () => {
+    setGhanaCardBack(null)
+    setGhanaCardBackPreview(null)
   }
 
   const uploadImage = async (file: File | string, type: string): Promise<string | null> => {
@@ -292,16 +322,18 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
   }
 
   const handleSubmit = async () => {
-    console.log("[v0] Starting form submission", { agentId, formData })
-
-    // Only check for required uploads
     if (!signatureDataUrl) {
       toast.error("Please capture your signature")
       return
     }
 
-    if (!ghanaCardFile) {
-      toast.error("Please upload your Ghana Card")
+    if (!ghanaCardFront) {
+      toast.error("Please upload the front of your Ghana Card")
+      return
+    }
+
+    if (!ghanaCardBack) {
+      toast.error("Please upload the back of your Ghana Card")
       return
     }
 
@@ -311,14 +343,15 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
       console.log("[v0] Uploading images...")
       // Upload images
       const signatureUrl = await uploadImage(signatureDataUrl, "signature")
-      const ghanaCardUrl = ghanaCardFile ? await uploadImage(ghanaCardFile, "ghana_card") : null
+      const ghanaCardFrontUrl = ghanaCardFront ? await uploadImage(ghanaCardFront, "ghana_card_front") : null
+      const ghanaCardBackUrl = ghanaCardBack ? await uploadImage(ghanaCardBack, "ghana_card_back") : null
 
-      if (!signatureUrl || !ghanaCardUrl) {
-        console.error("[v0] Failed to upload images", { signatureUrl, ghanaCardUrl })
+      if (!signatureUrl || !ghanaCardFrontUrl || !ghanaCardBackUrl) {
+        console.error("[v0] Failed to upload images", { signatureUrl, ghanaCardFrontUrl, ghanaCardBackUrl })
         throw new Error("Failed to upload images")
       }
 
-      console.log("[v0] Images uploaded successfully", { signatureUrl, ghanaCardUrl })
+      console.log("[v0] Images uploaded successfully", { signatureUrl, ghanaCardFrontUrl, ghanaCardBackUrl })
 
       // Create or update submission
       let finalSubmissionId = submissionId
@@ -374,7 +407,6 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
         console.log("[v0] Submission created with ID:", finalSubmissionId)
       }
 
-      // Insert images
       console.log("[v0] Inserting form images...")
       const { error: imagesError } = await supabase.from("form_images").insert([
         {
@@ -385,7 +417,12 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
         {
           submission_id: finalSubmissionId,
           image_type: "ghana_card_front",
-          image_url: ghanaCardUrl,
+          image_url: ghanaCardFrontUrl,
+        },
+        {
+          submission_id: finalSubmissionId,
+          image_type: "ghana_card_back",
+          image_url: ghanaCardBackUrl,
         },
       ])
 
@@ -407,7 +444,8 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
           duration: 6000,
         },
       )
-      onComplete()
+
+      setShowPaymentReminder(true)
     } catch (error: any) {
       console.error("[v0] Error submitting form:", error)
       const errorMessage = error?.message || "Unknown error occurred"
@@ -458,6 +496,16 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
         </div>
       )}
 
+      <PaymentReminderModal
+        isOpen={showPaymentReminder}
+        onClose={() => {
+          setShowPaymentReminder(false)
+          onComplete()
+        }}
+        fee="600 GHS"
+        serviceName="Sole Proprietorship Registration"
+      />
+
       <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-emerald-800 flex items-center gap-2">
@@ -474,6 +522,13 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
             {currentStep === 1 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-emerald-800">Business Information</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>ℹ️ Note:</strong> If you don't have information for any field (such as ISIC codes or other
+                    optional details), you can skip it and continue filling the rest of the form. All required fields
+                    are marked with an asterisk (*).
+                  </p>
+                </div>
                 <p className="text-sm text-gray-600">
                   Provide basic information about your business including the name and primary sector of operation
                 </p>
@@ -1191,21 +1246,22 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-emerald-800">Documents & Signature</h3>
                 <p className="text-sm text-gray-600">
-                  Capture your signature and upload your Ghana Card to complete the application
+                  Capture your signature and upload both the front and back of your Ghana Card to complete the
+                  application
                 </p>
 
                 {/* Signature Canvas */}
                 <SignatureCanvas onSignatureCapture={setSignatureDataUrl} />
 
-                {/* Ghana Card Upload */}
+                {/* Ghana Card Front Upload */}
                 <div className="space-y-2">
-                  <Label className="text-base font-semibold">Ghana Card *</Label>
+                  <Label className="text-base font-semibold">Ghana Card - Front Side *</Label>
                   <div className="border-2 border-dashed border-emerald-300 rounded-lg p-4">
-                    {ghanaCardPreview ? (
+                    {ghanaCardFrontPreview ? (
                       <div className="relative">
                         <img
-                          src={ghanaCardPreview || "/placeholder.svg"}
-                          alt="Ghana Card"
+                          src={ghanaCardFrontPreview || "/placeholder.svg"}
+                          alt="Ghana Card Front"
                           className="max-h-48 mx-auto rounded"
                         />
                         <Button
@@ -1213,7 +1269,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
                           variant="destructive"
                           size="sm"
                           className="absolute top-2 right-2"
-                          onClick={removeGhanaCard}
+                          onClick={removeGhanaCardFront}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -1221,13 +1277,54 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
                     ) : (
                       <label className="flex flex-col items-center cursor-pointer py-8">
                         <Upload className="h-12 w-12 text-emerald-600 mb-3" />
-                        <span className="text-base font-medium text-emerald-600 mb-1">Click to upload Ghana Card</span>
+                        <span className="text-base font-medium text-emerald-600 mb-1">
+                          Click to upload Ghana Card Front
+                        </span>
                         <span className="text-sm text-gray-500">PNG, JPG up to 5MB</span>
                         <input
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) => handleGhanaCardChange(e.target.files?.[0] || null)}
+                          onChange={(e) => handleGhanaCardFrontChange(e.target.files?.[0] || null)}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ghana Card Back Upload */}
+                <div className="space-y-2">
+                  <Label className="text-base font-semibold">Ghana Card - Back Side *</Label>
+                  <div className="border-2 border-dashed border-emerald-300 rounded-lg p-4">
+                    {ghanaCardBackPreview ? (
+                      <div className="relative">
+                        <img
+                          src={ghanaCardBackPreview || "/placeholder.svg"}
+                          alt="Ghana Card Back"
+                          className="max-h-48 mx-auto rounded"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={removeGhanaCardBack}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center cursor-pointer py-8">
+                        <Upload className="h-12 w-12 text-emerald-600 mb-3" />
+                        <span className="text-base font-medium text-emerald-600 mb-1">
+                          Click to upload Ghana Card Back
+                        </span>
+                        <span className="text-sm text-gray-500">PNG, JPG up to 5MB</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleGhanaCardBackChange(e.target.files?.[0] || null)}
                         />
                       </label>
                     )}

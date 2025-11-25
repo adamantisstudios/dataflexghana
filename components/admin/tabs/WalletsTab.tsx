@@ -148,6 +148,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   const [walletSearchTerm, setWalletSearchTerm] = useState("")
   const [walletFilterAdmin, setWalletFilterAdmin] = useState("All Transactions")
   const [currentWalletsPage, setCurrentWalletsPage] = useState(1)
+  const [totalWalletTransactions, setTotalWalletTransactions] = useState(0)
   const [showWalletTopupDialog, setShowWalletTopupDialog] = useState(false)
   const [walletTopupForm, setWalletTopupForm] = useState({
     agentId: "",
@@ -159,6 +160,40 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   const admin = getStoredAdmin()
   const [showReversalDialog, setShowReversalDialog] = useState(false)
   const [selectedTopupForReversal, setSelectedTopupForReversal] = useState<any>(null)
+  const [agentsLoaded, setAgentsLoaded] = useState(false) // Track if agents have been loaded
+
+  const loadNextWalletsPage = async (page: number) => {
+    try {
+      const offset = (page - 1) * itemsPerPage
+
+      const { data, count, error } = await supabase
+        .from("wallet_transactions")
+        .select(`*, agents (full_name, phone_number, wallet_balance)`, { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + itemsPerPage - 1)
+
+      if (error) throw error
+
+      setWalletTransactions(data || [])
+      setTotalWalletTransactions(count || 0)
+      setCachedData(data || [])
+    } catch (error) {
+      console.error("Error loading wallet transactions page:", error)
+    }
+  }
+
+  const loadAgentsForTopup = async () => {
+    if (agentsLoaded) return // Don't reload if already loaded
+    try {
+      const { data, error } = await supabase.from("agents").select("*").order("full_name", { ascending: true })
+      if (error) throw error
+      setAgents(data || [])
+      setAgentsLoaded(true)
+    } catch (error) {
+      console.error("Error loading agents:", error)
+    }
+  }
+
   useEffect(() => {
     const loadWalletData = async () => {
       const cachedData = getCachedData()
@@ -170,52 +205,25 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       try {
         const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
 
-        const [walletData, topupsData, agentsData] = await Promise.all([
+        const [walletData, topupsData] = await Promise.all([
           supabase
             .from("wallet_transactions")
-            .select(`*, agents (full_name, phone_number, wallet_balance)`)
-            .order("created_at", { ascending: false }),
+            .select(`*, agents (full_name, phone_number, wallet_balance)`, { count: "exact" })
+            .order("created_at", { ascending: false })
+            .range(0, 11), // Only load first 12
           supabase
             .from("wallet_topups")
             .select(`*, agents (full_name, phone_number)`)
-            .order("created_at", { ascending: false }),
-          supabase.from("agents").select("*").order("full_name", { ascending: true }),
+            .order("created_at", { ascending: false })
+            .range(0, 11), // Only load first 12
         ])
 
         const transactionsData = walletData.data || []
 
-        // Update agent wallet balances to ensure consistency
-        if (agentsData.data && Array.isArray(agentsData.data)) {
-          for (const agent of agentsData.data) {
-            try {
-              const correctBalance = await calculateWalletBalance(agent.id)
-
-              // Update the agent's balance in the database if it's different
-              if (Math.abs((agent.wallet_balance || 0) - correctBalance) > 0.01) {
-                console.log(
-                  `[v0] Syncing wallet balance for agent ${agent.id}: ${agent.wallet_balance} -> ${correctBalance}`,
-                )
-
-                await supabase
-                  .from("agents")
-                  .update({
-                    wallet_balance: correctBalance,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq("id", agent.id)
-
-                // Update the local agent data
-                agent.wallet_balance = correctBalance
-              }
-            } catch (error) {
-              console.warn(`Could not sync balance for agent ${agent.id}:`, error)
-            }
-          }
-        }
+        setTotalWalletTransactions(walletData.count || 0)
 
         setWalletTransactions(transactionsData)
         setWalletTopups(topupsData.data || [])
-        setAgents(agentsData.data || [])
         setCachedData(transactionsData)
       } catch (error) {
         console.error("Error loading wallet data:", error)
@@ -293,20 +301,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         selectedAgentName: "",
       })
       setShowWalletTopupDialog(false)
-      // Reload data
-      const [walletData, topupsData] = await Promise.all([
-        supabase
-          .from("wallet_transactions")
-          .select(`*, agents (full_name, phone_number, wallet_balance)`)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("wallet_topups")
-          .select(`*, agents (full_name, phone_number)`)
-          .order("created_at", { ascending: false }),
-      ])
-      setWalletTransactions(walletData.data || [])
-      setWalletTopups(topupsData.data || [])
-      setCachedData(walletData.data || [])
+      loadNextWalletsPage(1)
+      setCurrentWalletsPage(1)
     } catch (error) {
       console.error("Error creating wallet top-up:", error)
       alert("Failed to create wallet top-up request")
@@ -982,14 +978,17 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     link.click()
     document.body.removeChild(link)
   }
+
+  const getTotalPages = (totalItems: number) => {
+    return Math.ceil(totalItems / itemsPerPage)
+  }
+
   const getPaginatedData = (data: any[], currentPage: number) => {
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     return data.slice(startIndex, endIndex)
   }
-  const getTotalPages = (totalItems: number) => {
-    return Math.ceil(totalItems / itemsPerPage)
-  }
+
   const PaginationControls = ({
     currentPage,
     totalPages,
@@ -1000,13 +999,19 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     onPageChange: (page: number) => void
   }) => {
     if (totalPages <= 1) return null
+
+    const handlePageChange = (page: number) => {
+      loadNextWalletsPage(page)
+      onPageChange(page)
+    }
+
     return (
       <div className="flex justify-center mt-4 sm:mt-6">
         <Pagination>
           <PaginationContent className="gap-1 sm:gap-2">
             <PaginationItem>
               <PaginationPrevious
-                onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
+                onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
                 className={`${
                   currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
                 } h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
@@ -1031,7 +1036,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
               return (
                 <PaginationItem key={pageNum}>
                   <PaginationLink
-                    onClick={() => onPageChange(pageNum)}
+                    onClick={() => handlePageChange(pageNum)}
                     isActive={currentPage === pageNum}
                     className="cursor-pointer h-8 w-8 sm:h-10 sm:w-10 text-xs sm:text-sm"
                   >
@@ -1042,7 +1047,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
             })}
             <PaginationItem>
               <PaginationNext
-                onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
+                onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
                 className={`${
                   currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
                 } h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
@@ -1069,7 +1074,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     )
   }
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-emerald-800">Wallet Management</h2>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -1097,7 +1102,10 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
             />
           </div>
           <Button
-            onClick={() => setShowWalletTopupDialog(true)}
+            onClick={() => {
+              loadAgentsForTopup() // Load agents only when dialog opens
+              setShowWalletTopupDialog(true)
+            }}
             className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 whitespace-nowrap"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -1124,7 +1132,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           </Button>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
-              {walletTransactions.length} total
+              {walletTransactions.length} current page
             </Badge>
             <Badge variant="secondary" className="bg-orange-100 text-orange-800">
               {walletTransactions.filter((t) => t.status === "pending").length} pending
@@ -1312,7 +1320,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       </div>
       <PaginationControls
         currentPage={currentWalletsPage}
-        totalPages={getTotalPages(filteredWalletTransactions.length)}
+        totalPages={getTotalPages(totalWalletTransactions)}
         onPageChange={setCurrentWalletsPage}
       />
       {/* Wallet Top-up Reversal Dialog */}
