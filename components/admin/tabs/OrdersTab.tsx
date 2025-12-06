@@ -49,7 +49,7 @@ import {
   Check,
 } from "lucide-react"
 import { getBundleDisplayName } from "@/lib/bundle-data-handler"
-import { toast } from "sonner" // Added for toast notifications
+import { toast } from "sonner"
 
 interface OrdersTabProps {
   getCachedData: () => DataOrder[] | undefined
@@ -71,113 +71,101 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   const [connectionStatus, setConnectionStatus] = useState(connectionManager.getConnectionStatus())
   const [realtimeConnected, setRealtimeConnected] = useState(false)
   const [showCleanupDialog, setShowCleanupDialog] = useState(false)
-
-  // Added copy tracking state for phone numbers
-  const [copiedPhoneNumbers, setCopiedPhoneNumbers] = useState<Set<string>>(new Set())
-
+  const [copiedPhoneNumbers, setCopiedPhoneNumbers] = useState<Record<string, { copiedAt: number; copyCount: number }>>({})
   const itemsPerPage = 12
   const ordersListRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
   const realtimeUnsubscribeRef = useRef<(() => void) | null>(null)
   const connectionUnsubscribeRef = useRef<(() => void) | null>(null)
-
-  // Use optimistic updates hook
   const { updateOrderStatus, isUpdating } = useOptimisticOrderUpdate()
 
   const scrollToTop = () => {
     ordersListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  // Memoized filter function for better performance
-  const filterOrders = useCallback((orders: DataOrder[], searchTerm: string, statusFilter: string) => {
-    let filtered = orders
+  const filterOrders = useCallback(
+    (orders: DataOrder[], searchTerm: string, statusFilter: string) => {
+      let filtered = orders
+      if (searchTerm) {
+        const lowerSearchTerm = searchTerm.toLowerCase()
+        filtered = filtered.filter(
+          (order) =>
+            order.agents?.full_name?.toLowerCase().includes(lowerSearchTerm) ||
+            order.recipient_phone?.includes(searchTerm) ||
+            order.payment_reference?.toLowerCase().includes(lowerSearchTerm) ||
+            order.data_bundles?.name?.toLowerCase().includes(lowerSearchTerm)
+        )
+      }
+      if (statusFilter !== "All Orders") {
+        filtered = filtered.filter((order) => {
+          switch (statusFilter) {
+            case "Pending":
+              return order.status === "pending"
+            case "Processing":
+              return order.status === "processing"
+            case "Completed":
+              return order.status === "completed"
+            case "Canceled":
+              return order.status === "canceled"
+            default:
+              return true
+          }
+        })
+      }
+      return filtered
+    },
+    []
+  )
 
-    // Apply search filter
-    if (searchTerm) {
-      const lowerSearchTerm = searchTerm.toLowerCase()
-      filtered = filtered.filter(
-        (order) =>
-          order.agents?.full_name?.toLowerCase().includes(lowerSearchTerm) ||
-          order.recipient_phone?.includes(searchTerm) ||
-          order.payment_reference?.toLowerCase().includes(lowerSearchTerm) ||
-          order.data_bundles?.name?.toLowerCase().includes(lowerSearchTerm),
-      )
-    }
-
-    // Apply status filter
-    if (statusFilter !== "All Orders") {
-      filtered = filtered.filter((order) => {
-        switch (statusFilter) {
-          case "Pending":
-            return order.status === "pending"
-          case "Processing":
-            return order.status === "processing"
-          case "Completed":
-            return order.status === "completed"
-          case "Canceled":
-            return order.status === "canceled"
-          default:
-            return true
-        }
-      })
-    }
-
-    return filtered
-  }, [])
-
-  // Memoized filtered orders
   const memoizedFilteredOrders = useMemo(() => {
     return filterOrders(dataOrders, orderSearchTerm, ordersFilterAdmin)
   }, [dataOrders, orderSearchTerm, ordersFilterAdmin, filterOrders])
 
-  // Update filtered orders when memoized result changes
   useEffect(() => {
     setFilteredOrders(memoizedFilteredOrders)
   }, [memoizedFilteredOrders])
 
-  // Setup real-time subscription for order updates
   const setupRealtimeSubscription = useCallback(() => {
     console.log("Setting up real-time subscription for data_orders...")
-
-    const unsubscribe = realtimeManager.subscribe("orders_tab_subscription", "data_orders", (payload) => {
-      console.log("Real-time order update received:", payload)
-
-      if (payload.eventType === "INSERT") {
-        const newOrder = payload.new as DataOrder
-        setDataOrders((prev) => {
-          const updated = [newOrder, ...prev]
-          setCachedData(updated)
-          return updated
-        })
-      } else if (payload.eventType === "UPDATE") {
-        const updatedOrder = payload.new as DataOrder
-        setDataOrders((prev) => {
-          const updated = prev.map((order) => (order.id === updatedOrder.id ? { ...order, ...updatedOrder } : order))
-          setCachedData(updated)
-          return updated
-        })
-      } else if (payload.eventType === "DELETE") {
-        const deletedOrder = payload.old as DataOrder
-        setDataOrders((prev) => {
-          const updated = prev.filter((order) => order.id !== deletedOrder.id)
-          setCachedData(updated)
-          return updated
-        })
+    const unsubscribe = realtimeManager.subscribe(
+      "orders_tab_subscription",
+      "data_orders",
+      (payload) => {
+        console.log("Real-time order update received:", payload)
+        if (payload.eventType === "INSERT") {
+          const newOrder = payload.new as DataOrder
+          setDataOrders((prev) => {
+            const updated = [newOrder, ...prev]
+            setCachedData(updated)
+            return updated
+          })
+        } else if (payload.eventType === "UPDATE") {
+          const updatedOrder = payload.new as DataOrder
+          setDataOrders((prev) => {
+            const updated = prev.map((order) =>
+              order.id === updatedOrder.id ? { ...order, ...updatedOrder } : order
+            )
+            setCachedData(updated)
+            return updated
+          })
+        } else if (payload.eventType === "DELETE") {
+          const deletedOrder = payload.old as DataOrder
+          setDataOrders((prev) => {
+            const updated = prev.filter((order) => order.id !== deletedOrder.id)
+            setCachedData(updated)
+            return updated
+          })
+        }
+        setRealtimeConnected(true)
       }
-
-      setRealtimeConnected(true)
-    })
-
+    )
     realtimeUnsubscribeRef.current = unsubscribe
     setRealtimeConnected(true)
   }, [setCachedData])
 
-  // Setup connection monitoring
   useEffect(() => {
     const unsubscribe = connectionManager.addConnectionListener((status) => {
       setConnectionStatus(status)
-
-      // Update connection error based on status
       if (!status.isOnline) {
         setConnectionError("No internet connection. Please check your network.")
       } else if (!status.isConnected) {
@@ -188,20 +176,16 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         setConnectionError(null)
       }
     })
-
     connectionUnsubscribeRef.current = unsubscribe
     return unsubscribe
   }, [])
 
-  // Enhanced data loading with connection handling
   const loadOrders = useCallback(
     async (forceRefresh = false) => {
       if (loadingRef.current) return
       loadingRef.current = true
       setLoading(true)
-
       try {
-        // Check cache first unless forcing refresh
         if (!forceRefresh) {
           const cachedData = getCachedData()
           if (cachedData && cachedData.length > 0) {
@@ -211,91 +195,70 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             return
           }
         }
-
-        // Clear any previous connection errors
         setConnectionError(null)
-
         let data, error
-
         try {
-          // Try enhanced Supabase client first
           let result
           try {
-            // First attempt: query with admin_hidden filter
             result = await enhancedSupabase
               .from("data_orders")
               .select(
-                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
-              )
-              .or("admin_hidden.is.null,admin_hidden.eq.false") // Only show orders that are not hidden from admin view
-              .order("created_at", { ascending: false })
-          } catch (columnError) {
-            // If admin_hidden column doesn't exist, fall back to query without it
-            console.warn("admin_hidden column not found, querying without filter:", columnError)
-            result = await enhancedSupabase
-              .from("data_orders")
-              .select(
-                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
-              )
-              .order("created_at", { ascending: false })
-          }
-
-          data = result.data
-          error = result.error
-        } catch (enhancedError) {
-          console.warn("Enhanced Supabase client failed, falling back to regular client:", enhancedError)
-
-          // Fallback to regular supabase client
-          let result
-          try {
-            // First attempt: query with admin_hidden filter
-            result = await supabase
-              .from("data_orders")
-              .select(
-                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
+                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`
               )
               .or("admin_hidden.is.null,admin_hidden.eq.false")
               .order("created_at", { ascending: false })
           } catch (columnError) {
-            // If admin_hidden column doesn't exist, fall back to query without it
+            console.warn("admin_hidden column not found, querying without filter:", columnError)
+            result = await enhancedSupabase
+              .from("data_orders")
+              .select(
+                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`
+              )
+              .order("created_at", { ascending: false })
+          }
+          data = result.data
+          error = result.error
+        } catch (enhancedError) {
+          console.warn("Enhanced Supabase client failed, falling back to regular client:", enhancedError)
+          let result
+          try {
+            result = await supabase
+              .from("data_orders")
+              .select(
+                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`
+              )
+              .or("admin_hidden.is.null,admin_hidden.eq.false")
+              .order("created_at", { ascending: false })
+          } catch (columnError) {
             console.warn("admin_hidden column not found in fallback, querying without filter:", columnError)
             result = await supabase
               .from("data_orders")
               .select(
-                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
+                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`
               )
               .order("created_at", { ascending: false })
           }
-
           data = result.data
           error = result.error
         }
-
         if (error) {
           throw error
         }
-
         const ordersData = data || []
         console.log(`✅ Successfully loaded ${ordersData.length} data orders`)
-
         const processedOrders = ordersData.map((order) => ({
           ...order,
-          // Ensure commission_amount is properly calculated if missing
           commission_amount:
             order.commission_amount ||
             (order.data_bundles?.price && order.data_bundles?.commission_rate
               ? order.data_bundles.price * order.data_bundles.commission_rate
               : 0),
         }))
-
         setDataOrders(processedOrders)
         setCachedData(processedOrders)
         setLastRefresh(new Date())
-
-        // Clear connection error on successful load
         setConnectionError(null)
       } catch (error: any) {
-        // Enhanced error logging with detailed information
         const errorMessage = error?.message || "Unknown error occurred"
         const errorDetails = {
           message: errorMessage,
@@ -307,14 +270,8 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
           cause: error?.cause,
           stack: error?.stack,
         }
-
-        // Fix: Properly log the error details as a string instead of object
         console.error("Error loading data orders:", JSON.stringify(errorDetails, null, 2))
-
-        // Set a user-friendly error message
         setConnectionError(`Failed to load orders: ${errorMessage}`)
-
-        // Clear data on error
         setDataOrders([])
         setCachedData([])
       } finally {
@@ -322,15 +279,12 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         loadingRef.current = false
       }
     },
-    [getCachedData, setCachedData],
+    [getCachedData, setCachedData]
   )
 
-  // Initial load and setup
   useEffect(() => {
     loadOrders()
     setupRealtimeSubscription()
-
-    // Cleanup function
     return () => {
       if (realtimeUnsubscribeRef.current) {
         realtimeUnsubscribeRef.current()
@@ -341,86 +295,60 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     }
   }, [loadOrders, setupRealtimeSubscription])
 
-  // CRITICAL FIX: Enhanced order status update with comprehensive validation
   const handleUpdateOrderStatus = useCallback(
     async (orderId: string, status: string) => {
       try {
-        // CRITICAL FIX: Enhanced input validation
         if (!orderId || typeof orderId !== "string" || orderId.trim() === "") {
           setConnectionError("Invalid order ID provided")
           return
         }
-
         if (!status || typeof status !== "string" || status.trim() === "") {
           setConnectionError("Invalid status provided")
           return
         }
-
-        // Validate status value against allowed values
         const validStatuses = ["pending", "processing", "completed", "canceled", "cancelled"]
         const normalizedStatus = status.toLowerCase().trim()
         if (!validStatuses.includes(normalizedStatus)) {
           setConnectionError(`Invalid status: "${status}". Must be one of: ${validStatuses.join(", ")}`)
           return
         }
-
-        // Check if admin is logged in using localStorage-based authentication
         const admin = getStoredAdmin()
         if (!admin) {
           setConnectionError("Session expired. Please refresh the page.")
           return
         }
-
-        // Find the order to validate it exists and check current status
         const orderToUpdate = dataOrders.find((order) => order && order.id === orderId)
         if (!orderToUpdate) {
           setConnectionError("Order not found. The page will be refreshed.")
           setTimeout(() => window.location.reload(), 2000)
           return
         }
-
-        // CRITICAL FIX: Check if status is actually changing
         if (orderToUpdate.status === normalizedStatus) {
           console.log(`Order ${orderId} already has status "${normalizedStatus}", no update needed`)
-          return // No need to update if status is the same
+          return
         }
-
-        // CRITICAL FIX: Validate business logic for status transitions
         const currentStatus = orderToUpdate.status?.toLowerCase()
         if (currentStatus === "completed" && normalizedStatus !== "completed") {
           setConnectionError("Cannot change status of completed orders")
           return
         }
-
         if (currentStatus === "canceled" && normalizedStatus !== "canceled") {
           setConnectionError("Cannot change status of canceled orders")
           return
         }
-
-        // Clear any previous connection errors
         setConnectionError(null)
-
         console.log(`Updating order ${orderId} from "${currentStatus}" to "${normalizedStatus}"`)
-
-        // CRITICAL FIX: Use the enhanced optimistic update with better error handling
         await updateOrderStatus(orderId, normalizedStatus, dataOrders, setDataOrders, setCachedData)
-
         if (normalizedStatus === "completed" && currentStatus !== "completed") {
           console.log(`Order ${orderId} completed - commission should be automatically processed`)
-
-          // Refresh the orders to get updated commission data
           setTimeout(() => {
             loadOrders()
           }, 1000)
         }
-
         console.log(`Successfully updated order ${orderId} to status "${normalizedStatus}"`)
       } catch (error: any) {
         console.error("Order status update failed:", error)
-
-        // CRITICAL FIX: Enhanced error handling with specific error types
         let errorMessage = "Failed to update order status. Please try again."
-
         if (error?.message) {
           const msg = error.message.toLowerCase()
           if (msg.includes("network") || msg.includes("connection") || msg.includes("timeout")) {
@@ -440,45 +368,33 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             errorMessage = `Update failed: ${error.message}`
           }
         }
-
         setConnectionError(errorMessage)
-
-        // CRITICAL FIX: Auto-clear error message after a delay
         setTimeout(() => {
           setConnectionError(null)
         }, 5000)
       }
     },
-    [dataOrders, setDataOrders, setCachedData, updateOrderStatus, loadOrders],
+    [dataOrders, setDataOrders, setCachedData, updateOrderStatus, loadOrders]
   )
 
   const deleteOrder = async (orderId: string) => {
     if (!confirm("Are you sure you want to delete this data order? This action cannot be undone.")) return
-
     try {
-      // Check if admin is logged in using localStorage-based authentication
       const admin = getStoredAdmin()
       if (!admin) {
         setConnectionError("Session expired. Please refresh the page.")
         return
       }
-
       let error
-
       try {
-        // Try enhanced Supabase client first
         const result = await enhancedSupabase.from("data_orders").delete().eq("id", orderId)
         error = result.error
       } catch (enhancedError) {
         console.warn("Enhanced Supabase client failed for delete, falling back to regular client:", enhancedError)
-
-        // Fallback to regular supabase client
         const result = await supabase.from("data_orders").delete().eq("id", orderId)
         error = result.error
       }
-
       if (error) throw error
-
       const updatedOrders = dataOrders.filter((order) => order.id !== orderId)
       setDataOrders(updatedOrders)
       setCachedData(updatedOrders)
@@ -497,46 +413,34 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
 
   const handleSendMessage = async () => {
     if (!selectedOrder || !adminMessage.trim()) return
-
     try {
-      // Check if admin is logged in using localStorage-based authentication
       const admin = getStoredAdmin()
       if (!admin) {
         setConnectionError("Session expired. Please refresh the page.")
         return
       }
-
       let error
-
       try {
-        // Try enhanced Supabase client first
         const result = await enhancedSupabase
           .from("data_orders")
           .update({ admin_message: adminMessage.trim() })
           .eq("id", selectedOrder.id)
-
         error = result.error
       } catch (enhancedError) {
         console.warn(
           "Enhanced Supabase client failed for message update, falling back to regular client:",
-          enhancedError,
+          enhancedError
         )
-
-        // Fallback to regular supabase client
         const result = await supabase
           .from("data_orders")
           .update({ admin_message: adminMessage.trim() })
           .eq("id", selectedOrder.id)
-
         error = result.error
       }
-
       if (error) throw error
-
       alert("Message sent successfully!")
-
       const updatedOrders = dataOrders.map((order) =>
-        order.id === selectedOrder.id ? { ...order, admin_message: adminMessage.trim() } : order,
+        order.id === selectedOrder.id ? { ...order, admin_message: adminMessage.trim() } : order
       )
       setDataOrders(updatedOrders)
       setCachedData(updatedOrders)
@@ -549,23 +453,15 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     }
   }
 
-  // Enhanced refresh function that restores all connections
   const handleCompleteRefresh = useCallback(async () => {
     console.log("Performing complete refresh...")
-
     try {
-      // Force reconnect all systems
       await connectionManager.forceReconnect()
-
-      // Reload data
       await loadOrders(true)
-
-      // Reconnect realtime subscriptions
       if (realtimeUnsubscribeRef.current) {
         realtimeUnsubscribeRef.current()
       }
       setupRealtimeSubscription()
-
       setLastRefresh(new Date())
       console.log("Complete refresh successful")
     } catch (error) {
@@ -573,7 +469,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     }
   }, [loadOrders, setupRealtimeSubscription])
 
-  // Handle orders updated after cleanup
   const handleOrdersUpdated = useCallback(() => {
     loadOrders(true)
   }, [loadOrders])
@@ -583,7 +478,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       alert("No data to download")
       return
     }
-
     const headers = [
       "Date",
       "Agent",
@@ -598,7 +492,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       "Status",
       "Commission Paid",
     ]
-
     const csvData = filteredOrders.map((order) => [
       new Date(order.created_at).toLocaleDateString(),
       order.agents?.full_name || "",
@@ -613,9 +506,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       order.status || "",
       order.commission_paid ? "Yes" : "No",
     ])
-
     const csvContent = [headers, ...csvData].map((row) => row.join(",")).join("\n")
-
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
@@ -657,25 +548,43 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     return Math.ceil(totalItems / itemsPerPage)
   }
 
-  // Updated copy handler to work with phone numbers and added toast notifications
-  const handleCopyOrderNumber = async (phoneNumber: string) => {
-  try {
-    await navigator.clipboard.writeText(phoneNumber);
-    setCopiedPhoneNumbers((prev) => new Set([...prev, phoneNumber]));
-    toast.success("Recipient phone number copied!");
-    // Reset the copied state after 2 seconds
-    setTimeout(() => {
-      setCopiedPhoneNumbers((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(phoneNumber);
-        return newSet;
-      });
-    }, 2000);
-  } catch (error) {
-    toast.error("Failed to copy recipient phone number");
-  }
-};
-
+  // Simplified copy handler with 4-minute unlimited copying, then permanent disable
+  const handleCopyOrderNumber = useCallback((phoneNumber: string) => {
+    const now = Date.now()
+    const phoneData = copiedPhoneNumbers[phoneNumber]
+    if (!phoneData) {
+      navigator.clipboard.writeText(phoneNumber)
+        .then(() => {
+          setCopiedPhoneNumbers(prev => ({
+            ...prev,
+            [phoneNumber]: { copiedAt: now, copyCount: 1 }
+          }))
+          toast.success("Recipient phone number copied!")
+        })
+        .catch(() => {
+          toast.error("Failed to copy recipient phone number")
+        })
+      return
+    }
+    if (now - phoneData.copiedAt < 240000) {
+      navigator.clipboard.writeText(phoneNumber)
+        .then(() => {
+          setCopiedPhoneNumbers(prev => ({
+            ...prev,
+            [phoneNumber]: {
+              copiedAt: phoneData.copiedAt,
+              copyCount: phoneData.copyCount + 1
+            }
+          }))
+          toast.success("Recipient phone number copied again!")
+        })
+        .catch(() => {
+          toast.error("Failed to copy recipient phone number")
+        })
+      return
+    }
+    toast.info("Copy feature expired for this number after 4 minutes.")
+  }, [copiedPhoneNumbers])
 
   const PaginationControls = ({
     currentPage,
@@ -687,7 +596,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     onPageChange: (page: number) => void
   }) => {
     if (totalPages <= 1) return null
-
     return (
       <div className="flex justify-center mt-4 sm:mt-6">
         <Pagination>
@@ -744,7 +652,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   if (loading) {
     return (
       <div className="space-y-4">
-        {/* Enhanced Loading Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
             <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
@@ -758,14 +665,10 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
           </div>
         </div>
-
-        {/* Enhanced Loading Search and Filter */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
           <div className="w-full sm:w-48 h-10 bg-gray-200 rounded animate-pulse"></div>
         </div>
-
-        {/* Enhanced Loading Cards */}
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="border border-gray-200 rounded-lg p-6 bg-white">
@@ -800,8 +703,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             </div>
           ))}
         </div>
-
-        {/* Loading Status Message */}
         <div className="text-center py-8">
           <div className="flex items-center justify-center gap-2 text-emerald-600">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div>
@@ -813,11 +714,9 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     )
   }
 
-  // Enhanced Empty State with Error Recovery
   if (!loading && filteredOrders.length === 0 && !connectionError) {
     return (
       <div className="space-y-4">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
             <h2 className="text-xl sm:text-2xl font-bold text-emerald-800">
@@ -864,8 +763,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             </Button>
           </div>
         </div>
-
-        {/* Search and Filter Controls */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
@@ -890,8 +787,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             </SelectContent>
           </Select>
         </div>
-
-        {/* Empty State */}
         <div className="text-center py-16">
           <div className="mx-auto w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
             <Database className="h-12 w-12 text-emerald-600" />
@@ -923,11 +818,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             </Button>
           </div>
         </div>
-
-        {/* Enhanced Floating Refresh Button */}
         <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />
-
-        {/* Order Cleanup Dialog */}
         <OrderCleanupDialog
           open={showCleanupDialog}
           onOpenChange={setShowCleanupDialog}
@@ -940,7 +831,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
 
   return (
     <div className="space-y-4 relative">
-      {/* Connection Status Banner */}
       {connectionError && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
           <div className="flex items-center gap-2 text-amber-800">
@@ -949,8 +839,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
           </div>
         </div>
       )}
-
-      {/* Real-time Status Indicator */}
       <div className="flex flex-col space-y-4 mb-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -1002,8 +890,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             </Button>
           </div>
         </div>
-
-        {/* Search and Filter Controls */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
@@ -1029,137 +915,140 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
           </Select>
         </div>
       </div>
-
       <div ref={ordersListRef} className="space-y-4">
-        {getPaginatedData(filteredOrders, currentOrdersPage).map((order) => (
-          <Card
-            key={order.id}
-            className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
-          >
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-emerald-800">{getBundleDisplayName(order.data_bundles)}</h3>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-                      <Badge
-                        variant="outline"
-                        className={
-                          order.payment_method === "wallet"
-                            ? "border-purple-200 text-purple-700 bg-purple-50"
-                            : "border-blue-200 text-blue-700 bg-blue-50"
-                        }
-                      >
-                        {order.payment_method === "wallet" ? (
-                          <Wallet className="h-3 w-3 mr-1" />
-                        ) : (
-                          <CreditCard className="h-3 w-3 mr-1" />
-                        )}
-                        {order.payment_method === "wallet" ? "Wallet" : "Manual"}
-                      </Badge>
+        {getPaginatedData(filteredOrders, currentOrdersPage).map((order) => {
+          const phoneData = copiedPhoneNumbers[order.recipient_phone]
+          const isExpired = phoneData && (Date.now() - phoneData.copiedAt >= 240000)
+          return (
+            <Card
+              key={order.id}
+              className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
+            >
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-emerald-800">
+                        {getBundleDisplayName(order.data_bundles)}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                        <Badge
+                          variant="outline"
+                          className={
+                            order.payment_method === "wallet"
+                              ? "border-purple-200 text-purple-700 bg-purple-50"
+                              : "border-blue-200 text-blue-700 bg-blue-50"
+                          }
+                        >
+                          {order.payment_method === "wallet" ? (
+                            <Wallet className="h-3 w-3 mr-1" />
+                          ) : (
+                            <CreditCard className="h-3 w-3 mr-1" />
+                          )}
+                          {order.payment_method === "wallet" ? "Wallet" : "Manual"}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <p className="text-emerald-600">
-                      <span className="font-medium">Agent:</span> {order.agents?.full_name}
-                    </p>
-                    <p className="text-emerald-600">
-                      <span className="font-medium">To:</span> {order.recipient_phone}
-                    </p>
-                    <p className="text-emerald-600">
-                      <span className="font-medium">Reference:</span> {order.payment_reference}
-                    </p>
-                    <p className="text-xs text-emerald-500">
-                      <span className="font-medium">Ordered:</span> {formatTimestamp(order.created_at)}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2">
-                    <div>
-                      <p className="text-sm font-semibold text-emerald-700">
-                        GH₵ {order.data_bundles?.price?.toFixed(2) || "0.00"}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <p className="text-emerald-600">
+                        <span className="font-medium">Agent:</span> {order.agents?.full_name}
                       </p>
-                      <p className="text-xs text-emerald-600">
-                        Commission: GH₵ {safeCommissionDisplay(order.commission_amount).toFixed(2)}
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-emerald-600">To:</span>
+                        <span className="font-mono text-sm font-medium">{order.recipient_phone}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCopyOrderNumber(order.recipient_phone)}
+                          className={`h-7 w-7 p-0 ${
+                            isExpired
+                              ? "text-gray-300 hover:bg-transparent cursor-not-allowed"
+                              : "text-gray-600 hover:bg-gray-100"
+                          }`}
+                          title={
+                            isExpired
+                              ? "Copy feature expired after 4 minutes"
+                              : phoneData
+                                ? `Copied ${phoneData.copyCount} time(s). Unlimited copies for 4 minutes`
+                                : "Copy recipient phone number"
+                          }
+                          disabled={isExpired}
+                        >
+                          {isExpired ? (
+                            <Check className="h-4 w-4" />
+                          ) : phoneData ? (
+                            <Copy className="h-4 w-4 text-blue-500" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-emerald-600">
+                        <span className="font-medium">Reference:</span> {order.payment_reference}
+                      </p>
+                      <p className="text-xs text-emerald-500">
+                        <span className="font-medium">Ordered:</span> {formatTimestamp(order.created_at)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm font-medium">
-                        {order.recipient_phone}
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleCopyOrderNumber(order.recipient_phone)}
-                        className={`h-7 w-7 p-0 ${
-                          copiedPhoneNumbers.has(order.recipient_phone)
-                            ? "text-green-600 hover:bg-green-100"
-                            : "text-gray-600 hover:bg-gray-100"
-                        }`}
-                        title="Copy recipient phone number"
-                      >
-                        {copiedPhoneNumbers.has(order.recipient_phone) ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
+                    <div className="flex items-center justify-between pt-2">
+                      <div>
+                        <p className="text-sm font-semibold text-emerald-700">
+                          GH₵ {order.data_bundles?.price?.toFixed(2) || "0.00"}
+                        </p>
+                        <p className="text-xs text-emerald-600">
+                          Commission: GH₵ {safeCommissionDisplay(order.commission_amount).toFixed(2)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-
+                  <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-emerald-100">
+                    <Select
+                      value={order.status}
+                      onValueChange={(value) => handleUpdateOrderStatus(order.id, value)}
+                      disabled={isUpdating}
+                    >
+                      <SelectTrigger className="w-full sm:w-40 border-emerald-200">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="processing">Processing</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="canceled">Canceled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openMessageDialog(order)}
+                      className="border-blue-300 text-blue-600 hover:bg-blue-50 w-full sm:w-auto"
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      {order.admin_message ? "Edit Message" : "Send Message"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deleteOrder(order.id)}
+                      className="w-full sm:w-auto"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-emerald-100">
-                  <Select
-                    value={order.status}
-                    onValueChange={(value) => handleUpdateOrderStatus(order.id, value)}
-                    disabled={isUpdating}
-                  >
-                    <SelectTrigger className="w-full sm:w-40 border-emerald-200">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="processing">Processing</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="canceled">Canceled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openMessageDialog(order)}
-                    className="border-blue-300 text-blue-600 hover:bg-blue-50 w-full sm:w-auto"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    {order.admin_message ? "Edit Message" : "Send Message"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteOrder(order.id)}
-                    className="w-full sm:w-auto"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
-
       <PaginationControls
         currentPage={currentOrdersPage}
         totalPages={getTotalPages(filteredOrders.length)}
         onPageChange={setCurrentOrdersPage}
       />
-
-      {/* Enhanced Floating Refresh Button */}
       <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />
-
-      {/* Message Dialog */}
       <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
         <DialogContent className="sm:max-w-[425px] w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto mx-auto">
           <DialogHeader>
@@ -1195,8 +1084,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Order Cleanup Dialog */}
       <OrderCleanupDialog
         open={showCleanupDialog}
         onOpenChange={setShowCleanupDialog}
