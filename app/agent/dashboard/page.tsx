@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,14 +18,39 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import {
-  LogOut, Plus, MessageCircle, Banknote, ExternalLink, Smartphone, Settings, Search, TrendingUp, Package, Filter, Briefcase, MapPin, DollarSign, Building2, Mail, Wallet, X, ShoppingBag, PiggyBank, Shield, ArrowRight, Users, CreditCard, AlertTriangle, Lightbulb, Check, Activity, Phone, AlertCircle
-} from 'lucide-react'
+  LogOut,
+  Plus,
+  MessageCircle,
+  Banknote,
+  ExternalLink,
+  Smartphone,
+  Settings,
+  Search,
+  TrendingUp,
+  Package,
+  Filter,
+  Briefcase,
+  MapPin,
+  DollarSign,
+  Building2,
+  Wallet,
+  X,
+  ShoppingBag,
+  PiggyBank,
+  Shield,
+  ArrowRight,
+  Users,
+  CreditCard,
+  AlertTriangle,
+  Lightbulb,
+  Check,
+  AlertCircle,
+} from "lucide-react"
 import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
 import { supabase } from "@/lib/supabase"
 import type { Job } from "@/lib/supabase"
-import { RichTextRenderer } from "@/components/ui/rich-text-renderer"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { calculateCompleteEarnings } from "@/lib/earnings-calculator"
 import { AgentMenuCards } from "@/components/agent/AgentMenuCards"
@@ -59,34 +84,37 @@ const safeCommissionDisplay = (value: number | null | undefined): number => {
 }
 
 const formatDateAgo = (dateString: string) => {
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  let interval = seconds / 31536000;
-  if (interval >= 1) return Math.floor(interval) + " years ago";
-  interval = seconds / 2592000;
-  if (interval >= 1) return Math.floor(interval) + " months ago";
-  interval = seconds / 86400;
-  if (interval >= 1) return Math.floor(interval) + " days ago";
-  interval = seconds / 3600;
-  if (interval >= 1) return Math.floor(interval) + " hours ago";
-  interval = seconds / 60;
-  if (interval >= 1) return Math.floor(interval) + " minutes ago";
-  return Math.floor(seconds) + " seconds ago";
-};
+  const now = new Date()
+  const date = new Date(dateString)
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+  let interval = seconds / 31536000
+  if (interval >= 1) return Math.floor(interval) + " years ago"
+  interval = seconds / 2592000
+  if (interval >= 1) return Math.floor(interval) + " months ago"
+  interval = seconds / 86400
+  if (interval >= 1) return Math.floor(interval) + " days ago"
+  interval = seconds / 3600
+  if (interval >= 1) return Math.floor(interval) + " hours ago"
+  interval = seconds / 60
+  if (interval >= 1) return Math.floor(interval) + " minutes ago"
+  return Math.floor(seconds) + " seconds ago"
+}
 
 const generateSlug = (text: string) => {
   return text
     .toString()
     .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-')
-    .replace(/^-+/, '')
-    .replace(/-+$/, '');
-};
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "")
+    .replace(/--+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "")
+}
 
 export default function AgentDashboard() {
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
+  const [expandedReferrals, setExpandedReferrals] = useState<Set<string>>(new Set())
+
   // State Management
   const router = useRouter()
   const { getFromCache, setInCache } = useAgentDashboardCache()
@@ -158,6 +186,28 @@ export default function AgentDashboard() {
   const performanceRef = useRef<HTMLDivElement>(null)
   const statisticsRef = useRef<HTMLDivElement>(null)
 
+  const toggleDescriptionExpanded = (serviceId: string) => {
+    setExpandedDescriptions((prev) => ({
+      ...prev,
+      [serviceId]: !prev[serviceId],
+    }))
+  }
+
+  // Updated shouldTruncateDescription and getTruncatedDescription to avoid redeclaration
+  const shouldTruncateDescription = (text: string) => {
+    return text.length > 100
+  }
+
+  const getTruncatedDescription = (text: string) => {
+    if (!shouldTruncateDescription(text)) return text
+    return text.substring(0, 100) + "..."
+  }
+
+  const getDisplayDescription = (text: string, serviceId: string) => {
+    if (!shouldTruncateDescription(text)) return text
+    return expandedDescriptions[serviceId] ? text : getTruncatedDescription(text)
+  }
+
   // Memoized Data
   const filteredServices = useMemo(() => {
     if (!loadedTabs.services) return []
@@ -210,12 +260,12 @@ export default function AgentDashboard() {
 
   const filteredJobs = useMemo(() => {
     if (!loadedTabs.jobs) return []
-    const processedJobs = tabData.jobs.map(job => {
+    const processedJobs = tabData.jobs.map((job) => {
       if (!job.job_title && job.industry) {
-        return { ...job, job_title: job.industry };
+        return { ...job, job_title: job.industry }
       }
-      return job;
-    });
+      return job
+    })
     let filtered = processedJobs.filter(
       (job) =>
         job.is_active &&
@@ -223,12 +273,12 @@ export default function AgentDashboard() {
           job.employer_name?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
           job.location?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
           job.industry?.toLowerCase().includes(jobSearchTerm.toLowerCase())),
-    );
+    )
     if (jobsFilterAgent !== "All Jobs") {
       filtered = filtered.filter((job) => {
         switch (jobsFilterAgent) {
           case "Featured":
-            return job.is_featured === true;
+            return job.is_featured === true
           case "Technology":
           case "Finance":
           case "Healthcare":
@@ -236,47 +286,82 @@ export default function AgentDashboard() {
           case "Marketing":
           case "Sales":
           case "Customer Service":
-            return job.industry === jobsFilterAgent;
+            return job.industry === jobsFilterAgent
           default:
-            return true;
+            return true
         }
-      });
+      })
     }
-    return filtered;
-  }, [jobSearchTerm, tabData.jobs, jobsFilterAgent, loadedTabs.jobs]);
+    return filtered
+  }, [jobSearchTerm, tabData.jobs, jobsFilterAgent, loadedTabs.jobs])
+
+  // Functions for referral description expansion
+  const toggleReferralExpanded = (referralId: string) => {
+    setExpandedReferrals((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(referralId)) {
+        newSet.delete(referralId)
+      } else {
+        newSet.add(referralId)
+      }
+      return newSet
+    })
+  }
+
+  // Updated shouldTruncateDescription and getTruncatedDescription to avoid redeclaration
+  const shouldTruncateReferralDescription = (text: string) => {
+    return text.length > 150
+  }
+
+  const getTruncatedReferralDescription = (text: string) => {
+    if (!shouldTruncateReferralDescription(text)) return text
+    const lines = text.split("\n")
+    const firstThreeLines = lines.slice(0, 3).join("\n")
+    if (firstThreeLines.length > 150) {
+      return firstThreeLines.substring(0, 150) + "..."
+    }
+    return firstThreeLines + (lines.length > 3 ? "..." : "")
+  }
+
+  const getDisplayReferralDescription = (text: string, referralId: string) => {
+    if (!shouldTruncateReferralDescription(text)) return text
+    return expandedReferrals.has(referralId) ? text : getTruncatedReferralDescription(text)
+  }
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
+    let timer: NodeJS.Timeout | null = null
     const checkDeactivationStatus = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return;
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        if (!session?.user) return
         const { data: agent } = await supabase
           .from("agents")
           .select("auto_deactivated_at")
           .eq("user_id", session.user.id)
-          .single();
+          .single()
         if (agent?.auto_deactivated_at) {
-          const lastShownKey = `deactivation_alert_shown_${session.user.id}`;
-          const lastShownDate = localStorage.getItem(lastShownKey);
-          const today = new Date().toDateString();
+          const lastShownKey = `deactivation_alert_shown_${session.user.id}`
+          const lastShownDate = localStorage.getItem(lastShownKey)
+          const today = new Date().toDateString()
           if (lastShownDate !== today) {
-            setShowAgentDeactivationAlert(true);
-            localStorage.setItem(lastShownKey, today);
+            setShowAgentDeactivationAlert(true)
+            localStorage.setItem(lastShownKey, today)
             timer = setTimeout(() => {
-              setShowAgentDeactivationAlert(false);
-            }, 8000);
+              setShowAgentDeactivationAlert(false)
+            }, 8000)
           }
         }
       } catch (error) {
-        console.error("Error checking agent status:", error);
+        console.error("Error checking agent status:", error)
       }
-    };
-    checkDeactivationStatus();
+    }
+    checkDeactivationStatus()
     return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, []);
+      if (timer) clearTimeout(timer)
+    }
+  }, [])
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -378,18 +463,18 @@ export default function AgentDashboard() {
               .from("jobs")
               .select("*")
               .eq("is_active", true)
-              .order("created_at", { ascending: false });
+              .order("created_at", { ascending: false })
             if (error) {
-              console.error("Error fetching jobs:", error);
-              setTabData((prev) => ({ ...prev, jobs: [] }));
+              console.error("Error fetching jobs:", error)
+              setTabData((prev) => ({ ...prev, jobs: [] }))
             } else {
               const jobsWithTitles = fetchedJobs.map((job: any) => {
                 if (!job.job_title && job.industry) {
-                  return { ...job, job_title: job.industry };
+                  return { ...job, job_title: job.industry }
                 }
-                return job;
-              });
-              setTabData((prev) => ({ ...prev, jobs: jobsWithTitles }));
+                return job
+              })
+              setTabData((prev) => ({ ...prev, jobs: jobsWithTitles }))
             }
           }
           if (tab === "referrals") setTabData((prev) => ({ ...prev, referrals: data }))
@@ -833,7 +918,8 @@ DataFlex Ghana Agent 🇬🇭`
           </DialogHeader>
           <div className="py-2">
             <p className="text-sm text-amber-800">
-              Your account has been deactivated due to inactivity. Place an order or buy a data bundle to reactivate your account.
+              Your account has been deactivated due to inactivity. Place an order or buy a data bundle to reactivate
+              your account.
             </p>
           </div>
         </DialogContent>
@@ -898,6 +984,8 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         )}
         <AgentMenuCards activeTab={activeTab} onTabChange={handleTabChange} />
+
+        {/* START: MORE THAN JUST DATA CARD */}
         <div className="mb-8">
           <Card className="border-amber-100 bg-amber-50/50 shadow-sm hover:shadow-md transition-shadow w-full">
             <CardContent className="p-4 sm:p-6">
@@ -928,6 +1016,185 @@ DataFlex Ghana Agent 🇬🇭`
             </CardContent>
           </Card>
         </div>
+        {/* END: MORE THAN JUST DATA CARD */}
+
+        {/* START: APPLE SERVICE CENTER CARD */}
+        <div className="mb-8">
+          <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-center">
+                {/* Image Section */}
+                <div className="relative h-64 md:h-full md:min-h-80 overflow-hidden">
+                  <img
+                    src="/repairmantwo.jpg"
+                    alt="Apple Device Repair Service"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                    onClick={() => openImageModal(["/repairmantwo.jpg"], 0, "Apple Service Center")}
+                  />
+                </div>
+
+                {/* Content Section */}
+                <div className="p-6 lg:p-8 space-y-6">
+                  <div>
+                    <div className="inline-block px-3 py-1 bg-amber-200 rounded-full mb-3">
+                      <p className="text-amber-700 text-xs font-semibold">🔧 Professional Apple Repair</p>
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3">
+                      Quick, Professional <span className="text-amber-600">Apple Repairs</span>
+                    </h3>
+                    <p className="text-slate-600 text-sm leading-relaxed">
+                      No need to visit our office! We offer convenient pickup, expert repair, and safe delivery service.
+                    </p>
+                  </div>
+
+                  {/* Features List */}
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                        <Check className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-900 text-sm">Free Pickup Service</h4>
+                        <p className="text-xs text-slate-600">We collect your device at no extra cost</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                        <Check className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-900 text-sm">Expert Technicians</h4>
+                        <p className="text-xs text-slate-600">Certified professionals with quality parts</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                        <Check className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-900 text-sm">Fast Turnaround</h4>
+                        <p className="text-xs text-slate-600">Most repairs within 24-48 hours</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                        <Check className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-900 text-sm">Safe Delivery</h4>
+                        <p className="text-xs text-slate-600">Repaired device delivered to your doorstep</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CTA Button */}
+                  <div className="pt-4">
+                    <Button
+                      asChild
+                      className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold"
+                    >
+                      <Link href="/appleservicecenter">
+                        <ArrowRight className="h-4 w-4 mr-2" />
+                        Visit Main Page
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {/* END: APPLE SERVICE CENTER CARD */}
+        
+        {/* START: FASHIONABLY HIRED CARD */}
+        <div className="mb-8">
+          <Card className="border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-center">
+                {/* Image Section */}
+                <div className="relative h-64 md:h-full md:min-h-80 overflow-hidden">
+                  <img
+                    src="https://fashionablyhired.netlify.app/images/slide2.jpg"
+                    alt="Custom Fashion Design Service"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                    onClick={() => openImageModal(["https://fashionablyhired.netlify.app/images/slide2.jpg"], 0, "Fashionably Hired")}
+                  />
+                </div>
+                {/* Content Section */}
+                <div className="p-6 lg:p-8 space-y-6">
+                  <div>
+                    <div className="inline-block px-3 py-1 bg-navy-200 rounded-full mb-3">
+                      <p className="text-navy-800 text-xs font-semibold">👗 Bespoke Fashion Design</p>
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+                      Stylish, <span className="text-navy-600">Custom Fashion</span> for Every Occasion
+                    </h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      Elevate your wardrobe with our remote fashion design services. From corporate wear to bridal couture, we stitch dreams into reality—no in-person visit required!
+                    </p>
+                  </div>
+                  {/* Features List */}
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
+                        <Check className="w-5 h-5 text-navy-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm">Remote Design Consultations</h4>
+                        <p className="text-xs text-gray-600">Design your outfit from anywhere via WhatsApp</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
+                        <Check className="w-5 h-5 text-navy-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm">Flexible Payment Plans</h4>
+                        <p className="text-xs text-gray-600">50% upfront, 50% on completion</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
+                        <Check className="w-5 h-5 text-navy-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm">Fast & Precise Delivery</h4>
+                        <p className="text-xs text-gray-600">Your custom outfit delivered to your doorstep</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
+                        <Check className="w-5 h-5 text-navy-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 text-sm">Earn Commission</h4>
+                        <p className="text-xs text-gray-600">Refer clients and earn 3GB data per successful order</p>
+                      </div>
+                    </div>
+                  </div>
+                  {/* CTA Button */}
+                  <div className="pt-4">
+                    <Button
+                      asChild
+                      className="w-full bg-gradient-to-r from-navy-600 to-blue-800 hover:from-navy-700 hover:to-blue-900 text-white font-semibold"
+                    >
+                      <Link href="https://fashionablyhired.netlify.app/">
+                        <ArrowRight className="h-4 w-4 mr-2" />
+                        Visit Main Page
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {/* END: FASHIONABLY HIRED CARD */}
+
+
         <div className="mb-8">
           <Card className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-2xl border-[3px] border-emerald-800 hover:shadow-[0_0_35px_rgba(16,185,129,0.7)] transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.01] rounded-2xl">
             <CardContent className="p-5 sm:p-7">
@@ -935,11 +1202,18 @@ DataFlex Ghana Agent 🇬🇭`
                 <div className="flex items-start gap-4 bg-white/10 rounded-xl p-4 border border-white/20 shadow-inner backdrop-blur-sm">
                   <div className="p-3 rounded-full bg-white/30 shadow-lg flex-shrink-0">
                     <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-extrabold text-white text-lg sm:text-xl tracking-wide drop-shadow-md">Need Support?</h3>
+                    <h3 className="font-extrabold text-white text-lg sm:text-xl tracking-wide drop-shadow-md">
+                      Need Support?
+                    </h3>
                     <p className="text-sm text-green-50 mt-2 leading-relaxed">
                       For help or inquiries, call
                       <strong className="font-bold text-white ml-1 text-base">0242799990</strong> — we’re here for you.
@@ -950,7 +1224,12 @@ DataFlex Ghana Agent 🇬🇭`
                   <div className="flex items-start gap-3">
                     <div className="p-2 bg-emerald-100 rounded-full shadow-md">
                       <svg className="h-6 w-6 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                     </div>
                     <div className="flex-1">
@@ -958,7 +1237,8 @@ DataFlex Ghana Agent 🇬🇭`
                       <p className="text-sm text-emerald-700 leading-relaxed mt-1">
                         Join the official channel
                         <strong className="font-bold text-emerald-900 ml-1">"Make ¢700.00 A Day"</strong>
-                        to learn how to earn more and become a high-performing Dataflex Ghana agent. Get guidance, strategies, and mentorship from top agents.
+                        to learn how to earn more and become a high-performing Dataflex Ghana agent. Get guidance,
+                        strategies, and mentorship from top agents.
                       </p>
                       <p className="text-xs text-emerald-600 italic font-medium mt-2">
                         This is the ONLY official community. We do NOT operate any WhatsApp group.
@@ -1296,8 +1576,19 @@ DataFlex Ghana Agent 🇬🇭`
                             </div>
                           )}
                           <CardTitle className="text-lg text-emerald-800">{service.title}</CardTitle>
-                          <CardDescription className="text-emerald-600">
-                            <RichTextRenderer content={service.description} />
+                          {/* CHANGE: Updated to use new truncation logic with Read More toggle instead of RichTextRenderer */}
+                          <CardDescription className="text-emerald-600 space-y-2">
+                            <p className="text-sm leading-relaxed">
+                              {getDisplayDescription(service.description || "", service.id)}
+                            </p>
+                            {shouldTruncateDescription(service.description || "") && (
+                              <button
+                                onClick={() => toggleDescriptionExpanded(service.id)}
+                                className="text-emerald-700 hover:text-emerald-900 font-semibold text-xs transition-colors"
+                              >
+                                {expandedDescriptions[service.id] ? "Show Less" : "Read More"}
+                              </button>
+                            )}
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -1369,15 +1660,15 @@ DataFlex Ghana Agent 🇬🇭`
                         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 bg-white/80 backdrop-blur-sm shadow-lg border border-emerald-200 p-2 rounded-xl h-auto">
                           {["MTN", "AirtelTigo", "Telecel", "MTN AFA", "Bulk Order"].map((provider) => {
                             const logoMap = {
-                              "MTN": "/images/mtn.jpg",
-                              "AirtelTigo": "/images/airteltigo.jpg",
-                              "Telecel": "/images/telecel.jpg",
+                              MTN: "/images/mtn.jpg",
+                              AirtelTigo: "/images/airteltigo.jpg",
+                              Telecel: "/images/telecel.jpg",
                               "MTN AFA": "/images/mtnafa.jpg",
                               "Bulk Order": "/images/bulkorder.jpg",
-                            };
-                            let bundleCount = 0;
+                            }
+                            let bundleCount = 0
                             if (["MTN", "AirtelTigo", "Telecel"].includes(provider)) {
-                              bundleCount = getFilteredDataBundles(provider).length;
+                              bundleCount = getFilteredDataBundles(provider).length
                             }
                             return (
                               <TabsTrigger
@@ -1392,16 +1683,20 @@ DataFlex Ghana Agent 🇬🇭`
                                 />
                                 <div className="flex flex-col items-center text-center">
                                   <span className="text-xs sm:text-sm leading-tight">
-                                    {provider === "MTN AFA" ? "MTN AFA" : provider === "Bulk Order" ? "Bulk Order" : provider}
+                                    {provider === "MTN AFA"
+                                      ? "MTN AFA"
+                                      : provider === "Bulk Order"
+                                        ? "Bulk Order"
+                                        : provider}
                                   </span>
                                   {bundleCount > 0 && <span className="text-xs opacity-75">({bundleCount})</span>}
                                 </div>
                               </TabsTrigger>
-                            );
+                            )
                           })}
                         </TabsList>
                         {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
-                          const providerBundles = getFilteredDataBundles(provider).sort((a, b) => a.size_gb - b.size_gb);
+                          const providerBundles = getFilteredDataBundles(provider).sort((a, b) => a.size_gb - b.size_gb)
                           return (
                             <TabsContent key={provider} value={provider} className="space-y-4">
                               <div className="flex items-center justify-between">
@@ -1507,7 +1802,7 @@ DataFlex Ghana Agent 🇬🇭`
                                 </div>
                               )}
                             </TabsContent>
-                          );
+                          )
                         })}
                         <TabsContent value="MTN AFA" className="space-y-4">
                           <div className="text-center space-y-4">
@@ -1604,7 +1899,17 @@ DataFlex Ghana Agent 🇬🇭`
                                 <span className="font-medium">Client:</span> {referral.client_name} •{" "}
                                 {referral.client_phone}
                               </p>
-                              <p className="text-emerald-600">{referral.description}</p>
+                              <p className="text-emerald-600">
+                                {getDisplayReferralDescription(referral.description || "", referral.id)}
+                                {shouldTruncateReferralDescription(referral.description || "") && (
+                                  <button
+                                    onClick={() => toggleReferralExpanded(referral.id)}
+                                    className="text-emerald-500 hover:underline ml-1 text-sm font-medium"
+                                  >
+                                    {expandedReferrals.has(referral.id) ? "Read Less" : "Read More"}
+                                  </button>
+                                )}
+                              </p>
                               <div className="flex items-center gap-2 mt-2">
                                 {referral.allow_direct_contact === false ? (
                                   <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">
@@ -1808,7 +2113,7 @@ DataFlex Ghana Agent 🇬🇭`
                       <Button
                         asChild
                         variant="outline"
-                        className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                        className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
                       >
                         <Link href="/agent/settings">
                           <Settings className="h-4 w-4 mr-2" />
@@ -1916,7 +2221,10 @@ DataFlex Ghana Agent 🇬🇭`
                             </div>
                           </div>
                           <div className="w-full md:w-auto flex-shrink-0">
-                            <Link href={`/job-details/${generateSlug(job.job_title)}`} className="block w-full md:w-auto">
+                            <Link
+                              href={`/job-details/${generateSlug(job.job_title)}`}
+                              className="block w-full md:w-auto"
+                            >
                               <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap">
                                 View Details
                                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -1935,7 +2243,10 @@ DataFlex Ghana Agent 🇬🇭`
                   )}
                   <div className="text-center pt-4">
                     <Link href="/jobboard">
-                      <Button variant="outline" className="bg-transparent border-blue-300 text-blue-600 hover:bg-blue-50">
+                      <Button
+                        variant="outline"
+                        className="bg-transparent border-blue-300 text-blue-600 hover:bg-blue-50"
+                      >
                         View All Jobs ({filteredJobs.length})
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -1960,7 +2271,7 @@ DataFlex Ghana Agent 🇬🇭`
                   <Button
                     asChild
                     variant="outline"
-                    className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+                    className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
                   >
                     <Link href="/agent/savings/commit">
                       <Plus className="h-4 w-4 mr-2" />

@@ -45,8 +45,11 @@ import {
   WifiOff,
   CheckCircle2,
   Database,
+  Copy,
+  Check,
 } from "lucide-react"
 import { getBundleDisplayName } from "@/lib/bundle-data-handler"
+import { toast } from "sonner" // Added for toast notifications
 
 interface OrdersTabProps {
   getCachedData: () => DataOrder[] | undefined
@@ -68,7 +71,9 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   const [connectionStatus, setConnectionStatus] = useState(connectionManager.getConnectionStatus())
   const [realtimeConnected, setRealtimeConnected] = useState(false)
   const [showCleanupDialog, setShowCleanupDialog] = useState(false)
-  const [totalOrders, setTotalOrders] = useState(0)
+
+  // Added copy tracking state for phone numbers
+  const [copiedPhoneNumbers, setCopiedPhoneNumbers] = useState<Set<string>>(new Set())
 
   const itemsPerPage = 12
   const ordersListRef = useRef<HTMLDivElement>(null)
@@ -188,53 +193,29 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     return unsubscribe
   }, [])
 
-  // Enhanced data loading with connection handling and pagination
+  // Enhanced data loading with connection handling
   const loadOrders = useCallback(
-    async (forceRefresh = false, page = 1) => {
+    async (forceRefresh = false) => {
       if (loadingRef.current) return
       loadingRef.current = true
       setLoading(true)
 
       try {
-        // Clear any previous connection errors
-        setConnectionError(null)
-
-        const startIndex = (page - 1) * itemsPerPage
-        const endIndex = startIndex + itemsPerPage - 1
-
-        let data, error, count
-
-        // Get total count first
-        try {
-          let countResult
-          try {
-            countResult = await enhancedSupabase
-              .from("data_orders")
-              .select("*", { count: "exact", head: true })
-              .or("admin_hidden.is.null,admin_hidden.eq.false")
-          } catch (columnError) {
-            countResult = await enhancedSupabase.from("data_orders").select("*", { count: "exact", head: true })
-          }
-          count = countResult.count || 0
-        } catch (countError) {
-          try {
-            let countResult
-            try {
-              countResult = await supabase
-                .from("data_orders")
-                .select("*", { count: "exact", head: true })
-                .or("admin_hidden.is.null,admin_hidden.eq.false")
-            } catch (columnError) {
-              countResult = await supabase.from("data_orders").select("*", { count: "exact", head: true })
-            }
-            count = countResult.count || 0
-          } catch (fallbackCountError) {
-            console.warn("Could not get total count:", fallbackCountError)
-            count = 0
+        // Check cache first unless forcing refresh
+        if (!forceRefresh) {
+          const cachedData = getCachedData()
+          if (cachedData && cachedData.length > 0) {
+            setDataOrders(cachedData)
+            setLoading(false)
+            loadingRef.current = false
+            return
           }
         }
 
-        setTotalOrders(count || 0)
+        // Clear any previous connection errors
+        setConnectionError(null)
+
+        let data, error
 
         try {
           // Try enhanced Supabase client first
@@ -248,7 +229,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
               )
               .or("admin_hidden.is.null,admin_hidden.eq.false") // Only show orders that are not hidden from admin view
               .order("created_at", { ascending: false })
-              .range(startIndex, endIndex)
           } catch (columnError) {
             // If admin_hidden column doesn't exist, fall back to query without it
             console.warn("admin_hidden column not found, querying without filter:", columnError)
@@ -258,7 +238,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
                 `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
               )
               .order("created_at", { ascending: false })
-              .range(startIndex, endIndex)
           }
 
           data = result.data
@@ -277,7 +256,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
               )
               .or("admin_hidden.is.null,admin_hidden.eq.false")
               .order("created_at", { ascending: false })
-              .range(startIndex, endIndex)
           } catch (columnError) {
             // If admin_hidden column doesn't exist, fall back to query without it
             console.warn("admin_hidden column not found in fallback, querying without filter:", columnError)
@@ -287,7 +265,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
                 `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
               )
               .order("created_at", { ascending: false })
-              .range(startIndex, endIndex)
           }
 
           data = result.data
@@ -299,7 +276,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         }
 
         const ordersData = data || []
-        console.log(`✅ Successfully loaded ${ordersData.length} data orders (page ${page})`)
+        console.log(`✅ Successfully loaded ${ordersData.length} data orders`)
 
         const processedOrders = ordersData.map((order) => ({
           ...order,
@@ -312,20 +289,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         }))
 
         setDataOrders(processedOrders)
-
-        // If count query failed but we have data, estimate total based on current page
-        // This ensures pagination shows even if count query fails
-        if ((count === 0 || count === null || count === undefined) && processedOrders.length > 0) {
-          // If we got a full page, there might be more
-          if (processedOrders.length === itemsPerPage) {
-            setTotalOrders(page * itemsPerPage + 1) // At least one more page
-          } else {
-            // Last page, so total is current page * itemsPerPage
-            setTotalOrders(page * itemsPerPage)
-          }
-        }
-
-        // Don't cache paginated data
+        setCachedData(processedOrders)
         setLastRefresh(new Date())
 
         // Clear connection error on successful load
@@ -352,17 +316,18 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
 
         // Clear data on error
         setDataOrders([])
+        setCachedData([])
       } finally {
         setLoading(false)
         loadingRef.current = false
       }
     },
-    [itemsPerPage],
+    [getCachedData, setCachedData],
   )
 
   // Initial load and setup
   useEffect(() => {
-    loadOrders(false, currentOrdersPage)
+    loadOrders()
     setupRealtimeSubscription()
 
     // Cleanup function
@@ -374,7 +339,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         connectionUnsubscribeRef.current()
       }
     }
-  }, [currentOrdersPage, loadOrders, setupRealtimeSubscription])
+  }, [loadOrders, setupRealtimeSubscription])
 
   // CRITICAL FIX: Enhanced order status update with comprehensive validation
   const handleUpdateOrderStatus = useCallback(
@@ -409,10 +374,8 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         // Find the order to validate it exists and check current status
         const orderToUpdate = dataOrders.find((order) => order && order.id === orderId)
         if (!orderToUpdate) {
-          setConnectionError("Order not found.")
-          setTimeout(() => {
-            loadOrders(true, currentOrdersPage)
-          }, 1000)
+          setConnectionError("Order not found. The page will be refreshed.")
+          setTimeout(() => window.location.reload(), 2000)
           return
         }
 
@@ -447,7 +410,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
 
           // Refresh the orders to get updated commission data
           setTimeout(() => {
-            loadOrders(false, currentOrdersPage)
+            loadOrders()
           }, 1000)
         }
 
@@ -467,10 +430,8 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
           } else if (msg.includes("validation") || msg.includes("constraint") || msg.includes("check")) {
             errorMessage = "Order validation failed. Please refresh the page and try again."
           } else if (msg.includes("not found") || msg.includes("deleted") || msg.includes("pgrst116")) {
-            errorMessage = "This order no longer exists."
-            setTimeout(() => {
-              loadOrders(true, currentOrdersPage)
-            }, 1000)
+            errorMessage = "This order no longer exists. The page will be refreshed."
+            setTimeout(() => window.location.reload(), 2000)
           } else if (msg.includes("duplicate") || msg.includes("unique")) {
             errorMessage = "Conflicting update detected. Please refresh the page and try again."
           } else if (msg.includes("transaction validation failed")) {
@@ -488,7 +449,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         }, 5000)
       }
     },
-    [dataOrders, setDataOrders, setCachedData, updateOrderStatus, loadOrders, currentOrdersPage],
+    [dataOrders, setDataOrders, setCachedData, updateOrderStatus, loadOrders],
   )
 
   const deleteOrder = async (orderId: string) => {
@@ -596,8 +557,8 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       // Force reconnect all systems
       await connectionManager.forceReconnect()
 
-      // Reload data for current page
-      await loadOrders(true, currentOrdersPage)
+      // Reload data
+      await loadOrders(true)
 
       // Reconnect realtime subscriptions
       if (realtimeUnsubscribeRef.current) {
@@ -610,12 +571,12 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     } catch (error) {
       console.error("Complete refresh failed:", error)
     }
-  }, [loadOrders, setupRealtimeSubscription, currentOrdersPage])
+  }, [loadOrders, setupRealtimeSubscription])
 
   // Handle orders updated after cleanup
   const handleOrdersUpdated = useCallback(() => {
-    loadOrders(true, currentOrdersPage)
-  }, [loadOrders, currentOrdersPage])
+    loadOrders(true)
+  }, [loadOrders])
 
   const downloadDataOrdersCSV = () => {
     if (filteredOrders.length === 0) {
@@ -696,6 +657,26 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     return Math.ceil(totalItems / itemsPerPage)
   }
 
+  // Updated copy handler to work with phone numbers and added toast notifications
+  const handleCopyOrderNumber = async (phoneNumber: string) => {
+  try {
+    await navigator.clipboard.writeText(phoneNumber);
+    setCopiedPhoneNumbers((prev) => new Set([...prev, phoneNumber]));
+    toast.success("Recipient phone number copied!");
+    // Reset the copied state after 2 seconds
+    setTimeout(() => {
+      setCopiedPhoneNumbers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(phoneNumber);
+        return newSet;
+      });
+    }, 2000);
+  } catch (error) {
+    toast.error("Failed to copy recipient phone number");
+  }
+};
+
+
   const PaginationControls = ({
     currentPage,
     totalPages,
@@ -705,21 +686,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     totalPages: number
     onPageChange: (page: number) => void
   }) => {
-    // Show pagination if there are any orders (totalPages > 0)
-    if (totalPages <= 0) return null
-
-    const getVisiblePages = () => {
-      const isMobile = typeof window !== "undefined" && window.innerWidth < 768
-      const maxVisible = isMobile ? 3 : 5
-      if (totalPages <= maxVisible) {
-        return Array.from({ length: totalPages }, (_, i) => i + 1)
-      }
-      const start = Math.max(1, currentPage - Math.floor(maxVisible / 2))
-      const end = Math.min(totalPages, start + maxVisible - 1)
-      const adjustedStart = Math.max(1, end - maxVisible + 1)
-      return Array.from({ length: end - adjustedStart + 1 }, (_, i) => adjustedStart + i)
-    }
-    const visiblePages = getVisiblePages()
+    if (totalPages <= 1) return null
 
     return (
       <div className="flex justify-center mt-4 sm:mt-6">
@@ -738,20 +705,23 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
                 } h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
               />
             </PaginationItem>
-            {visiblePages.map((pageNum) => (
-              <PaginationItem key={pageNum}>
-                <PaginationLink
-                  onClick={() => {
-                    onPageChange(pageNum)
-                    scrollToTop()
-                  }}
-                  isActive={currentPage === pageNum}
-                  className="cursor-pointer h-8 w-8 sm:h-10 sm:w-10 text-xs sm:text-sm"
-                >
-                  {pageNum}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const pageNum = i + 1
+              return (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink
+                    onClick={() => {
+                      onPageChange(pageNum)
+                      scrollToTop()
+                    }}
+                    isActive={currentPage === pageNum}
+                    className="cursor-pointer h-8 w-8 sm:h-10 sm:w-10 text-xs sm:text-sm"
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                </PaginationItem>
+              )
+            })}
             <PaginationItem>
               <PaginationNext
                 onClick={() => {
@@ -947,10 +917,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
                 Clear Filters
               </Button>
             )}
-            <Button
-              onClick={() => loadOrders(true, currentOrdersPage)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
+            <Button onClick={() => loadOrders(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               <CheckCircle2 className="h-4 w-4 mr-2" />
               Refresh Orders
             </Button>
@@ -1064,7 +1031,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       </div>
 
       <div ref={ordersListRef} className="space-y-4">
-        {filteredOrders.map((order) => (
+        {getPaginatedData(filteredOrders, currentOrdersPage).map((order) => (
           <Card
             key={order.id}
             className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
@@ -1107,6 +1074,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
                       <span className="font-medium">Ordered:</span> {formatTimestamp(order.created_at)}
                     </p>
                   </div>
+
                   <div className="flex items-center justify-between pt-2">
                     <div>
                       <p className="text-sm font-semibold text-emerald-700">
@@ -1116,7 +1084,30 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
                         Commission: GH₵ {safeCommissionDisplay(order.commission_amount).toFixed(2)}
                       </p>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-medium">
+                        {order.recipient_phone}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleCopyOrderNumber(order.recipient_phone)}
+                        className={`h-7 w-7 p-0 ${
+                          copiedPhoneNumbers.has(order.recipient_phone)
+                            ? "text-green-600 hover:bg-green-100"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                        title="Copy recipient phone number"
+                      >
+                        {copiedPhoneNumbers.has(order.recipient_phone) ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
+
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-emerald-100">
                   <Select
@@ -1159,17 +1150,11 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         ))}
       </div>
 
-      {(totalOrders > 0 || dataOrders.length > 0) && (
-        <PaginationControls
-          currentPage={currentOrdersPage}
-          totalPages={getTotalPages(totalOrders > 0 ? totalOrders : dataOrders.length)}
-          onPageChange={(page) => {
-            setCurrentOrdersPage(page)
-            scrollToTop()
-            loadOrders(false, page)
-          }}
-        />
-      )}
+      <PaginationControls
+        currentPage={currentOrdersPage}
+        totalPages={getTotalPages(filteredOrders.length)}
+        onPageChange={setCurrentOrdersPage}
+      />
 
       {/* Enhanced Floating Refresh Button */}
       <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />

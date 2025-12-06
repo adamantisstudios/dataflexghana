@@ -214,7 +214,7 @@ export default function PropertyBrowser({
   }
 
   const handleContactAdmin = (property: Property) => {
-    const phone = "0551999901"
+    const phone = "0242799990"
     window.open(`tel:${phone}`, "_self")
   }
 

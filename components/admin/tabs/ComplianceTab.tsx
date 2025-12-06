@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Trash2 } from "lucide-react"
 import {
   FileText,
   Edit,
@@ -571,12 +572,12 @@ export default function ComplianceTab() {
                 </Button>
               </div>
 
-              <div className="pt-2 border-t border-emerald-100">
+              <div className="pt-2 border-t border-emerald-100 flex gap-2">
                 <Select
                   value={submission.status}
                   onValueChange={(newStatus) => handleUpdateStatus(submission.id, newStatus)}
                 >
-                  <SelectTrigger className="w-full border-emerald-200 focus:border-emerald-500 text-sm h-9">
+                  <SelectTrigger className="w-full border-emerald-200 focus:border-emerald-500 text-sm h-9 flex-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -586,6 +587,15 @@ export default function ComplianceTab() {
                     <SelectItem value="Delivered">Delivered</SelectItem>
                   </SelectContent>
                 </Select>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDeleteSubmission(submission.id)}
+                  className="h-9 px-3"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
               </div>
             </CardContent>
           </Card>

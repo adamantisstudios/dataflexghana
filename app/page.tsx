@@ -19,7 +19,35 @@ import { WhatsAppWidget } from "@/components/whatsapp-widget"
 import { BackToTop } from "@/components/back-to-top"
 import { HeroSlider } from "@/components/hero-slider"
 import WholesaleProductSlider from "@/components/WholesaleProductSlider"
-import { Users, Shield, Clock, Star, ArrowRight, Smartphone, Banknote, Globe, Award, MessageCircle, Phone, Mail, Menu, X, Briefcase, Calendar, DollarSign, Building2, ShoppingCart, Target, CheckCircle, ChevronDown, ChevronUp, ExternalLink, Zap, Router, Download, Search, Play, MapPin } from 'lucide-react'
+import {
+  Users,
+  Shield,
+  Clock,
+  Star,
+  ArrowRight,
+  Smartphone,
+  Banknote,
+  Globe,
+  Award,
+  MessageCircle,
+  Phone,
+  Mail,
+  Menu,
+  X,
+  Briefcase,
+  Building2,
+  ShoppingCart,
+  Target,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Zap,
+  Router,
+  Download,
+  Search,
+  Play,
+  MapPin,
+} from "lucide-react"
 import Link from "next/link"
 import PropertiesShowcase from "@/components/homepage/PropertiesShowcase"
 import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
@@ -97,7 +125,10 @@ const ViewChannelsSection = () => {
                       className="object-cover"
                     />
                     <AvatarFallback className="bg-blue-100 text-blue-800 text-lg font-semibold">
-                      {channel.name.split(" ").map((n: string) => n[0]).join("")}
+                      {channel.name
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")}
                     </AvatarFallback>
                   </Avatar>
                 </div>
@@ -110,16 +141,12 @@ const ViewChannelsSection = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex-1 text-xs h-8 border-blue-200 text-blue-600 hover:bg-blue-50"
+                      className="flex-1 text-xs h-8 border-blue-200 text-blue-600 hover:bg-blue-50 bg-transparent"
                       asChild
                     >
                       <Link href="/agent/register">View</Link>
                     </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1 text-xs h-8 bg-blue-600 hover:bg-blue-700 text-white"
-                      asChild
-                    >
+                    <Button size="sm" className="flex-1 text-xs h-8 bg-blue-600 hover:bg-blue-700 text-white" asChild>
                       <Link href="/agent/register">Join</Link>
                     </Button>
                   </div>
@@ -133,7 +160,7 @@ const ViewChannelsSection = () => {
   )
 }
 
-
+import AppleServiceFeature from "@/components/homepage/apple-service-feature"
 
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([])
@@ -153,12 +180,7 @@ export default function HomePage() {
       const { supabaseJobs } = await import("@/lib/supabase-client-jobs")
       const [servicesData, jobsData] = await Promise.all([
         supabase.from("services").select("*").order("created_at", { ascending: false }),
-        supabaseJobs
-          .from("jobs")
-          .select("*")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(5),
+        supabaseJobs.from("jobs").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
       ])
       // @ts-ignore
       setServices(servicesData.data || [])
@@ -474,6 +496,7 @@ export default function HomePage() {
 
       {/* Hero Section with 4 Sliders */}
       <HeroSlider />
+      <AppleServiceFeature />
 
       <section className="py-8 sm:py-12 bg-gradient-to-b from-white to-emerald-50">
         <div className="container mx-auto px-4">
@@ -505,136 +528,134 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-      
-     {/* Latest Jobs Section */}
-<section id="jobs" className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
-  <div className="container mx-auto px-4">
 
-    <div className="text-center mb-16">
-      <Badge className="bg-blue-100 text-blue-800 border-blue-200 mb-4">Latest Opportunities</Badge>
+      {/* Latest Jobs Section */}
+      <section id="jobs" className="py-20 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="bg-blue-100 text-blue-800 border-blue-200 mb-4">Latest Opportunities</Badge>
 
-      <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-        Find Your Next <span className="text-blue-600">Career</span>
-      </h2>
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+              Find Your Next <span className="text-blue-600">Career</span>
+            </h2>
 
-      <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-        Discover authentic, verified job opportunities from trusted companies, homeowners, and businesses across Ghana
-      </p>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Discover authentic, verified job opportunities from trusted companies, homeowners, and businesses across
+              Ghana
+            </p>
 
-      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-4xl mx-auto">
-        <p className="text-sm text-blue-700">
-          <strong>Disclaimer:</strong> All job postings are screened for authenticity. We prioritize verified,
-          credible jobs from trusted companies, homeowners, and businesses that comply with Ghana's labor laws and
-          employee rights.
-        </p>
-      </div>
-    </div>
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg max-w-4xl mx-auto">
+              <p className="text-sm text-blue-700">
+                <strong>Disclaimer:</strong> All job postings are screened for authenticity. We prioritize verified,
+                credible jobs from trusted companies, homeowners, and businesses that comply with Ghana's labor laws and
+                employee rights.
+              </p>
+            </div>
+          </div>
 
-    {loading ? (
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="border-blue-100">
-            <CardHeader>
-              <div className="space-y-3">
-                <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    ) : jobs.length > 0 ? (
-      <div className="space-y-8">
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {jobs.slice(0, 6).map((job) => (
-            <Card
-              key={job.id}
-              className="border-blue-100 hover:border-blue-200 transition-all duration-300 hover:shadow-lg overflow-hidden bg-white"
-            >
-              <CardHeader>
-                <div className="flex items-start gap-3 mb-2">
-                  <Image
-                    src={job.employer_logo_url || "/placeholder.svg"}
-                    alt={job.employer_name}
-                    width={48}
-                    height={48}
-                    className="w-12 h-12 rounded-lg object-cover bg-gray-100"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base text-blue-800 line-clamp-2">
-                      {job.job_title}
-                    </CardTitle>
-                    <div className="flex items-center gap-1 text-xs text-blue-600 mt-0.5">
-                      <Building2 className="h-3 w-3" />
-                      <span className="line-clamp-1">{job.employer_name}</span>
+          {loading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="border-blue-100">
+                  <CardHeader>
+                    <div className="space-y-3">
+                      <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
                     </div>
-                  </div>
-                </div>
-              </CardHeader>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : jobs.length > 0 ? (
+            <div className="space-y-8">
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {jobs.slice(0, 6).map((job) => (
+                  <Card
+                    key={job.id}
+                    className="border-blue-100 hover:border-blue-200 transition-all duration-300 hover:shadow-lg overflow-hidden bg-white"
+                  >
+                    <CardHeader>
+                      <div className="flex items-start gap-3 mb-2">
+                        <Image
+                          src={job.employer_logo_url || "/placeholder.svg"}
+                          alt={job.employer_name}
+                          width={48}
+                          height={48}
+                          className="w-12 h-12 rounded-lg object-cover bg-gray-100"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base text-blue-800 line-clamp-2">{job.job_title}</CardTitle>
+                          <div className="flex items-center gap-1 text-xs text-blue-600 mt-0.5">
+                            <Building2 className="h-3 w-3" />
+                            <span className="line-clamp-1">{job.employer_name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
 
-              <CardContent className="space-y-3">
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-blue-600">
-                    <MapPin className="h-4 w-4" />
-                    <span className="line-clamp-1">{job.location}</span>
-                  </div>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2 text-blue-600">
+                          <MapPin className="h-4 w-4" />
+                          <span className="line-clamp-1">{job.location}</span>
+                        </div>
 
-                  <div className="flex items-center gap-2 font-semibold text-green-700">
-                    <span className="text-xs text-gray-500">Salary:</span>
+                        <div className="flex items-center gap-2 font-semibold text-green-700">
+                          <span className="text-xs text-gray-500">Salary:</span>
 
-                    {job.salary_type === "negotiable" ? (
-                      <span>Negotiable</span>
-                    ) : job.salary_type === "fixed_range" ? (
-                      <span>{job.salary_min} - {job.salary_max}</span>
-                    ) : job.salary_type === "exact_amount" ? (
-                      <span>{job.salary_exact}</span>
-                    ) : job.salary_custom ? (
-                      <span>{job.salary_custom}</span>
-                    ) : (
-                      <span>{job.salary_min} - {job.salary_max}</span>
-                    )}
-                  </div>
+                          {job.salary_type === "negotiable" ? (
+                            <span>Negotiable</span>
+                          ) : job.salary_type === "fixed_range" ? (
+                            <span>
+                              {job.salary_min} - {job.salary_max}
+                            </span>
+                          ) : job.salary_type === "exact_amount" ? (
+                            <span>{job.salary_exact}</span>
+                          ) : job.salary_custom ? (
+                            <span>{job.salary_custom}</span>
+                          ) : (
+                            <span>
+                              {job.salary_min} - {job.salary_max}
+                            </span>
+                          )}
+                        </div>
 
-                  <div className="text-xs text-gray-500">
-                    Posted: {new Date(job.created_at).toLocaleDateString()}
-                  </div>
-                </div>
+                        <div className="text-xs text-gray-500">
+                          Posted: {new Date(job.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
 
-                {/* FORCE REGISTRATION ON VIEW DETAILS */}
-                <Link href="/agent/register" className="block">
-                  <Button className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700">
-                    View Details
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
+                      {/* FORCE REGISTRATION ON VIEW DETAILS */}
+                      <Link href="/agent/register" className="block">
+                        <Button className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700">
+                          View Details
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-              </CardContent>
-            </Card>
-          ))}
+              {/* REMOVED VIEW ALL JOBS BUTTON — nothing renders here */}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No job opportunities</h3>
+              <p className="text-gray-600">Check back soon for new opportunities.</p>
+            </div>
+          )}
         </div>
-
-        {/* REMOVED VIEW ALL JOBS BUTTON — nothing renders here */}
-
-      </div>
-    ) : (
-      <div className="text-center py-12">
-        <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No job opportunities</h3>
-        <p className="text-gray-600">Check back soon for new opportunities.</p>
-      </div>
-    )}
-
-  </div>
-</section>
+      </section>
 
       {/* CHANGE: Add View Channels section right after Jobs section */}
       <ViewChannelsSection />
@@ -853,7 +874,7 @@ export default function HomePage() {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M13 10V3L4 14h7v7l9-11h-7z"
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           </svg>
                         </div>
@@ -1222,17 +1243,14 @@ export default function HomePage() {
                   </p>
                   {/* Features */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[
-                      "Results Checker Cards",
-                      "School Application Forms",
-                      "University Forms",
-                      "Subscription Services",
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm text-gray-700">{item}</span>
-                      </div>
-                    ))}
+                    {["GES Certified Books", "Quality Stationery", "School Uniforms", "Educational Materials"].map(
+                      (item, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <span className="text-sm text-gray-700">{item}</span>
+                        </div>
+                      ),
+                    )}
                   </div>
                   {/* Info Box */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -1258,14 +1276,13 @@ export default function HomePage() {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-                <p className="text-center text-sm text-gray-600">Perfect for students and educational needs!</p>
               </div>
               {/* Right Image */}
               <div className="relative order-first lg:order-last">
                 <div className="relative rounded-xl overflow-hidden shadow-lg">
                   <img
-                    src="/educational-card.jpg"
-                    alt="Educational products and services"
+                    src="/images/happy-ghanaian-children-with-school-books-and-unif.jpg"
+                    alt="Happy Ghanaian children with school books"
                     className="w-full h-72 sm:h-80 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-blue-900/30 to-transparent"></div>
@@ -1744,8 +1761,6 @@ export default function HomePage() {
           )}
         </div>
       </section>
-
-      
 
       {/* Additional Services Section */}
       <section className="py-20 bg-white">

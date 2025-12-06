@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { AlertCircle, Play, Square, Upload } from 'lucide-react'
+import { AlertCircle, Play, Square, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 interface RecordVerticalVideoProps {
@@ -23,7 +23,7 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const MAX_DURATION = 60
+  const MAX_DURATION = 120
 
   const startRecording = async () => {
     try {
@@ -42,12 +42,7 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
         videoRef.current.srcObject = stream
       }
 
-      const codecOptions = [
-        "video/webm;codecs=vp9,opus",
-        "video/webm;codecs=vp8,opus",
-        "video/webm",
-        "video/mp4",
-      ]
+      const codecOptions = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]
 
       let mediaRecorder: MediaRecorder | null = null
       for (const codec of codecOptions) {
@@ -132,23 +127,41 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
         headers["x-agent-phone"] = agent.phone_number
       }
 
-      const response = await fetch("/api/videos/upload", {
-        method: "POST",
-        body: formData,
-        headers,
-      })
+      let response
+      let retryCount = 0
+      const maxRetries = 2
 
-      if (!response.ok) {
-        let errorData: any = {}
+      while (retryCount <= maxRetries) {
         try {
-          errorData = await response.json()
-        } catch {
-          errorData = { error: `Upload failed with status ${response.status}` }
+          response = await fetch("/api/videos/upload", {
+            method: "POST",
+            body: formData,
+            headers,
+            signal: AbortSignal.timeout(180000),
+          })
+          break // Success, exit retry loop
+        } catch (err: any) {
+          retryCount++
+          if (retryCount > maxRetries) {
+            throw err
+          }
+          console.log(`[v0] Upload attempt ${retryCount} failed, retrying...`)
+          toast.info(`Retrying upload (attempt ${retryCount + 1}/${maxRetries + 1})...`)
+          await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait 2 seconds before retry
         }
-        throw new Error(errorData.error || `Upload failed with status ${response.status}`)
       }
 
-      const data = await response.json()
+      if (!response?.ok) {
+        let errorData: any = {}
+        try {
+          errorData = await response?.json()
+        } catch {
+          errorData = { error: `Upload failed with status ${response?.status}` }
+        }
+        throw new Error(errorData.error || `Upload failed with status ${response?.status}`)
+      }
+
+      const data = await response?.json()
       if (!data.success) {
         throw new Error(data.error || "Upload failed")
       }
@@ -234,7 +247,7 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
           )}
         </div>
 
-        <p className="text-xs text-gray-500 text-center">Maximum 60 seconds • Vertical format (576x1024)</p>
+        <p className="text-xs text-gray-500 text-center">Maximum 2 minutes • Vertical format (576x1024)</p>
       </div>
     </Card>
   )

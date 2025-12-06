@@ -1,20 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
-import {
-  BookOpen,
-  CheckCircle2,
-  Trash2,
-  Search,
-  Plus,
-  Eye,
-  Award,
-  MessageSquare,
-  UserPlus,
-  Edit2,
-  ImageIcon,
-  MoreVertical,
-  X,
-} from "lucide-react"
+import { BookOpen, CheckCircle2, Trash2, Plus, Eye, UserPlus, Edit2, ImageIcon, MoreVertical, X } from "lucide-react"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent } from "@/components/ui/card"
@@ -84,9 +70,8 @@ type TeacherHubTabProps = {
 
 export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherHubTabProps) {
   // State
-  const [activeSubTab, setActiveSubTab] = useState<"channels" | "teachers" | "join-requests">("channels")
+  const [activeSubTab, setActiveSubTab] = useState<"channels" | "join-requests">("channels")
   const [channels, setChannels] = useState<TeachingChannel[]>([])
-  const [teachers, setTeachers] = useState<TeacherApproval[]>([])
   const [agents, setAgents] = useState<Agent[]>([])
   const [joinRequests, setJoinRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -97,7 +82,6 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   const [showChannelDetailsDialog, setShowChannelDetailsDialog] = useState(false)
   const [selectedChannel, setSelectedChannel] = useState<TeachingChannel | null>(null)
   const [selectedChannelMembers, setSelectedChannelMembers] = useState<ChannelMember[]>([])
-  const [selectedTeacher, setSelectedTeacher] = useState<TeacherApproval | null>(null)
   const [selectedAgentForAdd, setSelectedAgentForAdd] = useState("")
   const [selectedRoleForAdd, setSelectedRoleForAdd] = useState<"member" | "teacher" | "admin">("member")
   const [agentSearchTerm, setAgentSearchTerm] = useState("")
@@ -119,18 +103,11 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     image_url: "",
   })
   const [showEditChannelDialog, setShowEditChannelDialog] = useState(false)
-  const [teacherForm, setTeacherForm] = useState({
-    qualifications: "",
-    experience_years: 0,
-    bio: "",
-    expertise_areas: "",
-    approval_notes: "",
-  })
   const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const editFileInputRef = useRef<HTMLInputElement>(null)
   const itemsPerPage = 10
   const listRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
 
   // Load Data
   useEffect(() => {
@@ -140,10 +117,12 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   const loadData = async () => {
     setLoading(true)
     try {
-      const [channelsRes, teachersRes, agentsRes, joinRequestsRes] = await Promise.all([
+      const [channelsRes, agentsRes, joinRequestsRes] = await Promise.all([
         supabase.from("teaching_channels").select("*").order("created_at", { ascending: false }),
-        supabase.from("teacher_approvals").select("*").order("created_at", { ascending: false }),
-        supabase.from("agents").select("id, full_name, phone_number").eq("isapproved", true),
+        supabase
+          .from("agents")
+          .select("id, full_name, phone_number")
+          .eq("isapproved", true), // This line is actually kept from existing code, but agents are not used for teachers tab
         supabase
           .from("channel_join_requests_with_agents")
           .select(
@@ -159,15 +138,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         ...channel,
         member_count: countMap.get(channel.id) || 0,
       }))
-      const agentMap = new Map()
-      agentsRes.data?.forEach((agent: any) => agentMap.set(agent.id, agent))
-      const teachersWithAgentInfo = (teachersRes.data || []).map((teacher: any) => ({
-        ...teacher,
-        agent_name: agentMap.get(teacher.agent_id)?.full_name || teacher.agent_id,
-        agent_contact: agentMap.get(teacher.agent_id)?.phone_number || "No contact",
-      }))
+
       setChannels(channelsWithCounts)
-      setTeachers(teachersWithAgentInfo)
       setAgents(agentsRes.data || [])
       setJoinRequests(joinRequestsRes.data || [])
     } catch (error) {
@@ -361,32 +333,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     }
   }
 
-  // Approve/Reject Teacher
-  const handleApproveTeacher = async (teacherId: string) => {
-    try {
-      await supabase
-        .from("teacher_approvals")
-        .update({
-          status: "approved",
-          approved_at: new Date().toISOString(),
-        })
-        .eq("id", teacherId)
-      toast.success("Teacher approved!")
-      loadData()
-    } catch (error) {
-      toast.error("Failed to approve teacher.")
-    }
-  }
-  const handleRejectTeacher = async (teacherId: string) => {
-    try {
-      await supabase.from("teacher_approvals").update({ status: "rejected" }).eq("id", teacherId)
-      toast.success("Teacher rejected.")
-      loadData()
-    } catch (error) {
-      toast.error("Failed to reject teacher.")
-    }
-  }
-
+  // Approve/Reject Teacher - REMOVED
   // Delete Channel
   const handleDeleteChannel = async (channelId: string) => {
     if (!confirm("Delete this channel?")) return
@@ -442,7 +389,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
 
   // Filter Data
   const getFilteredData = () => {
-    const data = activeSubTab === "channels" ? channels : activeSubTab === "teachers" ? teachers : joinRequests
+    const data = activeSubTab === "channels" ? channels : joinRequests
     const searchLower = searchTerm.toLowerCase()
     return data.filter((item: any) => {
       if (activeSubTab === "channels") {
@@ -451,17 +398,11 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           item.description?.toLowerCase().includes(searchLower) ||
           item.category.toLowerCase().includes(searchLower)
         )
-      } else if (activeSubTab === "join-requests") {
+      } else {
         return (
           item.full_name?.toLowerCase().includes(searchLower) ||
           item.phone_number?.toLowerCase().includes(searchLower) ||
           item.teaching_channels?.name?.toLowerCase().includes(searchLower)
-        )
-      } else {
-        return (
-          item.agent_name?.toLowerCase().includes(searchLower) ||
-          item.agent_contact?.toLowerCase().includes(searchLower) ||
-          item.bio?.toLowerCase().includes(searchLower)
         )
       }
     })
@@ -487,9 +428,12 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       <div className="flex items-center justify-between p-4 bg-white shadow-sm">
         <h1 className="text-xl font-bold text-blue-600">Teacher Hub</h1>
         <div className="flex items-center gap-2">
-          <Button size="icon" variant="ghost">
-            <Search className="h-5 w-5 text-gray-600" />
-          </Button>
+          <Input
+            placeholder="Search..."
+            className="w-auto"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           {activeSubTab === "channels" && (
             <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
               <DialogTrigger asChild>
@@ -573,8 +517,14 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       id="max-members"
                       type="number"
                       min="1"
+                      step="1"
                       value={channelForm.max_members}
-                      onChange={(e) => setChannelForm({ ...channelForm, max_members: Number(e.target.value) })}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        // Remove any leading zeros and parse as number
+                        const numValue = value ? Math.max(1, Number.parseInt(value, 10)) : 1
+                        setChannelForm({ ...channelForm, max_members: numValue })
+                      }}
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -599,7 +549,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       </div>
 
       {/* Sub-Tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b bg-white">
         <button
           onClick={() => {
             setActiveSubTab("channels")
@@ -619,16 +569,6 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         >
           <UserPlus className="h-5 w-5 mx-auto" />
           <span className="text-xs">Join Requests</span>
-        </button>
-        <button
-          onClick={() => {
-            setActiveSubTab("teachers")
-            setCurrentPage(1)
-          }}
-          className={`flex-1 p-3 text-center ${activeSubTab === "teachers" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
-        >
-          <Award className="h-5 w-5 mx-auto" />
-          <span className="text-xs">Teachers</span>
         </button>
       </div>
 
@@ -780,102 +720,6 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                         <X className="h-4 w-4 mr-1" />
                         Reject
                       </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Teachers View */}
-        {activeSubTab === "teachers" && (
-          <div className="space-y-3">
-            {paginatedData.length === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <Award className="h-12 w-12 mx-auto text-gray-300" />
-                  <p className="mt-2 text-gray-500">No teachers found</p>
-                </CardContent>
-              </Card>
-            ) : (
-              paginatedData.map((teacher: TeacherApproval) => (
-                <Card key={teacher.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-                        <Award className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-800 break-words">{teacher.agent_name}</h3>
-                        <p className="text-xs text-gray-500">📞 {teacher.agent_contact}</p>
-                        <p className="text-xs text-gray-500 mt-1">Experience: {teacher.experience_years} years</p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {teacher.expertise_areas?.map((area, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs break-words">
-                              {area}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Badge
-                          variant={
-                            teacher.status === "approved"
-                              ? "default"
-                              : teacher.status === "pending"
-                                ? "secondary"
-                                : "destructive"
-                          }
-                          className="text-xs"
-                        >
-                          {teacher.status}
-                        </Badge>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-xs">
-                            <DialogHeader>
-                              <DialogTitle>Teacher Actions</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedTeacher(teacher)
-                                }}
-                              >
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                View Profile
-                              </Button>
-                              {teacher.status === "pending" && (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700"
-                                    onClick={() => handleApproveTeacher(teacher.id)}
-                                  >
-                                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                                    Approve
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleRejectTeacher(teacher.id)}
-                                  >
-                                    <X className="h-4 w-4 mr-2" />
-                                    Reject
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1149,8 +993,14 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                 id="edit-max-members"
                 type="number"
                 min="1"
+                step="1"
                 value={editingChannelForm.max_members}
-                onChange={(e) => setEditingChannelForm({ ...editingChannelForm, max_members: Number(e.target.value) })}
+                onChange={(e) => {
+                  const value = e.target.value
+                  // Remove any leading zeros and parse as number
+                  const numValue = value ? Math.max(1, Number.parseInt(value, 10)) : 1
+                  setEditingChannelForm({ ...editingChannelForm, max_members: numValue })
+                }}
               />
             </div>
             <div className="flex items-center gap-2">

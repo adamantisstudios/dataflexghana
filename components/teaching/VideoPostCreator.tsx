@@ -1,11 +1,13 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+import type React from "react"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Progress } from "@/components/ui/progress"
 import {
   Dialog,
   DialogContent,
@@ -14,242 +16,253 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { supabase } from "@/lib/supabase";
-import { Plus, Upload, AlertCircle } from 'lucide-react';
-import { toast } from "sonner";
+} from "@/components/ui/dialog"
+import { Plus, Upload, AlertCircle } from "lucide-react"
+import { toast } from "sonner"
 
 interface VideoPostCreatorProps {
-  channelId: string;
-  teacherId: string;
-  teacherName: string;
-  onVideoCreated: () => void;
+  channelId: string
+  teacherId: string
+  teacherName: string
+  onVideoCreated: () => void
 }
 
-export function VideoPostCreator({
-  channelId,
-  teacherId,
-  teacherName,
-  onVideoCreated,
-}: VideoPostCreatorProps) {
-  const [showDialog, setShowDialog] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoPreview, setVideoPreview] = useState<string>("");
-  const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
-  const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+export function VideoPostCreator({ channelId, teacherId, teacherName, onVideoCreated }: VideoPostCreatorProps) {
+  const [showDialog, setShowDialog] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoPreview, setVideoPreview] = useState<string>("")
+  const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null)
+  const [videoSize, setVideoSize] = useState({ width: 0, height: 0 })
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     duration: 0,
-  });
+  })
 
   const validateVideo = (file: File, width: number, height: number, duration: number): string[] => {
-    const errors: string[] = [];
+    const errors: string[] = []
 
     if (!file.type.startsWith("video/")) {
-      errors.push("File must be a valid video format");
+      errors.push("File must be a valid video format")
     }
 
-    if (file.size > 500 * 1024 * 1024) {
-      errors.push(`File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Max 500MB.`);
+    if (file.size > 1000 * 1024 * 1024) {
+      errors.push(`File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Max 1GB.`)
     }
 
-    if (duration > 60) {
-      errors.push("Video must be 60 seconds or less");
+    if (duration > 120) {
+      errors.push("Video must be 120 seconds (2 minutes) or less")
     }
 
-    return errors;
-  };
+    return errors
+  }
 
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    setValidationErrors([]);
-    const previewURL = URL.createObjectURL(file);
-    const video = document.createElement("video");
-    video.src = previewURL;
+    setValidationErrors([])
+    const previewURL = URL.createObjectURL(file)
+    const video = document.createElement("video")
+    video.src = previewURL
 
     video.onloadedmetadata = async () => {
-      const width = video.videoWidth;
-      const height = video.videoHeight;
-      const videoDuration = Math.round(video.duration);
+      const width = video.videoWidth
+      const height = video.videoHeight
+      const videoDuration = Math.round(video.duration)
 
-      const errors = validateVideo(file, width, height, videoDuration);
+      const errors = validateVideo(file, width, height, videoDuration)
       if (errors.length > 0) {
-        setValidationErrors(errors);
-        setVideoFile(null);
-        setVideoPreview("");
-        return;
+        setValidationErrors(errors)
+        setVideoFile(null)
+        setVideoPreview("")
+        return
       }
 
-      setVideoSize({ width, height });
+      setVideoSize({ width, height })
       setFormData((prev) => ({
         ...prev,
         duration: videoDuration,
-      }));
+      }))
 
-      setVideoFile(file);
-      setVideoPreview(previewURL);
+      setVideoFile(file)
+      setVideoPreview(previewURL)
 
       try {
-        const thumbBlob = await generateThumbnail(video);
-        setThumbnailBlob(thumbBlob);
-        toast.success("Thumbnail generated from 1-second mark");
+        const thumbBlob = await generateThumbnail(video)
+        setThumbnailBlob(thumbBlob)
+        toast.success("Thumbnail generated from 1-second mark")
       } catch (err) {
-        console.error("[v0] Thumbnail generation failed:", err);
-        toast.warning("Could not generate thumbnail, will use video poster");
+        console.error("[v0] Thumbnail generation failed:", err)
+        toast.warning("Could not generate thumbnail, will use video poster")
       }
-    };
+    }
 
     video.onerror = () => {
       setValidationErrors(["Failed to load video. Please check the file."])
       setVideoFile(null)
       setVideoPreview("")
-    };
-  };
+    }
+  }
 
   const generateThumbnail = (video: HTMLVideoElement): Promise<Blob> => {
     return new Promise((resolve, reject) => {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return reject(new Error("Canvas not supported"));
+      const canvas = document.createElement("canvas")
+      const ctx = canvas.getContext("2d")
+      if (!ctx) return reject(new Error("Canvas not supported"))
 
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
 
-      video.currentTime = Math.min(1, video.duration * 0.1);
+      video.currentTime = Math.min(1, video.duration * 0.1)
 
       video.onseeked = () => {
         try {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
           canvas.toBlob(
             (blob) => {
               if (blob) {
-                resolve(blob);
+                resolve(blob)
               } else {
-                reject(new Error("Failed to create thumbnail blob"));
+                reject(new Error("Failed to create thumbnail blob"))
               }
             },
             "image/jpeg",
-            0.85
-          );
+            0.85,
+          )
         } catch (err) {
-          reject(err);
+          reject(err)
         }
-      };
+      }
 
-      video.onerror = () => reject(new Error("Failed to load video metadata"));
-    });
-  };
+      video.onerror = () => reject(new Error("Failed to load video metadata"))
+    })
+  }
 
   const handleCreateVideo = async () => {
-    const errors: string[] = [];
-    
+    const errors: string[] = []
+
     if (!formData.title.trim()) {
-      errors.push("Title is required");
+      errors.push("Title is required")
     }
     if (!formData.description.trim()) {
-      errors.push("Description is required");
+      errors.push("Description is required")
     }
     if (!videoFile) {
-      errors.push("Video file is required");
+      errors.push("Video file is required")
     }
 
     if (errors.length > 0) {
-      setValidationErrors(errors);
-      return;
+      setValidationErrors(errors)
+      return
     }
 
     try {
-      setIsUploading(true);
-      setUploadProgress(0);
-      setValidationErrors([]);
+      setIsUploading(true)
+      setUploadProgress(0)
+      setValidationErrors([])
 
-      const storedAgent = localStorage.getItem("agent");
-      const agent = storedAgent ? JSON.parse(storedAgent) : null;
+      const storedAgent = localStorage.getItem("agent")
+      const agent = storedAgent ? JSON.parse(storedAgent) : null
       if (!agent?.id || !agent?.phone_number) {
-        setValidationErrors(["Session expired. Please log in again."]);
-        return;
+        setValidationErrors(["Session expired. Please log in again."])
+        return
       }
 
-      setUploadProgress(20);
+      setUploadProgress(20)
 
-      const uploadBody = new FormData();
-      uploadBody.append("file", videoFile);
-      uploadBody.append("channelId", channelId);
-      uploadBody.append("title", formData.title);
-      uploadBody.append("duration", formData.duration.toString());
-      uploadBody.append("width", videoSize.width.toString());
-      uploadBody.append("height", videoSize.height.toString());
-      uploadBody.append("description", formData.description);
+      const uploadBody = new FormData()
+      uploadBody.append("file", videoFile)
+      uploadBody.append("channelId", channelId)
+      uploadBody.append("title", formData.title)
+      uploadBody.append("duration", formData.duration.toString())
+      uploadBody.append("width", videoSize.width.toString())
+      uploadBody.append("height", videoSize.height.toString())
+      uploadBody.append("description", formData.description)
 
       if (thumbnailBlob) {
-        uploadBody.append("thumbnail", thumbnailBlob, "thumbnail.jpg");
+        uploadBody.append("thumbnail", thumbnailBlob, "thumbnail.jpg")
       }
 
-      setUploadProgress(50);
+      setUploadProgress(50)
 
-      const uploadResponse = await fetch("/api/videos/upload", {
-        method: "POST",
-        body: uploadBody,
-        headers: {
-          "x-agent-id": agent.id,
-          "x-agent-phone": agent.phone_number,
-        },
-      });
+      let uploadResponse
+      let retryCount = 0
+      const maxRetries = 2
 
-      if (!uploadResponse.ok) {
-        let errorMessage = "Upload failed";
+      while (retryCount <= maxRetries) {
         try {
-          const errorData = await uploadResponse.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          errorMessage = `Upload failed with status ${uploadResponse.status}`;
+          uploadResponse = await fetch("/api/videos/upload", {
+            method: "POST",
+            body: uploadBody,
+            headers: {
+              "x-agent-id": agent.id,
+              "x-agent-phone": agent.phone_number,
+            },
+            signal: AbortSignal.timeout(180000),
+          })
+          break // Success, exit retry loop
+        } catch (err: any) {
+          retryCount++
+          if (retryCount > maxRetries) {
+            throw err
+          }
+          console.log(`[v0] Upload attempt ${retryCount} failed, retrying...`)
+          toast.info(`Retrying upload (attempt ${retryCount + 1}/${maxRetries + 1})...`)
+          await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait 2 seconds before retry
         }
-        throw new Error(errorMessage);
       }
 
-      let uploadJson: any;
+      if (!uploadResponse?.ok) {
+        let errorMessage = "Upload failed"
+        try {
+          const errorData = await uploadResponse?.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          errorMessage = `Upload failed with status ${uploadResponse?.status}`
+        }
+        throw new Error(errorMessage)
+      }
+
+      let uploadJson: any
       try {
-        uploadJson = await uploadResponse.json();
+        uploadJson = await uploadResponse?.json()
       } catch (jsonErr) {
-        console.error("[v0] Failed to parse JSON:", jsonErr);
-        throw new Error("Server returned invalid JSON response");
+        console.error("[v0] Failed to parse JSON:", jsonErr)
+        throw new Error("Server returned invalid JSON response")
       }
 
       if (!uploadJson.success || !uploadJson.videoId) {
-        throw new Error(uploadJson.error || "Upload completed but video ID not returned");
+        throw new Error(uploadJson.error || "Upload completed but video ID not returned")
       }
 
-      const { videoId } = uploadJson;
+      const { videoId } = uploadJson
 
-      setUploadProgress(100);
-      toast.success("Video posted successfully! ✅");
+      setUploadProgress(100)
+      toast.success("Video posted successfully! ✅")
 
       // Reset form
-      setShowDialog(false);
-      setVideoFile(null);
-      setVideoPreview("");
-      setThumbnailBlob(null);
-      setFormData({ title: "", description: "", duration: 0 });
-      setUploadProgress(0);
-      onVideoCreated();
+      setShowDialog(false)
+      setVideoFile(null)
+      setVideoPreview("")
+      setThumbnailBlob(null)
+      setFormData({ title: "", description: "", duration: 0 })
+      setUploadProgress(0)
+      onVideoCreated()
     } catch (err: any) {
-      console.error("[v0] Upload error:", err);
-      setValidationErrors([err.message || "Failed to upload video"]);
-      toast.error(err.message || "Failed to upload video");
+      console.error("[v0] Upload error:", err)
+      setValidationErrors([err.message || "Failed to upload video"])
+      toast.error(err.message || "Failed to upload video")
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      setIsUploading(false)
+      setUploadProgress(0)
     }
-  };
+  }
 
-  const formatDuration = (seconds: number) =>
-    `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}m ${seconds % 60}s`
 
   return (
     <Dialog open={showDialog} onOpenChange={setShowDialog}>
@@ -263,9 +276,7 @@ export function VideoPostCreator({
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-full">
         <DialogHeader>
           <DialogTitle>Post Video</DialogTitle>
-          <DialogDescription>
-            Upload an educational video (max 60 seconds, max 500MB)
-          </DialogDescription>
+          <DialogDescription>Upload an educational video (max 2 minutes, max 1GB)</DialogDescription>
         </DialogHeader>
 
         {validationErrors.length > 0 && (
@@ -300,20 +311,13 @@ export function VideoPostCreator({
               <label htmlFor="video-input" className="cursor-pointer block">
                 <Upload className="h-8 w-8 mx-auto mb-2 text-purple-600" />
                 <p className="text-sm font-medium">Click to upload or drag a file</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Max 60 sec • Max 500MB • With sound
-                </p>
+                <p className="text-xs text-gray-500 mt-1">Max 2 min • Max 1GB • With sound</p>
               </label>
             </div>
 
             {videoPreview && (
               <div className="relative w-full aspect-[9/16] bg-black rounded overflow-hidden">
-                <video
-                  src={videoPreview}
-                  className="w-full h-full object-cover"
-                  controls
-                  playsInline
-                />
+                <video src={videoPreview} className="w-full h-full object-cover" controls playsInline />
               </div>
             )}
           </div>
@@ -336,9 +340,7 @@ export function VideoPostCreator({
             <Textarea
               rows={4}
               value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Enter video description"
               disabled={isUploading}
               className="border-purple-200"
@@ -380,5 +382,5 @@ export function VideoPostCreator({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

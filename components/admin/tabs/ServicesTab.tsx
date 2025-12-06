@@ -1,5 +1,6 @@
 "use client"
-import React, { useState, useEffect, useRef } from 'react'
+import type React from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -7,9 +8,16 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { supabase, type Service } from "@/lib/supabase"
-import { Package, Plus, Edit, Trash2, Search, Filter } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Filter } from "lucide-react"
 
 // Rich text editor component
 interface RichTextEditorProps {
@@ -200,6 +208,19 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
     image_url: "",
   })
   const itemsPerPage = 12
+  const [expandedServiceIds, setExpandedServiceIds] = useState<Set<string>>(new Set())
+
+  const toggleServiceDescription = (serviceId: string) => {
+    setExpandedServiceIds((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(serviceId)) {
+        newSet.delete(serviceId)
+      } else {
+        newSet.add(serviceId)
+      }
+      return newSet
+    })
+  }
 
   useEffect(() => {
     const loadServices = async () => {
@@ -211,11 +232,8 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
       }
 
       try {
-        const { data, error } = await supabase
-          .from("services")
-          .select("*")
-          .order("created_at", { ascending: false })
-        
+        const { data, error } = await supabase.from("services").select("*").order("created_at", { ascending: false })
+
         if (error) throw error
         const servicesData = data || []
         setServices(servicesData)
@@ -265,13 +283,13 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
         product_cost: serviceForm.product_cost ? Number.parseFloat(serviceForm.product_cost) : 0,
         service_type: "referral" as const,
       }
-      
+
       let updatedServices
       if (editingService) {
         const { error } = await supabase.from("services").update(serviceData).eq("id", editingService.id)
         if (error) throw error
-        updatedServices = services.map(service => 
-          service.id === editingService.id ? { ...service, ...serviceData } : service
+        updatedServices = services.map((service) =>
+          service.id === editingService.id ? { ...service, ...serviceData } : service,
         )
       } else {
         const { data, error } = await supabase.from("services").insert([serviceData]).select()
@@ -315,8 +333,8 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
     try {
       const { error } = await supabase.from("services").delete().eq("id", serviceId)
       if (error) throw error
-      
-      const updatedServices = services.filter(service => service.id !== serviceId)
+
+      const updatedServices = services.filter((service) => service.id !== serviceId)
       setServices(updatedServices)
       setCachedData(updatedServices)
       alert("Service deleted successfully!")
@@ -354,9 +372,7 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
             <PaginationItem>
               <PaginationPrevious
                 onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
-                className={`${
-                  currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
-                } h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
+                className={`${currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
               />
             </PaginationItem>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -376,9 +392,7 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
             <PaginationItem>
               <PaginationNext
                 onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
-                className={`${
-                  currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
-                } h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
+                className={`${currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
               />
             </PaginationItem>
           </PaginationContent>
@@ -458,8 +472,36 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                 </div>
               )}
               <CardTitle className="text-lg text-emerald-800">{service.title}</CardTitle>
-              <div className="text-emerald-600 min-h-[3rem]">
-                <RichTextRenderer content={service.description} className="text-sm" />
+              <div className="text-emerald-600">
+                {expandedServiceIds.has(service.id) ? (
+                  <RichTextRenderer content={service.description} className="text-sm" />
+                ) : (
+                  <>
+                    <div className="text-sm line-clamp-3">
+                      <RichTextRenderer content={service.description} className="text-sm" />
+                    </div>
+                    {service.description && service.description.length > 150 && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => toggleServiceDescription(service.id)}
+                        className="text-emerald-600 hover:text-emerald-800 mt-2 p-0 h-auto"
+                      >
+                        Read more
+                      </Button>
+                    )}
+                  </>
+                )}
+                {expandedServiceIds.has(service.id) && service.description && service.description.length > 150 && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => toggleServiceDescription(service.id)}
+                    className="text-emerald-600 hover:text-emerald-800 mt-2 p-0 h-auto ml-2"
+                  >
+                    Show less
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -489,12 +531,7 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => deleteService(service.id)}
-                  className="flex-1"
-                >
+                <Button size="sm" variant="destructive" onClick={() => deleteService(service.id)} className="flex-1">
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
                 </Button>

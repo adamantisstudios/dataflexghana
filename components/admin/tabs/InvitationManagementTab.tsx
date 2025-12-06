@@ -4,14 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Check, Phone, Calendar, User, Loader2, RefreshCw, Download, Clock } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Check, Phone, Calendar, User, Loader2, RefreshCw, Download, Clock, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getCurrentAdmin } from "@/lib/auth"
 
@@ -128,6 +122,29 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
     }
   }
 
+  const handleDeleteInvitation = async (invitationId: string) => {
+    if (!confirm("Are you sure you want to delete this invitation record?")) return
+    try {
+      setProcessingId(invitationId)
+      const response = await fetch(`/api/admin/invitations/${invitationId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      })
+      const result = await response.json()
+      if (result.success) {
+        toast.success("Invitation deleted successfully")
+        setInvitations((prev) => prev.filter((inv) => inv.id !== invitationId))
+      } else {
+        toast.error(result.error || "Failed to delete invitation")
+      }
+    } catch (error) {
+      console.error("[v0] Error deleting invitation:", error)
+      toast.error("Failed to delete invitation")
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
   const getStatusBadgeColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case "pending":
@@ -154,16 +171,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
   }
 
   const downloadInvitationsCSV = (records: Invitation[]) => {
-    const headers = [
-      "ID",
-      "Agent",
-      "Phone",
-      "Referred Person",
-      "Referred Phone",
-      "Status",
-      "Amount",
-      "Date",
-    ]
+    const headers = ["ID", "Agent", "Phone", "Referred Person", "Referred Phone", "Status", "Amount", "Date"]
     const rows = records.map((inv) => [
       inv.id,
       inv.referring_agent_name,
@@ -174,9 +182,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
       `₵${inv.credit_amount}`,
       formatDate(inv.created_at),
     ])
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map((cell) => `"${cell}"`).join(","))
-      .join("\n")
+    const csvContent = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n")
     const blob = new Blob([csvContent], { type: "text/csv" })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -204,9 +210,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-yellow-900">
-              {stats.pending}
-            </div>
+            <div className="text-xl md:text-2xl font-bold text-yellow-900">{stats.pending}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
@@ -217,9 +221,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-green-900">
-              {stats.confirmed}
-            </div>
+            <div className="text-xl md:text-2xl font-bold text-green-900">{stats.confirmed}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
@@ -230,9 +232,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-blue-900">
-              {stats.credited}
-            </div>
+            <div className="text-xl md:text-2xl font-bold text-blue-900">{stats.credited}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
@@ -243,9 +243,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-purple-900">
-              {stats.paid_out}
-            </div>
+            <div className="text-xl md:text-2xl font-bold text-purple-900">{stats.paid_out}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
@@ -256,18 +254,14 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold text-purple-900">
-              {stats.total}
-            </div>
+            <div className="text-xl md:text-2xl font-bold text-purple-900">{stats.total}</div>
           </CardContent>
         </Card>
       </div>
       <Card className="border-blue-200 bg-white/90 backdrop-blur-sm">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm md:text-base text-blue-800">
-              Filters & Search
-            </CardTitle>
+            <CardTitle className="text-sm md:text-base text-blue-800">Filters & Search</CardTitle>
             <div className="flex gap-2">
               <Button
                 onClick={() => loadInvitations(currentPage, true)}
@@ -291,9 +285,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 block">
-                Status Filter
-              </label>
+              <label className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 block">Status Filter</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="text-sm">
                   <SelectValue />
@@ -307,9 +299,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 block">
-                Search
-              </label>
+              <label className="text-xs md:text-sm font-medium text-gray-700 mb-1.5 block">Search</label>
               <Input
                 placeholder="Search by agent name or phone..."
                 value={searchTerm}
@@ -324,9 +314,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
         {loading ? (
           <Card className="p-6 md:p-8 text-center">
             <Loader2 className="h-6 md:h-8 w-6 md:w-8 animate-spin mx-auto mb-2 text-blue-600" />
-            <p className="text-sm md:text-base text-gray-600">
-              Loading referral records...
-            </p>
+            <p className="text-sm md:text-base text-gray-600">Loading referral records...</p>
           </Card>
         ) : invitations.length === 0 ? (
           <Card className="p-6 md:p-8 text-center bg-blue-50 border-blue-200">
@@ -348,9 +336,7 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
                         <Badge className={`${getStatusBadgeColor(invitation.status)} text-xs`}>
                           {invitation.status}
                         </Badge>
-                        <Badge className="bg-purple-100 text-purple-800 text-xs">
-                          ₵{invitation.credit_amount}
-                        </Badge>
+                        <Badge className="bg-purple-100 text-purple-800 text-xs">₵{invitation.credit_amount}</Badge>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm">
@@ -372,28 +358,39 @@ export default function InvitationManagementTab({ getCachedData, setCachedData }
                       </div>
                     </div>
                   </div>
-                  <Select
-                    value={invitation.status}
-                    onValueChange={(value) => handleUpdateStatus(invitation.id, value)}
-                    disabled={processingId === invitation.id}
-                  >
-                    <SelectTrigger className="w-full md:w-40 border-blue-200 text-sm flex-shrink-0">
-                      <SelectValue placeholder={invitation.status} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getAvailableStatusTransitions(invitation.status).length > 0 ? (
-                        getAvailableStatusTransitions(invitation.status).map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')}
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Select
+                      value={invitation.status}
+                      onValueChange={(value) => handleUpdateStatus(invitation.id, value)}
+                      disabled={processingId === invitation.id}
+                    >
+                      <SelectTrigger className="w-full md:w-40 border-blue-200 text-sm">
+                        <SelectValue placeholder={invitation.status} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getAvailableStatusTransitions(invitation.status).length > 0 ? (
+                          getAvailableStatusTransitions(invitation.status).map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ")}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value={invitation.status} disabled>
+                            No transitions available
                           </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value={invitation.status} disabled>
-                          No transitions available
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteInvitation(invitation.id)}
+                      disabled={processingId === invitation.id}
+                      className="flex-shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

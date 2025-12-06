@@ -188,7 +188,7 @@ export default function PropertiesShowcase() {
                     <Button
                       size="sm"
                       className="bg-blue-600 hover:bg-blue-700 text-xs"
-                      onClick={() => window.open("tel:0551999901", "_self")}
+                      onClick={() => window.open("tel:0242799990", "_self")}
                     >
                       <Phone className="h-3 w-3 mr-1" />
                       Call Admin

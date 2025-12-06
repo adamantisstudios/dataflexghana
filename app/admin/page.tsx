@@ -25,7 +25,6 @@ import {
   MessageCircle,
   Banknote,
   Wallet,
-  Briefcase,
   ShoppingBag,
   LogOut,
   Settings,
@@ -55,6 +54,7 @@ import { supabase } from "@/lib/supabase"
 import { connectionManager } from "@/lib/connection-manager"
 import { toast } from "sonner"
 import Link from "next/link"
+import { PendingAlertsCard } from "@/components/admin/pending-alerts-card"
 // Lazy load tab components
 const AgentsTab = lazy(() => import("@/components/admin/tabs/AgentsTab"))
 const AgentManagementTab = lazy(() => import("@/components/admin/tabs/AgentManagementTab"))
@@ -66,7 +66,6 @@ const ReferralsTab = lazy(() => import("@/components/admin/tabs/ReferralsTab"))
 const PayoutsTab = lazy(() => import("@/components/admin/tabs/PayoutsTab"))
 const WalletsTab = lazy(() => import("@/components/admin/tabs/WalletsTab"))
 const WalletOverviewTab = lazy(() => import("@/components/admin/tabs/WalletOverviewTab"))
-const JobsTab = lazy(() => import("@/components/admin/tabs/JobsTab"))
 const WholesaleTab = lazy(() => import("@/components/admin/tabs/WholesaleTab"))
 const SavingsTab = lazy(() => import("@/components/admin/tabs/SavingsTab"))
 const PropertiesTab = lazy(() => import("@/components/admin/tabs/PropertiesTab"))
@@ -151,7 +150,6 @@ const TAB_CONFIG = [
   { id: "referrals", label: "Referrals", icon: MessageCircle, component: ReferralsTab },
   { id: "payouts", label: "Payouts", icon: Banknote, component: PayoutsTab },
   { id: "wallets", label: "Wallets", icon: Wallet, component: WalletsTab },
-  { id: "jobs", label: "Jobs", icon: Briefcase, component: JobsTab },
   { id: "savings", label: "Savings", icon: PiggyBank, component: SavingsTab },
   { id: "compliance", label: "Compliance", icon: FileText, component: ComplianceTab },
   { id: "professional-writing", label: "Professional Writing", icon: FileText, component: ProfessionalWritingTab },
@@ -187,6 +185,20 @@ function AdminDashboardContent() {
     completedWholesaleOrders: 0,
     pendingWholesaleOrders: 0,
     wholesaleRevenue: 0,
+    newAgents: 0,
+    pendingDataOrders: 0,
+    pendingBulkOrders: 0,
+    pendingAFA: 0,
+    pendingCompliance: 0,
+    pendingProperties: 0,
+    pendingReferrals: 0,
+    pendingPayouts: 0,
+    pendingDomesticWorkerRequests: 0,
+    pendingWalletTopups: 0,
+    pendingProfessionalWriting: 0,
+    pendingInvitations: 0,
+    pendingDomesticWorkers: 0,
+    totalPendingAlerts: 0,
   })
   // Settings dialog state
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -219,6 +231,7 @@ function AdminDashboardContent() {
           jobsData,
           dailyOrdersData,
           wholesaleStatsResponse,
+          alertsResponse,
         ] = await Promise.all([
           supabase.from("agents").select("id, isapproved").limit(1000),
           supabase.from("referrals").select("id, status").limit(1000),
@@ -233,6 +246,8 @@ function AdminDashboardContent() {
             .lt("created_at", `${today}T23:59:59.999Z`),
           // Fetch wholesale stats from API
           fetch("/api/admin/wholesale/stats").catch(() => ({ ok: false })),
+          // Fetch pending alerts
+          fetch("/api/admin/dashboard/pending-alerts").catch(() => ({ ok: false })),
         ])
 
         // Parse wholesale stats
@@ -250,6 +265,31 @@ function AdminDashboardContent() {
             wholesaleStats = await wholesaleStatsResponse.json()
           } catch (error) {
             console.error("Error parsing wholesale stats:", error)
+          }
+        }
+
+        let alertsData = {
+          newAgents: 0,
+          pendingDataOrders: 0,
+          pendingBulkOrders: 0,
+          pendingAFA: 0,
+          pendingCompliance: 0,
+          pendingProperties: 0,
+          pendingReferrals: 0,
+          pendingPayouts: 0,
+          pendingDomesticWorkerRequests: 0,
+          pendingWalletTopups: 0,
+          pendingProfessionalWriting: 0,
+          pendingInvitations: 0,
+          pendingDomesticWorkers: 0,
+          totalAlerts: 0,
+        }
+
+        if (alertsResponse.ok) {
+          try {
+            alertsData = await alertsResponse.json()
+          } catch (error) {
+            console.error("Error parsing alerts data:", error)
           }
         }
 
@@ -277,6 +317,20 @@ function AdminDashboardContent() {
             completedWholesaleOrders: wholesaleStats.completedOrders || 0,
             pendingWholesaleOrders: wholesaleStats.pendingOrders || 0,
             wholesaleRevenue: wholesaleStats.totalRevenue || 0,
+            newAgents: alertsData.newAgents || 0,
+            pendingDataOrders: alertsData.pendingDataOrders || 0,
+            pendingBulkOrders: alertsData.pendingBulkOrders || 0,
+            pendingAFA: alertsData.pendingAFA || 0,
+            pendingCompliance: alertsData.pendingCompliance || 0,
+            pendingProperties: alertsData.pendingProperties || 0,
+            pendingReferrals: alertsData.pendingReferrals || 0,
+            pendingPayouts: alertsData.pendingPayouts || 0,
+            pendingDomesticWorkerRequests: alertsData.pendingDomesticWorkerRequests || 0,
+            pendingWalletTopups: alertsData.pendingWalletTopups || 0,
+            pendingProfessionalWriting: alertsData.pendingProfessionalWriting || 0,
+            pendingInvitations: alertsData.pendingInvitations || 0,
+            pendingDomesticWorkers: alertsData.pendingDomesticWorkers || 0,
+            totalPendingAlerts: alertsData.totalAlerts || 0,
           }))
         }
       } catch (error) {
@@ -366,6 +420,36 @@ function AdminDashboardContent() {
         <span className="text-xs hidden sm:inline">Issues</span>
       </div>
     )
+  }
+  const getTabAlertCount = (tabId: string): number => {
+    switch (tabId) {
+      case "agents":
+        return stats.newAgents
+      case "orders":
+        return stats.pendingDataOrders
+      case "bulk-orders":
+        return stats.pendingBulkOrders + stats.pendingAFA
+      case "compliance":
+        return stats.pendingCompliance
+      case "properties":
+        return stats.pendingProperties
+      case "referrals":
+        return stats.pendingReferrals
+      case "payouts":
+        return stats.pendingPayouts
+      case "domestic-worker-requests":
+        return stats.pendingDomesticWorkerRequests
+      case "wallets":
+        return stats.pendingWalletTopups
+      case "professional-writing":
+        return stats.pendingProfessionalWriting
+      case "invitation-management":
+        return stats.pendingInvitations
+      case "domestic-workers":
+        return stats.pendingDomesticWorkers
+      default:
+        return 0
+    }
   }
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -513,42 +597,55 @@ function AdminDashboardContent() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <div className="w-full overflow-x-auto">
             <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
-              {TAB_CONFIG.slice(0, 10).map(({ id, label, icon: Icon }) => (
-                <TabsTrigger
-                  key={id}
-                  value={id}
-                  className="flex items-center justify-center px-3 py-2 text-xs lg:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap flex-1 relative"
-                  onClick={() => loadTab(id)}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {label}
-                  {id === "referrals" && adminUnreadCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center p-0 animate-pulse">
-                      {adminUnreadCount > 9 ? "9+" : adminUnreadCount}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-              ))}
+              {TAB_CONFIG.slice(0, 10).map(({ id, label, icon: Icon }) => {
+                const alertCount = getTabAlertCount(id)
+                return (
+                  <TabsTrigger
+                    key={id}
+                    value={id}
+                    className="flex items-center justify-center px-3 py-2 text-xs lg:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap flex-1 relative"
+                    onClick={() => loadTab(id)}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {label}
+                    {(alertCount > 0 || (id === "referrals" && adminUnreadCount > 0)) && (
+                      <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center p-0 animate-pulse">
+                        {Math.max(alertCount, adminUnreadCount) > 9 ? "9+" : Math.max(alertCount, adminUnreadCount)}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                )
+              })}
             </TabsList>
           </div>
           {/* Additional tabs row for mobile */}
           <div className="w-full overflow-x-auto">
             <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
-              {TAB_CONFIG.slice(10).map(({ id, label, icon: Icon }) => (
-                <TabsTrigger
-                  key={id}
-                  value={id}
-                  className="flex items-center justify-center px-3 py-2 text-xs lg:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap flex-1"
-                  onClick={() => loadTab(id)}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {label}
-                </TabsTrigger>
-              ))}
+              {TAB_CONFIG.slice(10).map(({ id, label, icon: Icon }) => {
+                const alertCount = getTabAlertCount(id)
+                return (
+                  <TabsTrigger
+                    key={id}
+                    value={id}
+                    className="flex items-center justify-center px-3 py-2 text-xs lg:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap flex-1 relative"
+                    onClick={() => loadTab(id)}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {label}
+                    {alertCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center p-0 animate-pulse">
+                        {alertCount > 9 ? "9+" : alertCount}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                )
+              })}
             </TabsList>
           </div>
           {/* Dashboard Tab Content */}
           <TabsContent value="dashboard" className="space-y-6">
+            <PendingAlertsCard />
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl">
                 <CardHeader className="pb-2">
