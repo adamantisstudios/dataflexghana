@@ -472,7 +472,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
               <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
-                  <span className="text-lg font-bold text-emerald-600">600 GHS</span>
+                  <span className="text-lg font-bold text-emerald-600">520 GHS</span>
                 </div>
                 <div className="border-t border-emerald-200 pt-3">
                   <div className="flex items-center justify-between mb-2">
@@ -502,7 +502,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
           setShowPaymentReminder(false)
           onComplete()
         }}
-        fee="600 GHS"
+        fee="520 GHS"
         serviceName="Sole Proprietorship Registration"
       />
 
