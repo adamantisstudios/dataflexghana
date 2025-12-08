@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Trophy, TrendingUp, Calendar, RefreshCw, Users, Medal, Crown, Star } from "lucide-react"
+import { rankingCache } from "@/lib/ranking-cache"
 
 interface SimpleAgent {
   name: string
@@ -27,37 +28,50 @@ export default function AdminAgentRanking() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchRankings()
-    // Set up auto-refresh every 3 hours (same as agent dashboard)
-    const interval = setInterval(fetchRankings, 3 * 60 * 60 * 1000)
+    const cachedData = rankingCache.get<RankingData>(`admin-rankings-${timeframe}`)
+    if (cachedData) {
+      setRankingData(cachedData)
+      setLoading(false)
+    } else {
+      fetchRankings()
+    }
+
+    const interval = setInterval(
+      () => {
+        rankingCache.invalidate(`admin-rankings-${timeframe}`)
+        fetchRankings()
+      },
+      3 * 60 * 60 * 1000,
+    )
     return () => clearInterval(interval)
   }, [timeframe])
 
   const fetchRankings = async () => {
     try {
-      setLoading(true) // Set loading to true to show spinner on refresh
       setError(null)
+      const cacheKey = `admin-rankings-${timeframe}`
 
-      console.log("🔄 Fetching admin agent rankings...", { timeframe })
+      const result = await rankingCache.getOrFetch(
+        cacheKey,
+        async () => {
+          const response = await fetch(`/api/admin/agents/ranking?timeframe=${timeframe}&limit=10`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
 
-      const response = await fetch(`/api/admin/agents/ranking?timeframe=${timeframe}&limit=10`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+
+          return response.json()
         },
-        cache: "no-store",
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      console.log("📊 Admin rankings API response:", result)
+        5 * 60 * 1000,
+      )
 
       if (result.success) {
         setRankingData(result.data)
-        console.log("✅ Admin rankings loaded successfully:", result.data.agents?.length || 0, "agents")
       } else {
         throw new Error(result.error || "Failed to fetch rankings")
       }
@@ -67,7 +81,7 @@ export default function AdminAgentRanking() {
       setError(errorMessage)
       setRankingData(null)
     } finally {
-      setLoading(false) // Always set loading to false when done
+      setLoading(false)
     }
   }
 
@@ -167,7 +181,6 @@ export default function AdminAgentRanking() {
           </div>
         </div>
 
-        {/* Stats and Last Updated */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 text-xs sm:text-sm text-emerald-600">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-1">
@@ -209,7 +222,6 @@ export default function AdminAgentRanking() {
           </div>
         ) : (
           <>
-            {/* Top 3 Podium Style */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
               {rankingData.agents.slice(0, 3).map((agent, index) => (
                 <div
@@ -222,7 +234,6 @@ export default function AdminAgentRanking() {
                         : "bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 shadow-md"
                   }`}
                 >
-                  {/* Rank Badge */}
                   <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2">
                     <div
                       className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm ${
@@ -243,7 +254,6 @@ export default function AdminAgentRanking() {
               ))}
             </div>
 
-            {/* Remaining Rankings */}
             {rankingData.agents.length > 3 && (
               <div className="space-y-2">
                 <h4 className="font-semibold text-emerald-800 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
@@ -269,7 +279,6 @@ export default function AdminAgentRanking() {
               </div>
             )}
 
-            {/* Footer */}
             <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-emerald-100">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 text-xs text-emerald-600">
                 <p>Activity Score = Data Orders + Referrals + Wholesale Orders</p>

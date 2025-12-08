@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Trophy, TrendingUp, Calendar, RefreshCw, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react"
+import { rankingCache } from "@/lib/ranking-cache"
 
 interface SimpleAgent {
   name: string
@@ -22,13 +22,12 @@ interface RankingData {
 export default function Top5AgentsRanking() {
   const [rankingData, setRankingData] = useState<RankingData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [timeframe, setTimeframe] = useState<'7d' | '30d'>('30d')
+  const [timeframe, setTimeframe] = useState<"7d" | "30d">("30d")
   const [error, setError] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
 
-  // Only fetch data when expanded for the first time
   useEffect(() => {
     if (isExpanded && !hasLoadedOnce) {
       fetchRankings()
@@ -36,7 +35,6 @@ export default function Top5AgentsRanking() {
     }
   }, [isExpanded, hasLoadedOnce])
 
-  // Refetch when timeframe changes (only if already expanded)
   useEffect(() => {
     if (isExpanded && hasLoadedOnce) {
       fetchRankings()
@@ -51,35 +49,39 @@ export default function Top5AgentsRanking() {
         setRetryCount(0)
       }
 
-      console.log('🔄 Fetching agent rankings...', { timeframe, retryCount })
+      const cacheKey = `top5-rankings-${timeframe}`
 
-      const response = await fetch(`/api/admin/agents/ranking?timeframe=${timeframe}&limit=5`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      // Use cache with request deduplication
+      const result = await rankingCache.getOrFetch(
+        cacheKey,
+        async () => {
+          const response = await fetch(`/api/admin/agents/ranking?timeframe=${timeframe}&limit=5`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+
+          return response.json()
         },
-        cache: 'no-store' // Ensure fresh data
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      console.log('📊 Rankings API response:', result)
+        5 * 60 * 1000, // 5-minute client cache
+      )
 
       if (result.success) {
         setRankingData(result.data)
         setError(null)
-        console.log('✅ Rankings loaded successfully:', result.data.agents?.length || 0, 'agents')
       } else {
-        throw new Error(result.error || 'Failed to fetch rankings')
+        throw new Error(result.error || "Failed to fetch rankings")
       }
     } catch (err) {
-      console.error('❌ Error fetching rankings:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Network error occurred'
+      console.error("❌ Error fetching rankings:", err)
+      const errorMessage = err instanceof Error ? err.message : "Network error occurred"
       setError(errorMessage)
-      setRankingData(null) // Clear any existing data on error
+      setRankingData(null)
     } finally {
       setLoading(false)
     }
@@ -88,6 +90,7 @@ export default function Top5AgentsRanking() {
   const handleRetry = () => {
     const newRetryCount = retryCount + 1
     setRetryCount(newRetryCount)
+    rankingCache.invalidate(`top5-rankings-${timeframe}`)
     fetchRankings(true)
   }
 
@@ -115,14 +118,14 @@ export default function Top5AgentsRanking() {
   const formatLastUpdated = (dateString: string) => {
     try {
       const date = new Date(dateString)
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+      return date.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
     } catch {
-      return 'Unknown'
+      return "Unknown"
     }
   }
 
@@ -138,7 +141,7 @@ export default function Top5AgentsRanking() {
             variant="outline"
             size="sm"
             onClick={handleToggleExpanded}
-            className="border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+            className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
           >
             {isExpanded ? (
               <>
@@ -154,32 +157,28 @@ export default function Top5AgentsRanking() {
           </Button>
         </div>
 
-        {/* Show basic info even when collapsed */}
         {!isExpanded && (
-          <p className="text-sm text-emerald-600">
-            Click "Show Top 5" to view real-time agent performance rankings
-          </p>
+          <p className="text-sm text-emerald-600">Click "Show Top 5" to view real-time agent performance rankings</p>
         )}
       </CardHeader>
 
       {isExpanded && (
         <CardContent>
-          {/* Controls when expanded */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-1">
               <Button
-                variant={timeframe === '7d' ? 'default' : 'outline'}
+                variant={timeframe === "7d" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setTimeframe('7d')}
+                onClick={() => setTimeframe("7d")}
                 className="h-7 px-2 text-xs"
                 disabled={loading}
               >
                 7 Days
               </Button>
               <Button
-                variant={timeframe === '30d' ? 'default' : 'outline'}
+                variant={timeframe === "30d" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setTimeframe('30d')}
+                onClick={() => setTimeframe("30d")}
                 className="h-7 px-2 text-xs"
                 disabled={loading}
               >
@@ -192,14 +191,13 @@ export default function Top5AgentsRanking() {
               size="sm"
               onClick={fetchRankings}
               disabled={loading}
-              className="text-xs"
+              className="text-xs bg-transparent"
             >
-              <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3 w-3 mr-1 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
           </div>
 
-          {/* Last Updated Info */}
           {rankingData?.last_updated && (
             <div className="flex items-center gap-1 text-xs text-emerald-600 mb-3">
               <Calendar className="h-3 w-3" />
@@ -207,7 +205,6 @@ export default function Top5AgentsRanking() {
             </div>
           )}
 
-          {/* Content */}
           {loading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -231,10 +228,10 @@ export default function Top5AgentsRanking() {
                   variant="outline"
                   size="sm"
                   onClick={handleRetry}
-                  className="text-xs"
+                  className="text-xs bg-transparent"
                   disabled={loading}
                 >
-                  <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-3 w-3 mr-1 ${loading ? "animate-spin" : ""}`} />
                   Retry ({retryCount}/3)
                 </Button>
               </div>
@@ -255,32 +252,23 @@ export default function Top5AgentsRanking() {
                   key={`${agent.name}-${agent.rank}`}
                   className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 hover:scale-[1.01] ${
                     agent.rank === 1
-                      ? 'bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200'
+                      ? "bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200"
                       : agent.rank === 2
-                      ? 'bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200'
-                      : agent.rank === 3
-                      ? 'bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200'
-                      : 'bg-emerald-50 border border-emerald-100'
+                        ? "bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200"
+                        : agent.rank === 3
+                          ? "bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200"
+                          : "bg-emerald-50 border border-emerald-100"
                   }`}
                 >
-                  {/* Rank Icon */}
-                  <div className="flex items-center justify-center w-6">
-                    {getRankIcon(agent.rank)}
-                  </div>
+                  <div className="flex items-center justify-center w-6">{getRankIcon(agent.rank)}</div>
 
-                  {/* Agent Name */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-emerald-800 text-sm truncate">
-                      {agent.name}
-                    </h4>
+                    <h4 className="font-semibold text-emerald-800 text-sm truncate">{agent.name}</h4>
                     <p className="text-xs text-emerald-600">Rank #{agent.rank}</p>
                   </div>
 
-                  {/* Activity Score */}
                   <div className="text-right">
-                    <div className="text-lg font-bold text-emerald-700">
-                      {agent.activity}
-                    </div>
+                    <div className="text-lg font-bold text-emerald-700">{agent.activity}</div>
                     <p className="text-xs text-emerald-500">Activity</p>
                   </div>
                 </div>
@@ -288,7 +276,6 @@ export default function Top5AgentsRanking() {
             </div>
           )}
 
-          {/* Footer */}
           {rankingData?.agents && rankingData.agents.length > 0 && (
             <div className="mt-4 pt-3 border-t border-emerald-100">
               <p className="text-xs text-center text-emerald-600">
