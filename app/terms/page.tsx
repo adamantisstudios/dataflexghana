@@ -16,6 +16,10 @@ import {
   ShoppingCart,
   HelpCircle,
   Clock,
+  AlertTriangle,
+  Check,
+  AlertCircle,
+  Briefcase,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -148,6 +152,124 @@ export default function TermsPage() {
         </div>
       </section>
 
+      {/* ABOUT DATAFLEX GHANA SECTION - ADD AFTER PLATFORM OVERVIEW */}
+      <section id="dataflex-ghana-why-choose">
+        <h2 className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5" />
+          {`💳 5 Things People Pay For Everyday Before Receiving Value`}
+        </h2>
+        <div className="space-y-4 mb-6">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+            <h4 className="font-semibold text-blue-900 mb-2">1. Online Shopping (e.g., Amazon, Alibaba)</h4>
+            <p className="text-sm text-blue-800">
+              You pay for the item, but it can take days or even weeks before it arrives.
+            </p>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+            <h4 className="font-semibold text-blue-900 mb-2">2. Ordering Food via Apps (e.g., UberEats, Glovo)</h4>
+            <p className="text-sm text-blue-800">
+              You pay upfront, then wait for the restaurant to prepare and a delivery person to bring the food—usually
+              30–60 minutes.
+            </p>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+            <h4 className="font-semibold text-blue-900 mb-2">
+              3. Buying Airtime or Utility Credits from Third-Party Vendors
+            </h4>
+            <p className="text-sm text-blue-800">
+              Especially when done through social media or less-known platforms, you pay first and may wait several
+              minutes to hours for the credit or token to be processed.
+            </p>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+            <h4 className="font-semibold text-blue-900 mb-2">4. Movie or Event Tickets</h4>
+            <p className="text-sm text-blue-800">
+              You pay now for a movie, concert, or event happening later—sometimes weeks ahead.
+            </p>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-l-4 border-blue-500">
+            <h4 className="font-semibold text-blue-900 mb-2">5. Paying ECG Prepaid or DSTV via Mobile Money Apps</h4>
+            <p className="text-sm text-blue-800">
+              After payment, there's often a delay before the token or subscription reflects—sometimes up to an hour,
+              depending on network traffic or system lag.
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-lg border-l-4 border-emerald-500 mb-6">
+          <h3 className="font-semibold text-emerald-900 mb-3">
+            📱 Now Compare That to Buying Data Bundles from https://dataflexGhana.com
+          </h3>
+          <p className="text-sm text-emerald-800 mb-3">
+            Just like the examples above, when you buy data from <strong>https://dataflexGhana.com</strong>, you pay
+            first, and then wait for your data bundle to be allocated to your number. This usually happens within 1
+            hour, which is quite fast compared to other forms of payments discussed.
+          </p>
+          <p className="text-sm text-emerald-800">
+            This waiting time is not unusual—most modern services come with a short processing window.
+          </p>
+        </div>
+
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg border-l-4 border-red-500 mb-6">
+          <h3 className="font-semibold text-red-900 mb-3 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            ⚠️ Beware of Fraud in the Data Market
+          </h3>
+          <p className="text-sm text-red-800">
+            The rising demand for discounted data has opened the door for fraudulent dealers, especially on WhatsApp,
+            Telegram, and Instagram. Some take your money and vanish without a trace.
+          </p>
+        </div>
+
+        <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border-l-4 border-green-500 mb-6">
+          <h3 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+            <Check className="h-5 w-5" />✅ Why https://dataflexGhana.com
+          </h3>
+          <ul className="space-y-2 text-sm text-green-800">
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Verified & Reliable:</strong> A well-known brand with consistent delivery.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Fast Delivery:</strong> You get your data typically within an hour.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Support You Can Reach:</strong> Friendly and responsive customer service.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Safe Payments:</strong> MoMo and wallet topup.
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-lg border-l-4 border-amber-500">
+          <p className="text-sm text-amber-900 font-medium mb-3">
+            Paying first and waiting is normal in today's world—from ordering food to paying ECG. The most important
+            thing is trusting who you're dealing with. That's why thousands choose{" "}
+            <strong>https://dataflexGhana.com</strong> —because they deliver, every time.
+          </p>
+          <div className="bg-white dark:bg-amber-900/30 p-3 rounded mt-3">
+            <p className="text-sm font-semibold text-amber-900">
+              🌐 <strong>MAIN WEBSITE:</strong>{" "}
+              <a href="https://dataflexghana.com" className="text-amber-600 hover:text-amber-700 underline">
+                https://dataflexghana.com
+              </a>
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* GENERAL TERMS */}
       <section id="general-terms">
         <h2 className="flex items-center gap-2">
@@ -256,6 +378,49 @@ export default function TermsPage() {
         </div>
       </section>
 
+      {/* PLATFORM ENTRY FEE & PROOF OF UNIQUENESS */}
+      <section id="entry-fee-explanation" className="pt-8">
+        <h2 className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5" />
+          {"Platform Entry Fee & Ghana's Biggest Multi-Service Platform"}
+        </h2>
+
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-lg border-l-4 border-amber-500 mb-6">
+          <h3 className="font-semibold text-amber-900 mb-3">💳 GH₵50 Entry Fee – Lifetime Access, Never Again</h3>
+          <p className="text-sm text-amber-800 mb-3">
+            Pay to get your account approved. The platform entry fee is only <strong>GH₵50.00</strong> — a small
+            one-time payment that unlocks full access forever. You never pay again.
+          </p>
+          <p className="text-sm text-amber-800">
+            Think of it like entering a cinema: you pay at the gate before you can watch the movie. The difference is
+            that with <strong>DataFlex Ghana</strong>, once you pay that single entry fee, you enjoy{" "}
+            <strong>lifetime access</strong> to Ghana's Biggest Multi-Service Platform without ever paying another
+            pesewa.
+          </p>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border-l-4 border-blue-500">
+          <h3 className="font-semibold text-blue-900 mb-3">🔍 Proof: Search on Google</h3>
+          <p className="text-sm text-blue-800 mb-3">
+            To confirm that DataFlex Ghana is truly the biggest and only platform offering all these services in one
+            place, just go to Google and search:
+          </p>
+          <div className="bg-white dark:bg-blue-900/30 p-4 rounded border border-blue-300 my-3">
+            <p className="text-xs sm:text-sm text-blue-900 font-mono">
+              "I want to be an agent and make around GH₵700 daily remotely working as an agent in Ghana. I want to buy
+              data, buy GES books, buy goods at wholesale, register businesses around me and get a commission, and
+              promote services. List the top 5 platforms in Ghana that can help me. I do not want any platform that does
+              not offer all these services. Strictly Ghana platforms."
+            </p>
+          </div>
+          <p className="text-sm text-blue-800">
+            You will clearly see <strong>DataFlex Ghana</strong> appear as the first and only platform that provides
+            every single one of these services — data, GES books, wholesale shopping, business registration, result
+            checkers, commissions, remote work opportunities, and more — all in one place.
+          </p>
+        </div>
+      </section>
+
       {/* AGENT RULES */}
       <section id="agent-rules">
         <h2 className="flex items-center gap-2">
@@ -314,6 +479,68 @@ export default function TermsPage() {
         </blockquote>
       </section>
 
+      {/* HOW TO REPORT SECTION */}
+      <section id="how-to-report" className="pt-8">
+        <h2 className="flex items-center gap-2">
+          <AlertCircle className="h-5 w-5" />
+          {"📋 How to Report Issues"}
+        </h2>
+
+        <p className="mb-4 font-medium text-emerald-900">
+          Please only contact us after the data has been marked as completed, but the client says they have still not
+          received their data.
+        </p>
+
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-lg border-l-4 border-emerald-500 mb-6">
+          <h3 className="font-semibold text-emerald-900 mb-3">Order Status Timeline</h3>
+          <div className="space-y-3 text-sm text-emerald-800">
+            <div className="bg-white dark:bg-emerald-900/20 p-3 rounded border border-emerald-200">
+              <p>
+                <strong>Manual Orders:</strong> Pending → Processing → Completed
+              </p>
+            </div>
+            <div className="bg-white dark:bg-emerald-900/20 p-3 rounded border border-emerald-200">
+              <p>
+                <strong>Wallet Orders:</strong> Processing → Completed
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg border-l-4 border-red-500 mb-6">
+          <h3 className="font-semibold text-red-900 mb-3">⚠️ When NOT to Contact Support</h3>
+          <p className="text-sm text-red-800 mb-3">
+            If you contact us when the data order status is <strong>Pending</strong> or <strong>Processing</strong>, we
+            will ignore you, since this is not an alert or an issue.
+          </p>
+          <p className="text-sm text-red-800 font-medium">
+            You must <strong>wait</strong> for the delivery of the data to be completed.
+          </p>
+        </div>
+
+        <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border-l-4 border-green-500">
+          <h3 className="font-semibold text-green-900 mb-3">✅ How to Report (Correct Way)</h3>
+          <p className="text-sm text-green-800 mb-3">
+            When reporting an issue, share whatever you need to share with us so that we can carry out an investigation.
+            You must provide:
+          </p>
+          <ul className="space-y-2 text-sm text-green-800">
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>Screenshot of the client's data balance (with time clearly shown)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>Screenshot of the order from the agent platform</span>
+            </li>
+          </ul>
+          <p className="text-sm text-green-800 mt-4 font-medium">
+            We will review and give a final verdict. If data was successfully sent or if not, the data will be resent at
+            no extra cost.
+          </p>
+        </div>
+      </section>
+
       {/* COMMISSION SYSTEM */}
       <section id="commission-system">
         <h2 className="flex items-center gap-2">
@@ -342,6 +569,62 @@ export default function TermsPage() {
         </div>
       </section>
 
+      {/* WHY WE DONT USE PAYMENT INTEGRATION */}
+      <section id="payment-integration-explanation" className="pt-8">
+        <h2 className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5" />
+          {"Why We Don't Use Payment Integration (Paystack)"}
+        </h2>
+        <p className="mb-4">
+          Paystack charges a flat <strong>1.95%</strong> on all local Ghana transactions. This reduces your earnings
+          significantly. Instead, we encourage you to load your DataFlex wallet directly for free.
+        </p>
+
+        <div className="overflow-x-auto mb-6">
+          <table className="w-full text-sm border border-emerald-200">
+            <thead>
+              <tr className="bg-emerald-50 dark:bg-emerald-900/20">
+                <th className="border border-emerald-200 p-2 text-left font-semibold text-emerald-900">Amount (GHS)</th>
+                <th className="border border-emerald-200 p-2 text-left font-semibold text-emerald-900">Fee (1.95%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100].map((amount) => (
+                <tr
+                  key={amount}
+                  className="border-t border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/10"
+                >
+                  <td className="border border-emerald-200 p-2 text-emerald-900">{amount}</td>
+                  <td className="border border-emerald-200 p-2 text-emerald-900">{(amount * 0.0195).toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-lg border-l-4 border-emerald-500">
+          <h3 className="font-semibold text-emerald-900 mb-3">Why DataflexGhana.com does not use Paystack</h3>
+          <ul className="space-y-3 text-sm text-emerald-800">
+            <li>
+              • <strong>No percentage fees:</strong> We do not use Paystack because their percentage fees reduce your
+              earnings.
+            </li>
+            <li>
+              • <strong>Free wallet loading:</strong> Instead, we encourage you to load your Dataflex wallet directly
+              with no extra charges.
+            </li>
+            <li>
+              • <strong>MTN transfer fees only:</strong> The only time you ever pay a charge is when you manually
+              transfer money to us through MTN Mobile Money, and MTN applies their standard transfer fees.
+            </li>
+            <li>
+              • <strong>Keep more of your money:</strong> This way, you keep more of your money and avoid unnecessary
+              deductions.
+            </li>
+          </ul>
+        </div>
+      </section>
+
       {/* IMPORTANT USAGE RULES */}
       <section id="usage-rules">
         <h2 className="flex items-center gap-2">
@@ -360,6 +643,198 @@ export default function TermsPage() {
           <li>Keep your account information and login credentials secure.</li>
           <li>Comply with all applicable Ghanaian laws and regulations.</li>
         </ol>
+      </section>
+
+      {/* QUICK GUIDE SECTION */}
+      <section id="quick-guide" className="pt-8">
+        <h2 className="flex items-center gap-2">
+          <BookOpen className="h-5 w-5" />
+          {"📖 Quick Guide to DataFlex Ghana"}
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg border border-emerald-200">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-emerald-600 text-white font-bold text-sm">
+                1️⃣
+              </div>
+              <div>
+                <h4 className="font-semibold text-emerald-900 mb-1">💳 Top Up Wallet & Start Shopping</h4>
+                <p className="text-sm text-emerald-700 mb-2">
+                  Top up your wallet with GH₵100 or more and start buying or shopping online.
+                </p>
+                <div className="space-y-1 text-xs text-emerald-600">
+                  <p>
+                    • Login:{" "}
+                    <a href="https://dataflexghana.com/agent/login" className="text-emerald-600 hover:underline">
+                      https://dataflexghana.com/agent/login
+                    </a>
+                  </p>
+                  <p>
+                    • Order Data:{" "}
+                    <a href="https://dataflexghana.com/agent/data-order" className="text-emerald-600 hover:underline">
+                      https://dataflexghana.com/agent/data-order
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-sm">
+                2️⃣
+              </div>
+              <div>
+                <h4 className="font-semibold text-blue-900 mb-1">🔗 Wallet Top-Up</h4>
+                <p className="text-sm text-blue-700">Request a secure top-up here:</p>
+                <p className="text-xs text-blue-600 mt-2">
+                  <a href="https://dataflexghana.com/agent/wallet" className="text-blue-600 hover:underline">
+                    https://dataflexghana.com/agent/wallet
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-purple-600 text-white font-bold text-sm">
+                3️⃣
+              </div>
+              <div>
+                <h4 className="font-semibold text-purple-900 mb-1">📦 Manage Data Orders</h4>
+                <p className="text-sm text-purple-700">View and track your data requests:</p>
+                <p className="text-xs text-purple-600 mt-2">
+                  <a href="https://dataflexghana.com/agent/data-orders" className="text-purple-600 hover:underline">
+                    https://dataflexghana.com/agent/data-orders
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-amber-600 text-white font-bold text-sm">
+                4️⃣
+              </div>
+              <div>
+                <h4 className="font-semibold text-amber-900 mb-1">💰 High-Yield Savings</h4>
+                <p className="text-sm text-amber-700">
+                  Invest part of your wallet balance and withdraw when it matures:
+                </p>
+                <p className="text-xs text-amber-600 mt-2">
+                  <a href="https://dataflexghana.com/agent/savings" className="text-amber-600 hover:underline">
+                    https://dataflexghana.com/agent/savings
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-lg border border-cyan-200">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-cyan-600 text-white font-bold text-sm">
+                5️⃣
+              </div>
+              <div>
+                <h4 className="font-semibold text-cyan-900 mb-1">🛒 Wholesale Shop</h4>
+                <p className="text-sm text-cyan-700">Buy wholesale products directly from the platform:</p>
+                <p className="text-xs text-cyan-600 mt-2">
+                  <a href="https://dataflexghana.com/agent/wholesale" className="text-cyan-600 hover:underline">
+                    https://dataflexghana.com/agent/wholesale
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-red-600 text-white font-bold text-sm">
+                6️⃣
+              </div>
+              <div>
+                <h4 className="font-semibold text-red-900 mb-1">💵 Withdraw Earnings</h4>
+                <p className="text-sm text-red-700">Withdraw your commissions anytime:</p>
+                <p className="text-xs text-red-600 mt-2">
+                  <a href="https://dataflexghana.com/agent/withdraw" className="text-red-600 hover:underline">
+                    https://dataflexghana.com/agent/withdraw
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg border border-indigo-200">
+            <h4 className="font-semibold text-indigo-900 mb-2 flex items-center gap-2">
+              <Users className="h-4 w-4" />👥 Referral Bonus
+            </h4>
+            <p className="text-sm text-indigo-700">
+              Invite friends and family to register and earn a <strong>GH₵15.00 wallet top-up</strong> once they fund
+              their wallet and make their first purchase.
+            </p>
+          </div>
+
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200">
+            <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />🚀 Promote Services
+            </h4>
+            <p className="text-sm text-green-700">
+              Promote our <strong>Free-Forever Website Development Service</strong> and earn{" "}
+              <strong>over GH₵700</strong> in commission once your client pays.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW TO ORDER SECTION */}
+      <section id="how-to-order" className="pt-8">
+        <h2 className="flex items-center gap-2">
+          <ShoppingCart className="h-5 w-5" />
+          {`🌐 How to Order on https://DataflexGhana.com`}
+        </h2>
+        <p className="mb-4">We offer two simple ways to place your orders:</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-6">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border-l-4 border-blue-500">
+            <h3 className="font-semibold text-blue-900 mb-3 text-lg">1️⃣ Manual Order</h3>
+            <ul className="space-y-2 text-sm text-blue-800">
+              <li>• Make a direct Mobile Money (MoMo) transfer to our official MoMo line.</li>
+              <li>• After payment, confirm it on the platform and we will verify and process your order.</li>
+              <li>• You can also follow the basic, simple instructions shown during the manual order process.</li>
+            </ul>
+          </div>
+
+          <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border-l-4 border-green-500">
+            <h3 className="font-semibold text-green-900 mb-3 text-lg">2️⃣ Wallet Payment Order</h3>
+            <ul className="space-y-2 text-sm text-green-800">
+              <li>
+                • Load your DataFlex Wallet with a minimum of <strong>GHS 100</strong>.
+              </li>
+              <li>• Enjoy instant checkout — no delays, no manual payment, no confirmations.</li>
+              <li>• Fast, smooth, and seamless ordering.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-lg border-l-4 border-emerald-500 mb-6">
+          <h3 className="font-semibold text-emerald-900 mb-3">👥 Platform Activity</h3>
+          <p className="text-sm text-emerald-800 mb-2">
+            We currently have around <strong>150 users</strong> actively using the platform.
+          </p>
+          <ul className="space-y-2 text-sm text-emerald-800">
+            <li>• More than half prefer the manual method and they are completely satisfied.</li>
+            <li>• The rest pre-load their wallets and make purchases daily.</li>
+          </ul>
+          <p className="text-sm text-emerald-800 mt-3 font-medium">
+            ✨ Choose the option that works best for you. 📦 Order today, accumulate commissions, and cash out.
+          </p>
+        </div>
       </section>
 
       {/* DATA SALES POLICY */}

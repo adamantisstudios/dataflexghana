@@ -15,9 +15,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { supabase } from "@/lib/supabase"
-import { Users, FileText, CheckCircle2, Trash2, Plus, Eye, MessageSquare, Play } from 'lucide-react'
+import { Users, FileText, CheckCircle2, Trash2, Plus, Eye, MessageSquare, Play } from "lucide-react"
 import { toast } from "sonner"
 import { ImagePicker } from "./media/ImagePicker"
 import { AudioRecorder } from "./media/AudioRecorder"
@@ -118,7 +118,15 @@ interface TeacherChannelDashboardProps {
 
 export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: TeacherChannelDashboardProps) {
   const [activeTab, setActiveTab] = useState<
-    "feeds" | "overview" | "members" | "requests" | "lesson-notes" | "qa" | "videos" | "youtube-videos" | "subscriptions"
+    | "feeds"
+    | "overview"
+    | "members"
+    | "requests"
+    | "lesson-notes"
+    | "qa"
+    | "videos"
+    | "youtube-videos"
+    | "subscriptions"
   >("feeds")
   const [channel, setChannel] = useState<Channel | null>(null)
   const [members, setMembers] = useState<ChannelMember[]>([])
@@ -135,11 +143,11 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
   })
   const [showMediaDialog, setShowMediaDialog] = useState(false)
   const [mediaForm, setMediaForm] = useState({
-    type: "text" as "text" | "image" | "audio" | "document" | "link",
+    type: "text" as "text" | "image" | "audio" | "document" | "link" | "video",
     title: "",
     content: "",
     selectedImages: [] as File[],
-    selectedAudio: null as Blob | null,
+    selectedAudio: null as Blob | null | File, // Allow File for video
     selectedDocuments: [] as File[],
     selectedLinks: [] as SharedLink[],
   })
@@ -426,6 +434,24 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
       toast.error("Please record an audio message")
       return
     }
+    if (mediaForm.type === "video") {
+      if (!mediaForm.selectedAudio) {
+        // Assuming selectedAudio is used for video upload
+        toast.error("Please upload a video")
+        return
+      }
+      // Check if video duration is provided from VideoPostCreator
+      const videoDuration = (mediaForm.selectedAudio as any).duration
+      if (videoDuration && videoDuration > 120) {
+        toast.error("Video duration must not exceed 2 minutes (120 seconds)")
+        return
+      }
+      const videoSizeMB = (mediaForm.selectedAudio as any).size / (1024 * 1024)
+      if (videoSizeMB > 100) {
+        toast.error("Video file size must not exceed 100 MB")
+        return
+      }
+    }
     if (mediaForm.type === "document" && mediaForm.selectedDocuments.length === 0) {
       toast.error("Please select at least one document")
       return
@@ -493,6 +519,31 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
         ])
         if (mediaError) {
           console.error("[v0] Error creating audio record:", mediaError)
+          throw mediaError
+        }
+      } else if (mediaForm.type === "video" && mediaForm.selectedAudio instanceof File) {
+        // Handle video upload
+        const videoFile = mediaForm.selectedAudio as File
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("media")
+          .upload(`${channelId}/${videoFile.name}`, videoFile)
+        if (uploadError) {
+          console.error("[v0] Error uploading video:", uploadError)
+          throw uploadError
+        }
+        const mediaUrl = `https://your-supabase-storage-url.com/${channelId}/${videoFile.name}` // Replace with your actual storage URL
+        const { error: mediaError } = await supabase.from("message_media").insert([
+          {
+            message_id: messageData.id,
+            media_type: "video",
+            media_url: mediaUrl,
+            file_name: videoFile.name,
+            file_size: videoFile.size,
+            duration: (videoFile as any).duration, // Assuming duration is attached from VideoPostCreator
+          },
+        ])
+        if (mediaError) {
+          console.error("[v0] Error creating video record:", mediaError)
           throw mediaError
         }
       } else if (mediaForm.type === "document" && mediaForm.selectedDocuments.length > 0) {
@@ -905,7 +956,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
   }
 
   const renderContentWithCode = (content: string) => {
-    const codeBlockRegex = /\`\`\`(\w+)?\n([\s\S]*?)\`\`\`/g
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g
     const matches = Array.from(content.matchAll(codeBlockRegex))
     if (matches.length > 0) {
       return (
@@ -921,7 +972,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
               return null
             } else {
               const language =
-                content.match(codeBlockRegex)?.[Math.floor(idx / 3)]?.match(/\`\`\`(\w+)?/)?.[1] || "javascript"
+                content.match(codeBlockRegex)?.[Math.floor(idx / 3)]?.match(/```(\w+)?/)?.[1] || "javascript"
               return <CodeBlockRenderer key={idx} code={part.trim()} language={language} />
             }
           })}
@@ -1048,7 +1099,11 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             </div>
             <div className="space-y-2 w-full">
               <h3 className="font-semibold text-blue-800 text-sm">Latest Channel Feeds</h3>
-              {posts.length === 0 && messages.length === 0 && videos.length === 0 && youtubeVideos.length === 0 && qaPosts.length === 0 ? (
+              {posts.length === 0 &&
+              messages.length === 0 &&
+              videos.length === 0 &&
+              youtubeVideos.length === 0 &&
+              qaPosts.length === 0 ? (
                 <div className="bg-blue-50 border-b-2 border-blue-200 rounded p-3 text-center text-blue-600 text-xs">
                   <FileText className="h-8 w-8 mx-auto mb-1 opacity-50" />
                   <p>No content yet. Create your first lesson post or share content!</p>
@@ -1318,6 +1373,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                               <SelectItem value="audio">Audio Note</SelectItem>
                               <SelectItem value="document">Documents</SelectItem>
                               <SelectItem value="link">Links</SelectItem>
+                              <SelectItem value="video">Videos</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1391,6 +1447,20 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                             disabled={isUploadingMedia}
                           />
                         )}
+                        {mediaForm.type === "video" && (
+                          <VideoPostCreator
+                            channelId={channelId}
+                            teacherId={teacherId}
+                            teacherName={teacherName}
+                            onVideoCreated={(videoData) => {
+                              setMediaForm({
+                                ...mediaForm,
+                                selectedAudio: videoData.videoFile, // Store the video file and duration
+                              })
+                            }}
+                            isDialogMode={true} // Indicate this is for dialog upload
+                          />
+                        )}
                       </div>
                       <DialogFooter>
                         <Button
@@ -1429,139 +1499,124 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
               </div>
             </div>
           </TabsContent>
-         {/* Members Tab */}
-        <TabsContent value="members" className="space-y-2 w-full px-2 sm:px-3">
-
-          <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
-            <DialogTrigger asChild>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-2 text-xs h-8">
-                <Plus className="h-3 w-3 mr-1" />
-                Add Member Directly
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent className="sm:max-w-[400px]">
-              <DialogHeader>
-                <DialogTitle className="text-base">Add Member to Channel</DialogTitle>
-                <DialogDescription className="text-xs">
-                  Add an agent directly to this channel
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="grid gap-3 py-3">
-                {/* Agent Input */}
-                <div className="grid gap-1">
-                  <Label htmlFor="agent-id" className="text-xs">
-                    Agent Name or Contact Number
-                  </Label>
-                  <Input
-                    id="agent-id"
-                    value={addMemberForm.agentId}
-                    onChange={(e) =>
-                      setAddMemberForm({ ...addMemberForm, agentId: e.target.value })
-                    }
-                    placeholder="Enter agent name or phone"
-                    autoComplete="off"
-                    className="h-8 text-xs"
-                  />
-                  <p className="text-xs text-gray-500">Search by name or phone number</p>
-                </div>
-
-                {/* Role Select */}
-                <div className="grid gap-1">
-                  <Label htmlFor="member-role" className="text-xs">
-                    Role
-                  </Label>
-                  <Select
-                    value={addMemberForm.role}
-                    onValueChange={(val) =>
-                      setAddMemberForm({ ...addMemberForm, role: val as any })
-                    }
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="teacher">Teacher</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowAddMemberDialog(false)
-                    setAddMemberForm({ agentId: "", role: "member" })
-                  }}
-                  className="text-xs h-8"
-                >
-                  Cancel
+          {/* Members Tab */}
+          <TabsContent value="members" className="space-y-2 w-full px-2 sm:px-3">
+            <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-2 text-xs h-8">
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Member Directly
                 </Button>
+              </DialogTrigger>
 
-                <Button
-                  type="button"
-                  onClick={handleAddMemberDirectly}
-                  className="bg-blue-600 hover:bg-blue-700 text-xs h-8"
-                >
-                  Add Member
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                  <DialogTitle className="text-base">Add Member to Channel</DialogTitle>
+                  <DialogDescription className="text-xs">Add an agent directly to this channel</DialogDescription>
+                </DialogHeader>
 
-          {/* Members List */}
-          {members.length === 0 ? (
-            <div className="bg-blue-50 border-b-2 border-blue-200 rounded p-3 text-center text-blue-600 text-xs">
-              <Users className="h-6 w-6 mx-auto mb-1 opacity-50" />
-              <p>No members yet</p>
-            </div>
-          ) : (
-            <div className="space-y-1 w-full">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="border-b border-gray-200 pb-2 w-full"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-800 text-sm">
-                        {member.agent_name}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {member.agent_contact
-                          ? `📞 ${member.agent_contact}`
-                          : "No contact"}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Joined {new Date(member.joined_at).toLocaleDateString()}
-                      </p>
-                    </div>
+                <div className="grid gap-3 py-3">
+                  {/* Agent Input */}
+                  <div className="grid gap-1">
+                    <Label htmlFor="agent-id" className="text-xs">
+                      Agent Name or Contact Number
+                    </Label>
+                    <Input
+                      id="agent-id"
+                      value={addMemberForm.agentId}
+                      onChange={(e) => setAddMemberForm({ ...addMemberForm, agentId: e.target.value })}
+                      placeholder="Enter agent name or phone"
+                      autoComplete="off"
+                      className="h-8 text-xs"
+                    />
+                    <p className="text-xs text-gray-500">Search by name or phone number</p>
+                  </div>
 
-                    <div className="flex items-center gap-1">
-                      <Badge variant="secondary" className="text-xs">
-                        {member.role}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleRemoveMember(member.id)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <Trash2 className="h-2.5 w-2.5" />
-                      </Button>
-                    </div>
+                  {/* Role Select */}
+                  <div className="grid gap-1">
+                    <Label htmlFor="member-role" className="text-xs">
+                      Role
+                    </Label>
+                    <Select
+                      value={addMemberForm.role}
+                      onValueChange={(val) => setAddMemberForm({ ...addMemberForm, role: val as any })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="member">Member</SelectItem>
+                        <SelectItem value="teacher">Teacher</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
 
-        </TabsContent>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddMemberDialog(false)
+                      setAddMemberForm({ agentId: "", role: "member" })
+                    }}
+                    className="text-xs h-8"
+                  >
+                    Cancel
+                  </Button>
+
+                  <Button
+                    type="button"
+                    onClick={handleAddMemberDirectly}
+                    className="bg-blue-600 hover:bg-blue-700 text-xs h-8"
+                  >
+                    Add Member
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Members List */}
+            {members.length === 0 ? (
+              <div className="bg-blue-50 border-b-2 border-blue-200 rounded p-3 text-center text-blue-600 text-xs">
+                <Users className="h-6 w-6 mx-auto mb-1 opacity-50" />
+                <p>No members yet</p>
+              </div>
+            ) : (
+              <div className="space-y-1 w-full">
+                {members.map((member) => (
+                  <div key={member.id} className="border-b border-gray-200 pb-2 w-full">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-800 text-sm">{member.agent_name}</p>
+                        <p className="text-xs text-gray-600">
+                          {member.agent_contact ? `📞 ${member.agent_contact}` : "No contact"}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Joined {new Date(member.joined_at).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {member.role}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRemoveMember(member.id)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Trash2 className="h-2.5 w-2.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
           {/* Requests Tab */}
           <TabsContent value="requests" className="space-y-2 w-full px-2 sm:px-3">
@@ -1762,11 +1817,16 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           </TabsContent>
         </Tabs>
       </div>
-      <AlertDialog open={!!deleteConfirmId && deleteConfirmType === "post"} onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}>
+      <AlertDialog
+        open={!!deleteConfirmId && deleteConfirmType === "post"}
+        onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}
+      >
         <AlertDialogContent className="w-[95vw] max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-700">Delete Post</AlertDialogTitle>
-            <AlertDialogDescription>This post will be deleted but can be recovered. Are you sure?</AlertDialogDescription>
+            <AlertDialogDescription>
+              This post will be deleted but can be recovered. Are you sure?
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex gap-2">
             <AlertDialogCancel className="flex-1">Cancel</AlertDialogCancel>
@@ -1779,7 +1839,10 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           </div>
         </AlertDialogContent>
       </AlertDialog>
-      <AlertDialog open={!!deleteConfirmId && deleteConfirmType === "member"} onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}>
+      <AlertDialog
+        open={!!deleteConfirmId && deleteConfirmType === "member"}
+        onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}
+      >
         <AlertDialogContent className="w-[95vw] max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-700">Remove Member</AlertDialogTitle>
@@ -1796,7 +1859,10 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           </div>
         </AlertDialogContent>
       </AlertDialog>
-      <AlertDialog open={!!deleteConfirmId && deleteConfirmType === "message"} onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}>
+      <AlertDialog
+        open={!!deleteConfirmId && deleteConfirmType === "message"}
+        onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}
+      >
         <AlertDialogContent className="w-[95vw] max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-700">Delete Message</AlertDialogTitle>

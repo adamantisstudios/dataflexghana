@@ -317,6 +317,14 @@ export default function DataOrdersPage() {
 
   const deleteOrder = async (orderId: string) => {
     try {
+      const orderToDelete = orders.find((o) => o.id === orderId)
+      if (orderToDelete && orderToDelete.status === "processing") {
+        alert("Cannot delete orders that are currently processing. Only pending and completed orders can be deleted.")
+        setShowDeleteDialog(false)
+        setOrderToDelete(null)
+        return
+      }
+
       const { error } = await supabase.from("data_orders").delete().eq("id", orderId)
       if (error) throw error
       setOrders(orders.filter((order) => order.id !== orderId))
@@ -365,6 +373,11 @@ export default function DataOrdersPage() {
   }
 
   const openDeleteDialog = (orderId: string) => {
+    const orderToDelete = orders.find((o) => o.id === orderId)
+    if (orderToDelete && orderToDelete.status === "processing") {
+      alert("Cannot delete orders that are currently processing. Only pending and completed orders can be deleted.")
+      return
+    }
     setOrderToDelete(orderId)
     setShowDeleteDialog(true)
   }

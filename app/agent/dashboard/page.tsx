@@ -45,6 +45,12 @@ import {
   Lightbulb,
   Check,
   AlertCircle,
+  Trophy,
+  Calendar,
+  RefreshCw,
+  Medal,
+  Crown,
+  Star,
 } from "lucide-react"
 import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
@@ -75,6 +81,20 @@ import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
 import ReferralDashboard from "@/components/agent/referral-program/ReferralDashboard"
 import Image from "next/image"
 import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
+
+interface SimpleAgent {
+  name: string
+  activity: number
+  rank: number
+}
+
+interface RankingData {
+  agents: SimpleAgent[]
+  timeframe: string
+  total_count: number
+  last_updated: string
+  fallback?: boolean
+}
 
 const safeCommissionDisplay = (value: number | null | undefined): number => {
   if (value === null || value === undefined || isNaN(value)) {
@@ -111,11 +131,250 @@ const generateSlug = (text: string) => {
     .replace(/-+$/, "")
 }
 
+const AdminAgentRanking = () => {
+  const [rankingData, setRankingData] = useState<RankingData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [timeframe, setTimeframe] = useState<"7d" | "30d">("30d")
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchRankings()
+    const interval = setInterval(fetchRankings, 3 * 60 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [timeframe])
+
+  const fetchRankings = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await fetch(`/api/admin/agents/ranking?timeframe=${timeframe}&limit=10`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      const result = await response.json()
+      if (result.success) {
+        setRankingData(result.data)
+      } else {
+        throw new Error(result.error || "Failed to fetch rankings")
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Network error occurred"
+      setError(errorMessage)
+      setRankingData(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getRankIcon = (rank: number) => {
+    switch (rank) {
+      case 1:
+        return <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
+      case 2:
+        return <Medal className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+      case 3:
+        return <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
+      default:
+        return (
+          <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center font-bold">
+            {rank}
+          </div>
+        )
+    }
+  }
+
+  const formatLastUpdated = (dateString: string) => {
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return "Unknown"
+    }
+  }
+
+  if (loading && !rankingData) {
+    return (
+      <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+        <CardHeader className="pb-3 sm:pb-4">
+          <CardTitle className="text-lg sm:text-xl font-bold text-emerald-800 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
+            <span className="text-sm sm:text-xl">Agent Performance Rankings</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="p-3 sm:p-4 rounded-lg bg-emerald-50 animate-pulse">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 bg-emerald-200 rounded"></div>
+                  <div className="h-3 sm:h-4 bg-emerald-200 rounded w-16 sm:w-20"></div>
+                </div>
+                <div className="h-5 sm:h-6 bg-emerald-200 rounded w-6 sm:w-8 mb-1"></div>
+                <div className="h-2 sm:h-3 bg-emerald-200 rounded w-12 sm:w-16"></div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
+      <CardHeader className="pb-3 sm:pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+          <CardTitle className="text-lg sm:text-xl font-bold text-emerald-800 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
+            <span className="text-base sm:text-xl">Agent Performance Rankings</span>
+          </CardTitle>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex gap-1">
+              <Button
+                variant={timeframe === "7d" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTimeframe("7d")}
+                className="h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm flex-1 sm:flex-none"
+              >
+                7 Days
+              </Button>
+              <Button
+                variant={timeframe === "30d" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTimeframe("30d")}
+                className="h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm flex-1 sm:flex-none"
+              >
+                30 Days
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchRankings}
+              className="h-7 sm:h-8 px-2 sm:px-3 bg-transparent"
+            >
+              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 text-xs sm:text-sm text-emerald-600">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span>{rankingData?.total_count || 0} total agents</span>
+            </div>
+            {rankingData?.last_updated && (
+              <div className="flex items-center gap-1">
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Updated: {formatLastUpdated(rankingData.last_updated)}</span>
+                {rankingData.fallback && (
+                  <Badge variant="outline" className="text-xs px-1 sm:px-2 py-0 ml-1">
+                    Demo Data
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="px-3 sm:px-6">
+        {error ? (
+          <div className="text-center py-6 sm:py-8">
+            <div className="text-red-600 mb-4">
+              <TrendingUp className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
+              <p className="text-xs sm:text-sm">{error}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={fetchRankings} className="text-xs sm:text-sm bg-transparent">
+              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        ) : !rankingData?.agents || rankingData.agents.length === 0 ? (
+          <div className="text-center py-6 sm:py-8 text-emerald-600">
+            <TrendingUp className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+            <h3 className="text-base sm:text-lg font-semibold mb-2">No Active Agents</h3>
+            <p className="text-xs sm:text-sm">No agent activity found for the selected timeframe</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+              {rankingData.agents.slice(0, 3).map((agent, index) => (
+                <div
+                  key={`${agent.name}-${agent.rank}`}
+                  className={`relative p-3 sm:p-4 rounded-xl transition-all duration-300 hover:scale-105 ${
+                    agent.rank === 1
+                      ? "bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 shadow-lg"
+                      : agent.rank === 2
+                        ? "bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300 shadow-md"
+                        : "bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 shadow-md"
+                  }`}
+                >
+                  <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2">
+                    <div
+                      className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm ${
+                        agent.rank === 1 ? "bg-yellow-500" : agent.rank === 2 ? "bg-gray-400" : "bg-amber-600"
+                      }`}
+                    >
+                      {agent.rank}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="mb-2 sm:mb-3 flex justify-center">{getRankIcon(agent.rank)}</div>
+                    <h4 className="font-bold text-emerald-800 text-sm sm:text-lg mb-1 truncate">{agent.name}</h4>
+                    <div className="text-xl sm:text-2xl font-bold text-emerald-700 mb-1">{agent.activity}</div>
+                    <p className="text-xs text-emerald-600">Activity Score</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {rankingData.agents.length > 3 && (
+              <div className="space-y-2">
+                <h4 className="font-semibold text-emerald-800 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4" />
+                  Other Top Performers
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
+                  {rankingData.agents.slice(3).map((agent) => (
+                    <div
+                      key={`${agent.name}-${agent.rank}`}
+                      className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-all duration-200"
+                    >
+                      <div className="flex items-center justify-center w-5 sm:w-6">{getRankIcon(agent.rank)}</div>
+                      <div className="flex-1 min-w-0">
+                        <h5 className="font-semibold text-emerald-800 text-xs sm:text-sm truncate">{agent.name}</h5>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm sm:text-lg font-bold text-emerald-700">{agent.activity}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-emerald-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 text-xs text-emerald-600">
+                <p>Activity Score = Data Orders + Referrals + Wholesale Orders</p>
+                <p className="hidden sm:block">Auto-refreshes every 3 hours</p>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function AgentDashboard() {
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
   const [expandedReferrals, setExpandedReferrals] = useState<Set<string>>(new Set())
-
-  // State Management
   const router = useRouter()
   const { getFromCache, setInCache } = useAgentDashboardCache()
   const [agent, setAgent] = useState(null)
@@ -178,8 +437,8 @@ export default function AgentDashboard() {
   const [jobSearchTerm, setJobSearchTerm] = useState("")
   const [jobsFilterAgent, setJobsFilterAgent] = useState("All Jobs")
   const [showAgentDeactivationAlert, setShowAgentDeactivationAlert] = useState(false)
+  const [showAgentPerformance, setShowAgentPerformance] = useState(false)
 
-  // Refs
   const menuSectionRef = useRef<HTMLDivElement>(null)
   const smartWalletRef = useRef<HTMLDivElement>(null)
   const walletTopupRef = useRef<HTMLDivElement>(null)
@@ -193,7 +452,6 @@ export default function AgentDashboard() {
     }))
   }
 
-  // Updated shouldTruncateDescription and getTruncatedDescription to avoid redeclaration
   const shouldTruncateDescription = (text: string) => {
     return text.length > 100
   }
@@ -208,7 +466,6 @@ export default function AgentDashboard() {
     return expandedDescriptions[serviceId] ? text : getTruncatedDescription(text)
   }
 
-  // Memoized Data
   const filteredServices = useMemo(() => {
     if (!loadedTabs.services) return []
     let filtered = tabData.services.filter(
@@ -295,7 +552,6 @@ export default function AgentDashboard() {
     return filtered
   }, [jobSearchTerm, tabData.jobs, jobsFilterAgent, loadedTabs.jobs])
 
-  // Functions for referral description expansion
   const toggleReferralExpanded = (referralId: string) => {
     setExpandedReferrals((prev) => {
       const newSet = new Set(prev)
@@ -308,7 +564,6 @@ export default function AgentDashboard() {
     })
   }
 
-  // Updated shouldTruncateDescription and getTruncatedDescription to avoid redeclaration
   const shouldTruncateReferralDescription = (text: string) => {
     return text.length > 150
   }
@@ -332,9 +587,7 @@ export default function AgentDashboard() {
     let timer: NodeJS.Timeout | null = null
     const checkDeactivationStatus = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
+        const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user) return
         const { data: agent } = await supabase
           .from("agents")
@@ -440,7 +693,6 @@ export default function AgentDashboard() {
     loadInitialData()
   }, [])
 
-  // Handlers
   const handleTabChange = useCallback(
     async (tab: string) => {
       setActiveTab(tab)
@@ -624,7 +876,7 @@ export default function AgentDashboard() {
                 </PaginationItem>
                 {visiblePages[0] > 2 && (
                   <PaginationItem>
-                    <span className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center text-xs sm:text-text-sm">
+                    <span className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center text-xs sm:text-sm">
                       ...
                     </span>
                   </PaginationItem>
@@ -886,7 +1138,6 @@ DataFlex Ghana Agent 🇬🇭`
     return job
   }
 
-  // Render
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center">
@@ -925,7 +1176,7 @@ DataFlex Ghana Agent 🇬🇭`
         </DialogContent>
       </Dialog>
       <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 shadow-lg border-b-2 border-emerald-700">
-        <div className="container mx-auto px-4 py-3">
+        <div className="w-full max-w-full px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white rounded-lg shadow flex items-center justify-center p-1.5">
@@ -960,7 +1211,7 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         </div>
       </div>
-      <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {showNotification && (
           <div className="relative mb-6 p-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg shadow-lg border-l-4 border-l-emerald-700">
             <button
@@ -985,1334 +1236,1264 @@ DataFlex Ghana Agent 🇬🇭`
         )}
         <AgentMenuCards activeTab={activeTab} onTabChange={handleTabChange} />
 
-        {/* START: MORE THAN JUST DATA CARD */}
-        <div className="mb-8">
-          <Card className="border-amber-100 bg-amber-50/50 shadow-sm hover:shadow-md transition-shadow w-full">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col gap-3 sm:gap-4">
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="p-2 sm:p-3 rounded-full bg-amber-100 flex-shrink-0">
-                    <Lightbulb className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
+        {/* START: ISOLATED AGENT PERFORMANCE SECTION */}
+        <div ref={performanceRef} className="container mx-auto px-4 py-8">
+          {!showAgentPerformance ? (
+            <div className="flex justify-center">
+              <Card className="w-full max-w-full border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 hover:shadow-lg transition-all duration-300 max-w-md w-full">
+                <CardContent className="pt-6 text-center py-8">
+                  <div className="space-y-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
+                      <TrendingUp className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-emerald-800 mb-2">Agent Performance Ranking</h3>
+                      <p className="text-emerald-600 text-sm mb-4">
+                        See how you rank among all agents on the platform. Click to view your performance and stay
+                        motivated!
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setShowAgentPerformance(true)}
+                      className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 w-full"
+                    >
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      View Performance Rankings
+                    </Button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-amber-800 text-base sm:text-lg">More Than Just Data</h3>
-                    <p className="text-xs sm:text-sm text-amber-700 mt-2 leading-relaxed">
-                      Data reselling is just the start. Discover how to earn{" "}
-                      <strong>GH₵50 to GH₵1,000+ per transaction</strong> with our trusted services and business
-                      opportunities.
-                    </p>
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-emerald-800 flex items-center gap-2">
+                  <TrendingUp className="h-6 w-6 text-emerald-600" />
+                  Agent Performance Rankings
+                </h2>
                 <Button
-                  onClick={() => setShowBeyondDataModal(true)}
                   variant="outline"
-                  size="sm"
-                  className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 transition-colors w-full bg-transparent text-xs sm:text-sm font-medium"
+                  onClick={() => setShowAgentPerformance(false)}
+                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 bg-transparent"
                 >
-                  Learn How to Earn More
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <X className="h-4 w-4 mr-2" />
+                  Close
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+              <Suspense>
+                <AdminAgentRanking />
+              </Suspense>
+            </div>
+          )}
         </div>
-        {/* END: MORE THAN JUST DATA CARD */}
+        {/* END: ISOLATED AGENT PERFORMANCE SECTION */}
 
-        {/* START: APPLE SERVICE CENTER CARD */}
-        <div className="mb-8">
-          <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
-            <CardContent className="p-0">
-              <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-center">
-                {/* Image Section */}
-                <div className="relative h-64 md:h-full md:min-h-80 overflow-hidden">
-                  <img
-                    src="/repairmantwo.jpg"
-                    alt="Apple Device Repair Service"
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
-                    onClick={() => openImageModal(["/repairmantwo.jpg"], 0, "Apple Service Center")}
-                  />
+        <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+          {/* START: MORE THAN JUST DATA CARD */}
+          <div className="mb-8">
+            <Card className="w-full max-w-fullborder-amber-100 bg-amber-50/50 shadow-sm hover:shadow-md transition-shadow w-full">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col gap-3 sm:gap-4">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="p-2 sm:p-3 rounded-full bg-amber-100 flex-shrink-0">
+                      <Lightbulb className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-amber-800 text-base sm:text-lg">More Than Just Data</h3>
+                      <p className="text-xs sm:text-sm text-amber-700 mt-2 leading-relaxed">
+                        Data reselling is just the start. Discover how to earn{" "}
+                        <strong>GH₵50 to GH₵1,000+ per transaction</strong> with our trusted services and business
+                        opportunities.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setShowBeyondDataModal(true)}
+                    variant="outline"
+                    size="sm"
+                    className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 transition-colors w-full bg-transparent text-xs sm:text-sm font-medium"
+                  >
+                    Learn How to Earn More
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
                 </div>
-
-                {/* Content Section */}
-                <div className="p-6 lg:p-8 space-y-6">
-                  <div>
-                    <div className="inline-block px-3 py-1 bg-amber-200 rounded-full mb-3">
-                      <p className="text-amber-700 text-xs font-semibold">🔧 Professional Apple Repair</p>
-                    </div>
-                    <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3">
-                      Quick, Professional <span className="text-amber-600">Apple Repairs</span>
-                    </h3>
-                    <p className="text-slate-600 text-sm leading-relaxed">
-                      No need to visit our office! We offer convenient pickup, expert repair, and safe delivery service.
-                    </p>
+              </CardContent>
+            </Card>
+          </div>
+          {/* END: MORE THAN JUST DATA CARD */}
+          {/* START: APPLE SERVICE CENTER CARD */}
+          <div className="mb-8">
+            <Card className="w-full max-w-full border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-center">
+                  {/* Image Section */}
+                  <div className="relative h-64 md:h-full md:min-h-80 overflow-hidden">
+                    <img
+                      src="/repairmantwo.jpg"
+                      alt="Apple Device Repair Service"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                      onClick={() => openImageModal(["/repairmantwo.jpg"], 0, "Apple Service Center")}
+                    />
                   </div>
-
-                  {/* Features List */}
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
-                        <Check className="w-5 h-5 text-amber-600" />
+                  {/* Content Section */}
+                  <div className="p-6 lg:p-8 space-y-6">
+                    <div>
+                      <div className="inline-block px-3 py-1 bg-amber-200 rounded-full mb-3">
+                        <p className="text-amber-700 text-xs font-semibold">🔧 Professional Apple Repair</p>
                       </div>
-                      <div>
-                        <h4 className="font-semibold text-slate-900 text-sm">Free Pickup Service</h4>
-                        <p className="text-xs text-slate-600">We collect your device at no extra cost</p>
+                      <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3">
+                        Quick, Professional <span className="text-amber-600">Apple Repairs</span>
+                      </h3>
+                      <p className="text-slate-600 text-sm leading-relaxed">
+                        No need to visit our office! We offer convenient pickup, expert repair, and safe delivery service.
+                      </p>
+                    </div>
+                    {/* Features List */}
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                          <Check className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-900 text-sm">Free Pickup Service</h4>
+                          <p className="text-xs text-slate-600">We collect your device at no extra cost</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                          <Check className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-900 text-sm">Expert Technicians</h4>
+                          <p className="text-xs text-slate-600">Certified professionals with quality parts</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                          <Check className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-900 text-sm">Fast Turnaround</h4>
+                          <p className="text-xs text-slate-600">Most repairs within 24-48 hours</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
+                          <Check className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-slate-900 text-sm">Safe Delivery</h4>
+                          <p className="text-xs text-slate-600">Repaired device delivered to your doorstep</p>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
-                        <Check className="w-5 h-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-slate-900 text-sm">Expert Technicians</h4>
-                        <p className="text-xs text-slate-600">Certified professionals with quality parts</p>
-                      </div>
+                    {/* CTA Button */}
+                    <div className="pt-4">
+                      <Button
+                        asChild
+                        className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold"
+                      >
+                        <Link href="/appleservicecenter">
+                          <ArrowRight className="h-4 w-4 mr-2" />
+                          Visit Main Page
+                        </Link>
+                      </Button>
                     </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
-                        <Check className="w-5 h-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-slate-900 text-sm">Fast Turnaround</h4>
-                        <p className="text-xs text-slate-600">Most repairs within 24-48 hours</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-amber-100 rounded-lg flex-shrink-0">
-                        <Check className="w-5 h-5 text-amber-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-slate-900 text-sm">Safe Delivery</h4>
-                        <p className="text-xs text-slate-600">Repaired device delivered to your doorstep</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CTA Button */}
-                  <div className="pt-4">
-                    <Button
-                      asChild
-                      className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold"
-                    >
-                      <Link href="/appleservicecenter">
-                        <ArrowRight className="h-4 w-4 mr-2" />
-                        Visit Main Page
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        {/* END: APPLE SERVICE CENTER CARD */}
-        
-        {/* START: FASHIONABLY HIRED CARD */}
-        <div className="mb-8">
-          <Card className="border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
-            <CardContent className="p-0">
-              <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-center">
-                {/* Image Section */}
-                <div className="relative h-64 md:h-full md:min-h-80 overflow-hidden">
-                  <img
-                    src="https://fashionablyhired.netlify.app/images/slide2.jpg"
-                    alt="Custom Fashion Design Service"
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
-                    onClick={() => openImageModal(["https://fashionablyhired.netlify.app/images/slide2.jpg"], 0, "Fashionably Hired")}
-                  />
-                </div>
-                {/* Content Section */}
-                <div className="p-6 lg:p-8 space-y-6">
-                  <div>
-                    <div className="inline-block px-3 py-1 bg-navy-200 rounded-full mb-3">
-                      <p className="text-navy-800 text-xs font-semibold">👗 Bespoke Fashion Design</p>
-                    </div>
-                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-                      Stylish, <span className="text-navy-600">Custom Fashion</span> for Every Occasion
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      Elevate your wardrobe with our remote fashion design services. From corporate wear to bridal couture, we stitch dreams into reality—no in-person visit required!
-                    </p>
-                  </div>
-                  {/* Features List */}
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
-                        <Check className="w-5 h-5 text-navy-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 text-sm">Remote Design Consultations</h4>
-                        <p className="text-xs text-gray-600">Design your outfit from anywhere via WhatsApp</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
-                        <Check className="w-5 h-5 text-navy-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 text-sm">Flexible Payment Plans</h4>
-                        <p className="text-xs text-gray-600">50% upfront, 50% on completion</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
-                        <Check className="w-5 h-5 text-navy-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 text-sm">Fast & Precise Delivery</h4>
-                        <p className="text-xs text-gray-600">Your custom outfit delivered to your doorstep</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
-                        <Check className="w-5 h-5 text-navy-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 text-sm">Earn Commission</h4>
-                        <p className="text-xs text-gray-600">Refer clients and earn 3GB data per successful order</p>
-                      </div>
-                    </div>
-                  </div>
-                  {/* CTA Button */}
-                  <div className="pt-4">
-                    <Button
-                      asChild
-                      className="w-full bg-gradient-to-r from-navy-600 to-blue-800 hover:from-navy-700 hover:to-blue-900 text-white font-semibold"
-                    >
-                      <Link href="https://fashionablyhired.netlify.app/">
-                        <ArrowRight className="h-4 w-4 mr-2" />
-                        Visit Main Page
-                      </Link>
-                    </Button>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        {/* END: FASHIONABLY HIRED CARD */}
+              </CardContent>
+            </Card>
+          </div>
+          {/* END: APPLE SERVICE CENTER CARD */}
 
-
-        <div className="mb-8">
-          <Card className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-2xl border-[3px] border-emerald-800 hover:shadow-[0_0_35px_rgba(16,185,129,0.7)] transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.01] rounded-2xl">
-            <CardContent className="p-5 sm:p-7">
-              <div className="space-y-6">
-                <div className="flex items-start gap-4 bg-white/10 rounded-xl p-4 border border-white/20 shadow-inner backdrop-blur-sm">
-                  <div className="p-3 rounded-full bg-white/30 shadow-lg flex-shrink-0">
-                    <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+          {/* START: FASHIONABLY HIRED CARD */}
+          <div className="mb-8">
+            <Card className="w-full max-w-full border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-center">
+                  {/* Image Section */}
+                  <div className="relative h-64 md:h-full md:min-h-80 overflow-hidden">
+                    <img
+                      src="https://fashionablyhired.netlify.app/images/slide2.jpg"
+                      alt="Custom Fashion Design Service"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                      onClick={() => openImageModal(["https://fashionablyhired.netlify.app/images/slide2.jpg"], 0, "Fashionably Hired")}
+                    />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-extrabold text-white text-lg sm:text-xl tracking-wide drop-shadow-md">
-                      Need Support?
-                    </h3>
-                    <p className="text-sm text-green-50 mt-2 leading-relaxed">
-                      For help or inquiries, call
-                      <strong className="font-bold text-white ml-1 text-base">0242799990</strong> — we’re here for you.
-                    </p>
+                  {/* Content Section */}
+                  <div className="p-6 lg:p-8 space-y-6">
+                    <div>
+                      <div className="inline-block px-3 py-1 bg-navy-200 rounded-full mb-3">
+                        <p className="text-navy-800 text-xs font-semibold">👗 Bespoke Fashion Design</p>
+                      </div>
+                      <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+                        Stylish, <span className="text-navy-600">Custom Fashion</span> for Every Occasion
+                      </h3>
+                      <p className="text-gray-600 text-sm leading-relaxed">
+                        Elevate your wardrobe with our remote fashion design services. From corporate wear to bridal couture, we stitch dreams into reality—no in-person visit required!
+                      </p>
+                    </div>
+                    {/* Features List */}
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
+                          <Check className="w-5 h-5 text-navy-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 text-sm">Remote Design Consultations</h4>
+                          <p className="text-xs text-gray-600">Design your outfit from anywhere via WhatsApp</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
+                          <Check className="w-5 h-5 text-navy-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 text-sm">Flexible Payment Plans</h4>
+                          <p className="text-xs text-gray-600">50% upfront, 50% on completion</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
+                          <Check className="w-5 h-5 text-navy-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 text-sm">Fast & Precise Delivery</h4>
+                          <p className="text-xs text-gray-600">Your custom outfit delivered to your doorstep</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-navy-100 rounded-lg flex-shrink-0">
+                          <Check className="w-5 h-5 text-navy-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 text-sm">Earn Commission</h4>
+                          <p className="text-xs text-gray-600">Refer clients and earn 3GB data per successful order</p>
+                        </div>
+                      </div>
+                    </div>
+                    {/* CTA Button */}
+                    <div className="pt-4">
+                      <Button
+                        asChild
+                        className="w-full bg-gradient-to-r from-navy-600 to-blue-800 hover:from-navy-700 hover:to-blue-900 text-white font-semibold"
+                      >
+                        <Link href="https://fashionablyhired.netlify.app/">
+                          <ArrowRight className="h-4 w-4 mr-2" />
+                          Visit Main Page
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <div className="bg-white/95 border-2 border-emerald-300 rounded-xl p-5 space-y-4 shadow-xl hover:shadow-emerald-300/50 transition-all duration-300">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-emerald-100 rounded-full shadow-md">
-                      <svg className="h-6 w-6 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              </CardContent>
+            </Card>
+          </div>
+          {/* END: FASHIONABLY HIRED CARD */}
+          <div className="mb-8">
+            <Card className="w-full max-w-full bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-2xl border-[3px] border-emerald-800 hover:shadow-[0_0_35px_rgba(16,185,129,0.7)] transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.01] rounded-2xl">
+              <CardContent className="p-5 sm:p-7">
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4 bg-white/10 rounded-xl p-4 border border-white/20 shadow-inner backdrop-blur-sm">
+                    <div className="p-3 rounded-full bg-white/30 shadow-lg flex-shrink-0">
+                      <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-bold text-emerald-900 text-base sm:text-lg">Join Our Teacher Channel</h4>
-                      <p className="text-sm text-emerald-700 leading-relaxed mt-1">
-                        Join the official channel
-                        <strong className="font-bold text-emerald-900 ml-1">"Make ¢700.00 A Day"</strong>
-                        to learn how to earn more and become a high-performing Dataflex Ghana agent. Get guidance,
-                        strategies, and mentorship from top agents.
-                      </p>
-                      <p className="text-xs text-emerald-600 italic font-medium mt-2">
-                        This is the ONLY official community. We do NOT operate any WhatsApp group.
+                      <h3 className="font-extrabold text-white text-lg sm:text-xl tracking-wide drop-shadow-md">
+                        Need Support?
+                      </h3>
+                      <p className="text-sm text-green-50 mt-2 leading-relaxed">
+                        For help or inquiries, call
+                        <strong className="font-bold text-white ml-1 text-base">0242799990</strong> — we’re here for you.
                       </p>
                     </div>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="mb-8">
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-xl transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-blue-800">Educational Products & Services</h3>
-                    <p className="text-blue-600">Results Checker Cards, School Forms & Subscriptions</p>
-                  </div>
-                </div>
-                <Button
-                  asChild
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full md:w-auto"
-                >
-                  <Link href="/voucher">
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Shop Educational Products
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          <div className="lg:col-span-1 space-y-6">
-            <div className="rounded-lg overflow-hidden shadow-lg bg-gray-100">
-              <div className="relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
-                <div className="absolute top-4 right-4 bg-black/20 text-white px-3 py-1 rounded text-sm font-medium backdrop-blur-sm z-10">
-                  Agent ID: {agent?.id?.slice(-6) || "XXXXXX"}
-                </div>
-                <video
-                  width="1920"
-                  height="1080"
-                  controls
-                  preload="metadata"
-                  className="w-full h-full object-cover"
-                  poster="/adamantis_introvideo_poster.jpg"
-                  style={{ aspectRatio: "16/9" }}
-                >
-                  <source src="/adamantis_introvideo.mp4" type="video/mp4" />
-                  <source src="/adamantis_introvideo.webm" type="video/webm" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            </div>
-            <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg shadow-lg border border-emerald-200 p-6">
-              <h3 className="text-xl font-bold text-emerald-800 mb-3">About Adamantis Studios</h3>
-              <p className="text-emerald-700 text-sm leading-relaxed mb-2">
-                Adamantis Studios is a holistic marketing and IT firm offering comprehensive services to help businesses
-                grow and thrive in today's competitive market.
-              </p>
-              <Button
-                asChild
-                size="sm"
-                className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white w-full"
-              >
-                <Link href="https://www.adamantisstudios.com" target="_blank" rel="noopener noreferrer">
-                  Learn More
-                  <ArrowRight className="ml-2 h-3 w-3" />
-                </Link>
-              </Button>
-            </div>
-            <div>
-              {!showStatistics ? (
-                <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                  <CardContent className="pt-6 text-center py-6">
-                    <div className="space-y-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
-                        <TrendingUp className="h-6 w-6 text-white" />
+                  <div className="bg-white/95 border-2 border-emerald-300 rounded-xl p-5 space-y-4 shadow-xl hover:shadow-emerald-300/50 transition-all duration-300">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-emerald-100 rounded-full shadow-md">
+                        <svg className="h-6 w-6 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
                       </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-emerald-800 mb-2">Statistics</h3>
-                        <p className="text-emerald-600 text-sm mb-3">View your performance and earnings</p>
-                      </div>
-                      <Button
-                        onClick={loadStatistics}
-                        disabled={statisticsLoading}
-                        size="sm"
-                        className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 w-full"
-                      >
-                        {statisticsLoading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent mr-2"></div>
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            <TrendingUp className="h-4 w-4 mr-2" />
-                            Load Stats
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Statistics</CardTitle>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowStatistics(false)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-lg p-4">
-                        <p className="text-xs text-emerald-100 font-medium">Total Commissions</p>
-                        <p className="text-2xl font-bold">
-                          GH₵ {safeCommissionDisplay(earningsData.availableBalance || 0).toFixed(2)}
+                      <div className="flex-1">
+                        <h4 className="font-bold text-emerald-900 text-base sm:text-lg">Join Our Teacher Channel</h4>
+                        <p className="text-sm text-emerald-700 leading-relaxed mt-1">
+                          Join the official channel
+                          <strong className="font-bold text-emerald-900 ml-1">"Make ¢700.00 A Day"</strong>
+                          to learn how to earn more and become a high-performing Dataflex Ghana agent. Get guidance,
+                          strategies, and mentorship from top agents.
                         </p>
-                      </div>
-                      <div className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-lg p-4">
-                        <p className="text-xs text-purple-100 font-medium">Wallet Balance</p>
-                        <p className="text-2xl font-bold">
-                          GH₵ {safeCommissionDisplay(earningsData.walletBalance || 0).toFixed(2)}
+                        <p className="text-xs text-emerald-600 italic font-medium mt-2">
+                          This is the ONLY official community. We do NOT operate any WhatsApp group.
                         </p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <div className="lg:col-span-2 space-y-6">
-            {showWalletStrategy && (
-              <div className="p-5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg shadow-lg border-l-4 border-l-blue-700 relative">
-                <button
-                  onClick={handleCloseWalletStrategy}
-                  className="absolute top-3 right-3 text-white hover:text-blue-100 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-                <div className="space-y-2 pr-7">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <Wallet className="h-4 w-4" />
-                    Smart Wallet Strategy
-                  </h3>
-                  <ul className="list-disc list-inside space-y-0.5 text-blue-100 text-xs">
-                    <li>
-                      <strong>One-time charge:</strong> When you load wallet
-                    </li>
-                    <li>
-                      <strong>No fees:</strong> When you buy from wallet
-                    </li>
-                    <li>
-                      <strong>Save more:</strong> Than manual payments
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            )}
-            <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg shadow-lg p-5 border border-purple-200">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <CreditCard className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Top Up Wallet</h3>
-                  <p className="text-purple-100 text-xs">Add funds for faster purchases</p>
-                </div>
-              </div>
-              <Button asChild size="sm" className="w-full bg-white text-purple-600 hover:bg-purple-50 font-medium">
-                <Link href="/agent/wallet?tab=topup">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Top Up Wallet
-                </Link>
-              </Button>
-            </div>
-            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg p-5 border border-green-200">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Users className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Invite Friends</h3>
-                  <p className="text-green-100 text-xs">Earn ₵15 when they join</p>
-                </div>
-              </div>
-              <Button
-                onClick={() => setShowReferralDialog(true)}
-                size="sm"
-                className="w-full bg-white text-green-600 hover:bg-green-50 font-medium"
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Send Referral Message
-              </Button>
-            </div>
-            <div>
-              <AgentPropertiesShowcase />
-            </div>
-            <div className="block md:hidden">
-              <ProductSlider />
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto mb-8">
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsContent value="voucher-cards" className="space-y-4"></TabsContent>
-            <TabsContent value="referral-program" className="space-y-4">
-              {agent?.id && (
-                <ReferralDashboard agentId={agent.id} agentName={agent.agent_name || agent.full_name || "Agent"} />
-              )}
-            </TabsContent>
-            <TabsContent value="wholesale" className="space-y-4">
-              <AgentPropertiesShowcase />
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold text-emerald-800">Wholesale Shopping</h2>
-                <Button
-                  asChild
-                  className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 w-full sm:w-auto"
-                >
-                  <Link href="/agent/wholesale">
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Start Shopping
-                  </Link>
-                </Button>
-              </div>
-              <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                <CardContent className="pt-6 text-center py-12">
-                  <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-emerald-300" />
-                  <h3 className="text-xl font-semibold text-emerald-800 mb-2">Wholesale Products</h3>
-                  <p className="text-emerald-600 mb-6">
-                    Browse and purchase wholesale products with competitive pricing and earn commissions on every
-                    purchase.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
-                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <Package className="h-8 w-8 mx-auto mb-1 text-emerald-600" />
-                      <h4 className="font-semibold text-emerald-800">Quality Products</h4>
-                      <p className="text-sm text-emerald-600">Curated wholesale products across multiple categories</p>
+          <div className="mb-8">
+            <Card className="w-full max-w-full border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-xl transition-all duration-300">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253"
+                        />
+                      </svg>
                     </div>
-                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <DollarSign className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                      <h4 className="font-semibold text-emerald-800">Competitive Pricing</h4>
-                      <p className="text-sm text-emerald-600">Get the best wholesale prices with bulk discounts</p>
-                    </div>
-                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <TrendingUp className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                      <h4 className="font-semibold text-emerald-800">Earn Commissions</h4>
-                      <p className="text-sm text-emerald-600">Earn money on every wholesale purchase you make</p>
+                    <div>
+                      <h3 className="text-xl font-bold text-blue-800">Educational Products & Services</h3>
+                      <p className="text-blue-600">Results Checker Cards, School Forms & Subscriptions</p>
                     </div>
                   </div>
                   <Button
                     asChild
-                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full md:w-auto"
+                  >
+                    <Link href="/voucher">
+                      <ShoppingBag className="h-4 w-4 mr-2" />
+                      Shop Educational Products
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3 w-full max-w-full">
+            <div className="lg:col-span-1 space-y-6">
+              <div className="rounded-lg overflow-hidden shadow-lg bg-gray-100">
+                <div className="relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
+                  <div className="absolute top-4 right-4 bg-black/20 text-white px-3 py-1 rounded text-sm font-medium backdrop-blur-sm z-10">
+                    Agent ID: {agent?.id?.slice(-6) || "XXXXXX"}
+                  </div>
+                  <video
+                    width="1920"
+                    height="1080"
+                    controls
+                    preload="metadata"
+                    className="w-full h-full object-cover"
+                    poster="/adamantis_introvideo_poster.jpg"
+                    style={{ aspectRatio: "16/9" }}
+                  >
+                    <source src="/adamantis_introvideo.mp4" type="video/mp4" />
+                    <source src="/adamantis_introvideo.webm" type="video/webm" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+              <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg shadow-lg border border-emerald-200 p-6">
+                <h3 className="text-xl font-bold text-emerald-800 mb-3">About Adamantis Studios</h3>
+                <p className="text-emerald-700 text-sm leading-relaxed mb-2">
+                  Adamantis Studios is a holistic marketing and IT firm offering comprehensive services to help businesses
+                  grow and thrive in today's competitive market.
+                </p>
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white w-full"
+                >
+                  <Link href="https://www.adamantisstudios.com" target="_blank" rel="noopener noreferrer">
+                    Learn More
+                    <ArrowRight className="ml-2 h-3 w-3" />
+                  </Link>
+                </Button>
+              </div>
+              
+            </div>
+            <div className="lg:col-span-2 space-y-6">
+              {showWalletStrategy && (
+                <div className="p-5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg shadow-lg border-l-4 border-l-blue-700 relative">
+                  <button
+                    onClick={handleCloseWalletStrategy}
+                    className="absolute top-3 right-3 text-white hover:text-blue-100 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                  <div className="space-y-2 pr-7">
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <Wallet className="h-4 w-4" />
+                      Smart Wallet Strategy
+                    </h3>
+                    <ul className="list-disc list-inside space-y-0.5 text-blue-100 text-xs">
+                      <li>
+                        <strong>One-time charge:</strong> When you load wallet
+                      </li>
+                      <li>
+                        <strong>No fees:</strong> When you buy from wallet
+                      </li>
+                      <li>
+                        <strong>Save more:</strong> Than manual payments
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+              <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg shadow-lg p-5 border border-purple-200">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <CreditCard className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Top Up Wallet</h3>
+                    <p className="text-purple-100 text-xs">Add funds for faster purchases</p>
+                  </div>
+                </div>
+                <Button asChild size="sm" className="w-full bg-white text-purple-600 hover:bg-purple-50 font-medium">
+                  <Link href="/agent/wallet?tab=topup">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Top Up Wallet
+                  </Link>
+                </Button>
+              </div>
+              <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg p-5 border border-green-200">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Invite Friends</h3>
+                    <p className="text-green-100 text-xs">Earn ₵15 when they join</p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => setShowReferralDialog(true)}
+                  size="sm"
+                  className="w-full bg-white text-green-600 hover:bg-green-50 font-medium"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Send Referral Message
+                </Button>
+              </div>
+              <div>
+                <AgentPropertiesShowcase />
+              </div>
+              <div className="block md:hidden">
+                <ProductSlider />
+              </div>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto mb-8">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-full space-y-4 sm:space-y-6">
+              <TabsContent value="voucher-cards" className="space-y-4"></TabsContent>
+              <TabsContent value="referral-program" className="space-y-4">
+                {agent?.id && (
+                  <ReferralDashboard agentId={agent.id} agentName={agent.agent_name || agent.full_name || "Agent"} />
+                )}
+              </TabsContent>
+              <TabsContent value="wholesale" className="space-y-4">
+                <AgentPropertiesShowcase />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h2 className="text-2xl font-bold text-emerald-800">Wholesale Shopping</h2>
+                  <Button
+                    asChild
+                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 w-full sm:w-auto"
                   >
                     <Link href="/agent/wholesale">
                       <ShoppingBag className="h-4 w-4 mr-2" />
-                      Browse Wholesale Products
+                      Start Shopping
                     </Link>
                   </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="services" className="space-y-4">
-              {tabLoadingStates.services ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
-                  <span className="ml-3 text-emerald-700">Loading services...</span>
                 </div>
-              ) : (
-                <>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h2 className="text-2xl font-bold text-emerald-800">Available Services</h2>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                      <div className="flex gap-2">
-                        <Select value={servicesFilter} onValueChange={setServicesFilter}>
-                          <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
-                            <Filter className="h-4 w-4 mr-2" />
-                            <SelectValue placeholder="All Services" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="All Services">All Services</SelectItem>
-                            <SelectItem value="GH₵0-1000">GH₵0-1000</SelectItem>
-                            <SelectItem value="GH₵1001-5000">GH₵1001-5000</SelectItem>
-                            <SelectItem value="GH₵5001+">GH₵5001+</SelectItem>
-                          </SelectContent>
-                        </Select>
+                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                  <CardContent className="pt-6 text-center py-12">
+                    <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-emerald-300" />
+                    <h3 className="text-xl font-semibold text-emerald-800 mb-2">Wholesale Products</h3>
+                    <p className="text-emerald-600 mb-6">
+                      Browse and purchase wholesale products with competitive pricing and earn commissions on every
+                      purchase.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
+                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                        <Package className="h-8 w-8 mx-auto mb-1 text-emerald-600" />
+                        <h4 className="font-semibold text-emerald-800">Quality Products</h4>
+                        <p className="text-sm text-emerald-600">Curated wholesale products across multiple categories</p>
                       </div>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
-                        <Input
-                          placeholder="Search services..."
-                          value={servicesSearchTerm}
-                          onChange={(e) => setServicesSearchTerm(e.target.value)}
-                          className="pl-10 w-full sm:w-64 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
-                        />
+                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                        <DollarSign className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
+                        <h4 className="font-semibold text-emerald-800">Competitive Pricing</h4>
+                        <p className="text-sm text-emerald-600">Get the best wholesale prices with bulk discounts</p>
+                      </div>
+                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                        <TrendingUp className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
+                        <h4 className="font-semibold text-emerald-800">Earn Commissions</h4>
+                        <p className="text-sm text-emerald-600">Earn money on every wholesale purchase you make</p>
                       </div>
                     </div>
+                    <Button
+                      asChild
+                      className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                    >
+                      <Link href="/agent/wholesale">
+                        <ShoppingBag className="h-4 w-4 mr-2" />
+                        Browse Wholesale Products
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="services" className="space-y-4">
+                {tabLoadingStates.services ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+                    <span className="ml-3 text-emerald-700">Loading services...</span>
                   </div>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {getPaginatedData(filteredServices, currentServicesPage).map((service) => (
-                      <Card
-                        key={service.id}
-                        className="hover:shadow-xl transition-all duration-300 border-emerald-200 bg-white/90 backdrop-blur-sm hover:scale-105"
-                      >
-                        <CardHeader>
-                          {service.image_url && (
-                            <div className="w-full h-48 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg mb-2 overflow-hidden cursor-pointer">
-                              <ImageWithFallback
-                                src={service.image_url || "/placeholder.svg"}
-                                alt={service.title}
-                                className="w-full h-full object-cover hover:scale-105 transition-transform"
-                                onClick={() => openImageModal([service.image_url], 0, service.title)}
-                                fallbackSrc="/placeholder.svg?height=192&width=400"
-                              />
-                            </div>
-                          )}
-                          <CardTitle className="text-lg text-emerald-800">{service.title}</CardTitle>
-                          {/* CHANGE: Updated to use new truncation logic with Read More toggle instead of RichTextRenderer */}
-                          <CardDescription className="text-emerald-600 space-y-2">
-                            <p className="text-sm leading-relaxed">
-                              {getDisplayDescription(service.description || "", service.id)}
-                            </p>
-                            {shouldTruncateDescription(service.description || "") && (
-                              <button
-                                onClick={() => toggleDescriptionExpanded(service.id)}
-                                className="text-emerald-700 hover:text-emerald-900 font-semibold text-xs transition-colors"
-                              >
-                                {expandedDescriptions[service.id] ? "Show Less" : "Read More"}
-                              </button>
-                            )}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-emerald-600">Commission:</span>
-                              <span className="text-xl font-bold text-green-600">
-                                GH₵ {safeCommissionDisplay(service.commission_amount).toFixed(2)}
-                              </span>
-                            </div>
-                            {service.product_cost && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-emerald-600">Product Cost:</span>
-                                <span className="text-sm font-semibold text-emerald-800">
-                                  GH₵ {safeCommissionDisplay(service.product_cost).toFixed(2)}
-                                </span>
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <h2 className="text-2xl font-bold text-emerald-800">Available Services</h2>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                        <div className="flex gap-2">
+                          <Select value={servicesFilter} onValueChange={setServicesFilter}>
+                            <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
+                              <Filter className="h-4 w-4 mr-2" />
+                              <SelectValue placeholder="All Services" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="All Services">All Services</SelectItem>
+                              <SelectItem value="GH₵0-1000">GH₵0-1000</SelectItem>
+                              <SelectItem value="GH₵1001-5000">GH₵1001-5000</SelectItem>
+                              <SelectItem value="GH₵5001+">GH₵5001+</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
+                          <Input
+                            placeholder="Search services..."
+                            value={servicesSearchTerm}
+                            onChange={(e) => setServicesSearchTerm(e.target.value)}
+                            className="pl-10 w-full sm:w-64 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {getPaginatedData(filteredServices, currentServicesPage).map((service) => (
+                        <Card
+                          key={service.id}
+                          className="hover:shadow-xl transition-all duration-300 border-emerald-200 bg-white/90 backdrop-blur-sm hover:scale-105"
+                        >
+                          <CardHeader>
+                            {service.image_url && (
+                              <div className="w-full h-48 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg mb-2 overflow-hidden cursor-pointer">
+                                <ImageWithFallback
+                                  src={service.image_url || "/placeholder.svg"}
+                                  alt={service.title}
+                                  className="w-full h-full object-cover hover:scale-105 transition-transform"
+                                  onClick={() => openImageModal([service.image_url], 0, service.title)}
+                                  fallbackSrc="/placeholder.svg?height=192&width=400"
+                                />
                               </div>
                             )}
-                            <div className="flex gap-2 pt-2">
+                            <CardTitle className="text-lg text-emerald-800">{service.title}</CardTitle>
+                            <CardDescription className="text-emerald-600 space-y-2">
+                              <p className="text-sm leading-relaxed">
+                                {getDisplayDescription(service.description || "", service.id)}
+                              </p>
+                              {shouldTruncateDescription(service.description || "") && (
+                                <button
+                                  onClick={() => toggleDescriptionExpanded(service.id)}
+                                  className="text-emerald-700 hover:text-emerald-900 font-semibold text-xs transition-colors"
+                                >
+                                  {expandedDescriptions[service.id] ? "Show Less" : "Read More"}
+                                </button>
+                              )}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-emerald-600">Commission:</span>
+                                <span className="text-xl font-bold text-green-600">
+                                  GH₵ {safeCommissionDisplay(service.commission_amount).toFixed(2)}
+                                </span>
+                              </div>
+                              {service.product_cost && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-emerald-600">Product Cost:</span>
+                                  <span className="text-sm font-semibold text-emerald-800">
+                                    GH₵ {safeCommissionDisplay(service.product_cost).toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  asChild
+                                  className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 flex-1"
+                                >
+                                  <Link href={`/agent/refer/${service.id}`}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Refer
+                                  </Link>
+                                </Button>
+                                {service.material?.material_link && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="border-emerald-300 text-emerald-600 bg-transparent"
+                                  >
+                                    <Link href={service.material.material_link} target="_blank">
+                                      <ExternalLink className="h-4 w-4" />
+                                    </Link>
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                    <PaginationControls
+                      currentPage={currentServicesPage}
+                      totalPages={getTotalPages(filteredServices.length)}
+                      onPageChange={(page) => handlePageChange(page, setCurrentServicesPage)}
+                    />
+                  </>
+                )}
+              </TabsContent>
+              <TabsContent value="data-bundles" className="space-y-4">
+                {tabLoadingStates["data-bundles"] ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+                    <span className="ml-3 text-emerald-700">Loading data bundles...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-center space-y-4">
+                      <h2 className="text-2xl font-bold text-emerald-800">Data Bundles & Services</h2>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="w-full overflow-x-auto">
+                        <Tabs defaultValue="MTN" className="w-full">
+                          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 bg-white/80 backdrop-blur-sm shadow-lg border border-emerald-200 p-2 rounded-xl h-auto">
+                            {["MTN", "AirtelTigo", "Telecel", "MTN AFA", "Bulk Order"].map((provider) => {
+                              const logoMap = {
+                                MTN: "/images/mtn.jpg",
+                                AirtelTigo: "/images/airteltigo.jpg",
+                                Telecel: "/images/telecel.jpg",
+                                "MTN AFA": "/images/mtnafa.jpg",
+                                "Bulk Order": "/images/bulkorder.jpg",
+                              }
+                              let bundleCount = 0
+                              if (["MTN", "AirtelTigo", "Telecel"].includes(provider)) {
+                                bundleCount = getFilteredDataBundles(provider).length
+                              }
+                              return (
+                                <TabsTrigger
+                                  key={provider}
+                                  value={provider}
+                                  className="text-xs sm:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg px-2 sm:px-3 py-2 flex flex-col sm:flex-row items-center justify-center gap-1 whitespace-normal min-h-16 sm:min-h-12"
+                                >
+                                  <img
+                                    src={logoMap[provider] || "/placeholder.svg"}
+                                    alt={`${provider} logo`}
+                                    className="w-6 h-6 sm:w-5 sm:h-5 rounded object-cover"
+                                  />
+                                  <div className="flex flex-col items-center text-center">
+                                    <span className="text-xs sm:text-sm leading-tight">
+                                      {provider === "MTN AFA"
+                                        ? "MTN AFA"
+                                        : provider === "Bulk Order"
+                                          ? "Bulk Order"
+                                          : provider}
+                                    </span>
+                                    {bundleCount > 0 && <span className="text-xs opacity-75">({bundleCount})</span>}
+                                  </div>
+                                </TabsTrigger>
+                              )
+                            })}
+                          </TabsList>
+                          {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
+                            const providerBundles = getFilteredDataBundles(provider).sort((a, b) => a.size_gb - b.size_gb)
+                            return (
+                              <TabsContent key={provider} value={provider} className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <h3 className="text-xl font-semibold text-emerald-700 flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md border-2 border-emerald-200">
+                                      <img
+                                        src={
+                                          provider === "MTN"
+                                            ? "/images/mtn.jpg"
+                                            : provider === "AirtelTigo"
+                                              ? "/images/airteltigo.jpg"
+                                              : "/images/telecel.jpg"
+                                        }
+                                        alt={`${provider} logo`}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <span>{provider} Data Bundles</span>
+                                  </h3>
+                                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                                    {providerBundles.length} bundles
+                                  </Badge>
+                                </div>
+                                {providerBundles.length === 0 ? (
+                                  <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                                    <CardContent className="pt-6 text-center">
+                                      <div className="text-gray-500 mb-4">
+                                        <Smartphone className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                        <p>No data bundles available for {provider}</p>
+                                        <p className="text-sm">Check back later for new bundles</p>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                ) : (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {providerBundles.map((bundle) => (
+                                      <Card
+                                        key={bundle.id}
+                                        className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:scale-105"
+                                      >
+                                        <CardHeader>
+                                          {bundle.image_url && (
+                                            <div className="w-full h-32 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg mb-2 overflow-hidden cursor-pointer">
+                                              <ImageWithFallback
+                                                src={bundle.image_url || "/placeholder.svg"}
+                                                alt={bundle.name}
+                                                className="w-full h-full object-cover hover:scale-105 transition-transform"
+                                                onClick={() => openImageModal([bundle.image_url], 0, bundle.name)}
+                                                fallbackSrc="/placeholder.svg"
+                                              />
+                                            </div>
+                                          )}
+                                          <CardTitle className="text-lg text-emerald-800">{bundle.name}</CardTitle>
+                                          <CardDescription className="text-emerald-600 flex items-center gap-2">
+                                            <img
+                                              src={
+                                                bundle.provider === "MTN"
+                                                  ? "/images/mtn.jpg"
+                                                  : bundle.provider === "AirtelTigo"
+                                                    ? "/images/airteltigo.jpg"
+                                                    : "/images/telecel.jpg"
+                                              }
+                                              alt={`${bundle.provider} logo`}
+                                              className="w-5 h-5 rounded object-cover"
+                                            />
+                                            {bundle.size_gb}GB - {bundle.provider}
+                                          </CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                          <div className="space-y-2 mb-4">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-sm text-emerald-600">Price:</span>
+                                              <span className="text-lg font-bold text-emerald-800">
+                                                GH₵ {safeCommissionDisplay(bundle.price).toFixed(2)}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-sm text-emerald-600">Commission:</span>
+                                              <span className="text-lg font-bold text-green-600">
+                                                GH₵{" "}
+                                                {safeCommissionDisplay(bundle.price * bundle.commission_rate).toFixed(2)}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-sm text-emerald-600">Validity:</span>
+                                              <span className="text-sm font-semibold text-emerald-800">
+                                                {bundle.validity_months} Months
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <Button
+                                            asChild
+                                            className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                                          >
+                                            <Link href={`/agent/data-order?bundle=${bundle.id}`}>
+                                              <Plus className="h-4 w-4 mr-1" />
+                                              Order Now
+                                            </Link>
+                                          </Button>
+                                        </CardContent>
+                                      </Card>
+                                    ))}
+                                  </div>
+                                )}
+                              </TabsContent>
+                            )
+                          })}
+                          <TabsContent value="MTN AFA" className="space-y-4">
+                            <div className="text-center space-y-4">
+                              <h3 className="text-lg sm:text-xl font-semibold text-emerald-700">MTN AFA Registration</h3>
+                              <p className="text-emerald-600 text-sm">
+                                Register for MTN AFA services to expand your business
+                              </p>
                               <Button
                                 asChild
-                                className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 flex-1"
+                                className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
                               >
-                                <Link href={`/agent/refer/${service.id}`}>
+                                <Link href="/agent/mtn-afa-registration">
                                   <Plus className="h-4 w-4 mr-2" />
-                                  Refer
+                                  Start Registration
                                 </Link>
                               </Button>
-                              {service.material?.material_link && (
+                            </div>
+                          </TabsContent>
+                          <TabsContent value="Bulk Order" className="space-y-4">
+                            <div className="text-center space-y-4">
+                              <h3 className="text-lg sm:text-xl font-semibold text-emerald-700">Bulk Data Orders</h3>
+                              <p className="text-emerald-600 text-sm">Upload multiple orders efficiently</p>
+                              <Button
+                                asChild
+                                className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-500"
+                              >
+                                <Link href="/agent/bulk-data-order">
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Create Bulk Order
+                                </Link>
+                              </Button>
+                            </div>
+                          </TabsContent>
+                        </Tabs>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </TabsContent>
+              <TabsContent value="referrals" className="space-y-4">
+                {tabLoadingStates.referrals ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+                    <span className="ml-3 text-emerald-700">Loading referrals...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <h2 className="text-2xl font-bold text-emerald-800">My Referrals</h2>
+                      <div className="flex items-center gap-4">
+                        <Select value={referralsFilter} onValueChange={setReferralsFilter}>
+                          <SelectTrigger className="w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
+                            <Filter className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="All Referrals" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="All Referrals">All Referrals</SelectItem>
+                            <SelectItem value="Pending">Pending</SelectItem>
+                            <SelectItem value="Confirmed">Confirmed</SelectItem>
+                            <SelectItem value="In Progress">In Progress</SelectItem>
+                            <SelectItem value="Completed">Completed</SelectItem>
+                            <SelectItem value="Rejected">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={() => setShowClearReferralsDialog(true)}
+                          variant="outline"
+                          className="border-red-300 text-red-600 hover:bg-red-50 whitespace-nowrap"
+                        >
+                          <AlertTriangle className="h-4 w-4 mr-2" />
+                          Clear Old Records
+                        </Button>
+                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                          {filteredReferrals.length} referrals
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      {getPaginatedData(filteredReferrals, currentReferralsPage).map((referral) => (
+                        <Card
+                          key={referral.id}
+                          className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
+                        >
+                          <CardContent className="pt-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-semibold text-emerald-800 text-lg">{referral.services?.title}</h3>
+                                <Badge className={getStatusColor(referral.status)}>
+                                  {referral.status.replace("_", " ")}
+                                </Badge>
+                              </div>
+                              <div className="space-y-2">
+                                <p className="text-emerald-600">
+                                  <span className="font-medium">Client:</span> {referral.client_name} •{" "}
+                                  {referral.client_phone}
+                                </p>
+                                <p className="text-emerald-600">
+                                  {getDisplayReferralDescription(referral.description || "", referral.id)}
+                                  {shouldTruncateReferralDescription(referral.description || "") && (
+                                    <button
+                                      onClick={() => toggleReferralExpanded(referral.id)}
+                                      className="text-emerald-500 hover:underline ml-1 text-sm font-medium"
+                                    >
+                                      {expandedReferrals.has(referral.id) ? "Read Less" : "Read More"}
+                                    </button>
+                                  )}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  {referral.allow_direct_contact === false ? (
+                                    <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">
+                                      🚫 No Direct Client Contact
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                                      ✅ Direct Client Contact OK
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between pt-2 border-t border-emerald-100">
+                                <div>
+                                  <p className="text-lg font-bold text-green-600">
+                                    GH₵ {safeCommissionDisplay(referral.services?.commission_amount).toFixed(2)}
+                                  </p>
+                                  <p className="text-xs text-emerald-500">Commission</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm text-emerald-600">
+                                    {referral.status === "completed" && referral.commission_paid
+                                      ? "✅ Paid"
+                                      : referral.status === "completed"
+                                        ? "💰 Ready to withdraw"
+                                        : "⏳ In progress"}
+                                  </p>
+                                  <p className="text-xs text-emerald-500">{formatTimestamp(referral.created_at)}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 pt-3 border-t border-emerald-100">
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   asChild
-                                  className="border-emerald-300 text-emerald-600 bg-transparent"
+                                  className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 relative bg-transparent"
                                 >
-                                  <Link href={service.material.material_link} target="_blank">
-                                    <ExternalLink className="h-4 w-4" />
+                                  <Link href={`/agent/chat/${referral.id}`} onClick={() => markAsRead(referral.id)}>
+                                    <div className="relative flex items-center">
+                                      <MessageCircle className="h-4 w-4 mr-2" />
+                                      Chat with Admin
+                                      {getUnreadCount(referral.id) > 0 && (
+                                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse font-bold">
+                                          {getUnreadCount(referral.id) > 9 ? "9+" : getUnreadCount(referral.id)}
+                                        </span>
+                                      )}
+                                    </div>
                                   </Link>
                                 </Button>
-                              )}
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {getPaginatedData(filteredReferrals, currentReferralsPage).length === 0 && (
+                        <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                          <CardContent className="text-center py-8">
+                            <div className="text-gray-500 mb-4">
+                              <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                              <p>
+                                {referralsFilter === "All Referrals"
+                                  ? "No referrals yet. Start referring services to earn commissions!"
+                                  : `No ${referralsFilter.toLowerCase()} referrals found.`}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                    <PaginationControls
+                      currentPage={currentReferralsPage}
+                      totalPages={getTotalPages(filteredReferrals.length)}
+                      onPageChange={(page) => handlePageChange(page, setCurrentReferralsPage)}
+                    />
+                  </>
+                )}
+              </TabsContent>
+              <TabsContent value="withdrawals" className="space-y-4">
+                {tabLoadingStates.withdrawals ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+                    <span className="ml-3 text-emerald-700">Loading withdrawals...</span>
                   </div>
-                  <PaginationControls
-                    currentPage={currentServicesPage}
-                    totalPages={getTotalPages(filteredServices.length)}
-                    onPageChange={(page) => handlePageChange(page, setCurrentServicesPage)}
-                  />
-                </>
-              )}
-            </TabsContent>
-            <TabsContent value="data-bundles" className="space-y-4">
-              {tabLoadingStates["data-bundles"] ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
-                  <span className="ml-3 text-emerald-700">Loading data bundles...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="text-center space-y-4">
-                    <h2 className="text-2xl font-bold text-emerald-800">Data Bundles & Services</h2>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="w-full overflow-x-auto">
-                      <Tabs defaultValue="MTN" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 bg-white/80 backdrop-blur-sm shadow-lg border border-emerald-200 p-2 rounded-xl h-auto">
-                          {["MTN", "AirtelTigo", "Telecel", "MTN AFA", "Bulk Order"].map((provider) => {
-                            const logoMap = {
-                              MTN: "/images/mtn.jpg",
-                              AirtelTigo: "/images/airteltigo.jpg",
-                              Telecel: "/images/telecel.jpg",
-                              "MTN AFA": "/images/mtnafa.jpg",
-                              "Bulk Order": "/images/bulkorder.jpg",
-                            }
-                            let bundleCount = 0
-                            if (["MTN", "AirtelTigo", "Telecel"].includes(provider)) {
-                              bundleCount = getFilteredDataBundles(provider).length
-                            }
-                            return (
-                              <TabsTrigger
-                                key={provider}
-                                value={provider}
-                                className="text-xs sm:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg px-2 sm:px-3 py-2 flex flex-col sm:flex-row items-center justify-center gap-1 whitespace-normal min-h-16 sm:min-h-12"
-                              >
-                                <img
-                                  src={logoMap[provider] || "/placeholder.svg"}
-                                  alt={`${provider} logo`}
-                                  className="w-6 h-6 sm:w-5 sm:h-5 rounded object-cover"
-                                />
-                                <div className="flex flex-col items-center text-center">
-                                  <span className="text-xs sm:text-sm leading-tight">
-                                    {provider === "MTN AFA"
-                                      ? "MTN AFA"
-                                      : provider === "Bulk Order"
-                                        ? "Bulk Order"
-                                        : provider}
-                                  </span>
-                                  {bundleCount > 0 && <span className="text-xs opacity-75">({bundleCount})</span>}
-                                </div>
-                              </TabsTrigger>
-                            )
-                          })}
-                        </TabsList>
-                        {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
-                          const providerBundles = getFilteredDataBundles(provider).sort((a, b) => a.size_gb - b.size_gb)
-                          return (
-                            <TabsContent key={provider} value={provider} className="space-y-4">
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <h2 className="text-2xl font-bold text-emerald-800">Withdrawal History</h2>
+                      <div className="flex items-center gap-4">
+                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                          {tabData.withdrawals.length} withdrawals
+                        </Badge>
+                        <Button
+                          asChild
+                          className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                        >
+                          <Link href="/agent/withdraw">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Request Withdrawal
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      {getPaginatedData(tabData.withdrawals, currentWithdrawalsPage).map((withdrawal) => (
+                        <Card
+                          key={withdrawal.id}
+                          className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
+                        >
+                          <CardContent className="pt-6">
+                            <div className="space-y-4">
                               <div className="flex items-center justify-between">
-                                <h3 className="text-xl font-semibold text-emerald-700 flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md border-2 border-emerald-200">
-                                    <img
-                                      src={
-                                        provider === "MTN"
-                                          ? "/images/mtn.jpg"
-                                          : provider === "AirtelTigo"
-                                            ? "/images/airteltigo.jpg"
-                                            : "/images/telecel.jpg"
-                                      }
-                                      alt={`${provider} logo`}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                  <span>{provider} Data Bundles</span>
+                                <h3 className="font-semibold text-emerald-800 text-lg">
+                                  GH₵ {safeCommissionDisplay(withdrawal.amount).toFixed(2)}
                                 </h3>
-                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
-                                  {providerBundles.length} bundles
-                                </Badge>
+                                <Badge className={getStatusColor(withdrawal.status)}>{withdrawal.status}</Badge>
                               </div>
-                              {providerBundles.length === 0 ? (
-                                <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                                  <CardContent className="pt-6 text-center">
-                                    <div className="text-gray-500 mb-4">
-                                      <Smartphone className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                      <p>No data bundles available for {provider}</p>
-                                      <p className="text-sm">Check back later for new bundles</p>
+                              <div className="space-y-2">
+                                <p className="text-emerald-600">
+                                  <span className="font-medium">MoMo Number:</span> {withdrawal.momo_number}
+                                </p>
+                                <p className="text-emerald-600">
+                                  <span className="font-medium">Requested:</span>{" "}
+                                  {formatTimestamp(withdrawal.requested_at)}
+                                </p>
+                                {withdrawal.paid_at && (
+                                  <p className="text-emerald-600">
+                                    <span className="font-medium">Paid:</span> {formatTimestamp(withdrawal.paid_at)}
+                                  </p>
+                                )}
+                                {withdrawal.commission_items && withdrawal.commission_items.length > 0 && (
+                                  <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                                    <p className="text-xs font-medium text-emerald-700 mb-1">Commission Sources:</p>
+                                    <div className="text-xs text-emerald-600">
+                                      {withdrawal.commission_items.map((item, index) => (
+                                        <span key={index}>
+                                          {item.type === "referral"
+                                            ? "Referral"
+                                            : item.type === "data_order"
+                                              ? "Data Order"
+                                              : "Wholesale Order"}
+                                          {index < withdrawal.commission_items.length - 1 ? ", " : ""}
+                                        </span>
+                                      ))}
                                     </div>
-                                  </CardContent>
-                                </Card>
-                              ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                  {providerBundles.map((bundle) => (
-                                    <Card
-                                      key={bundle.id}
-                                      className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:scale-105"
-                                    >
-                                      <CardHeader>
-                                        {bundle.image_url && (
-                                          <div className="w-full h-32 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg mb-2 overflow-hidden cursor-pointer">
-                                            <ImageWithFallback
-                                              src={bundle.image_url || "/placeholder.svg"}
-                                              alt={bundle.name}
-                                              className="w-full h-full object-cover hover:scale-105 transition-transform"
-                                              onClick={() => openImageModal([bundle.image_url], 0, bundle.name)}
-                                              fallbackSrc="/placeholder.svg"
-                                            />
-                                          </div>
-                                        )}
-                                        <CardTitle className="text-lg text-emerald-800">{bundle.name}</CardTitle>
-                                        <CardDescription className="text-emerald-600 flex items-center gap-2">
-                                          <img
-                                            src={
-                                              bundle.provider === "MTN"
-                                                ? "/images/mtn.jpg"
-                                                : bundle.provider === "AirtelTigo"
-                                                  ? "/images/airteltigo.jpg"
-                                                  : "/images/telecel.jpg"
-                                            }
-                                            alt={`${bundle.provider} logo`}
-                                            className="w-5 h-5 rounded object-cover"
-                                          />
-                                          {bundle.size_gb}GB - {bundle.provider}
-                                        </CardDescription>
-                                      </CardHeader>
-                                      <CardContent>
-                                        <div className="space-y-2 mb-4">
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-sm text-emerald-600">Price:</span>
-                                            <span className="text-lg font-bold text-emerald-800">
-                                              GH₵ {safeCommissionDisplay(bundle.price).toFixed(2)}
-                                            </span>
-                                          </div>
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-sm text-emerald-600">Commission:</span>
-                                            <span className="text-lg font-bold text-green-600">
-                                              GH₵{" "}
-                                              {safeCommissionDisplay(bundle.price * bundle.commission_rate).toFixed(2)}
-                                            </span>
-                                          </div>
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-sm text-emerald-600">Validity:</span>
-                                            <span className="text-sm font-semibold text-emerald-800">
-                                              {bundle.validity_months} Months
-                                            </span>
-                                          </div>
-                                        </div>
-                                        <Button
-                                          asChild
-                                          className="w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-                                        >
-                                          <Link href={`/agent/data-order?bundle=${bundle.id}`}>
-                                            <Plus className="h-4 w-4 mr-1" />
-                                            Order Now
-                                          </Link>
-                                        </Button>
-                                      </CardContent>
-                                    </Card>
-                                  ))}
-                                </div>
-                              )}
-                            </TabsContent>
-                          )
-                        })}
-                        <TabsContent value="MTN AFA" className="space-y-4">
-                          <div className="text-center space-y-4">
-                            <h3 className="text-lg sm:text-xl font-semibold text-emerald-700">MTN AFA Registration</h3>
-                            <p className="text-emerald-600 text-sm">
-                              Register for MTN AFA services to expand your business
-                            </p>
-                            <Button
-                              asChild
-                              className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-                            >
-                              <Link href="/agent/mtn-afa-registration">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Start Registration
-                              </Link>
-                            </Button>
-                          </div>
-                        </TabsContent>
-                        <TabsContent value="Bulk Order" className="space-y-4">
-                          <div className="text-center space-y-4">
-                            <h3 className="text-lg sm:text-xl font-semibold text-emerald-700">Bulk Data Orders</h3>
-                            <p className="text-emerald-600 text-sm">Upload multiple orders efficiently</p>
-                            <Button
-                              asChild
-                              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-500"
-                            >
-                              <Link href="/agent/bulk-data-order">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create Bulk Order
-                              </Link>
-                            </Button>
-                          </div>
-                        </TabsContent>
-                      </Tabs>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {getPaginatedData(tabData.withdrawals, currentWithdrawalsPage).length === 0 && (
+                        <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                          <CardContent className="text-center py-8">
+                            <div className="text-gray-500 mb-4">
+                              <Banknote className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                              <p>No withdrawal requests yet.</p>
+                              <p className="text-sm">Complete referrals to earn commissions and request withdrawals.</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
-                  </div>
-                </>
-              )}
-            </TabsContent>
-            <TabsContent value="referrals" className="space-y-4">
-              {tabLoadingStates.referrals ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
-                  <span className="ml-3 text-emerald-700">Loading referrals...</span>
+                    <PaginationControls
+                      currentPage={currentWithdrawalsPage}
+                      totalPages={getTotalPages(tabData.withdrawals.length)}
+                      onPageChange={(page) => handlePageChange(page, setCurrentWithdrawalsPage)}
+                    />
+                  </>
+                )}
+              </TabsContent>
+              <TabsContent value="profile" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-emerald-800">Profile Settings</h2>
                 </div>
-              ) : (
-                <>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h2 className="text-2xl font-bold text-emerald-800">My Referrals</h2>
-                    <div className="flex items-center gap-4">
-                      <Select value={referralsFilter} onValueChange={setReferralsFilter}>
-                        <SelectTrigger className="w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
-                          <Filter className="h-4 w-4 mr-2" />
-                          <SelectValue placeholder="All Referrals" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="All Referrals">All Referrals</SelectItem>
-                          <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="Confirmed">Confirmed</SelectItem>
-                          <SelectItem value="In Progress">In Progress</SelectItem>
-                          <SelectItem value="Completed">Completed</SelectItem>
-                          <SelectItem value="Rejected">Rejected</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={() => setShowClearReferralsDialog(true)}
-                        variant="outline"
-                        className="border-red-300 text-red-600 hover:bg-red-50 whitespace-nowrap"
-                      >
-                        <AlertTriangle className="h-4 w-4 mr-2" />
-                        Clear Old Records
-                      </Button>
-                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
-                        {filteredReferrals.length} referrals
-                      </Badge>
+                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-emerald-700">Full Name</Label>
+                          <Input value={agent?.full_name || ""} disabled className="bg-gray-50" />
+                        </div>
+                        <div>
+                          <Label className="text-emerald-700">Phone Number</Label>
+                          <Input value={agent?.phone_number || ""} disabled className="bg-gray-50" />
+                        </div>
+                        <div>
+                          <Label className="text-emerald-700">MoMo Number</Label>
+                          <Input value={agent?.momo_number || ""} disabled className="bg-gray-50" />
+                        </div>
+                        <div>
+                          <Label className="text-emerald-700">Region</Label>
+                          <Input value={agent?.region || ""} disabled className="bg-gray-50" />
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-emerald-100">
+                        <p className="text-sm text-emerald-600 mb-2">
+                          To update your profile information, please contact support.
+                        </p>
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
+                        >
+                          <Link href="/agent/settings">
+                            <Settings className="h-4 w-4 mr-2" />
+                            Settings
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="jobs" className="space-y-4">
+                {tabLoadingStates.jobs ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+                    <span className="ml-3 text-emerald-700">Loading jobs...</span>
                   </div>
-                  <div className="space-y-4">
-                    {getPaginatedData(filteredReferrals, currentReferralsPage).map((referral) => (
-                      <Card
-                        key={referral.id}
-                        className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
-                      >
-                        <CardContent className="pt-6">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h3 className="font-semibold text-emerald-800 text-lg">{referral.services?.title}</h3>
-                              <Badge className={getStatusColor(referral.status)}>
-                                {referral.status.replace("_", " ")}
-                              </Badge>
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-emerald-600">
-                                <span className="font-medium">Client:</span> {referral.client_name} •{" "}
-                                {referral.client_phone}
-                              </p>
-                              <p className="text-emerald-600">
-                                {getDisplayReferralDescription(referral.description || "", referral.id)}
-                                {shouldTruncateReferralDescription(referral.description || "") && (
-                                  <button
-                                    onClick={() => toggleReferralExpanded(referral.id)}
-                                    className="text-emerald-500 hover:underline ml-1 text-sm font-medium"
-                                  >
-                                    {expandedReferrals.has(referral.id) ? "Read Less" : "Read More"}
-                                  </button>
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <h2 className="text-2xl font-bold text-emerald-800">Job Opportunities</h2>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                        <Select value={jobsFilterAgent} onValueChange={setJobsFilterAgent}>
+                          <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
+                            <Filter className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="All Jobs" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="All Jobs">All Jobs</SelectItem>
+                            <SelectItem value="Featured">Featured</SelectItem>
+                            <SelectItem value="Technology">Technology</SelectItem>
+                            <SelectItem value="Finance">Finance</SelectItem>
+                            <SelectItem value="Healthcare">Healthcare</SelectItem>
+                            <SelectItem value="Marketing">Marketing</SelectItem>
+                            <SelectItem value="Sales">Sales</SelectItem>
+                            <SelectItem value="Customer Service">Customer Service</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
+                          <Input
+                            placeholder="Search jobs..."
+                            value={jobSearchTerm}
+                            onChange={(e) => setJobSearchTerm(e.target.value)}
+                            className="pl-10 w-full sm:w-64 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
+                          />
+                        </div>
+                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                          {filteredJobs.length} jobs
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="space-y-3 md:space-y-4">
+                      {filteredJobs.slice(0, 5).map((job) => (
+                        <div
+                          key={job.id}
+                          className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center justify-between">
+                            <div className="flex gap-3 md:gap-4 flex-1 min-w-0">
+                              <div className="flex-shrink-0">
+                                <Image
+                                  src={job.employer_logo_url || "/placeholder.svg"}
+                                  alt={job.employer_name}
+                                  width={64}
+                                  height={64}
+                                  className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover bg-gray-100"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                {job.is_featured && (
+                                  <div className="mb-2">
+                                    <Badge className="bg-amber-100 text-amber-800 text-xs">⭐ Featured</Badge>
+                                  </div>
                                 )}
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                {referral.allow_direct_contact === false ? (
-                                  <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">
-                                    🚫 No Direct Client Contact
-                                  </Badge>
-                                ) : (
-                                  <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
-                                    ✅ Direct Client Contact OK
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between pt-2 border-t border-emerald-100">
-                              <div>
-                                <p className="text-lg font-bold text-green-600">
-                                  GH₵ {safeCommissionDisplay(referral.services?.commission_amount).toFixed(2)}
-                                </p>
-                                <p className="text-xs text-emerald-500">Commission</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm text-emerald-600">
-                                  {referral.status === "completed" && referral.commission_paid
-                                    ? "✅ Paid"
-                                    : referral.status === "completed"
-                                      ? "💰 Ready to withdraw"
-                                      : "⏳ In progress"}
-                                </p>
-                                <p className="text-xs text-emerald-500">{formatTimestamp(referral.created_at)}</p>
-                              </div>
-                            </div>
-                            <div className="flex gap-2 pt-3 border-t border-emerald-100">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                asChild
-                                className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 relative bg-transparent"
-                              >
-                                <Link href={`/agent/chat/${referral.id}`} onClick={() => markAsRead(referral.id)}>
-                                  <div className="relative flex items-center">
-                                    <MessageCircle className="h-4 w-4 mr-2" />
-                                    Chat with Admin
-                                    {getUnreadCount(referral.id) > 0 && (
-                                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse font-bold">
-                                        {getUnreadCount(referral.id) > 9 ? "9+" : getUnreadCount(referral.id)}
+                                <h3 className="font-bold text-base md:text-lg text-gray-900 line-clamp-1">
+                                  {job.job_title}
+                                </h3>
+                                <p className="text-sm text-gray-600 mb-2">{job.employer_name}</p>
+                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm">
+                                  <div className="flex items-center gap-2 text-gray-700">
+                                    <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                                    <span className="line-clamp-1">{job.location}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 font-semibold text-green-700">
+                                    <span className="text-xs text-gray-500">Salary:</span>
+                                    {job.salary_type === "negotiable" ? (
+                                      <span>Negotiable</span>
+                                    ) : job.salary_type === "fixed_range" ? (
+                                      <span>
+                                        {job.salary_min} - {job.salary_max}
+                                      </span>
+                                    ) : job.salary_type === "exact_amount" ? (
+                                      <span>{job.salary_exact}</span>
+                                    ) : job.salary_custom ? (
+                                      <span>{job.salary_custom}</span>
+                                    ) : (
+                                      <span>
+                                        {job.salary_min} - {job.salary_max}
                                       </span>
                                     )}
                                   </div>
-                                </Link>
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {getPaginatedData(filteredReferrals, currentReferralsPage).length === 0 && (
-                      <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                        <CardContent className="text-center py-8">
-                          <div className="text-gray-500 mb-4">
-                            <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                            <p>
-                              {referralsFilter === "All Referrals"
-                                ? "No referrals yet. Start referring services to earn commissions!"
-                                : `No ${referralsFilter.toLowerCase()} referrals found.`}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                  <PaginationControls
-                    currentPage={currentReferralsPage}
-                    totalPages={getTotalPages(filteredReferrals.length)}
-                    onPageChange={(page) => handlePageChange(page, setCurrentReferralsPage)}
-                  />
-                </>
-              )}
-            </TabsContent>
-            <TabsContent value="withdrawals" className="space-y-4">
-              {tabLoadingStates.withdrawals ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
-                  <span className="ml-3 text-emerald-700">Loading withdrawals...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h2 className="text-2xl font-bold text-emerald-800">Withdrawal History</h2>
-                    <div className="flex items-center gap-4">
-                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
-                        {tabData.withdrawals.length} withdrawals
-                      </Badge>
-                      <Button
-                        asChild
-                        className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-                      >
-                        <Link href="/agent/withdraw">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Request Withdrawal
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    {getPaginatedData(tabData.withdrawals, currentWithdrawalsPage).map((withdrawal) => (
-                      <Card
-                        key={withdrawal.id}
-                        className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
-                      >
-                        <CardContent className="pt-6">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h3 className="font-semibold text-emerald-800 text-lg">
-                                GH₵ {safeCommissionDisplay(withdrawal.amount).toFixed(2)}
-                              </h3>
-                              <Badge className={getStatusColor(withdrawal.status)}>{withdrawal.status}</Badge>
-                            </div>
-                            <div className="space-y-2">
-                              <p className="text-emerald-600">
-                                <span className="font-medium">MoMo Number:</span> {withdrawal.momo_number}
-                              </p>
-                              <p className="text-emerald-600">
-                                <span className="font-medium">Requested:</span>{" "}
-                                {formatTimestamp(withdrawal.requested_at)}
-                              </p>
-                              {withdrawal.paid_at && (
-                                <p className="text-emerald-600">
-                                  <span className="font-medium">Paid:</span> {formatTimestamp(withdrawal.paid_at)}
-                                </p>
-                              )}
-                              {withdrawal.commission_items && withdrawal.commission_items.length > 0 && (
-                                <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                                  <p className="text-xs font-medium text-emerald-700 mb-1">Commission Sources:</p>
-                                  <div className="text-xs text-emerald-600">
-                                    {withdrawal.commission_items.map((item, index) => (
-                                      <span key={index}>
-                                        {item.type === "referral"
-                                          ? "Referral"
-                                          : item.type === "data_order"
-                                            ? "Data Order"
-                                            : "Wholesale Order"}
-                                        {index < withdrawal.commission_items.length - 1 ? ", " : ""}
-                                      </span>
-                                    ))}
-                                  </div>
+                                  <div className="text-xs text-gray-500">{formatDateAgo(job.created_at)}</div>
                                 </div>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                    {getPaginatedData(tabData.withdrawals, currentWithdrawalsPage).length === 0 && (
-                      <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                        <CardContent className="text-center py-8">
-                          <div className="text-gray-500 mb-4">
-                            <Banknote className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                            <p>No withdrawal requests yet.</p>
-                            <p className="text-sm">Complete referrals to earn commissions and request withdrawals.</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                  <PaginationControls
-                    currentPage={currentWithdrawalsPage}
-                    totalPages={getTotalPages(tabData.withdrawals.length)}
-                    onPageChange={(page) => handlePageChange(page, setCurrentWithdrawalsPage)}
-                  />
-                </>
-              )}
-            </TabsContent>
-            <TabsContent value="profile" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-emerald-800">Profile Settings</h2>
-              </div>
-              <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-emerald-700">Full Name</Label>
-                        <Input value={agent?.full_name || ""} disabled className="bg-gray-50" />
-                      </div>
-                      <div>
-                        <Label className="text-emerald-700">Phone Number</Label>
-                        <Input value={agent?.phone_number || ""} disabled className="bg-gray-50" />
-                      </div>
-                      <div>
-                        <Label className="text-emerald-700">MoMo Number</Label>
-                        <Input value={agent?.momo_number || ""} disabled className="bg-gray-50" />
-                      </div>
-                      <div>
-                        <Label className="text-emerald-700">Region</Label>
-                        <Input value={agent?.region || ""} disabled className="bg-gray-50" />
-                      </div>
-                    </div>
-                    <div className="pt-4 border-t border-emerald-100">
-                      <p className="text-sm text-emerald-600 mb-2">
-                        To update your profile information, please contact support.
-                      </p>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
-                      >
-                        <Link href="/agent/settings">
-                          <Settings className="h-4 w-4 mr-2" />
-                          Settings
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="jobs" className="space-y-4">
-              {tabLoadingStates.jobs ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
-                  <span className="ml-3 text-emerald-700">Loading jobs...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h2 className="text-2xl font-bold text-emerald-800">Job Opportunities</h2>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                      <Select value={jobsFilterAgent} onValueChange={setJobsFilterAgent}>
-                        <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
-                          <Filter className="h-4 w-4 mr-2" />
-                          <SelectValue placeholder="All Jobs" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="All Jobs">All Jobs</SelectItem>
-                          <SelectItem value="Featured">Featured</SelectItem>
-                          <SelectItem value="Technology">Technology</SelectItem>
-                          <SelectItem value="Finance">Finance</SelectItem>
-                          <SelectItem value="Healthcare">Healthcare</SelectItem>
-                          <SelectItem value="Marketing">Marketing</SelectItem>
-                          <SelectItem value="Sales">Sales</SelectItem>
-                          <SelectItem value="Customer Service">Customer Service</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
-                        <Input
-                          placeholder="Search jobs..."
-                          value={jobSearchTerm}
-                          onChange={(e) => setJobSearchTerm(e.target.value)}
-                          className="pl-10 w-full sm:w-64 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
-                        />
-                      </div>
-                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
-                        {filteredJobs.length} jobs
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="space-y-3 md:space-y-4">
-                    {filteredJobs.slice(0, 5).map((job) => (
-                      <div
-                        key={job.id}
-                        className="bg-white border border-gray-200 rounded-lg p-4 md:p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center justify-between">
-                          <div className="flex gap-3 md:gap-4 flex-1 min-w-0">
-                            <div className="flex-shrink-0">
-                              <Image
-                                src={job.employer_logo_url || "/placeholder.svg"}
-                                alt={job.employer_name}
-                                width={64}
-                                height={64}
-                                className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover bg-gray-100"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              {job.is_featured && (
-                                <div className="mb-2">
-                                  <Badge className="bg-amber-100 text-amber-800 text-xs">⭐ Featured</Badge>
-                                </div>
-                              )}
-                              <h3 className="font-bold text-base md:text-lg text-gray-900 line-clamp-1">
-                                {job.job_title}
-                              </h3>
-                              <p className="text-sm text-gray-600 mb-2">{job.employer_name}</p>
-                              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm">
-                                <div className="flex items-center gap-2 text-gray-700">
-                                  <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                                  <span className="line-clamp-1">{job.location}</span>
-                                </div>
-                                <div className="flex items-center gap-1 font-semibold text-green-700">
-                                  <span className="text-xs text-gray-500">Salary:</span>
-                                  {job.salary_type === "negotiable" ? (
-                                    <span>Negotiable</span>
-                                  ) : job.salary_type === "fixed_range" ? (
-                                    <span>
-                                      {job.salary_min} - {job.salary_max}
-                                    </span>
-                                  ) : job.salary_type === "exact_amount" ? (
-                                    <span>{job.salary_exact}</span>
-                                  ) : job.salary_custom ? (
-                                    <span>{job.salary_custom}</span>
-                                  ) : (
-                                    <span>
-                                      {job.salary_min} - {job.salary_max}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-xs text-gray-500">{formatDateAgo(job.created_at)}</div>
                               </div>
                             </div>
-                          </div>
-                          <div className="w-full md:w-auto flex-shrink-0">
-                            <Link
-                              href={`/job-details/${generateSlug(job.job_title)}`}
-                              className="block w-full md:w-auto"
-                            >
-                              <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap">
-                                View Details
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                              </Button>
-                            </Link>
+                            <div className="w-full md:w-auto flex-shrink-0">
+                              <Link
+                                href={`/job-details/${generateSlug(job.job_title)}`}
+                                className="block w-full md:w-auto"
+                              >
+                                <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap">
+                                  View Details
+                                  <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </div>
                           </div>
                         </div>
+                      ))}
+                    </div>
+                    {filteredJobs.length === 0 && (
+                      <div className="text-center py-8">
+                        <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-600">No jobs found matching your search</p>
                       </div>
-                    ))}
-                  </div>
-                  {filteredJobs.length === 0 && (
-                    <div className="text-center py-8">
-                      <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-600">No jobs found matching your search</p>
+                    )}
+                    <div className="text-center pt-4">
+                      <Link href="/jobboard">
+                        <Button
+                          variant="outline"
+                          className="bg-transparent border-blue-300 text-blue-600 hover:bg-blue-50"
+                        >
+                          View All Jobs ({filteredJobs.length})
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </Link>
                     </div>
-                  )}
-                  <div className="text-center pt-4">
-                    <Link href="/jobboard">
-                      <Button
-                        variant="outline"
-                        className="bg-transparent border-blue-300 text-blue-600 hover:bg-blue-50"
-                      >
-                        View All Jobs ({filteredJobs.length})
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </>
-              )}
-            </TabsContent>
-            <TabsContent value="savings" className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold text-emerald-800">Savings Management</h2>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    asChild
-                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-                  >
-                    <Link href="/agent/savings">
-                      <PiggyBank className="h-4 w-4 mr-2" />
-                      View Savings Dashboard
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
-                  >
-                    <Link href="/agent/savings/commit">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Start Saving
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-              <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                <CardContent className="pt-6 text-center py-12">
-                  <PiggyBank className="h-16 w-16 mx-auto mb-4 text-emerald-300" />
-                  <h3 className="text-xl font-semibold text-emerald-800 mb-2">Smart Savings Plans</h3>
-                  <p className="text-emerald-600 mb-6">
-                    Grow your money with our competitive savings plans. Earn interest on your deposits and build your
-                    financial future.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
-                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <TrendingUp className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                      <h4 className="font-semibold text-emerald-800">High Returns</h4>
-                      <p className="text-sm text-emerald-600">Earn up to 15.5% annual interest on your savings</p>
-                    </div>
-                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <Shield className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                      <h4 className="font-semibold text-emerald-800">Secure & Safe</h4>
-                      <p className="text-sm text-emerald-600">Your money is protected with bank-level security</p>
-                    </div>
-                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <Wallet className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                      <h4 className="font-semibold text-emerald-800">Flexible Plans</h4>
-                      <p className="text-sm text-emerald-600">Choose from 3-24 month savings plans</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  </>
+                )}
+              </TabsContent>
+              <TabsContent value="savings" className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h2 className="text-2xl font-bold text-emerald-800">Savings Management</h2>
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       asChild
                       className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
                     >
                       <Link href="/agent/savings">
                         <PiggyBank className="h-4 w-4 mr-2" />
-                        Explore Savings Plans
+                        View Savings Dashboard
                       </Link>
                     </Button>
                     <Button
@@ -2320,228 +2501,276 @@ DataFlex Ghana Agent 🇬🇭`
                       variant="outline"
                       className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
                     >
-                      <Link href="/agent/savings/withdraw">
-                        <Banknote className="h-4 w-4 mr-2" />
-                        Request Withdrawal
+                      <Link href="/agent/savings/commit">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Start Saving
                       </Link>
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="paid-commissions" className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold text-emerald-800">Paid Commissions</h2>
-              </div>
-              <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                <CardContent className="pt-6 text-center py-12">
-                  <div className="space-y-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
-                      <TrendingUp className="h-8 w-8 text-white" />
+                </div>
+                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                  <CardContent className="pt-6 text-center py-12">
+                    <PiggyBank className="h-16 w-16 mx-auto mb-4 text-emerald-300" />
+                    <h3 className="text-xl font-semibold text-emerald-800 mb-2">Smart Savings Plans</h3>
+                    <p className="text-emerald-600 mb-6">
+                      Grow your money with our competitive savings plans. Earn interest on your deposits and build your
+                      financial future.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
+                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                        <TrendingUp className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
+                        <h4 className="font-semibold text-emerald-800">High Returns</h4>
+                        <p className="text-sm text-emerald-600">Earn up to 15.5% annual interest on your savings</p>
+                      </div>
+                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                        <Shield className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
+                        <h4 className="font-semibold text-emerald-800">Secure & Safe</h4>
+                        <p className="text-sm text-emerald-600">Your money is protected with bank-level security</p>
+                      </div>
+                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                        <Wallet className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
+                        <h4 className="font-semibold text-emerald-800">Flexible Plans</h4>
+                        <p className="text-sm text-emerald-600">Choose from 3-24 month savings plans</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-emerald-800 mb-2">Paid Commissions</h3>
-                      <p className="text-emerald-600 mb-4">View your paid commissions history</p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button
+                        asChild
+                        className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                      >
+                        <Link href="/agent/savings">
+                          <PiggyBank className="h-4 w-4 mr-2" />
+                          Explore Savings Plans
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
+                      >
+                        <Link href="/agent/savings/withdraw">
+                          <Banknote className="h-4 w-4 mr-2" />
+                          Request Withdrawal
+                        </Link>
+                      </Button>
                     </div>
-                    <Button
-                      onClick={loadStatistics}
-                      disabled={statisticsLoading}
-                      className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="paid-commissions" className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h2 className="text-2xl font-bold text-emerald-800">Paid Commissions</h2>
+                </div>
+                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                  <CardContent className="pt-6 text-center py-12">
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
+                        <TrendingUp className="h-8 w-8 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-emerald-800 mb-2">Paid Commissions</h3>
+                        <p className="text-emerald-600 mb-4">View your paid commissions history</p>
+                      </div>
+                      <Button
+                        onClick={loadStatistics}
+                        disabled={statisticsLoading}
+                        className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                      >
+                        {statisticsLoading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                            Loading Statistics...
+                          </>
+                        ) : (
+                          <>
+                            <TrendingUp className="h-4 w-4 mr-2" />
+                            Load Statistics
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                <div className="space-y-4">
+                  {getPaginatedData(tabData.paidWithdrawals, currentPaidWithdrawalsPage).map((paidWithdrawal) => (
+                    <Card
+                      key={paidWithdrawal.id}
+                      className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
                     >
-                      {statisticsLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                          Loading Statistics...
-                        </>
-                      ) : (
-                        <>
-                          <TrendingUp className="h-4 w-4 mr-2" />
-                          Load Statistics
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-              <div className="space-y-4">
-                {getPaginatedData(tabData.paidWithdrawals, currentPaidWithdrawalsPage).map((paidWithdrawal) => (
-                  <Card
-                    key={paidWithdrawal.id}
-                    className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
-                  >
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-emerald-800 text-lg">
-                            GH₵ {safeCommissionDisplay(paidWithdrawal.amount).toFixed(2)}
-                          </h3>
-                          <Badge className={getStatusColor(paidWithdrawal.status)}>{paidWithdrawal.status}</Badge>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-emerald-600">
-                            <span className="font-medium">MoMo Number:</span> {paidWithdrawal.momo_number}
-                          </p>
-                          <p className="text-emerald-600">
-                            <span className="font-medium">Requested:</span>{" "}
-                            {formatTimestamp(paidWithdrawal.requested_at)}
-                          </p>
-                          {paidWithdrawal.paid_at && (
+                      <CardContent className="pt-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-emerald-800 text-lg">
+                              GH₵ {safeCommissionDisplay(paidWithdrawal.amount).toFixed(2)}
+                            </h3>
+                            <Badge className={getStatusColor(paidWithdrawal.status)}>{paidWithdrawal.status}</Badge>
+                          </div>
+                          <div className="space-y-2">
                             <p className="text-emerald-600">
-                              <span className="font-medium">Paid:</span> {formatTimestamp(paidWithdrawal.paid_at)}
+                              <span className="font-medium">MoMo Number:</span> {paidWithdrawal.momo_number}
                             </p>
-                          )}
-                          {paidWithdrawal.commission_items && paidWithdrawal.commission_items.length > 0 && (
-                            <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                              <p className="text-xs font-medium text-emerald-700 mb-1">Commission Sources:</p>
-                              <div className="text-xs text-emerald-600">
-                                {paidWithdrawal.commission_items.map((item, index) => (
-                                  <span key={index}>
-                                    {item.type === "referral"
-                                      ? "Referral"
-                                      : item.type === "data_order"
-                                        ? "Data Order"
-                                        : "Wholesale Order"}
-                                    {index < paidWithdrawal.commission_items.length - 1 ? ", " : ""}
-                                  </span>
-                                ))}
+                            <p className="text-emerald-600">
+                              <span className="font-medium">Requested:</span>{" "}
+                              {formatTimestamp(paidWithdrawal.requested_at)}
+                            </p>
+                            {paidWithdrawal.paid_at && (
+                              <p className="text-emerald-600">
+                                <span className="font-medium">Paid:</span> {formatTimestamp(paidWithdrawal.paid_at)}
+                              </p>
+                            )}
+                            {paidWithdrawal.commission_items && paidWithdrawal.commission_items.length > 0 && (
+                              <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                                <p className="text-xs font-medium text-emerald-700 mb-1">Commission Sources:</p>
+                                <div className="text-xs text-emerald-600">
+                                  {paidWithdrawal.commission_items.map((item, index) => (
+                                    <span key={index}>
+                                      {item.type === "referral"
+                                        ? "Referral"
+                                        : item.type === "data_order"
+                                          ? "Data Order"
+                                          : "Wholesale Order"}
+                                      {index < paidWithdrawal.commission_items.length - 1 ? ", " : ""}
+                                    </span>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                {getPaginatedData(tabData.paidWithdrawals, currentPaidWithdrawalsPage).length === 0 && (
-                  <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                    <CardContent className="text-center py-8">
-                      <div className="text-gray-500 mb-4">
-                        <Banknote className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p>No paid withdrawals yet.</p>
-                        <p className="text-sm">Check back later for new paid withdrawals.</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-              <PaginationControls
-                currentPage={currentPaidWithdrawalsPage}
-                totalPages={getTotalPages(tabData.paidWithdrawals.length)}
-                onPageChange={(page) => handlePageChange(page, setCurrentPaidWithdrawalsPage)}
-              />
-            </TabsContent>
-            <TabsContent value="properties" className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold text-emerald-800">Property Promotion</h2>
-                <Button
-                  asChild
-                  className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 w-full sm:w-auto"
-                >
-                  <Link href="/agent/properties">
-                    <Building2 className="h-4 w-4 mr-2" />
-                    Browse Properties
-                  </Link>
-                </Button>
-              </div>
-              <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
-                <CardContent className="pt-6 text-center py-12">
-                  <Building2 className="h-16 w-16 mx-auto mb-4 text-emerald-300" />
-                  <h3 className="text-xl font-semibold text-emerald-800 mb-2">Property Promotion Platform</h3>
-                  <p className="text-emerald-600 mb-6">
-                    Browse and promote real estate properties to earn commissions. Connect with potential buyers and
-                    sellers through our platform.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
-                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <Building2 className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                      <h4 className="font-semibold text-emerald-800">Quality Properties</h4>
-                      <p className="text-sm text-emerald-600">
-                        Verified properties across multiple categories and price ranges
-                      </p>
-                    </div>
-                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <DollarSign className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                      <h4 className="font-semibold text-emerald-800">Dual Currency</h4>
-                      <p className="text-sm text-emerald-600">Properties listed in both Ghana Cedi and US Dollars</p>
-                    </div>
-                    <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                      <TrendingUp className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                      <h4 className="font-semibold text-emerald-800">Earn Commissions</h4>
-                      <p className="text-sm text-emerald-600">
-                        Connect buyers with properties and earn referral commissions
-                      </p>
-                    </div>
-                  </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {getPaginatedData(tabData.paidWithdrawals, currentPaidWithdrawalsPage).length === 0 && (
+                    <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                      <CardContent className="text-center py-8">
+                        <div className="text-gray-500 mb-4">
+                          <Banknote className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No paid withdrawals yet.</p>
+                          <p className="text-sm">Check back later for new paid withdrawals.</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+                <PaginationControls
+                  currentPage={currentPaidWithdrawalsPage}
+                  totalPages={getTotalPages(tabData.paidWithdrawals.length)}
+                  onPageChange={(page) => handlePageChange(page, setCurrentPaidWithdrawalsPage)}
+                />
+              </TabsContent>
+              <TabsContent value="properties" className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h2 className="text-2xl font-bold text-emerald-800">Property Promotion</h2>
                   <Button
                     asChild
-                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 w-full sm:w-auto"
                   >
                     <Link href="/agent/properties">
                       <Building2 className="h-4 w-4 mr-2" />
-                      Start Promoting Properties
+                      Browse Properties
                     </Link>
                   </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="compliance" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-emerald-800">Compliance & Registration</h2>
-              </div>
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
-                    <span className="ml-3 text-emerald-700">Loading compliance module...</span>
-                  </div>
-                }
-              >
-                {agent && agent.id ? (
-                  <ComplianceTab agentId={agent.id} />
-                ) : (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
-                    <span className="ml-3 text-emerald-700">Loading agent data...</span>
-                  </div>
-                )}
-              </Suspense>
-            </TabsContent>
-            <TabsContent value="professional-writing" className="space-y-4">
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-pink-600 border-t-transparent"></div>
-                    <span className="ml-3 text-pink-700">Loading professional writing services...</span>
-                  </div>
-                }
-              >
-                {agent && agent.id ? (
-                  <ProfessionalWritingTab agentId={agent.id} />
-                ) : (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-pink-600 border-t-transparent"></div>
-                    <span className="ml-3 text-pink-700">Loading agent data...</span>
-                  </div>
-                )}
-              </Suspense>
-            </TabsContent>
-            <TabsContent value="teaching" className="space-y-4">
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-                    <span className="ml-3 text-blue-700">Loading teaching platform...</span>
-                  </div>
-                }
-              >
-                <TeachingPlatformPage />
-              </Suspense>
-            </TabsContent>
-          </Tabs>
+                </div>
+                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                  <CardContent className="pt-6 text-center py-12">
+                    <Building2 className="h-16 w-16 mx-auto mb-4 text-emerald-300" />
+                    <h3 className="text-xl font-semibold text-emerald-800 mb-2">Property Promotion Platform</h3>
+                    <p className="text-emerald-600 mb-6">
+                      Browse and promote real estate properties to earn commissions. Connect with potential buyers and
+                      sellers through our platform.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
+                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                        <Building2 className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
+                        <h4 className="font-semibold text-emerald-800">Quality Properties</h4>
+                        <p className="text-sm text-emerald-600">
+                          Verified properties across multiple categories and price ranges
+                        </p>
+                      </div>
+                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                        <DollarSign className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
+                        <h4 className="font-semibold text-emerald-800">Dual Currency</h4>
+                        <p className="text-sm text-emerald-600">Properties listed in both Ghana Cedi and US Dollars</p>
+                      </div>
+                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                        <TrendingUp className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
+                        <h4 className="font-semibold text-emerald-800">Earn Commissions</h4>
+                        <p className="text-sm text-emerald-600">
+                          Connect buyers with properties and earn referral commissions
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      asChild
+                      className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                    >
+                      <Link href="/agent/properties">
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Start Promoting Properties
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="compliance" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold text-emerald-800">Compliance & Registration</h2>
+                </div>
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+                      <span className="ml-3 text-emerald-700">Loading compliance module...</span>
+                    </div>
+                  }
+                >
+                  {agent && agent.id ? (
+                    <ComplianceTab agentId={agent.id} />
+                  ) : (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+                      <span className="ml-3 text-emerald-700">Loading agent data...</span>
+                    </div>
+                  )}
+                </Suspense>
+              </TabsContent>
+              <TabsContent value="professional-writing" className="space-y-4">
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-pink-600 border-t-transparent"></div>
+                      <span className="ml-3 text-pink-700">Loading professional writing services...</span>
+                    </div>
+                  }
+                >
+                  {agent && agent.id ? (
+                    <ProfessionalWritingTab agentId={agent.id} />
+                  ) : (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-pink-600 border-t-transparent"></div>
+                      <span className="ml-3 text-pink-700">Loading agent data...</span>
+                    </div>
+                  )}
+                </Suspense>
+              </TabsContent>
+              <TabsContent value="teaching" className="space-y-4">
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                      <span className="ml-3 text-blue-700">Loading teaching platform...</span>
+                    </div>
+                  }
+                >
+                  <TeachingPlatformPage />
+                </Suspense>
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </div>
       <Dialog open={showClearReferralsDialog} onOpenChange={setShowClearReferralsDialog}>
-        <DialogContent className="w-[95vw] sm:max-w-[425px]">
+        <DialogContent className="w-[95vw] sm:max-w-md max-w-full">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-700">
               <AlertTriangle className="h-5 w-5" />
@@ -2696,7 +2925,6 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         </DialogContent>
       </Dialog>
-
       {showBeyondDataModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4">
           <div className="bg-white rounded-none sm:rounded-xl shadow-xl w-screen sm:w-full sm:max-w-3xl mx-0 sm:mx-4 my-0 sm:my-8 max-h-screen sm:max-h-[95vh] overflow-y-auto">

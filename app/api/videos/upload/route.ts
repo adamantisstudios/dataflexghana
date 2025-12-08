@@ -57,10 +57,21 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] File size:", sizeMB.toFixed(2), "MB, Duration:", duration, "seconds")
 
-    if (sizeMB > 1000) {
+    if (sizeMB > 100) {
       console.error("[v0] File too large:", sizeMB, "MB")
       return NextResponse.json(
-        { success: false, error: `File too large (${sizeMB.toFixed(2)}MB). Maximum 1GB allowed.` },
+        { success: false, error: `File too large (${sizeMB.toFixed(2)}MB). Maximum 100MB allowed.` },
+        { status: 400 },
+      )
+    }
+
+    if (duration > 120) {
+      console.error("[v0] Video too long:", duration, "seconds")
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Video duration exceeds 2 minutes (${(duration / 60).toFixed(1)} minutes). Maximum 120 seconds allowed.`,
+        },
         { status: 400 },
       )
     }
@@ -83,14 +94,13 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] Uploading to storage - Path:", filePath, "MimeType:", actualMimeType)
 
-    const uploadTimeoutMs = isMobileRequest ? 120000 : 60000 // Longer timeout for mobile
+    const uploadTimeoutMs = isMobileRequest ? 120000 : 60000
 
     const uploadPromise = supabaseAdmin.storage.from("videos").upload(filePath, buffer, {
       contentType: actualMimeType,
       upsert: false,
     })
 
-    // Create a timeout promise
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Upload timeout - please try again")), uploadTimeoutMs),
     )

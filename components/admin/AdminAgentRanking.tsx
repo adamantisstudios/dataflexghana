@@ -4,16 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { 
-  Trophy, 
-  TrendingUp, 
-  Calendar, 
-  RefreshCw, 
-  Users,
-  Medal,
-  Crown,
-  Star
-} from "lucide-react"
+import { Trophy, TrendingUp, Calendar, RefreshCw, Users, Medal, Crown, Star } from "lucide-react"
 
 interface SimpleAgent {
   name: string
@@ -32,7 +23,7 @@ interface RankingData {
 export default function AdminAgentRanking() {
   const [rankingData, setRankingData] = useState<RankingData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [timeframe, setTimeframe] = useState<'7d' | '30d'>('30d')
+  const [timeframe, setTimeframe] = useState<"7d" | "30d">("30d")
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -44,17 +35,17 @@ export default function AdminAgentRanking() {
 
   const fetchRankings = async () => {
     try {
-      setLoading(false) // Don't show loading on refresh
+      setLoading(true) // Set loading to true to show spinner on refresh
       setError(null)
 
-      console.log('🔄 Fetching admin agent rankings...', { timeframe })
+      console.log("🔄 Fetching admin agent rankings...", { timeframe })
 
       const response = await fetch(`/api/admin/agents/ranking?timeframe=${timeframe}&limit=10`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        cache: 'no-store' // Ensure fresh data
+        cache: "no-store",
       })
 
       if (!response.ok) {
@@ -62,19 +53,21 @@ export default function AdminAgentRanking() {
       }
 
       const result = await response.json()
-      console.log('📊 Admin rankings API response:', result)
+      console.log("📊 Admin rankings API response:", result)
 
       if (result.success) {
         setRankingData(result.data)
-        console.log('✅ Admin rankings loaded successfully:', result.data.agents?.length || 0, 'agents')
+        console.log("✅ Admin rankings loaded successfully:", result.data.agents?.length || 0, "agents")
       } else {
-        throw new Error(result.error || 'Failed to fetch rankings')
+        throw new Error(result.error || "Failed to fetch rankings")
       }
     } catch (err) {
-      console.error('❌ Error fetching admin rankings:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Network error occurred'
+      console.error("❌ Error fetching admin rankings:", err)
+      const errorMessage = err instanceof Error ? err.message : "Network error occurred"
       setError(errorMessage)
-      setRankingData(null) // Clear any existing data on error
+      setRankingData(null)
+    } finally {
+      setLoading(false) // Always set loading to false when done
     }
   }
 
@@ -98,14 +91,14 @@ export default function AdminAgentRanking() {
   const formatLastUpdated = (dateString: string) => {
     try {
       const date = new Date(dateString)
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+      return date.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       })
     } catch {
-      return 'Unknown'
+      return "Unknown"
     }
   }
 
@@ -147,17 +140,17 @@ export default function AdminAgentRanking() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="flex gap-1">
               <Button
-                variant={timeframe === '7d' ? 'default' : 'outline'}
+                variant={timeframe === "7d" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setTimeframe('7d')}
+                onClick={() => setTimeframe("7d")}
                 className="h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm flex-1 sm:flex-none"
               >
                 7 Days
               </Button>
               <Button
-                variant={timeframe === '30d' ? 'default' : 'outline'}
+                variant={timeframe === "30d" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setTimeframe('30d')}
+                onClick={() => setTimeframe("30d")}
                 className="h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm flex-1 sm:flex-none"
               >
                 30 Days
@@ -167,7 +160,7 @@ export default function AdminAgentRanking() {
               variant="outline"
               size="sm"
               onClick={fetchRankings}
-              className="h-7 sm:h-8 px-2 sm:px-3"
+              className="h-7 sm:h-8 px-2 sm:px-3 bg-transparent"
             >
               <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
@@ -203,12 +196,7 @@ export default function AdminAgentRanking() {
               <TrendingUp className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
               <p className="text-xs sm:text-sm">{error}</p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchRankings}
-              className="text-xs sm:text-sm"
-            >
+            <Button variant="outline" size="sm" onClick={fetchRankings} className="text-xs sm:text-sm bg-transparent">
               <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Retry
             </Button>
@@ -228,31 +216,27 @@ export default function AdminAgentRanking() {
                   key={`${agent.name}-${agent.rank}`}
                   className={`relative p-3 sm:p-4 rounded-xl transition-all duration-300 hover:scale-105 ${
                     agent.rank === 1
-                      ? 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 shadow-lg'
+                      ? "bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 shadow-lg"
                       : agent.rank === 2
-                      ? 'bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300 shadow-md'
-                      : 'bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 shadow-md'
+                        ? "bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300 shadow-md"
+                        : "bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 shadow-md"
                   }`}
                 >
                   {/* Rank Badge */}
                   <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2">
-                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm ${
-                      agent.rank === 1 ? 'bg-yellow-500' : agent.rank === 2 ? 'bg-gray-400' : 'bg-amber-600'
-                    }`}>
+                    <div
+                      className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm ${
+                        agent.rank === 1 ? "bg-yellow-500" : agent.rank === 2 ? "bg-gray-400" : "bg-amber-600"
+                      }`}
+                    >
                       {agent.rank}
                     </div>
                   </div>
 
                   <div className="text-center">
-                    <div className="mb-2 sm:mb-3 flex justify-center">
-                      {getRankIcon(agent.rank)}
-                    </div>
-                    <h4 className="font-bold text-emerald-800 text-sm sm:text-lg mb-1 truncate">
-                      {agent.name}
-                    </h4>
-                    <div className="text-xl sm:text-2xl font-bold text-emerald-700 mb-1">
-                      {agent.activity}
-                    </div>
+                    <div className="mb-2 sm:mb-3 flex justify-center">{getRankIcon(agent.rank)}</div>
+                    <h4 className="font-bold text-emerald-800 text-sm sm:text-lg mb-1 truncate">{agent.name}</h4>
+                    <div className="text-xl sm:text-2xl font-bold text-emerald-700 mb-1">{agent.activity}</div>
                     <p className="text-xs text-emerald-600">Activity Score</p>
                   </div>
                 </div>
@@ -272,18 +256,12 @@ export default function AdminAgentRanking() {
                       key={`${agent.name}-${agent.rank}`}
                       className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-all duration-200"
                     >
-                      <div className="flex items-center justify-center w-5 sm:w-6">
-                        {getRankIcon(agent.rank)}
-                      </div>
+                      <div className="flex items-center justify-center w-5 sm:w-6">{getRankIcon(agent.rank)}</div>
                       <div className="flex-1 min-w-0">
-                        <h5 className="font-semibold text-emerald-800 text-xs sm:text-sm truncate">
-                          {agent.name}
-                        </h5>
+                        <h5 className="font-semibold text-emerald-800 text-xs sm:text-sm truncate">{agent.name}</h5>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm sm:text-lg font-bold text-emerald-700">
-                          {agent.activity}
-                        </div>
+                        <div className="text-sm sm:text-lg font-bold text-emerald-700">{agent.activity}</div>
                       </div>
                     </div>
                   ))}
