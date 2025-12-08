@@ -52,7 +52,7 @@ const AVAILABLE_FORMS = [
     color: "border-blue-200 hover:border-blue-400",
     iconColor: "text-blue-600",
     duration: "14 Working Days",
-    cost: "600 GHS",
+    cost: "520 GHS",
     delivery: "Pickup or Nationwide Delivery",
   },
   {
