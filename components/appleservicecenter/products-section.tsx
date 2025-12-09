@@ -10,57 +10,73 @@ const products = [
     id: 1,
     name: "iPhone Screen Replacement",
     price: 250,
-    description: "Professional screen replacement with premium glass",
+    description: "Professional iPhone screen replacement with premium glass - Accra Ghana",
     image: "/iphone-screen.jpg",
+    seoDescription:
+      "Professional iPhone screen replacement service in Accra. Premium glass installation with warranty. Get your cracked or broken iPhone screen fixed in 24-48 hours.",
   },
   {
     id: 2,
     name: "Battery Replacement",
     price: 120,
-    description: "Original capacity battery with warranty",
+    description: "Original capacity battery replacement with warranty - Fast service Accra",
     image: "/phone-battery.png",
+    seoDescription:
+      "Battery replacement for iPhone, iPad and other Apple devices in Accra. Original capacity batteries with warranty. Improve device performance today.",
   },
   {
     id: 3,
     name: "Charging Port Repair",
     price: 180,
-    description: "Fast charging port replacement and repair",
+    description: "Fast charging port replacement and repair - Expert service Accra Ghana",
     image: "/charging-port-repair.jpg",
+    seoDescription:
+      "Professional charging port repair for iPhones, iPads and MacBooks in Accra. Fast turnaround with warranty guarantee. Same day service available.",
   },
   {
     id: 4,
     name: "Camera Module Replacement",
     price: 350,
-    description: "High-quality camera module installation",
+    description: "High-quality camera module installation - Professional repair Accra",
     image: "/camera-module-repair.jpg",
+    seoDescription:
+      "iPhone camera repair and replacement in Accra. Expert technicians install high-quality camera modules. Restore your photography capabilities.",
   },
   {
     id: 5,
     name: "Water Damage Restoration",
     price: 500,
-    description: "Complete water damage assessment and repair",
+    description: "Complete water damage assessment and repair - Accra Ghana service",
     image: "/water-damage-repair.jpg",
+    seoDescription:
+      "Water damage repair for iPhones, iPads and MacBooks in Accra. Expert diagnostic and component replacement. Save your water-damaged Apple device.",
   },
   {
     id: 6,
     name: "Home Button Repair",
     price: 150,
-    description: "Touch ID home button replacement",
+    description: "Touch ID home button replacement - Certified service Accra",
     image: "/home-button-repair.jpg",
+    seoDescription:
+      "iPhone home button and Touch ID repair in Accra. Professional replacement with full functionality restored. Warranty included.",
   },
   {
     id: 7,
     name: "Speaker Repair",
     price: 140,
-    description: "Speaker replacement and audio fix",
+    description: "Speaker replacement and audio fix - Professional service Accra Ghana",
     image: "/phone-speaker.jpg",
+    seoDescription:
+      "iPhone, iPad and MacBook speaker repair in Accra. Audio restoration and replacement services. Crystal clear sound guaranteed.",
   },
   {
     id: 8,
     name: "Motherboard Repair",
     price: 800,
-    description: "Complex motherboard diagnostic and repair",
+    description: "Complex motherboard diagnostic and repair - Expert technicians Accra",
     image: "/phone-motherboard.jpg",
+    seoDescription:
+      "Complex motherboard repair for Apple devices in Accra. Expert diagnostics and component-level repair. We fix what others can't.",
   },
 ]
 
@@ -100,7 +116,9 @@ export default function ProductsSection({ onAddToCart, cartItems, setCartItems }
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Our Services & Pricing</h2>
-          <p className="text-lg text-slate-600">Professional Apple device repair services with warranty</p>
+          <p className="text-lg text-slate-600">
+            Professional Apple device repair services with warranty - Accra, Ghana
+          </p>
         </div>
 
         {/* Cart Button */}
@@ -170,7 +188,11 @@ export default function ProductsSection({ onAddToCart, cartItems, setCartItems }
               key={product.id}
               className="overflow-hidden hover:shadow-lg transition-shadow border border-slate-200"
             >
-              <img src={product.image || "/placeholder.svg"} alt={product.name} className="w-full h-48 object-cover" />
+              <img
+                src={product.image || "/placeholder.svg"}
+                alt={`${product.name} - Apple repair service in Accra Ghana`}
+                className="w-full h-48 object-cover"
+              />
               <div className="p-4">
                 <h3 className="font-bold text-slate-900 mb-2 line-clamp-2">{product.name}</h3>
                 <p className="text-sm text-slate-600 mb-3">{product.description}</p>

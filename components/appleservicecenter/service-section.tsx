@@ -2,7 +2,6 @@
 
 import { ArrowRight, Truck, Wrench, Clock, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
 
 export default function ServiceSection() {
   return (
@@ -14,7 +13,7 @@ export default function ServiceSection() {
             <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl blur-2xl opacity-20"></div>
             <img
               src="/repairmantwo.jpg"
-              alt="Apple Device Repair Service"
+              alt="Apple device repair technician in Accra, Ghana providing professional iPhone and iPad repair services"
               className="relative rounded-2xl shadow-xl object-cover w-full h-80 md:h-96"
             />
           </div>
@@ -23,10 +22,12 @@ export default function ServiceSection() {
           <div className="space-y-6">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-                Quick, Professional <span className="text-amber-600">Apple Repairs</span>
+                Quick, Professional <span className="text-amber-600">Apple Repairs in Accra</span>
               </h2>
               <p className="text-lg text-slate-600">
-                No need to visit our office! We offer convenient pickup, expert repair, and safe delivery service.
+                Expert Apple device repair service throughout Accra, Ghana. No need to visit our office! We offer
+                convenient pickup, expert repair by certified technicians, and safe delivery service. Get your iPhone,
+                iPad, or MacBook fixed in 24-48 hours.
               </p>
             </div>
 
@@ -38,7 +39,9 @@ export default function ServiceSection() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900 mb-1">Free Pickup Service</h3>
-                  <p className="text-sm text-slate-600">We collect your device from your location at no extra cost</p>
+                  <p className="text-sm text-slate-600">
+                    We collect your device from anywhere in Accra at no extra cost
+                  </p>
                 </div>
               </div>
 
@@ -47,9 +50,9 @@ export default function ServiceSection() {
                   <Wrench className="w-6 h-6 text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 mb-1">Expert Technicians</h3>
+                  <h3 className="font-semibold text-slate-900 mb-1">Certified Technicians</h3>
                   <p className="text-sm text-slate-600">
-                    Certified professionals repair your device with quality parts
+                    Award-winning professional technicians repair your device with genuine quality parts
                   </p>
                 </div>
               </div>
@@ -59,8 +62,10 @@ export default function ServiceSection() {
                   <Clock className="w-6 h-6 text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 mb-1">Fast Turnaround</h3>
-                  <p className="text-sm text-slate-600">Most repairs completed within 24-48 hours</p>
+                  <h3 className="font-semibold text-slate-900 mb-1">Fast Turnaround (24-48 hours)</h3>
+                  <p className="text-sm text-slate-600">
+                    Most iPhone, iPad and MacBook repairs completed within 24-48 hours in Accra
+                  </p>
                 </div>
               </div>
 
@@ -70,19 +75,21 @@ export default function ServiceSection() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900 mb-1">Safe Delivery</h3>
-                  <p className="text-sm text-slate-600">We deliver your repaired device back to your doorstep</p>
+                  <p className="text-sm text-slate-600">
+                    We deliver your repaired device back to your location in Accra with care
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Link href="#service-form" className="flex-1">
+              <a href="#service-form" className="flex-1">
                 <Button className="w-full bg-amber-600 hover:bg-amber-700 text-white">
                   Request Service Now
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-              </Link>
+              </a>
               <a href="https://wa.me/233242799990" className="flex-1">
                 <Button
                   variant="outline"

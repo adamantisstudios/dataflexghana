@@ -11,7 +11,7 @@ export const PLATFORM_CONFIG = {
   platform: {
     name: "DataFlex Agents",
     tagline: "Ghana's Biggest Multi-Service Agent Platform",
-    supportPhone: "+233 55 199 9901",
+    supportPhone: "+233242799990",
     supportEmail: "sales.dataflex@gmail.com",
   },
 

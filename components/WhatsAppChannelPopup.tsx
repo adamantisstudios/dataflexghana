@@ -2,12 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { MessageCircle } from "lucide-react"
+import { MessageCircle, X } from "lucide-react"
 
 export default function WhatsAppChannelPopup() {
   const [isVisible, setIsVisible] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
 
   useEffect(() => {
+    // Detect if device is desktop
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768)
+    }
+    checkDesktop()
+    window.addEventListener("resize", checkDesktop)
+
     // Show notification 7 seconds after page load
     const showTimer = setTimeout(() => {
       setIsVisible(true)
@@ -21,12 +29,23 @@ export default function WhatsAppChannelPopup() {
     return () => {
       clearTimeout(showTimer)
       clearTimeout(hideTimer)
+      window.removeEventListener("resize", checkDesktop)
     }
   }, [])
 
   const handleJoinChannel = () => {
     // Open WhatsApp channel
-    window.open("https://whatsapp.com/channel/0029VbBEcM0CBtxHDTZq1h0p", "_blank")
+    if (isDesktop) {
+      // On desktop, open WhatsApp Web
+      window.open("https://web.whatsapp.com/send?phone=+233200000000", "_blank")
+    } else {
+      // On mobile, use WhatsApp channel link
+      window.open("https://whatsapp.com/channel/0029VbBEcM0CBtxHDTZq1h0p", "_blank")
+    }
+    setIsVisible(false)
+  }
+
+  const handleClose = () => {
     setIsVisible(false)
   }
 
@@ -40,39 +59,35 @@ export default function WhatsAppChannelPopup() {
         {/* Notification Container */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-t-2 border-green-200 shadow-2xl">
           <div className="container mx-auto px-4 py-4 sm:py-6">
-            <div className="flex flex-col items-center gap-4 sm:gap-6 text-center">
-
+            <div className="flex items-start justify-between gap-4">
               {/* Content Section */}
-              <div>
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <MessageCircle className="h-5 w-5 text-green-600" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <MessageCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                   <h3 className="text-lg font-bold text-green-800">Join Our WhatsApp Channel</h3>
                 </div>
-                <p className="text-sm text-gray-600 mb-3 max-w-md mx-auto">
+                <p className="text-sm text-gray-600 mb-3 ml-7">
                   Get latest updates, opportunities, and exclusive offers delivered directly to you
                 </p>
+                <div className="ml-7 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <Button
+                    onClick={handleJoinChannel}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 text-sm"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    {isDesktop ? "Join on WhatsApp Web" : "Join Channel"}
+                  </Button>
+                </div>
               </div>
 
-              {/* Call to Action Button (moved above the image) */}
-              <div className="w-full sm:w-auto">
-                <Button
-                  onClick={handleJoinChannel}
-                  className="w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Join Channel
-                </Button>
-              </div>
-
-              {/* Image Section (YouTube-style thumbnail) */}
-              <div className="w-full sm:w-[400px] h-[225px] rounded-lg overflow-hidden shadow-md">
-                <img
-                  src="/images/whatsappchannelpop.jpg"
-                  alt="DataFlex Ghana WhatsApp Channel"
-                  className="w-full h-full object-cover rounded-md"
-                />
-              </div>
-
+              {/* Close Button */}
+              <button
+                onClick={handleClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 mt-1"
+                aria-label="Close notification"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
             {/* Auto-close indicator */}

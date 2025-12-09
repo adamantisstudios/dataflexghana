@@ -43,6 +43,8 @@ interface AFASubmission {
 interface BulkOrder {
   id: string
   agent_id: string
+  agent_name?: string
+  agent_email?: string
   source: string
   row_count: number
   accepted_count: number
@@ -144,6 +146,8 @@ export default function BulkOrderManagementTab() {
       const bulkWithDefaults = (bulkData || []).map((item: any) => ({
         ...item,
         status: item.status || "pending",
+        agent_name: item.agents?.full_name || "Unknown Agent",
+        agent_email: item.agents?.phone_number || "",
       }))
 
       setAFASubmissions(afaWithDefaults)
@@ -330,7 +334,7 @@ export default function BulkOrderManagementTab() {
     const headers = ["ID", "Agent", "Source", "Total Rows", "Accepted", "Rejected", "Status", "Date"]
     const rows = orders.map((order) => [
       order.id,
-      order.agents?.full_name || order.agent_id,
+      order.agent_name || order.agents?.full_name || order.agent_id,
       order.source,
       order.row_count,
       order.accepted_count,
@@ -595,8 +599,10 @@ export default function BulkOrderManagementTab() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-xs sm:text-sm text-gray-900 truncate">
-                              Bulk Order - {order.source.toUpperCase()}
+                              {order.agent_name ? `${order.agent_name} - Bulk Order` : "Bulk Order"} -{" "}
+                              {order.source.toUpperCase()}
                             </h3>
+                            {order.agent_email && <p className="text-xs text-gray-500 truncate">{order.agent_email}</p>}
                           </div>
                           <Badge className={`${getStatusColor(order.status)} text-xs flex-shrink-0 py-0.5 px-1.5`}>
                             {(order.status || "pending").replace("_", " ")}
@@ -619,9 +625,10 @@ export default function BulkOrderManagementTab() {
 
                         <div className="flex gap-1 flex-wrap items-center pt-1 border-t border-blue-100">
                           <Select
-                            value={order.status || "pending"}
-                            onValueChange={(value) => updateBulkOrderStatus(order.id, value)}
-                            disabled={processing}
+                            value={order.status}
+                            onValueChange={(value) => {
+                              updateBulkOrderStatus(order.id, value)
+                            }}
                           >
                             <SelectTrigger className="w-32 sm:w-40 border-blue-200 text-xs h-7">
                               <SelectValue />
@@ -634,26 +641,13 @@ export default function BulkOrderManagementTab() {
                             </SelectContent>
                           </Select>
                           <Button
-                            onClick={async () => {
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
                               setSelectedBulkOrder(order)
                               setShowBulkDetails(true)
                               setItemsLoading(true)
-                              try {
-                                const { data, error } = await supabase
-                                  .from("bulk_order_items")
-                                  .select("*")
-                                  .eq("bulk_order_id", order.id)
-                                  .order("created_at", { ascending: false })
-                                  .limit(500)
-
-                                if (error) throw error
-                                setBulkOrderItems(data || [])
-                              } catch (error) {
-                                console.error("Error loading bulk order items:", error)
-                                toast.error("Failed to load bulk order items")
-                              } finally {
-                                setItemsLoading(false)
-                              }
+                              loadBulkOrderItems(order.id)
                             }}
                             variant="outline"
                             size="sm"

@@ -271,7 +271,7 @@ const faqData: FAQItem[] = [
     category: "Support & Help",
     question: "How do I contact customer support?",
     answer:
-      "24/7 support available via: WhatsApp (+233 55 199 9901), Phone (+233 55 199 9901), Email (support@dataflexghana.com). We respond to WhatsApp within 5 minutes during business hours. Our support team can help with technical issues, payment problems, or service questions.",
+      "24/7 support available via: WhatsApp (+233242799990), Phone (+233242799990), Email (support@dataflexghana.com). We respond to WhatsApp within 5 minutes during business hours. Our support team can help with technical issues, payment problems, or service questions.",
   },
   {
     id: "support-2",
@@ -533,7 +533,7 @@ export default function FAQPage() {
                   <div className="flex items-center gap-3">
                     <MessageCircle className="w-5 h-5 text-green-600" />
                     <span className="text-gray-700">
-                      <strong>WhatsApp:</strong> +233 55 199 9901
+                      <strong>WhatsApp:</strong> +233242799990
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
