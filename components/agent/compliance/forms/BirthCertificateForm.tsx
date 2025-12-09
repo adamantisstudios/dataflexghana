@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ChevronLeft, ChevronRight, Upload, X, Baby } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
+import { scrollToElement } from "@/lib/scroll-utils"
 
 interface BirthCertificateFormProps {
   agentId: string
@@ -318,9 +319,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
 
   useEffect(() => {
     const formElement = document.querySelector("[data-form-section]")
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
+    scrollToElement(formElement as HTMLElement)
   }, [currentStep])
 
   return (

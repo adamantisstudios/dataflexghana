@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { FileText, Eye, RefreshCw, Package, Loader2, Download, Copy, FileJson } from 'lucide-react'
+import { FileText, Eye, RefreshCw, Package, Loader2, Download, Copy, FileJson } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { realtimeManager } from "@/lib/realtime-manager"
 import { toast } from "sonner"
@@ -191,9 +191,7 @@ export default function BulkOrderManagementTab() {
         throw new Error(error.error || "Failed to update")
       }
 
-      setAFASubmissions((prev) =>
-        prev.map((item) => (item.id === afaId ? { ...item, status: newStatus } : item)),
-      )
+      setAFASubmissions((prev) => prev.map((item) => (item.id === afaId ? { ...item, status: newStatus } : item)))
       if (selectedAFA?.id === afaId) {
         setSelectedAFA({ ...selectedAFA, status: newStatus })
       }
@@ -221,9 +219,7 @@ export default function BulkOrderManagementTab() {
         throw new Error(error.error || "Failed to update")
       }
 
-      setBulkOrders((prev) =>
-        prev.map((item) => (item.id === bulkOrderId ? { ...item, status: newStatus } : item)),
-      )
+      setBulkOrders((prev) => prev.map((item) => (item.id === bulkOrderId ? { ...item, status: newStatus } : item)))
       if (selectedBulkOrder?.id === bulkOrderId) {
         setSelectedBulkOrder({ ...selectedBulkOrder, status: newStatus })
       }
@@ -289,10 +285,14 @@ export default function BulkOrderManagementTab() {
         throw new Error(error.error || "Failed to delete")
       }
 
+      setBulkOrders((prev) => prev.filter((item) => item.id !== bulkOrderId))
+      if (selectedBulkOrder?.id === bulkOrderId) {
+        setSelectedBulkOrder(null)
+      }
+
       toast.success("Bulk order deleted successfully")
       setDeleteConfirmId(null)
       setDeleteConfirmType(null)
-      await loadData()
     } catch (error) {
       console.error("Error deleting bulk order:", error)
       toast.error("Failed to delete bulk order: " + (error instanceof Error ? error.message : "Unknown error"))
@@ -845,17 +845,21 @@ export default function BulkOrderManagementTab() {
               </div>
             </div>
           )}
-          <DialogFooter className="hidden">
-          </DialogFooter>
+          <DialogFooter className="hidden"></DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Custom Confirmation Dialogs */}
-      <AlertDialog open={!!deleteConfirmId && deleteConfirmType === "afa"} onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}>
+      <AlertDialog
+        open={!!deleteConfirmId && deleteConfirmType === "afa"}
+        onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}
+      >
         <AlertDialogContent className="w-[95vw] max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-700">Delete AFA Registration</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone. The AFA registration will be permanently deleted.</AlertDialogDescription>
+            <AlertDialogDescription>
+              This action cannot be undone. The AFA registration will be permanently deleted.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex gap-2">
             <AlertDialogCancel className="flex-1">Cancel</AlertDialogCancel>
@@ -869,11 +873,16 @@ export default function BulkOrderManagementTab() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!deleteConfirmId && deleteConfirmType === "bulk"} onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}>
+      <AlertDialog
+        open={!!deleteConfirmId && deleteConfirmType === "bulk"}
+        onOpenChange={(open) => !open && (setDeleteConfirmId(null), setDeleteConfirmType(null))}
+      >
         <AlertDialogContent className="w-[95vw] max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-700">Delete Bulk Order</AlertDialogTitle>
-            <AlertDialogDescription>This will delete the bulk order and all associated items. This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogDescription>
+              This will delete the bulk order and all associated items. This action cannot be undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex gap-2">
             <AlertDialogCancel className="flex-1">Cancel</AlertDialogCancel>

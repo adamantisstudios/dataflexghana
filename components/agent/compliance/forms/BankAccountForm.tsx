@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, Upload, X, CreditCard, Save } from "lucide-r
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { SignatureCanvas } from "../SignatureCanvas"
+import { scrollToElement } from "@/lib/scroll-utils"
 
 interface BankAccountFormProps {
   agentId: string
@@ -142,9 +143,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
   }, [formData, submissionId])
 
   const scrollToFormSection = () => {
-    if (formRef.current) {
-      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
+    scrollToElement(formRef.current)
   }
 
   const handleInputChange = (field: string, value: string | boolean | string[]) => {

@@ -284,15 +284,35 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         alert("Amount must be greater than 0")
         return
       }
+
+      const { data: agentData } = await supabase
+        .from("agents")
+        .select("full_name")
+        .eq("id", walletTopupForm.agentId)
+        .single()
+
       // Create wallet top-up request
-      const { error } = await supabase.from("wallet_topups").insert([
-        {
-          agent_id: walletTopupForm.agentId,
-          amount: amount,
-          status: "pending",
-        },
-      ])
+      const { data: newTopup, error } = await supabase
+        .from("wallet_topups")
+        .insert([
+          {
+            agent_id: walletTopupForm.agentId,
+            amount: amount,
+            status: "pending",
+          },
+        ])
+        .select()
+
       if (error) throw error
+
+      if (newTopup && newTopup.length > 0) {
+        const topupWithAgent = {
+          ...newTopup[0],
+          agents: agentData,
+        }
+        setWalletTopups((prev) => [topupWithAgent, ...prev])
+      }
+
       alert("Wallet top-up request created successfully!")
       setWalletTopupForm({
         agentId: "",
@@ -301,8 +321,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         selectedAgentName: "",
       })
       setShowWalletTopupDialog(false)
-      loadNextWalletsPage(1)
-      setCurrentWalletsPage(1)
     } catch (error) {
       console.error("Error creating wallet top-up:", error)
       alert("Failed to create wallet top-up request")

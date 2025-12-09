@@ -1,5 +1,7 @@
 "use client"
 import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react"
+import type React from "react"
+
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -45,12 +47,8 @@ import {
   Lightbulb,
   Check,
   AlertCircle,
-  Trophy,
-  Calendar,
-  RefreshCw,
-  Medal,
-  Crown,
-  Star,
+  ChevronDown, // Add this line
+  ChevronUp,   // Add this line
 } from "lucide-react"
 import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
@@ -81,6 +79,8 @@ import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
 import ReferralDashboard from "@/components/agent/referral-program/ReferralDashboard"
 import Image from "next/image"
 import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
+
+// const servicesGridRef = useRef<HTMLDivElement>(null)
 
 interface SimpleAgent {
   name: string
@@ -130,7 +130,6 @@ const generateSlug = (text: string) => {
     .replace(/^-+/, "")
     .replace(/-+$/, "")
 }
-
 
 export default function AgentDashboard() {
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
@@ -204,6 +203,8 @@ export default function AgentDashboard() {
   const walletTopupRef = useRef<HTMLDivElement>(null)
   const performanceRef = useRef<HTMLDivElement>(null)
   const statisticsRef = useRef<HTMLDivElement>(null)
+
+  const servicesGridRef = useRef<HTMLDivElement>(null)
 
   const toggleDescriptionExpanded = (serviceId: string) => {
     setExpandedDescriptions((prev) => ({
@@ -347,7 +348,9 @@ export default function AgentDashboard() {
     let timer: NodeJS.Timeout | null = null
     const checkDeactivationStatus = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
         if (!session?.user) return
         const { data: agent } = await supabase
           .from("agents")
@@ -571,8 +574,29 @@ export default function AgentDashboard() {
     }
   }
 
+  const scrollToElement = (elementRef: React.RefObject<HTMLDivElement>) => {
+    if (elementRef.current) {
+      const offsetTop = elementRef.current.offsetTop - 100 // 100px offset from top
+      window.scrollTo({ top: offsetTop, behavior: "smooth" })
+    }
+  }
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  // Add sectionRef parameter to handlePageChange
+  const handlePageChange = (
+    newPage: number,
+    setCurrentPage: (page: number) => void,
+    sectionRef?: React.RefObject<HTMLDivElement>,
+  ) => {
+    setCurrentPage(newPage)
+    if (sectionRef) {
+      scrollToElement(sectionRef)
+    } else {
+      scrollToTop()
+    }
   }
 
   const getPaginatedData = (data: any[], currentPage: number) => {
@@ -585,19 +609,16 @@ export default function AgentDashboard() {
     return Math.ceil(dataLength / itemsPerPage)
   }
 
-  const handlePageChange = (newPage: number, setCurrentPage: (page: number) => void) => {
-    setCurrentPage(newPage)
-    scrollToTop()
-  }
-
   const PaginationControls = ({
     currentPage,
     totalPages,
     onPageChange,
+    sectionRef,
   }: {
     currentPage: number
     totalPages: number
     onPageChange: (page: number) => void
+    sectionRef?: React.RefObject<HTMLDivElement>
   }) => {
     if (totalPages <= 1) return null
     const getVisiblePages = () => {
@@ -794,7 +815,7 @@ Hello! I'm ${agent?.full_name}, and I want to invite you to join an amazing oppo
 Don't miss this opportunity to start earning today! 💰
 Best regards,
 ${agent?.full_name}
-DataFlex Ghana Agent`
+Data Flex Ghana Agent`
     const whatsappUrl = `https://wa.me/${validatedNumber}?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, "_blank")
     setShowReferralDialog(false)
@@ -996,7 +1017,6 @@ DataFlex Ghana Agent 🇬🇭`
         )}
         <AgentMenuCards activeTab={activeTab} onTabChange={handleTabChange} />
 
-       
         <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
           {/* START: MORE THAN JUST DATA CARD */}
           <div className="mb-8">
@@ -1054,7 +1074,8 @@ DataFlex Ghana Agent 🇬🇭`
                         Quick, Professional <span className="text-amber-600">Apple Repairs</span>
                       </h3>
                       <p className="text-slate-600 text-sm leading-relaxed">
-                        No need to visit our office! We offer convenient pickup, expert repair, and safe delivery service.
+                        No need to visit our office! We offer convenient pickup, expert repair, and safe delivery
+                        service.
                       </p>
                     </div>
                     {/* Features List */}
@@ -1126,7 +1147,13 @@ DataFlex Ghana Agent 🇬🇭`
                       src="https://fashionablyhired.netlify.app/images/slide2.jpg"
                       alt="Custom Fashion Design Service"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
-                      onClick={() => openImageModal(["https://fashionablyhired.netlify.app/images/slide2.jpg"], 0, "Fashionably Hired")}
+                      onClick={() =>
+                        openImageModal(
+                          ["https://fashionablyhired.netlify.app/images/slide2.jpg"],
+                          0,
+                          "Fashionably Hired",
+                        )
+                      }
                     />
                   </div>
                   {/* Content Section */}
@@ -1139,7 +1166,8 @@ DataFlex Ghana Agent 🇬🇭`
                         Stylish, <span className="text-navy-600">Custom Fashion</span> for Every Occasion
                       </h3>
                       <p className="text-gray-600 text-sm leading-relaxed">
-                        Elevate your wardrobe with our remote fashion design services. From corporate wear to bridal couture, we stitch dreams into reality—no in-person visit required!
+                        Elevate your wardrobe with our remote fashion design services. From corporate wear to bridal
+                        couture, we stitch dreams into reality—no in-person visit required!
                       </p>
                     </div>
                     {/* Features List */}
@@ -1220,7 +1248,8 @@ DataFlex Ghana Agent 🇬🇭`
                       </h3>
                       <p className="text-sm text-green-50 mt-2 leading-relaxed">
                         For help or inquiries, call
-                        <strong className="font-bold text-white ml-1 text-base">0242799990</strong> — we’re here for you.
+                        <strong className="font-bold text-white ml-1 text-base">0242799990</strong> — we’re here for
+                        you.
                       </p>
                     </div>
                   </div>
@@ -1312,8 +1341,8 @@ DataFlex Ghana Agent 🇬🇭`
               <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg shadow-lg border border-emerald-200 p-6">
                 <h3 className="text-xl font-bold text-emerald-800 mb-3">About Adamantis Studios</h3>
                 <p className="text-emerald-700 text-sm leading-relaxed mb-2">
-                  Adamantis Studios is a holistic marketing and IT firm offering comprehensive services to help businesses
-                  grow and thrive in today's competitive market.
+                  Adamantis Studios is a holistic marketing and IT firm offering comprehensive services to help
+                  businesses grow and thrive in today's competitive market.
                 </p>
                 <Button
                   asChild
@@ -1326,7 +1355,6 @@ DataFlex Ghana Agent 🇬🇭`
                   </Link>
                 </Button>
               </div>
-              
             </div>
             <div className="lg:col-span-2 space-y-6">
               {showWalletStrategy && (
@@ -1401,7 +1429,11 @@ DataFlex Ghana Agent 🇬🇭`
             </div>
           </div>
           <div className="max-w-7xl mx-auto mb-8">
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-full space-y-4 sm:space-y-6">
+            <Tabs
+              value={activeTab}
+              onValueChange={handleTabChange}
+              className="w-full max-w-full space-y-4 sm:space-y-6"
+            >
               <TabsContent value="voucher-cards" className="space-y-4"></TabsContent>
               <TabsContent value="referral-program" className="space-y-4">
                 {agent?.id && (
@@ -1434,7 +1466,9 @@ DataFlex Ghana Agent 🇬🇭`
                       <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                         <Package className="h-8 w-8 mx-auto mb-1 text-emerald-600" />
                         <h4 className="font-semibold text-emerald-800">Quality Products</h4>
-                        <p className="text-sm text-emerald-600">Curated wholesale products across multiple categories</p>
+                        <p className="text-sm text-emerald-600">
+                          Curated wholesale products across multiple categories
+                        </p>
                       </div>
                       <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                         <DollarSign className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
@@ -1460,126 +1494,169 @@ DataFlex Ghana Agent 🇬🇭`
                 </Card>
               </TabsContent>
               <TabsContent value="services" className="space-y-4">
-                {tabLoadingStates.services ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
-                    <span className="ml-3 text-emerald-700">Loading services...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <h2 className="text-2xl font-bold text-emerald-800">Available Services</h2>
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                        <div className="flex gap-2">
-                          <Select value={servicesFilter} onValueChange={setServicesFilter}>
-                            <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
-                              <Filter className="h-4 w-4 mr-2" />
-                              <SelectValue placeholder="All Services" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="All Services">All Services</SelectItem>
-                              <SelectItem value="GH₵0-1000">GH₵0-1000</SelectItem>
-                              <SelectItem value="GH₵1001-5000">GH₵1001-5000</SelectItem>
-                              <SelectItem value="GH₵5001+">GH₵5001+</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
-                          <Input
-                            placeholder="Search services..."
-                            value={servicesSearchTerm}
-                            onChange={(e) => setServicesSearchTerm(e.target.value)}
-                            className="pl-10 w-full sm:w-64 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
-                          />
-                        </div>
+              {tabLoadingStates.services ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+                  <span className="ml-3 text-emerald-700">Loading services...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h2 className="text-2xl font-bold text-emerald-800">Available Services</h2>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                      <div className="flex gap-2">
+                        <Select value={servicesFilter} onValueChange={setServicesFilter}>
+                          <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
+                            <Filter className="h-4 w-4 mr-2" />
+                            <SelectValue placeholder="All Services" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="All Services">All Services</SelectItem>
+                            <SelectItem value="GH₵0-1000">GH₵0-1000</SelectItem>
+                            <SelectItem value="GH₵1001-5000">GH₵1001-5000</SelectItem>
+                            <SelectItem value="GH₵5001+">GH₵5001+</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
+                        <Input
+                          placeholder="Search services..."
+                          value={servicesSearchTerm}
+                          onChange={(e) => setServicesSearchTerm(e.target.value)}
+                          className="pl-10 w-full sm:w-64 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
+                        />
                       </div>
                     </div>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {getPaginatedData(filteredServices, currentServicesPage).map((service) => (
-                        <Card
-                          key={service.id}
-                          className="hover:shadow-xl transition-all duration-300 border-emerald-200 bg-white/90 backdrop-blur-sm hover:scale-105"
-                        >
-                          <CardHeader>
-                            {service.image_url && (
-                              <div className="w-full h-48 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg mb-2 overflow-hidden cursor-pointer">
-                                <ImageWithFallback
-                                  src={service.image_url || "/placeholder.svg"}
-                                  alt={service.title}
-                                  className="w-full h-full object-cover hover:scale-105 transition-transform"
-                                  onClick={() => openImageModal([service.image_url], 0, service.title)}
-                                  fallbackSrc="/placeholder.svg?height=192&width=400"
-                                />
+                  </div>
+
+                  {/* Services Grid - Minimal Design */}
+                  <div ref={servicesGridRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {getPaginatedData(filteredServices, currentServicesPage).map((service) => (
+                      <div
+                        key={service.id}
+                        className="bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col"
+                      >
+                        {/* Clean Image Section */}
+                        <div className="relative w-full h-56 overflow-hidden">
+                          {service.image_url ? (
+                            <ImageWithFallback
+                              src={service.image_url || "/placeholder.svg"}
+                              alt={service.title}
+                              className="w-full h-full object-cover"
+                              onClick={() => openImageModal([service.image_url], 0, service.title)}
+                              fallbackSrc="/placeholder.svg?height=224&width=400"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                              <div className="text-gray-400 text-center p-4">
+                                <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">No Image</p>
                               </div>
-                            )}
-                            <CardTitle className="text-lg text-emerald-800">{service.title}</CardTitle>
-                            <CardDescription className="text-emerald-600 space-y-2">
-                              <p className="text-sm leading-relaxed">
-                                {getDisplayDescription(service.description || "", service.id)}
-                              </p>
-                              {shouldTruncateDescription(service.description || "") && (
-                                <button
-                                  onClick={() => toggleDescriptionExpanded(service.id)}
-                                  className="text-emerald-700 hover:text-emerald-900 font-semibold text-xs transition-colors"
-                                >
-                                  {expandedDescriptions[service.id] ? "Show Less" : "Read More"}
-                                </button>
-                              )}
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-3">
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Content Section - Minimal Layout */}
+                        <div className="p-4 flex-1 flex flex-col">
+                          {/* Service Title */}
+                          <h3 className="text-lg font-semibold text-gray-800 mb-3 line-clamp-2">
+                            {service.title}
+                          </h3>
+
+                          {/* Pricing Section - Clear Separation */}
+                          <div className="space-y-3 mb-4">
+                            {/* Commission - Clear Highlight */}
+                            <div className="bg-emerald-50 rounded-lg p-3">
                               <div className="flex items-center justify-between">
-                                <span className="text-sm text-emerald-600">Commission:</span>
-                                <span className="text-xl font-bold text-green-600">
+                                <span className="text-sm font-medium text-emerald-700">Your Commission</span>
+                                <span className="text-lg font-bold text-emerald-800">
                                   GH₵ {safeCommissionDisplay(service.commission_amount).toFixed(2)}
                                 </span>
                               </div>
-                              {service.product_cost && (
+                            </div>
+
+                            {/* Service Cost (if available) */}
+                            {service.product_cost && (
+                              <div className="border border-gray-200 rounded-lg p-3">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm text-emerald-600">Product Cost:</span>
-                                  <span className="text-sm font-semibold text-emerald-800">
+                                  <span className="text-sm font-medium text-gray-700">Service Cost</span>
+                                  <span className="text-base font-semibold text-gray-800">
                                     GH₵ {safeCommissionDisplay(service.product_cost).toFixed(2)}
                                   </span>
                                 </div>
-                              )}
-                              <div className="flex gap-2 pt-2">
-                                <Button
-                                  asChild
-                                  className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 flex-1"
-                                >
-                                  <Link href={`/agent/refer/${service.id}`}>
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Refer
-                                  </Link>
-                                </Button>
-                                {service.material?.material_link && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                    className="border-emerald-300 text-emerald-600 bg-transparent"
-                                  >
-                                    <Link href={service.material.material_link} target="_blank">
-                                      <ExternalLink className="h-4 w-4" />
-                                    </Link>
-                                  </Button>
-                                )}
                               </div>
+                            )}
+                          </div>
+
+                          {/* Description */}
+                          <div className="mb-4 flex-1">
+                            <div className={`text-gray-600 text-sm leading-relaxed ${
+                              !expandedDescriptions[service.id] ? 'line-clamp-2' : ''
+                            }`}>
+                              {getDisplayDescription(service.description || "", service.id)}
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                    <PaginationControls
-                      currentPage={currentServicesPage}
-                      totalPages={getTotalPages(filteredServices.length)}
-                      onPageChange={(page) => handlePageChange(page, setCurrentServicesPage)}
-                    />
-                  </>
-                )}
-              </TabsContent>
+                            {shouldTruncateDescription(service.description || "") && (
+                              <button
+                                onClick={() => toggleDescriptionExpanded(service.id)}
+                                className="text-emerald-600 hover:text-emerald-800 text-sm font-medium mt-2 flex items-center gap-1"
+                              >
+                                {expandedDescriptions[service.id] ? (
+                                  <>
+                                    Show Less
+                                    <ChevronUp className="h-3 w-3" />
+                                  </>
+                                ) : (
+                                  <>
+                                    Read More
+                                    <ChevronDown className="h-3 w-3" />
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Action Buttons - Clean & Simple */}
+                          <div className="flex gap-3 pt-3 border-t border-gray-100">
+                            <Button
+                              asChild
+                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                              size="sm"
+                            >
+                              <Link href={`/agent/refer/${service.id}`}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Refer
+                              </Link>
+                            </Button>
+
+                            {service.material?.material_link && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                <Link href={service.material.material_link} target="_blank">
+                                  <ExternalLink className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  <PaginationControls
+                    currentPage={currentServicesPage}
+                    totalPages={getTotalPages(filteredServices.length)}
+                    onPageChange={(page) => handlePageChange(page, setCurrentServicesPage, servicesGridRef)}
+                    sectionRef={servicesGridRef}
+                  />
+                </>
+              )}
+            </TabsContent>
               <TabsContent value="data-bundles" className="space-y-4">
                 {tabLoadingStates["data-bundles"] ? (
                   <div className="flex items-center justify-center py-12">
@@ -1633,7 +1710,9 @@ DataFlex Ghana Agent 🇬🇭`
                             })}
                           </TabsList>
                           {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
-                            const providerBundles = getFilteredDataBundles(provider).sort((a, b) => a.size_gb - b.size_gb)
+                            const providerBundles = getFilteredDataBundles(provider).sort(
+                              (a, b) => a.size_gb - b.size_gb,
+                            )
                             return (
                               <TabsContent key={provider} value={provider} className="space-y-4">
                                 <div className="flex items-center justify-between">
@@ -1714,7 +1793,9 @@ DataFlex Ghana Agent 🇬🇭`
                                               <span className="text-sm text-emerald-600">Commission:</span>
                                               <span className="text-lg font-bold text-green-600">
                                                 GH₵{" "}
-                                                {safeCommissionDisplay(bundle.price * bundle.commission_rate).toFixed(2)}
+                                                {safeCommissionDisplay(bundle.price * bundle.commission_rate).toFixed(
+                                                  2,
+                                                )}
                                               </span>
                                             </div>
                                             <div className="flex items-center justify-between">
@@ -1743,7 +1824,9 @@ DataFlex Ghana Agent 🇬🇭`
                           })}
                           <TabsContent value="MTN AFA" className="space-y-4">
                             <div className="text-center space-y-4">
-                              <h3 className="text-lg sm:text-xl font-semibold text-emerald-700">MTN AFA Registration</h3>
+                              <h3 className="text-lg sm:text-xl font-semibold text-emerald-700">
+                                MTN AFA Registration
+                              </h3>
                               <p className="text-emerald-600 text-sm">
                                 Register for MTN AFA services to expand your business
                               </p>

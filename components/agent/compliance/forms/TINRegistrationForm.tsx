@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronLeft, ChevronRight, Upload, X, CreditCard } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
+import { scrollToElement } from "@/lib/scroll-utils"
 
 interface TINRegistrationFormProps {
   agentId: string
@@ -59,6 +60,11 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
   useEffect(() => {
     setShowCostPopup(true)
   }, [])
+
+  useEffect(() => {
+    const formElement = document.querySelector("[data-form-section]")
+    scrollToElement(formElement as HTMLElement)
+  }, [currentStep])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))

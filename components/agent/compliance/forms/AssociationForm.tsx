@@ -3,6 +3,7 @@ import { useState, useRef } from "react"
 import { ChevronLeft, ChevronRight, Upload, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SignatureCanvas } from "@/components/agent/compliance/SignatureCanvas"
+import { scrollToElement } from "@/lib/scroll-utils"
 
 interface AssociationFormProps {
   agentId: string
@@ -148,9 +149,7 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
   ]
 
   const scrollToFormSection = () => {
-    if (formRef.current) {
-      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
+    scrollToElement(formRef.current)
   }
 
   const handleNext = () => {

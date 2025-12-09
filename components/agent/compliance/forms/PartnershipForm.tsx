@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, Upload, X, Handshake, Save, Plus, Trash2 } f
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { SignatureCanvas } from "../SignatureCanvas"
+import { scrollToElement } from "@/lib/scroll-utils"
 
 interface PartnershipFormProps {
   agentId: string
@@ -185,9 +186,7 @@ export function PartnershipForm({ agentId, onComplete, onCancel }: PartnershipFo
   }, [formData, submissionId])
 
   const scrollToFormSection = () => {
-    if (formRef.current) {
-      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
+    scrollToElement(formRef.current)
   }
 
   const handleInputChange = (field: string, value: any) => {

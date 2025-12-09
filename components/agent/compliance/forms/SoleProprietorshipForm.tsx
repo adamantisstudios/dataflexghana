@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { SignatureCanvas } from "../SignatureCanvas"
 import { PaymentReminderModal } from "@/components/shared/PaymentReminderModal"
+import { scrollToElement } from "@/lib/scroll-utils"
 
 interface SoleProprietorshipFormProps {
   agentId: string
@@ -455,6 +456,27 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
     }
   }
 
+  const scrollToFormSection = () => {
+    const formElement = document.querySelector("[data-form-section]")
+    if (formElement) {
+      scrollToElement(formElement as HTMLElement)
+    }
+  }
+
+  const nextStep = () => {
+    setCurrentStep((prev) => prev + 1)
+    setTimeout(scrollToFormSection, 100)
+  }
+
+  const prevStep = () => {
+    if (currentStep === 1) {
+      onCancel()
+    } else {
+      setCurrentStep((prev) => prev - 1)
+      setTimeout(scrollToFormSection, 100)
+    }
+  }
+
   const totalSteps = 6 // 5 form sections + 1 documents section
 
   return (
@@ -472,7 +494,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
               <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
-                  <span className="text-lg font-bold text-emerald-600">520 GHS</span>
+                  <span className="text-lg font-bold text-emerald-600">550 GHS</span>
                 </div>
                 <div className="border-t border-emerald-200 pt-3">
                   <div className="flex items-center justify-between mb-2">
@@ -502,7 +524,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
           setShowPaymentReminder(false)
           onComplete()
         }}
-        fee="520 GHS"
+        fee="550 GHS"
         serviceName="Sole Proprietorship Registration"
       />
 
@@ -1338,8 +1360,8 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
           <div className="flex flex-col sm:flex-row justify-between gap-3 pt-6 border-t border-emerald-200">
             <Button
               variant="outline"
-              onClick={() => (currentStep === 1 ? onCancel() : setCurrentStep((prev) => prev - 1))}
-              className="w-full sm:w-auto border-emerald-300 text-emerald-600 hover:bg-emerald-50"
+              onClick={prevStep}
+              className="w-full sm:w-auto border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
             >
               <ChevronLeft className="h-4 w-4 mr-2" />
               {currentStep === 1 ? "Cancel" : "Previous"}
@@ -1360,7 +1382,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
 
               {currentStep < totalSteps ? (
                 <Button
-                  onClick={() => setCurrentStep((prev) => prev + 1)}
+                  onClick={nextStep}
                   className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
                 >
                   Next
