@@ -108,7 +108,7 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       image: "/images/teaching-platform.png",
       gradient: "linear-gradient(135deg, #3B82F6, #1E40AF)",
       buttonText: "EXPLORE CHANNELS",
-      onClick: () => handleMenuCardClick("Channels"),
+      onClick: () => handleMenuCardClick("Channels"), // Fixed
     },
     {
       id: "referral-program",
@@ -171,6 +171,7 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       onClick: () => handleMenuCardClick("profile"),
     },
   ];
+
 
   function handleMenuCardClick(cardId: string) {
     onTabChange(cardId);

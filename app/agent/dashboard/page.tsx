@@ -2541,7 +2541,7 @@ DataFlex Ghana Agent 🇬🇭`;
                   )}
                 </Suspense>
               </TabsContent>
-              <TabsContent value="teaching" className="space-y-4">
+              <TabsContent value="Channels" className="space-y-4">
                 <Suspense
                   fallback={
                     <div className="flex items-center justify-center py-12">
