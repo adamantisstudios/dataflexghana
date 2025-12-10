@@ -294,7 +294,7 @@ export default function RegisterPage() {
             <CardContent className="space-y-4">
               <div className="bg-red-50 p-4 rounded-lg border border-red-200">
                 <p className="text-sm font-semibold text-red-900 mb-3">
-                  Please confirm you are ready to pay the one-time 50 GHS entry fee before registering.
+                  Please confirm you are ready to pay the one-time 40 GHS entry fee before registering.
                 </p>
                 <p className="text-sm text-red-800 leading-relaxed mb-3">
                   This platform is for serious individuals committed to working as agents and earning commissions
@@ -304,7 +304,7 @@ export default function RegisterPage() {
                   Register only if you are motivated, prepared, and willing to follow our processes.
                 </p>
                 <p className="text-sm font-semibold text-red-900">
-                  Proceed only if you are ready to pay the 50 GHS fee.
+                  Proceed only if you are ready to pay the 40 GHS fee.
                 </p>
               </div>
               <div className="flex items-center justify-between pt-2">

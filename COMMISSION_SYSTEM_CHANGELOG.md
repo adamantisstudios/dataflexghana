@@ -138,7 +138,7 @@ This changelog tracks all fixes and improvements made to the commission system t
 - ✅ **2025-09-02**: **Enhanced Terms & Conditions Page**
   - **Issue**: Terms page needed comprehensive update with current platform information
   - **Updates**: 
-    - Updated platform entry fee from ₵35 to ₵50 (non-refundable)
+    - Updated platform entry fee from ₵35 to ₵40 (non-refundable)
     - Added comprehensive platform overview showcasing all unique services
     - Clarified data resale restrictions (friends, relatives, close acquaintances only)
     - Added detailed sections on commission system, account management, platform responsibilities

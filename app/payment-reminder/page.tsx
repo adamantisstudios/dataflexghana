@@ -254,7 +254,7 @@ export default function PaymentReminderPage() {
                     </div>
                     <span className="text-lg sm:text-xl lg:text-2xl font-bold text-green-800">Registration Fee</span>
                   </div>
-                  <div className="text-4xl sm:text-5xl lg:text-6xl font-bold text-green-600 mb-2 sm:mb-3">₵50</div>
+                  <div className="text-4xl sm:text-5xl lg:text-6xl font-bold text-green-600 mb-2 sm:mb-3">₵40</div>
                   <p className="text-green-700 font-medium text-sm sm:text-base lg:text-lg">
                     Platform entry fee (non-refundable) - your gateway to unlimited earning potential
                   </p>
@@ -295,7 +295,7 @@ export default function PaymentReminderPage() {
                         <strong>Reference:</strong> Adamantis Solutions
                       </p>
                       <p>
-                        <strong>Amount:</strong> ₵50
+                        <strong>Amount:</strong> ₵40
                       </p>
                       <p>
                         <strong>Your Name:</strong> Use your FULL NAME as reference
@@ -349,7 +349,7 @@ export default function PaymentReminderPage() {
                 <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
                   <div className="space-y-2 sm:space-y-3">
                     {[
-                      "Send ₵50 to 0557943392 via Mobile Money",
+                      "Send ₵40 to 0557943392 via Mobile Money",
                       "Use 'Adamantis Solutions' as reference",
                       "Include your FULL NAME in the transaction",
                       "Wait for account approval (within 20 minutes)",

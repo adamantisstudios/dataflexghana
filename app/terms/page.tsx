@@ -160,7 +160,7 @@ export default function TermsPage() {
           <h3 className="font-semibold text-amber-900 mb-3">Platform Entry Fee: GH₵50 (One-Time, Lifetime Access)</h3>
           <p className="text-sm text-amber-800 mb-3">
             Unlike free platforms that monetize through ads or data sales, DataFlex Ghana operates transparently with a
-            single platform entry fee of GH₵50. This one-time payment grants you lifetime access to our ecosystem of 50+
+            single platform entry fee of GH₵40. This one-time payment grants you lifetime access to our ecosystem of 50+
             services—never pay again.
           </p>
           <p className="text-sm text-amber-800">
@@ -277,13 +277,13 @@ export default function TermsPage() {
           {"Agent Registration & Platform Entry Fee"}
         </h2>
         <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-lg border-l-4 border-amber-500">
-          <h3 className="text-lg font-semibold mb-3">GH₵50 Platform Entry Fee (Non-Refundable)</h3>
+          <h3 className="text-lg font-semibold mb-3">GH₵40 Platform Entry Fee (Non-Refundable)</h3>
 
           <div className="space-y-4">
             <div>
               <h4 className="font-semibold text-amber-900 mb-2">Entry Fee & Access</h4>
               <p className="text-sm mb-2">
-                DataFlex Ghana is not a free platform. The GH₵50 entry fee grants permanent access to our entire
+                DataFlex Ghana is not a free platform. The GH₵40 entry fee grants permanent access to our entire
                 ecosystem. After registration, you have 1 hour to complete payment or your account will be blocked.
               </p>
             </div>

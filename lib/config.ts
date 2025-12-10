@@ -2,7 +2,7 @@
 export const PLATFORM_CONFIG = {
   // Pricing Configuration
   pricing: {
-    joiningFee: 50, // Changed from 35 to 50 Cedis
+    joiningFee: 40, // Changed from 35 to 50 Cedis
     currency: "₵",
     currencySymbol: "₵",
   },
