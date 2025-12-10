@@ -1,16 +1,15 @@
-"use client"
-import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react"
-import type React from "react"
-
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
+"use client";
+import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
+import type React from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -18,7 +17,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
+} from "@/components/ui/pagination";
 import {
   LogOut,
   Plus,
@@ -47,18 +46,18 @@ import {
   Lightbulb,
   Check,
   AlertCircle,
-  ChevronDown, // Add this line
-  ChevronUp,   // Add this line
-} from "lucide-react"
-import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
-import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
-import { useUnreadMessages } from "@/hooks/use-unread-messages"
-import { supabase } from "@/lib/supabase"
-import type { Job } from "@/lib/supabase"
-import { ImageWithFallback } from "@/components/ui/image-with-fallback"
-import { calculateCompleteEarnings } from "@/lib/earnings-calculator"
-import { AgentMenuCards } from "@/components/agent/AgentMenuCards"
-import { getAgentCommissionSummary } from "@/lib/commission-earnings"
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification";
+import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification";
+import { useUnreadMessages } from "@/hooks/use-unread-messages";
+import { supabase } from "@/lib/supabase";
+import type { Job } from "@/lib/supabase";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
+import { calculateCompleteEarnings } from "@/lib/earnings-calculator";
+import { AgentMenuCards } from "@/components/agent/AgentMenuCards";
+import { getAgentCommissionSummary } from "@/lib/commission-earnings";
 import {
   Dialog,
   DialogContent,
@@ -66,59 +65,58 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { FloatingAudioPlayer } from "@/components/floating-audio-player"
-import { ProductSlider } from "@/components/agent/ProductSlider"
-import AgentPropertiesShowcase from "@/components/agent/dashboard/AgentPropertiesShowcase"
-import { ComplianceTab } from "@/components/agent/compliance/ComplianceTab"
-import { ProfessionalWritingTab } from "@/components/agent/professional-writing/ProfessionalWritingTab"
-import TeachingPlatformPage from "@/app/agent/teaching/page"
-import { useAgentDashboardCache } from "@/hooks/use-agent-dashboard-cache"
-import { loadAgentDashboardData, loadTabData } from "@/lib/agent-dashboard-loader"
-import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
-import ReferralDashboard from "@/components/agent/referral-program/ReferralDashboard"
-import Image from "next/image"
-import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
-
-// const servicesGridRef = useRef<HTMLDivElement>(null)
+} from "@/components/ui/dialog";
+import { FloatingAudioPlayer } from "@/components/floating-audio-player";
+import { ProductSlider } from "@/components/agent/ProductSlider";
+import AgentPropertiesShowcase from "@/components/agent/dashboard/AgentPropertiesShowcase";
+import { ComplianceTab } from "@/components/agent/compliance/ComplianceTab";
+import { ProfessionalWritingTab } from "@/components/agent/professional-writing/ProfessionalWritingTab";
+import TeachingPlatformPage from "@/app/agent/teaching/page";
+import { useAgentDashboardCache } from "@/hooks/use-agent-dashboard-cache";
+import { loadAgentDashboardData, loadTabData } from "@/lib/agent-dashboard-loader";
+import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton";
+import ReferralDashboard from "@/components/agent/referral-program/ReferralDashboard";
+import Image from "next/image";
+import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager";
+import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup";
 
 interface SimpleAgent {
-  name: string
-  activity: number
-  rank: number
+  name: string;
+  activity: number;
+  rank: number;
 }
 
 interface RankingData {
-  agents: SimpleAgent[]
-  timeframe: string
-  total_count: number
-  last_updated: string
-  fallback?: boolean
+  agents: SimpleAgent[];
+  timeframe: string;
+  total_count: number;
+  last_updated: string;
+  fallback?: boolean;
 }
 
 const safeCommissionDisplay = (value: number | null | undefined): number => {
   if (value === null || value === undefined || isNaN(value)) {
-    return 0
+    return 0;
   }
-  return Number(value)
-}
+  return Number(value);
+};
 
 const formatDateAgo = (dateString: string) => {
-  const now = new Date()
-  const date = new Date(dateString)
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-  let interval = seconds / 31536000
-  if (interval >= 1) return Math.floor(interval) + " years ago"
-  interval = seconds / 2592000
-  if (interval >= 1) return Math.floor(interval) + " months ago"
-  interval = seconds / 86400
-  if (interval >= 1) return Math.floor(interval) + " days ago"
-  interval = seconds / 3600
-  if (interval >= 1) return Math.floor(interval) + " hours ago"
-  interval = seconds / 60
-  if (interval >= 1) return Math.floor(interval) + " minutes ago"
-  return Math.floor(seconds) + " seconds ago"
-}
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  let interval = seconds / 31536000;
+  if (interval >= 1) return Math.floor(interval) + " years ago";
+  interval = seconds / 2592000;
+  if (interval >= 1) return Math.floor(interval) + " months ago";
+  interval = seconds / 86400;
+  if (interval >= 1) return Math.floor(interval) + " days ago";
+  interval = seconds / 3600;
+  if (interval >= 1) return Math.floor(interval) + " hours ago";
+  interval = seconds / 60;
+  if (interval >= 1) return Math.floor(interval) + " minutes ago";
+  return Math.floor(seconds) + " seconds ago";
+};
 
 const generateSlug = (text: string) => {
   return text
@@ -128,17 +126,27 @@ const generateSlug = (text: string) => {
     .replace(/[^\w-]+/g, "")
     .replace(/--+/g, "-")
     .replace(/^-+/, "")
-    .replace(/-+$/, "")
-}
+    .replace(/-+$/, "");
+};
 
 export default function AgentDashboard() {
-  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
-  const [expandedReferrals, setExpandedReferrals] = useState<Set<string>>(new Set())
-  const router = useRouter()
-  const { getFromCache, setInCache } = useAgentDashboardCache()
-  const [agent, setAgent] = useState(null)
-  const { unreadCount, getUnreadCount, markAsRead } = useUnreadMessages(agent?.id || "", "agent")
-  const [loading, setLoading] = useState(true)
+  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowWhatsAppPopup(true);
+    }, 10000); // 10 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
+  const [expandedReferrals, setExpandedReferrals] = useState<Set<string>>(new Set());
+  const router = useRouter();
+  const { getFromCache, setInCache } = useAgentDashboardCache();
+  const [agent, setAgent] = useState(null);
+  const { unreadCount, getUnreadCount, markAsRead } = useUnreadMessages(agent?.id || "", "agent");
+  const [loading, setLoading] = useState(true);
   const [earningsData, setEarningsData] = useState({
     totalEarnings: 0,
     totalPaidEarnings: 0,
@@ -148,7 +156,7 @@ export default function AgentDashboard() {
     referralCommissions: 0,
     dataOrderCommissions: 0,
     wholesaleCommissions: 0,
-  })
+  });
   const [tabData, setTabData] = useState({
     referrals: [],
     dataOrders: [],
@@ -158,132 +166,130 @@ export default function AgentDashboard() {
     services: [],
     dataBundles: [],
     jobs: [],
-  })
-  const [activeTab, setActiveTab] = useState("services")
-  const [loadedTabs, setLoadedTabs] = useState<Record<string, boolean>>({})
-  const [tabLoadingStates, setTabLoadingStates] = useState<Record<string, boolean>>({})
-  const [showReferralDialog, setShowReferralDialog] = useState(false)
-  const [referralWhatsApp, setReferralWhatsApp] = useState("")
-  const [referralWhatsAppError, setReferralWhatsAppError] = useState("")
-  const [showDomesticReferralDialog, setShowDomesticReferralDialog] = useState(false)
-  const [domesticReferralWhatsApp, setDomesticReferralWhatsApp] = useState("")
-  const [domesticReferralWhatsAppError, setDomesticReferralWhatsAppError] = useState("")
-  const [showNotification, setShowNotification] = useState(true)
-  const [showWalletStrategy, setShowWalletStrategy] = useState(true)
-  const [showImageModal, setShowImageModal] = useState(false)
-  const [modalImages, setModalImages] = useState<string[]>([])
-  const [modalImageIndex, setModalImageIndex] = useState(0)
-  const [modalImageAlt, setModalImageAlt] = useState("")
-  const [showStatistics, setShowStatistics] = useState(false)
-  const [statisticsLoading, setStatisticsLoading] = useState(false)
-  const [showDashboardAudioPlayer, setShowDashboardAudioPlayer] = useState(false)
-  const [showDashboardAudio, setShowDashboardAudio] = useState(true)
-  const [agentId, setAgentId] = useState<string | null>(null)
-  const [notificationVisible, setNotificationVisible] = useState(false)
-  const [showClearReferralsDialog, setShowClearReferralsDialog] = useState(false)
-  const [clearReferralsType, setClearReferralsType] = useState<"day" | "month">("day")
-  const [showBeyondDataModal, setShowBeyondDataModal] = useState(false)
-  const [currentServicesPage, setCurrentServicesPage] = useState(1)
-  const [currentReferralsPage, setCurrentReferralsPage] = useState(1)
-  const [currentWithdrawalsPage, setCurrentWithdrawalsPage] = useState(1)
-  const [currentPaidWithdrawalsPage, setCurrentPaidWithdrawalsPage] = useState(1)
-  const [currentJobsPage, setCurrentJobsPage] = useState(1)
-  const [itemsPerPage] = useState(10)
-  const [servicesSearchTerm, setServicesSearchTerm] = useState("")
-  const [servicesFilter, setServicesFilter] = useState("All Services")
-  const [referralsFilter, setReferralsFilter] = useState("All Referrals")
-  const [dataBundlesFilter, setDataBundlesFilter] = useState("All Networks")
-  const [jobSearchTerm, setJobSearchTerm] = useState("")
-  const [jobsFilterAgent, setJobsFilterAgent] = useState("All Jobs")
-  const [showAgentDeactivationAlert, setShowAgentDeactivationAlert] = useState(false)
-  const [showAgentPerformance, setShowAgentPerformance] = useState(false)
-
-  const menuSectionRef = useRef<HTMLDivElement>(null)
-  const smartWalletRef = useRef<HTMLDivElement>(null)
-  const walletTopupRef = useRef<HTMLDivElement>(null)
-  const performanceRef = useRef<HTMLDivElement>(null)
-  const statisticsRef = useRef<HTMLDivElement>(null)
-
-  const servicesGridRef = useRef<HTMLDivElement>(null)
+  });
+  const [activeTab, setActiveTab] = useState("services");
+  const [loadedTabs, setLoadedTabs] = useState<Record<string, boolean>>({});
+  const [tabLoadingStates, setTabLoadingStates] = useState<Record<string, boolean>>({});
+  const [showReferralDialog, setShowReferralDialog] = useState(false);
+  const [referralWhatsApp, setReferralWhatsApp] = useState("");
+  const [referralWhatsAppError, setReferralWhatsAppError] = useState("");
+  const [showDomesticReferralDialog, setShowDomesticReferralDialog] = useState(false);
+  const [domesticReferralWhatsApp, setDomesticReferralWhatsApp] = useState("");
+  const [domesticReferralWhatsAppError, setDomesticReferralWhatsAppError] = useState("");
+  const [showNotification, setShowNotification] = useState(true);
+  const [showWalletStrategy, setShowWalletStrategy] = useState(true);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [modalImages, setModalImages] = useState<string[]>([]);
+  const [modalImageIndex, setModalImageIndex] = useState(0);
+  const [modalImageAlt, setModalImageAlt] = useState("");
+  const [showStatistics, setShowStatistics] = useState(false);
+  const [statisticsLoading, setStatisticsLoading] = useState(false);
+  const [showDashboardAudioPlayer, setShowDashboardAudioPlayer] = useState(false);
+  const [showDashboardAudio, setShowDashboardAudio] = useState(true);
+  const [agentId, setAgentId] = useState<string | null>(null);
+  const [notificationVisible, setNotificationVisible] = useState(false);
+  const [showClearReferralsDialog, setShowClearReferralsDialog] = useState(false);
+  const [clearReferralsType, setClearReferralsType] = useState<"day" | "month">("day");
+  const [showBeyondDataModal, setShowBeyondDataModal] = useState(false);
+  const [currentServicesPage, setCurrentServicesPage] = useState(1);
+  const [currentReferralsPage, setCurrentReferralsPage] = useState(1);
+  const [currentWithdrawalsPage, setCurrentWithdrawalsPage] = useState(1);
+  const [currentPaidWithdrawalsPage, setCurrentPaidWithdrawalsPage] = useState(1);
+  const [currentJobsPage, setCurrentJobsPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [servicesSearchTerm, setServicesSearchTerm] = useState("");
+  const [servicesFilter, setServicesFilter] = useState("All Services");
+  const [referralsFilter, setReferralsFilter] = useState("All Referrals");
+  const [dataBundlesFilter, setDataBundlesFilter] = useState("All Networks");
+  const [jobSearchTerm, setJobSearchTerm] = useState("");
+  const [jobsFilterAgent, setJobsFilterAgent] = useState("All Jobs");
+  const [showAgentDeactivationAlert, setShowAgentDeactivationAlert] = useState(false);
+  const [showAgentPerformance, setShowAgentPerformance] = useState(false);
+  const menuSectionRef = useRef<HTMLDivElement>(null);
+  const smartWalletRef = useRef<HTMLDivElement>(null);
+  const walletTopupRef = useRef<HTMLDivElement>(null);
+  const performanceRef = useRef<HTMLDivElement>(null);
+  const statisticsRef = useRef<HTMLDivElement>(null);
+  const servicesGridRef = useRef<HTMLDivElement>(null);
 
   const toggleDescriptionExpanded = (serviceId: string) => {
     setExpandedDescriptions((prev) => ({
       ...prev,
       [serviceId]: !prev[serviceId],
-    }))
-  }
+    }));
+  };
 
   const shouldTruncateDescription = (text: string) => {
-    return text.length > 100
-  }
+    return text.length > 100;
+  };
 
   const getTruncatedDescription = (text: string) => {
-    if (!shouldTruncateDescription(text)) return text
-    return text.substring(0, 100) + "..."
-  }
+    if (!shouldTruncateDescription(text)) return text;
+    return text.substring(0, 100) + "...";
+  };
 
   const getDisplayDescription = (text: string, serviceId: string) => {
-    if (!shouldTruncateDescription(text)) return text
-    return expandedDescriptions[serviceId] ? text : getTruncatedDescription(text)
-  }
+    if (!shouldTruncateDescription(text)) return text;
+    return expandedDescriptions[serviceId] ? text : getTruncatedDescription(text);
+  };
 
   const filteredServices = useMemo(() => {
-    if (!loadedTabs.services) return []
+    if (!loadedTabs.services) return [];
     let filtered = tabData.services.filter(
       (service) =>
         service.title?.toLowerCase().includes(servicesSearchTerm.toLowerCase()) ||
         service.description?.toLowerCase().includes(servicesSearchTerm.toLowerCase()),
-    )
+    );
     if (servicesFilter !== "All Services") {
       filtered = filtered.filter((service) => {
-        const commission = service.commission_amount
+        const commission = service.commission_amount;
         switch (servicesFilter) {
           case "GH₵0-1000":
-            return commission >= 0 && commission <= 1000
+            return commission >= 0 && commission <= 1000;
           case "GH₵1001-5000":
-            return commission >= 1001 && commission <= 5000
+            return commission >= 1001 && commission <= 5000;
           case "GH₵5001+":
-            return commission >= 5001
+            return commission >= 5001;
           default:
-            return true
+            return true;
         }
-      })
+      });
     }
-    return filtered
-  }, [servicesSearchTerm, tabData.services, servicesFilter, loadedTabs.services])
+    return filtered;
+  }, [servicesSearchTerm, tabData.services, servicesFilter, loadedTabs.services]);
 
   const filteredReferrals = useMemo(() => {
-    if (!loadedTabs.referrals) return []
-    let filtered = tabData.referrals
+    if (!loadedTabs.referrals) return [];
+    let filtered = tabData.referrals;
     if (referralsFilter !== "All Referrals") {
       filtered = tabData.referrals.filter((referral) => {
         switch (referralsFilter) {
           case "Pending":
-            return referral.status === "pending"
+            return referral.status === "pending";
           case "Confirmed":
-            return referral.status === "confirmed"
+            return referral.status === "confirmed";
           case "In Progress":
-            return referral.status === "in_progress"
+            return referral.status === "in_progress";
           case "Completed":
-            return referral.status === "completed"
+            return referral.status === "completed";
           case "Rejected":
-            return referral.status === "rejected"
+            return referral.status === "rejected";
           default:
-            return true
+            return true;
         }
-      })
+      });
     }
-    return filtered
-  }, [tabData.referrals, referralsFilter, loadedTabs.referrals])
+    return filtered;
+  }, [tabData.referrals, referralsFilter, loadedTabs.referrals]);
 
   const filteredJobs = useMemo(() => {
-    if (!loadedTabs.jobs) return []
+    if (!loadedTabs.jobs) return [];
     const processedJobs = tabData.jobs.map((job) => {
       if (!job.job_title && job.industry) {
-        return { ...job, job_title: job.industry }
+        return { ...job, job_title: job.industry };
       }
-      return job
-    })
+      return job;
+    });
     let filtered = processedJobs.filter(
       (job) =>
         job.is_active &&
@@ -291,12 +297,12 @@ export default function AgentDashboard() {
           job.employer_name?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
           job.location?.toLowerCase().includes(jobSearchTerm.toLowerCase()) ||
           job.industry?.toLowerCase().includes(jobSearchTerm.toLowerCase())),
-    )
+    );
     if (jobsFilterAgent !== "All Jobs") {
       filtered = filtered.filter((job) => {
         switch (jobsFilterAgent) {
           case "Featured":
-            return job.is_featured === true
+            return job.is_featured === true;
           case "Technology":
           case "Finance":
           case "Healthcare":
@@ -304,95 +310,95 @@ export default function AgentDashboard() {
           case "Marketing":
           case "Sales":
           case "Customer Service":
-            return job.industry === jobsFilterAgent
+            return job.industry === jobsFilterAgent;
           default:
-            return true
+            return true;
         }
-      })
+      });
     }
-    return filtered
-  }, [jobSearchTerm, tabData.jobs, jobsFilterAgent, loadedTabs.jobs])
+    return filtered;
+  }, [jobSearchTerm, tabData.jobs, jobsFilterAgent, loadedTabs.jobs]);
 
   const toggleReferralExpanded = (referralId: string) => {
     setExpandedReferrals((prev) => {
-      const newSet = new Set(prev)
+      const newSet = new Set(prev);
       if (newSet.has(referralId)) {
-        newSet.delete(referralId)
+        newSet.delete(referralId);
       } else {
-        newSet.add(referralId)
+        newSet.add(referralId);
       }
-      return newSet
-    })
-  }
+      return newSet;
+    });
+  };
 
   const shouldTruncateReferralDescription = (text: string) => {
-    return text.length > 150
-  }
+    return text.length > 150;
+  };
 
   const getTruncatedReferralDescription = (text: string) => {
-    if (!shouldTruncateReferralDescription(text)) return text
-    const lines = text.split("\n")
-    const firstThreeLines = lines.slice(0, 3).join("\n")
+    if (!shouldTruncateReferralDescription(text)) return text;
+    const lines = text.split("\n");
+    const firstThreeLines = lines.slice(0, 3).join("\n");
     if (firstThreeLines.length > 150) {
-      return firstThreeLines.substring(0, 150) + "..."
+      return firstThreeLines.substring(0, 150) + "...";
     }
-    return firstThreeLines + (lines.length > 3 ? "..." : "")
-  }
+    return firstThreeLines + (lines.length > 3 ? "..." : "");
+  };
 
   const getDisplayReferralDescription = (text: string, referralId: string) => {
-    if (!shouldTruncateReferralDescription(text)) return text
-    return expandedReferrals.has(referralId) ? text : getTruncatedReferralDescription(text)
-  }
+    if (!shouldTruncateReferralDescription(text)) return text;
+    return expandedReferrals.has(referralId) ? text : getTruncatedReferralDescription(text);
+  };
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | null = null
+    let timer: NodeJS.Timeout | null = null;
     const checkDeactivationStatus = async () => {
       try {
         const {
           data: { session },
-        } = await supabase.auth.getSession()
-        if (!session?.user) return
+        } = await supabase.auth.getSession();
+        if (!session?.user) return;
         const { data: agent } = await supabase
           .from("agents")
           .select("auto_deactivated_at")
           .eq("user_id", session.user.id)
-          .single()
+          .single();
         if (agent?.auto_deactivated_at) {
-          const lastShownKey = `deactivation_alert_shown_${session.user.id}`
-          const lastShownDate = localStorage.getItem(lastShownKey)
-          const today = new Date().toDateString()
+          const lastShownKey = `deactivation_alert_shown_${session.user.id}`;
+          const lastShownDate = localStorage.getItem(lastShownKey);
+          const today = new Date().toDateString();
           if (lastShownDate !== today) {
-            setShowAgentDeactivationAlert(true)
-            localStorage.setItem(lastShownKey, today)
+            setShowAgentDeactivationAlert(true);
+            localStorage.setItem(lastShownKey, today);
             timer = setTimeout(() => {
-              setShowAgentDeactivationAlert(false)
-            }, 8000)
+              setShowAgentDeactivationAlert(false);
+            }, 8000);
           }
         }
       } catch (error) {
-        console.error("Error checking agent status:", error)
+        console.error("Error checking agent status:", error);
       }
-    }
-    checkDeactivationStatus()
+    };
+    checkDeactivationStatus();
     return () => {
-      if (timer) clearTimeout(timer)
-    }
-  }, [])
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const agentData = localStorage.getItem("agent")
+        const agentData = localStorage.getItem("agent");
         if (!agentData) {
-          router.push("/agent/login")
-          return
+          router.push("/agent/login");
+          return;
         }
-        const parsedAgent = JSON.parse(agentData)
-        setAgent(parsedAgent)
-        setAgentId(parsedAgent.id)
-        const cachedData = getFromCache(`dashboard-${parsedAgent.id}`)
+        const parsedAgent = JSON.parse(agentData);
+        setAgent(parsedAgent);
+        setAgentId(parsedAgent.id);
+        const cachedData = getFromCache(`dashboard-${parsedAgent.id}`);
         if (cachedData) {
-          setEarningsData(cachedData.earnings)
+          setEarningsData(cachedData.earnings);
           setTabData((prev) => ({
             ...prev,
             referrals: cachedData.referrals,
@@ -400,18 +406,18 @@ export default function AgentDashboard() {
             wholesaleOrders: cachedData.wholesaleOrders,
             withdrawals: cachedData.withdrawals,
             paidWithdrawals: cachedData.paidWithdrawals,
-          }))
+          }));
           setLoadedTabs({
             referrals: true,
             dataOrders: true,
             wholesaleOrders: true,
             withdrawals: true,
             paidWithdrawals: true,
-          })
-          setLoading(false)
-          return
+          });
+          setLoading(false);
+          return;
         }
-        const dashboardData = await loadAgentDashboardData(parsedAgent.id)
+        const dashboardData = await loadAgentDashboardData(parsedAgent.id);
         const earnings = {
           totalEarnings: dashboardData.commissionSummary.totalEarned || 0,
           availableBalance: dashboardData.commissionSummary.availableForWithdrawal || 0,
@@ -421,8 +427,8 @@ export default function AgentDashboard() {
           referralCommissions: 0,
           dataOrderCommissions: 0,
           wholesaleCommissions: 0,
-        }
-        setEarningsData(earnings)
+        };
+        setEarningsData(earnings);
         setTabData((prev) => ({
           ...prev,
           referrals: dashboardData.referralsData,
@@ -430,7 +436,7 @@ export default function AgentDashboard() {
           wholesaleOrders: dashboardData.wholesaleOrdersData,
           withdrawals: dashboardData.withdrawalsData,
           paidWithdrawals: dashboardData.paidWithdrawalsData,
-        }))
+        }));
         setInCache(`dashboard-${parsedAgent.id}`, {
           earnings,
           referrals: dashboardData.referralsData,
@@ -438,117 +444,117 @@ export default function AgentDashboard() {
           wholesaleOrders: dashboardData.wholesaleOrdersData,
           withdrawals: dashboardData.withdrawalsData,
           paidWithdrawals: dashboardData.paidWithdrawalsData,
-        })
+        });
         setLoadedTabs({
           referrals: true,
           dataOrders: true,
           wholesaleOrders: true,
           withdrawals: true,
           paidWithdrawals: true,
-        })
+        });
       } catch (error) {
-        console.error("Error loading dashboard data:", error)
-        alert("Failed to load dashboard data. Please refresh the page or try again later.")
+        console.error("Error loading dashboard data:", error);
+        alert("Failed to load dashboard data. Please refresh the page or try again later.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    loadInitialData()
-  }, [])
+    };
+    loadInitialData();
+  }, []);
 
   const handleTabChange = useCallback(
     async (tab: string) => {
-      setActiveTab(tab)
-      if (loadedTabs[tab] || !agent?.id) return
-      setTabLoadingStates((prev) => ({ ...prev, [tab]: true }))
+      setActiveTab(tab);
+      if (loadedTabs[tab] || !agent?.id) return;
+      setTabLoadingStates((prev) => ({ ...prev, [tab]: true }));
       try {
-        const data = await loadTabData(tab, agent.id)
+        const data = await loadTabData(tab, agent.id);
         if (data) {
           if (tab === "services") {
-            setTabData((prev) => ({ ...prev, services: data.services }))
+            setTabData((prev) => ({ ...prev, services: data.services }));
           } else if (tab === "data-bundles") {
             setTabData((prev) => ({
               ...prev,
               dataBundles: data.dataBundles,
               dataOrders: data.dataOrders,
-            }))
+            }));
           } else if (tab === "jobs") {
-            const { supabaseJobs } = await import("@/lib/supabase-client-jobs")
+            const { supabaseJobs } = await import("@/lib/supabase-client-jobs");
             const { data: fetchedJobs, error } = await supabaseJobs
               .from("jobs")
               .select("*")
               .eq("is_active", true)
-              .order("created_at", { ascending: false })
+              .order("created_at", { ascending: false });
             if (error) {
-              console.error("Error fetching jobs:", error)
-              setTabData((prev) => ({ ...prev, jobs: [] }))
+              console.error("Error fetching jobs:", error);
+              setTabData((prev) => ({ ...prev, jobs: [] }));
             } else {
               const jobsWithTitles = fetchedJobs.map((job: any) => {
                 if (!job.job_title && job.industry) {
-                  return { ...job, job_title: job.industry }
+                  return { ...job, job_title: job.industry };
                 }
-                return job
-              })
-              setTabData((prev) => ({ ...prev, jobs: jobsWithTitles }))
+                return job;
+              });
+              setTabData((prev) => ({ ...prev, jobs: jobsWithTitles }));
             }
           }
-          if (tab === "referrals") setTabData((prev) => ({ ...prev, referrals: data }))
-          if (tab === "withdrawals") setTabData((prev) => ({ ...prev, withdrawals: data }))
-          if (tab === "paid-commissions") setTabData((prev) => ({ ...prev, paidWithdrawals: data }))
-          if (tab === "wholesale") setTabData((prev) => ({ ...prev, wholesaleOrders: data }))
+          if (tab === "referrals") setTabData((prev) => ({ ...prev, referrals: data }));
+          if (tab === "withdrawals") setTabData((prev) => ({ ...prev, withdrawals: data }));
+          if (tab === "paid-commissions") setTabData((prev) => ({ ...prev, paidWithdrawals: data }));
+          if (tab === "wholesale") setTabData((prev) => ({ ...prev, wholesaleOrders: data }));
         }
-        setLoadedTabs((prev) => ({ ...prev, [tab]: true }))
+        setLoadedTabs((prev) => ({ ...prev, [tab]: true }));
       } catch (error) {
-        console.error(`Error loading ${tab} data:`, error)
+        console.error(`Error loading ${tab} data:`, error);
       } finally {
-        setTabLoadingStates((prev) => ({ ...prev, [tab]: false }))
+        setTabLoadingStates((prev) => ({ ...prev, [tab]: false }));
       }
     },
     [agent?.id, loadedTabs],
-  )
+  );
 
   const checkWalletStrategyDisplay = () => {
-    const lastShown = localStorage.getItem("walletStrategyLastShown")
-    const today = new Date().toDateString()
+    const lastShown = localStorage.getItem("walletStrategyLastShown");
+    const today = new Date().toDateString();
     if (!lastShown || lastShown !== today) {
-      setShowWalletStrategy(true)
+      setShowWalletStrategy(true);
     }
-  }
+  };
 
   const handleCloseWalletStrategy = () => {
-    const today = new Date().toDateString()
-    localStorage.setItem("walletStrategyLastShown", today)
-    setShowWalletStrategy(false)
-  }
+    const today = new Date().toDateString();
+    localStorage.setItem("walletStrategyLastShown", today);
+    setShowWalletStrategy(false);
+  };
 
   const handleCloseAudioPlayer = () => {
-    setShowDashboardAudioPlayer(false)
-    localStorage.setItem("dashboardAudioPlayerClosed", "true")
-  }
+    setShowDashboardAudioPlayer(false);
+    localStorage.setItem("dashboardAudioPlayerClosed", "true");
+  };
 
   const getCurrentAgent = () => {
-    const agentData = localStorage.getItem("agent")
+    const agentData = localStorage.getItem("agent");
     if (!agentData) {
-      return null
+      return null;
     }
-    return JSON.parse(agentData)
-  }
+    return JSON.parse(agentData);
+  };
 
   const loadStatistics = async () => {
-    if (!agent?.id || showStatistics) return
-    setStatisticsLoading(true)
+    if (!agent?.id || showStatistics) return;
+    setStatisticsLoading(true);
     try {
-      setShowStatistics(true)
+      setShowStatistics(true);
     } catch (error) {
-      console.error("Error loading statistics:", error)
+      console.error("Error loading statistics:", error);
     } finally {
-      setStatisticsLoading(false)
+      setStatisticsLoading(false);
     }
-  }
+  };
 
   const calculateEarnings = async (agentId: string, agentData: any) => {
     try {
-      const earnings = await calculateCompleteEarnings(agentId)
+      const earnings = await calculateCompleteEarnings(agentId);
       setEarningsData({
         totalEarnings: earnings.totalEarnings,
         totalPaidEarnings: earnings.totalPaidOut,
@@ -558,9 +564,9 @@ export default function AgentDashboard() {
         referralCommissions: 0,
         dataOrderCommissions: 0,
         wholesaleCommissions: 0,
-      })
+      });
     } catch (error) {
-      console.error("Error calculating earnings:", error)
+      console.error("Error calculating earnings:", error);
       setEarningsData({
         totalEarnings: 0,
         totalPaidEarnings: 0,
@@ -570,44 +576,43 @@ export default function AgentDashboard() {
         referralCommissions: 0,
         dataOrderCommissions: 0,
         wholesaleCommissions: 0,
-      })
+      });
     }
-  }
+  };
 
   const scrollToElement = (elementRef: React.RefObject<HTMLDivElement>) => {
     if (elementRef.current) {
-      const offsetTop = elementRef.current.offsetTop - 100 // 100px offset from top
-      window.scrollTo({ top: offsetTop, behavior: "smooth" })
+      const offsetTop = elementRef.current.offsetTop - 100;
+      window.scrollTo({ top: offsetTop, behavior: "smooth" });
     }
-  }
+  };
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
-  // Add sectionRef parameter to handlePageChange
   const handlePageChange = (
     newPage: number,
     setCurrentPage: (page: number) => void,
     sectionRef?: React.RefObject<HTMLDivElement>,
   ) => {
-    setCurrentPage(newPage)
+    setCurrentPage(newPage);
     if (sectionRef) {
-      scrollToElement(sectionRef)
+      scrollToElement(sectionRef);
     } else {
-      scrollToTop()
+      scrollToTop();
     }
-  }
+  };
 
   const getPaginatedData = (data: any[], currentPage: number) => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return data.slice(startIndex, endIndex)
-  }
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return data.slice(startIndex, endIndex);
+  };
 
   const getTotalPages = (dataLength: number) => {
-    return Math.ceil(dataLength / itemsPerPage)
-  }
+    return Math.ceil(dataLength / itemsPerPage);
+  };
 
   const PaginationControls = ({
     currentPage,
@@ -615,24 +620,24 @@ export default function AgentDashboard() {
     onPageChange,
     sectionRef,
   }: {
-    currentPage: number
-    totalPages: number
-    onPageChange: (page: number) => void
-    sectionRef?: React.RefObject<HTMLDivElement>
+    currentPage: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+    sectionRef?: React.RefObject<HTMLDivElement>;
   }) => {
-    if (totalPages <= 1) return null
+    if (totalPages <= 1) return null;
     const getVisiblePages = () => {
-      const isMobile = typeof window !== "undefined" && window.innerWidth < 768
-      const maxVisible = isMobile ? 3 : 5
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      const maxVisible = isMobile ? 3 : 5;
       if (totalPages <= maxVisible) {
-        return Array.from({ length: totalPages }, (_, i) => i + 1)
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
       }
-      const start = Math.max(1, currentPage - Math.floor(maxVisible / 2))
-      const end = Math.min(totalPages, start + maxVisible - 1)
-      const adjustedStart = Math.max(1, end - maxVisible + 1)
-      return Array.from({ length: end - adjustedStart + 1 }, (_, i) => adjustedStart + i)
-    }
-    const visiblePages = getVisiblePages()
+      const start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+      const end = Math.min(totalPages, start + maxVisible - 1);
+      const adjustedStart = Math.max(1, end - maxVisible + 1);
+      return Array.from({ length: end - adjustedStart + 1 }, (_, i) => adjustedStart + i);
+    };
+    const visiblePages = getVisiblePages();
     return (
       <div className="flex justify-center mt-4 sm:mt-6">
         <Pagination>
@@ -705,57 +710,57 @@ export default function AgentDashboard() {
           </PaginationContent>
         </Pagination>
       </div>
-    )
-  }
+    );
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem("agent")
-    router.push("/")
-  }
+    localStorage.removeItem("agent");
+    router.push("/");
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-amber-100 text-amber-800 border-amber-200"
+        return "bg-amber-100 text-amber-800 border-amber-200";
       case "confirmed":
       case "in_progress":
-        return "bg-blue-100 text-blue-800 border-blue-200"
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "processing":
-        return "bg-purple-100 text-purple-800 border-purple-200"
+        return "bg-purple-100 text-purple-800 border-purple-200";
       case "completed":
-        return "bg-emerald-100 text-emerald-800 border-emerald-200"
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
       case "rejected":
       case "canceled":
-        return "bg-red-100 text-red-800 border-red-200"
+        return "bg-red-100 text-red-800 border-red-200";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
-  }
+  };
 
   const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp)
-    return date.toLocaleDateString() + " - " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
+    const date = new Date(timestamp);
+    return date.toLocaleDateString() + " - " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
 
   const getFilteredDataBundles = (provider: string) => {
     if (dataBundlesFilter === "All Networks") {
-      return tabData.dataBundles.filter((bundle) => bundle.provider === provider)
+      return tabData.dataBundles.filter((bundle) => bundle.provider === provider);
     }
-    return tabData.dataBundles.filter((bundle) => bundle.provider === provider && bundle.provider === dataBundlesFilter)
-  }
+    return tabData.dataBundles.filter((bundle) => bundle.provider === provider && bundle.provider === dataBundlesFilter);
+  };
 
   const openImageModal = (images: string[], index: number, alt: string) => {
-    setModalImages(images.filter((img) => img && img.trim() !== ""))
-    setModalImageIndex(index)
-    setModalImageAlt(alt)
-    setShowImageModal(true)
-  }
+    setModalImages(images.filter((img) => img && img.trim() !== ""));
+    setModalImageIndex(index);
+    setModalImageAlt(alt);
+    setShowImageModal(true);
+  };
 
   const loadEarningsData = async () => {
-    if (!agentId) return
+    if (!agentId) return;
     try {
-      setLoading(true)
-      const commissionSummary = await getAgentCommissionSummary(agentId)
+      setLoading(true);
+      const commissionSummary = await getAgentCommissionSummary(agentId);
       setEarningsData({
         totalEarnings: commissionSummary.totalEarned || 0,
         availableBalance: commissionSummary.availableForWithdrawal || 0,
@@ -765,42 +770,42 @@ export default function AgentDashboard() {
         referralCommissions: 0,
         dataOrderCommissions: 0,
         wholesaleCommissions: 0,
-      })
-      const { data: agentData } = await supabase.from("agents").select("wallet_balance").eq("id", agentId).single()
+      });
+      const { data: agentData } = await supabase.from("agents").select("wallet_balance").eq("id", agentId).single();
       if (agentData) {
         setEarningsData((prev) => ({
           ...prev,
           walletBalance: Number(agentData.wallet_balance) || 0,
-        }))
+        }));
       }
     } catch (error) {
-      console.error("Error loading earnings data:", error)
+      console.error("Error loading earnings data:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const validateWhatsAppNumber = (number: string) => {
-    const cleanNumber = number.replace(/\D/g, "")
+    const cleanNumber = number.replace(/\D/g, "");
     if (cleanNumber.length === 10 && cleanNumber.startsWith("0")) {
-      return `233${cleanNumber.substring(1)}`
+      return `233${cleanNumber.substring(1)}`;
     } else if (cleanNumber.length === 12 && cleanNumber.startsWith("233")) {
-      return cleanNumber
+      return cleanNumber;
     } else if (cleanNumber.length === 9) {
-      return `233${cleanNumber}`
+      return `233${cleanNumber}`;
     }
-    return null
-  }
+    return null;
+  };
 
   const handleReferralSubmit = () => {
     if (!referralWhatsApp.trim()) {
-      setReferralWhatsAppError("Please enter a WhatsApp number")
-      return
+      setReferralWhatsAppError("Please enter a WhatsApp number");
+      return;
     }
-    const validatedNumber = validateWhatsAppNumber(referralWhatsApp)
+    const validatedNumber = validateWhatsAppNumber(referralWhatsApp);
     if (!validatedNumber) {
-      setReferralWhatsAppError("Please enter a valid Ghana WhatsApp number (e.g., 0241234567 or 233241234567)")
-      return
+      setReferralWhatsAppError("Please enter a valid Ghana WhatsApp number (e.g., 0241234567 or 233241234567)");
+      return;
     }
     const message = `🚀 *Join DataFlex Ghana as an Agent Today!* 🚀
 Hello! I'm ${agent?.full_name}, and I want to invite you to join an amazing opportunity to earn extra income as a DataFlex Ghana Agent! 💰
@@ -815,28 +820,28 @@ Hello! I'm ${agent?.full_name}, and I want to invite you to join an amazing oppo
 Don't miss this opportunity to start earning today! 💰
 Best regards,
 ${agent?.full_name}
-Data Flex Ghana Agent`
-    const whatsappUrl = `https://wa.me/${validatedNumber}?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, "_blank")
-    setShowReferralDialog(false)
-    setReferralWhatsApp("")
-    setReferralWhatsAppError("")
-  }
+Data Flex Ghana Agent`;
+    const whatsappUrl = `https://wa.me/${validatedNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+    setShowReferralDialog(false);
+    setReferralWhatsApp("");
+    setReferralWhatsAppError("");
+  };
 
   const handleWhatsAppChange = (value: string) => {
-    setReferralWhatsApp(value)
-    setReferralWhatsAppError("")
-  }
+    setReferralWhatsApp(value);
+    setReferralWhatsAppError("");
+  };
 
   const handleDomesticReferralSubmit = () => {
     if (!domesticReferralWhatsApp.trim()) {
-      setDomesticReferralWhatsAppError("Please enter a WhatsApp number")
-      return
+      setDomesticReferralWhatsAppError("Please enter a WhatsApp number");
+      return;
     }
-    const validatedNumber = validateWhatsAppNumber(domesticReferralWhatsApp)
+    const validatedNumber = validateWhatsAppNumber(domesticReferralWhatsApp);
     if (!validatedNumber) {
-      setDomesticReferralWhatsAppError("Please enter a valid Ghana WhatsApp number (e.g., 0241234567 or 233241234567)")
-      return
+      setDomesticReferralWhatsAppError("Please enter a valid Ghana WhatsApp number (e.g., 0241234567 or 233241234567)");
+      return;
     }
     const message = `🏠 *Find Your Dream Domestic Job Today!* 🏠
 Hello! I'm ${agent?.full_name}, and I want to help you find amazing domestic work opportunities in Ghana and abroad! 🌍
@@ -852,18 +857,18 @@ Hello! I'm ${agent?.full_name}, and I want to help you find amazing domestic wor
 Don't miss this opportunity to secure a better future! Join thousands of domestic workers who have found great jobs through our platform.
 Best regards,
 ${agent?.full_name}
-DataFlex Ghana Agent 🇬🇭`
-    const whatsappUrl = `https://wa.me/${validatedNumber}?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, "_blank")
-    setShowDomesticReferralDialog(false)
-    setDomesticReferralWhatsApp("")
-    setDomesticReferralWhatsAppError("")
-  }
+DataFlex Ghana Agent 🇬🇭`;
+    const whatsappUrl = `https://wa.me/${validatedNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+    setShowDomesticReferralDialog(false);
+    setDomesticReferralWhatsApp("");
+    setDomesticReferralWhatsAppError("");
+  };
 
   const handleDomesticWhatsAppChange = (value: string) => {
-    setDomesticReferralWhatsApp(value)
-    setDomesticReferralWhatsAppError("")
-  }
+    setDomesticReferralWhatsApp(value);
+    setDomesticReferralWhatsAppError("");
+  };
 
   const clearOldReferrals = async () => {
     if (
@@ -871,15 +876,15 @@ DataFlex Ghana Agent 🇬🇭`
         `Are you sure you want to clear referral records from ${clearReferralsType === "day" ? "today" : "this month"}? This action cannot be undone.`,
       )
     ) {
-      return
+      return;
     }
     try {
-      const now = new Date()
-      let cutoffDate: Date
+      const now = new Date();
+      let cutoffDate: Date;
       if (clearReferralsType === "day") {
-        cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       } else {
-        cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1)
+        cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
       }
       const response = await fetch("/api/agent/clear-old-records", {
         method: "POST",
@@ -890,41 +895,41 @@ DataFlex Ghana Agent 🇬🇭`
           record_type: "referrals",
           time_range: clearReferralsType,
         }),
-      })
-      const result = await response.json()
+      });
+      const result = await response.json();
       if (result.success) {
-        alert(`Cleared ${result.count} referral records`)
-        setShowClearReferralsDialog(false)
+        alert(`Cleared ${result.count} referral records`);
+        setShowClearReferralsDialog(false);
         if (agent?.id) {
-          setTabLoadingStates((prev) => ({ ...prev, referrals: true }))
-          const data = await loadTabData("referrals", agent.id)
+          setTabLoadingStates((prev) => ({ ...prev, referrals: true }));
+          const data = await loadTabData("referrals", agent.id);
           if (data) {
-            setTabData((prev) => ({ ...prev, referrals: data }))
+            setTabData((prev) => ({ ...prev, referrals: data }));
           }
-          setTabLoadingStates((prev) => ({ ...prev, referrals: false }))
+          setTabLoadingStates((prev) => ({ ...prev, referrals: false }));
         }
       } else {
-        alert(result.error || "Failed to clear records")
+        alert(result.error || "Failed to clear records");
       }
     } catch (error) {
-      console.error("Error clearing records:", error)
-      alert("Failed to clear records")
+      console.error("Error clearing records:", error);
+      alert("Failed to clear records");
     }
-  }
+  };
 
   const ensureJobTitle = (job: Job): Job => {
     if (!job.job_title && job.industry) {
-      return { ...job, job_title: job.industry }
+      return { ...job, job_title: job.industry };
     }
-    return job
-  }
+    return job;
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center">
         <DashboardSkeleton />
       </div>
-    )
+    );
   }
 
   return (
@@ -940,6 +945,7 @@ DataFlex Ghana Agent 🇬🇭`
           onClose={handleCloseAudioPlayer}
         />
       )}
+      {showWhatsAppPopup && <WhatsAppChannelPopup onClose={() => setShowWhatsAppPopup(false)} />}
       <Dialog open={showAgentDeactivationAlert} onOpenChange={setShowAgentDeactivationAlert}>
         <DialogContent className="sm:max-w-md bg-amber-50 border-2 border-amber-200">
           <DialogHeader>
@@ -1016,7 +1022,6 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         )}
         <AgentMenuCards activeTab={activeTab} onTabChange={handleTabChange} />
-
         <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
           {/* START: MORE THAN JUST DATA CARD */}
           <div className="mb-8">
@@ -1135,7 +1140,6 @@ DataFlex Ghana Agent 🇬🇭`
             </Card>
           </div>
           {/* END: APPLE SERVICE CENTER CARD */}
-
           {/* START: FASHIONABLY HIRED CARD */}
           <div className="mb-8">
             <Card className="w-full max-w-full border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
@@ -1494,169 +1498,161 @@ DataFlex Ghana Agent 🇬🇭`
                 </Card>
               </TabsContent>
               <TabsContent value="services" className="space-y-4">
-              {tabLoadingStates.services ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
-                  <span className="ml-3 text-emerald-700">Loading services...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h2 className="text-2xl font-bold text-emerald-800">Available Services</h2>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                      <div className="flex gap-2">
-                        <Select value={servicesFilter} onValueChange={setServicesFilter}>
-                          <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
-                            <Filter className="h-4 w-4 mr-2" />
-                            <SelectValue placeholder="All Services" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="All Services">All Services</SelectItem>
-                            <SelectItem value="GH₵0-1000">GH₵0-1000</SelectItem>
-                            <SelectItem value="GH₵1001-5000">GH₵1001-5000</SelectItem>
-                            <SelectItem value="GH₵5001+">GH₵5001+</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
-                        <Input
-                          placeholder="Search services..."
-                          value={servicesSearchTerm}
-                          onChange={(e) => setServicesSearchTerm(e.target.value)}
-                          className="pl-10 w-full sm:w-64 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
-                        />
+                {tabLoadingStates.services ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-600 border-t-transparent"></div>
+                    <span className="ml-3 text-emerald-700">Loading services...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <h2 className="text-2xl font-bold text-emerald-800">Available Services</h2>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                        <div className="flex gap-2">
+                          <Select value={servicesFilter} onValueChange={setServicesFilter}>
+                            <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
+                              <Filter className="h-4 w-4 mr-2" />
+                              <SelectValue placeholder="All Services" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="All Services">All Services</SelectItem>
+                              <SelectItem value="GH₵0-1000">GH₵0-1000</SelectItem>
+                              <SelectItem value="GH₵1001-5000">GH₵1001-5000</SelectItem>
+                              <SelectItem value="GH₵5001+">GH₵5001+</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
+                          <Input
+                            placeholder="Search services..."
+                            value={servicesSearchTerm}
+                            onChange={(e) => setServicesSearchTerm(e.target.value)}
+                            className="pl-10 w-full sm:w-64 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Services Grid - Minimal Design */}
-                  <div ref={servicesGridRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {getPaginatedData(filteredServices, currentServicesPage).map((service) => (
-                      <div
-                        key={service.id}
-                        className="bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col"
-                      >
-                        {/* Clean Image Section */}
-                        <div className="relative w-full h-56 overflow-hidden">
-                          {service.image_url ? (
-                            <ImageWithFallback
-                              src={service.image_url || "/placeholder.svg"}
-                              alt={service.title}
-                              className="w-full h-full object-cover"
-                              onClick={() => openImageModal([service.image_url], 0, service.title)}
-                              fallbackSrc="/placeholder.svg?height=224&width=400"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                              <div className="text-gray-400 text-center p-4">
-                                <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                <p className="text-sm">No Image</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Content Section - Minimal Layout */}
-                        <div className="p-4 flex-1 flex flex-col">
-                          {/* Service Title */}
-                          <h3 className="text-lg font-semibold text-gray-800 mb-3 line-clamp-2">
-                            {service.title}
-                          </h3>
-
-                          {/* Pricing Section - Clear Separation */}
-                          <div className="space-y-3 mb-4">
-                            {/* Commission - Clear Highlight */}
-                            <div className="bg-emerald-50 rounded-lg p-3">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-emerald-700">Your Commission</span>
-                                <span className="text-lg font-bold text-emerald-800">
-                                  GH₵ {safeCommissionDisplay(service.commission_amount).toFixed(2)}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Service Cost (if available) */}
-                            {service.product_cost && (
-                              <div className="border border-gray-200 rounded-lg p-3">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium text-gray-700">Service Cost</span>
-                                  <span className="text-base font-semibold text-gray-800">
-                                    GH₵ {safeCommissionDisplay(service.product_cost).toFixed(2)}
-                                  </span>
+                    {/* Services Grid - Minimal Design */}
+                    <div ref={servicesGridRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {getPaginatedData(filteredServices, currentServicesPage).map((service) => (
+                        <div
+                          key={service.id}
+                          className="bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col"
+                        >
+                          {/* Clean Image Section */}
+                          <div className="relative w-full h-56 overflow-hidden">
+                            {service.image_url ? (
+                              <ImageWithFallback
+                                src={service.image_url || "/placeholder.svg"}
+                                alt={service.title}
+                                className="w-full h-full object-cover"
+                                onClick={() => openImageModal([service.image_url], 0, service.title)}
+                                fallbackSrc="/placeholder.svg?height=224&width=400"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                <div className="text-gray-400 text-center p-4">
+                                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                  <p className="text-sm">No Image</p>
                                 </div>
                               </div>
                             )}
                           </div>
-
-                          {/* Description */}
-                          <div className="mb-4 flex-1">
-                            <div className={`text-gray-600 text-sm leading-relaxed ${
-                              !expandedDescriptions[service.id] ? 'line-clamp-2' : ''
-                            }`}>
-                              {getDisplayDescription(service.description || "", service.id)}
+                          {/* Content Section - Minimal Layout */}
+                          <div className="p-4 flex-1 flex flex-col">
+                            {/* Service Title */}
+                            <h3 className="text-lg font-semibold text-gray-800 mb-3 line-clamp-2">
+                              {service.title}
+                            </h3>
+                            {/* Pricing Section - Clear Separation */}
+                            <div className="space-y-3 mb-4">
+                              {/* Commission - Clear Highlight */}
+                              <div className="bg-emerald-50 rounded-lg p-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-emerald-700">Your Commission</span>
+                                  <span className="text-lg font-bold text-emerald-800">
+                                    GH₵ {safeCommissionDisplay(service.commission_amount).toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                              {/* Service Cost (if available) */}
+                              {service.product_cost && (
+                                <div className="border border-gray-200 rounded-lg p-3">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-gray-700">Service Cost</span>
+                                    <span className="text-base font-semibold text-gray-800">
+                                      GH₵ {safeCommissionDisplay(service.product_cost).toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            {shouldTruncateDescription(service.description || "") && (
-                              <button
-                                onClick={() => toggleDescriptionExpanded(service.id)}
-                                className="text-emerald-600 hover:text-emerald-800 text-sm font-medium mt-2 flex items-center gap-1"
-                              >
-                                {expandedDescriptions[service.id] ? (
-                                  <>
-                                    Show Less
-                                    <ChevronUp className="h-3 w-3" />
-                                  </>
-                                ) : (
-                                  <>
-                                    Read More
-                                    <ChevronDown className="h-3 w-3" />
-                                  </>
-                                )}
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Action Buttons - Clean & Simple */}
-                          <div className="flex gap-3 pt-3 border-t border-gray-100">
-                            <Button
-                              asChild
-                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                              size="sm"
-                            >
-                              <Link href={`/agent/refer/${service.id}`}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Refer
-                              </Link>
-                            </Button>
-
-                            {service.material?.material_link && (
+                            {/* Description */}
+                            <div className="mb-4 flex-1">
+                              <div className={`text-gray-600 text-sm leading-relaxed ${
+                                !expandedDescriptions[service.id] ? 'line-clamp-2' : ''
+                              }`}>
+                                {getDisplayDescription(service.description || "", service.id)}
+                              </div>
+                              {shouldTruncateDescription(service.description || "") && (
+                                <button
+                                  onClick={() => toggleDescriptionExpanded(service.id)}
+                                  className="text-emerald-600 hover:text-emerald-800 text-sm font-medium mt-2 flex items-center gap-1"
+                                >
+                                  {expandedDescriptions[service.id] ? (
+                                    <>
+                                      Show Less
+                                      <ChevronUp className="h-3 w-3" />
+                                    </>
+                                  ) : (
+                                    <>
+                                      Read More
+                                      <ChevronDown className="h-3 w-3" />
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            {/* Action Buttons - Clean & Simple */}
+                            <div className="flex gap-3 pt-3 border-t border-gray-100">
                               <Button
-                                variant="outline"
-                                size="sm"
                                 asChild
-                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                                size="sm"
                               >
-                                <Link href={service.material.material_link} target="_blank">
-                                  <ExternalLink className="h-4 w-4" />
+                                <Link href={`/agent/refer/${service.id}`}>
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Refer
                                 </Link>
                               </Button>
-                            )}
+                              {service.material?.material_link && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  asChild
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                                >
+                                  <Link href={service.material.material_link} target="_blank">
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Pagination Controls */}
-                  <PaginationControls
-                    currentPage={currentServicesPage}
-                    totalPages={getTotalPages(filteredServices.length)}
-                    onPageChange={(page) => handlePageChange(page, setCurrentServicesPage, servicesGridRef)}
-                    sectionRef={servicesGridRef}
-                  />
-                </>
-              )}
-            </TabsContent>
+                      ))}
+                    </div>
+                    {/* Pagination Controls */}
+                    <PaginationControls
+                      currentPage={currentServicesPage}
+                      totalPages={getTotalPages(filteredServices.length)}
+                      onPageChange={(page) => handlePageChange(page, setCurrentServicesPage, servicesGridRef)}
+                      sectionRef={servicesGridRef}
+                    />
+                  </>
+                )}
+              </TabsContent>
               <TabsContent value="data-bundles" className="space-y-4">
                 {tabLoadingStates["data-bundles"] ? (
                   <div className="flex items-center justify-center py-12">
@@ -1679,10 +1675,10 @@ DataFlex Ghana Agent 🇬🇭`
                                 Telecel: "/images/telecel.jpg",
                                 "MTN AFA": "/images/mtnafa.jpg",
                                 "Bulk Order": "/images/bulkorder.jpg",
-                              }
-                              let bundleCount = 0
+                              };
+                              let bundleCount = 0;
                               if (["MTN", "AirtelTigo", "Telecel"].includes(provider)) {
-                                bundleCount = getFilteredDataBundles(provider).length
+                                bundleCount = getFilteredDataBundles(provider).length;
                               }
                               return (
                                 <TabsTrigger
@@ -1706,13 +1702,13 @@ DataFlex Ghana Agent 🇬🇭`
                                     {bundleCount > 0 && <span className="text-xs opacity-75">({bundleCount})</span>}
                                   </div>
                                 </TabsTrigger>
-                              )
+                              );
                             })}
                           </TabsList>
                           {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
                             const providerBundles = getFilteredDataBundles(provider).sort(
                               (a, b) => a.size_gb - b.size_gb,
-                            )
+                            );
                             return (
                               <TabsContent key={provider} value={provider} className="space-y-4">
                                 <div className="flex items-center justify-between">
@@ -1820,7 +1816,7 @@ DataFlex Ghana Agent 🇬🇭`
                                   </div>
                                 )}
                               </TabsContent>
-                            )
+                            );
                           })}
                           <TabsContent value="MTN AFA" className="space-y-4">
                             <div className="text-center space-y-4">
@@ -2643,9 +2639,9 @@ DataFlex Ghana Agent 🇬🇭`
               <Button
                 variant="outline"
                 onClick={() => {
-                  setShowDomesticReferralDialog(false)
-                  setDomesticReferralWhatsApp("")
-                  setDomesticReferralWhatsAppError("")
+                  setShowDomesticReferralDialog(false);
+                  setDomesticReferralWhatsApp("");
+                  setDomesticReferralWhatsAppError("");
                 }}
                 className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
               >
@@ -2699,9 +2695,9 @@ DataFlex Ghana Agent 🇬🇭`
               <Button
                 variant="outline"
                 onClick={() => {
-                  setShowReferralDialog(false)
-                  setReferralWhatsApp("")
-                  setReferralWhatsAppError("")
+                  setShowReferralDialog(false);
+                  setReferralWhatsApp("");
+                  setReferralWhatsAppError("");
                 }}
                 className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
               >
@@ -2905,5 +2901,5 @@ DataFlex Ghana Agent 🇬🇭`
         </div>
       )}
     </div>
-  )
+  );
 }

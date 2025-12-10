@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
@@ -32,16 +31,6 @@ interface AgentMenuCardsProps {
   onTabChange: (tab: string) => void;
 }
 
-/**
- * Aggressive multi-hint AgentMenuCards
- * - All hint strategies active concurrently on small screens:
- *    * continuous bouncing arrows (outside card area)
- *    * flashing "Swipe →" text
- *    * auto-scroll demo loop (7s)
- *    * periodic shake animation
- * - Hints stop after first meaningful user interaction (scroll, pointerdown, keyboard)
- */
-
 export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const demoTimerRef = useRef<number | null>(null);
@@ -50,17 +39,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
   const [isInitialMobile, setIsInitialMobile] = useState(false);
   const [announceMessage, setAnnounceMessage] = useState("");
 
-  // Cards (wired to handleClick)
   const menuCards: MenuCard[] = [
     {
-      id: "teaching",
-      title: "Teaching Platform",
-      description: "Learn from expert teachers",
-      icon: <BookOpen className="h-12 w-12" />,
-      image: "/images/teaching-platform.png",
-      gradient: "linear-gradient(135deg, #3B82F6, #1E40AF)",
-      buttonText: "EXPLORE CHANNELS",
-      onClick: () => handleMenuCardClick("teaching"),
+      id: "data-bundles",
+      title: "Data Bundles",
+      description: "Order Data Bundles",
+      icon: <Smartphone className="h-12 w-12" />,
+      image: "/images/data-bundles.png",
+      gradient: "linear-gradient(135deg, #8E24AA, #5E35B1)",
+      buttonText: "BUY DATA",
+      onClick: () => handleMenuCardClick("data-bundles"),
     },
     {
       id: "compliance",
@@ -73,6 +61,26 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       onClick: () => handleMenuCardClick("compliance"),
     },
     {
+      id: "services",
+      title: "Referral Services",
+      description: "Refer & Earn Big",
+      icon: <Users className="h-12 w-12" />,
+      image: "/images/referral-services.png",
+      gradient: "linear-gradient(135deg, #26A69A, #1565C0)",
+      buttonText: "REFER NOW",
+      onClick: () => handleMenuCardClick("services"),
+    },
+    {
+      id: "jobs",
+      title: "Job Opportunities",
+      description: "Find and apply for jobs",
+      icon: <Briefcase className="h-12 w-12" />,
+      image: "/images/job-opportunities.png",
+      gradient: "linear-gradient(135deg, #1E88E5, #1565C0)",
+      buttonText: "FIND JOBS",
+      onClick: () => handleMenuCardClick("jobs"),
+    },
+    {
       id: "professional-writing",
       title: "Professional Writing",
       description: "Resume, CV, Etc",
@@ -83,14 +91,24 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       onClick: () => handleMenuCardClick("professional-writing"),
     },
     {
-      id: "properties",
-      title: "Promote Properties",
-      description: "Promote and earn commissions",
-      icon: <Building2 className="h-12 w-12" />,
-      image: "/images/properties.png",
-      gradient: "linear-gradient(135deg, #059669, #047857)",
-      buttonText: "VISIT PLATFORM",
-      onClick: () => handleMenuCardClick("properties"),
+      id: "online-courses",
+      title: "Online Courses",
+      description: "Sign up to online courses today",
+      icon: <BookOpen className="h-12 w-12" />,
+      image: "/images/online-courses.png",
+      gradient: "linear-gradient(135deg, #2563EB, #1D4ED8)",
+      buttonText: "SIGN UP NOW",
+      onClick: () => handleMenuCardClick("online-courses"),
+    },
+    {
+      id: "Channels",
+      title: "Dataflex Channels",
+      description: "Follow Or Join Channels",
+      icon: <BookOpen className="h-12 w-12" />,
+      image: "/images/teaching-platform.png",
+      gradient: "linear-gradient(135deg, #3B82F6, #1E40AF)",
+      buttonText: "EXPLORE CHANNELS",
+      onClick: () => handleMenuCardClick("Channels"),
     },
     {
       id: "referral-program",
@@ -103,34 +121,14 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       onClick: () => handleMenuCardClick("referral-program"),
     },
     {
-      id: "services",
-      title: "Referral Services",
-      description: "Refer & Earn Big",
-      icon: <Users className="h-12 w-12" />,
-      image: "/images/referral-services.png",
-      gradient: "linear-gradient(135deg, #26A69A, #1565C0)",
-      buttonText: "REFER NOW",
-      onClick: () => handleMenuCardClick("services"),
-    },
-    {
-      id: "data-bundles",
-      title: "Data Bundles",
-      description: "Order Data Bundles",
-      icon: <Smartphone className="h-12 w-12" />,
-      image: "/images/data-bundles.png",
-      gradient: "linear-gradient(135deg, #8E24AA, #5E35B1)",
-      buttonText: "BUY DATA",
-      onClick: () => handleMenuCardClick("data-bundles"),
-    },
-    {
-      id: "jobs",
-      title: "Job Opportunities",
-      description: "Find and apply for jobs",
-      icon: <Briefcase className="h-12 w-12" />,
-      image: "/images/job-opportunities.png",
-      gradient: "linear-gradient(135deg, #1E88E5, #1565C0)",
-      buttonText: "FIND JOBS",
-      onClick: () => handleMenuCardClick("jobs"),
+      id: "properties",
+      title: "Promote Properties",
+      description: "Promote and earn commissions",
+      icon: <Building2 className="h-12 w-12" />,
+      image: "/images/properties.png",
+      gradient: "linear-gradient(135deg, #059669, #047857)",
+      buttonText: "VISIT PLATFORM",
+      onClick: () => handleMenuCardClick("properties"),
     },
     {
       id: "withdrawals",
@@ -174,12 +172,8 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
     },
   ];
 
-  // --- helpers ------------------------------------------------------------
-
-  // Attempt to scroll to tab content when a card is clicked (keeps original behavior)
   function handleMenuCardClick(cardId: string) {
     onTabChange(cardId);
-
     setTimeout(() => {
       const selectors = [
         `[data-tab-content="${cardId}"]`,
@@ -211,7 +205,6 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
     }, 120);
   }
 
-  // stop all hint timers / sequences
   const stopAllHints = useCallback(() => {
     if (demoTimerRef.current !== null) {
       window.clearInterval(demoTimerRef.current);
@@ -223,56 +216,37 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
     }
   }, []);
 
-  // Called when user interacts (scroll, pointerdown, key)
   const handleUserInteraction = useCallback(() => {
     if (!userInteracted) {
       setUserInteracted(true);
       stopAllHints();
-      // Clear any live announcements
       setAnnounceMessage("");
     }
   }, [userInteracted, stopAllHints]);
 
-  // --- demo loop: auto-scroll + shake + announce -------------------------
-
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
-
-    // Only engage on small screens (mobile/tablet)
     const isMobileWidth = window.innerWidth < 1024;
     setIsInitialMobile(isMobileWidth);
-
     if (!isMobileWidth) return;
-
-    // run demo immediately, then every 7s
     const DEMO_INTERVAL = 7000;
-    const NUDGE_DISTANCE = Math.min(200, Math.floor(container.clientWidth * 0.35)); // adaptive
+    const NUDGE_DISTANCE = Math.min(200, Math.floor(container.clientWidth * 0.35));
     const SHAKE_MS = 420;
-
     const runDemoSequence = () => {
       if (!container || userInteracted) return;
-
-      // 1) Announce for accessibility
       setAnnounceMessage("Hint: swipe left or right to see more options.");
       if (announceTimerRef.current) {
         clearTimeout(announceTimerRef.current);
       }
       announceTimerRef.current = window.setTimeout(() => setAnnounceMessage(""), 1200);
-
-      // 2) Small shake of container (adds visibility but subtle)
       container.classList.add("hint-shake");
       window.setTimeout(() => container.classList.remove("hint-shake"), SHAKE_MS);
-
-      // 3) Auto-nudge right, hold, then back
       try {
         container.scrollBy({ left: NUDGE_DISTANCE, behavior: "smooth" });
       } catch {
-        // fallback: set scrollLeft
         container.scrollLeft = Math.min(container.scrollLeft + NUDGE_DISTANCE, container.scrollWidth - container.clientWidth);
       }
-
-      // after 1.4s return back smoothly
       window.setTimeout(() => {
         if (!container || userInteracted) return;
         try {
@@ -282,52 +256,38 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
         }
       }, 1400);
     };
-
-    // initial gentle delay then run
     const firstDelay = window.setTimeout(() => {
       if (!userInteracted) runDemoSequence();
     }, 600);
-
-    // schedule repeating demo
     demoTimerRef.current = window.setInterval(() => {
       if (!userInteracted) runDemoSequence();
       else stopAllHints();
     }, DEMO_INTERVAL);
-
-    // cleanup
     return () => {
       clearTimeout(firstDelay);
       stopAllHints();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userInteracted, stopAllHints]);
-
-  // --- attach listeners to detect first user interaction -----------------
 
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
-
     const onScroll = () => {
       if (container.scrollLeft > 8) {
         handleUserInteraction();
       }
     };
-
     const onPointerDown = () => handleUserInteraction();
     const onTouchStart = () => handleUserInteraction();
     const onKeyDown = (e: KeyboardEvent) => {
-      // treat arrow keys, space, enter as interaction
       if (["ArrowLeft", "ArrowRight", " ", "Spacebar", "Enter"].includes(e.key)) {
         handleUserInteraction();
       }
     };
-
     container.addEventListener("scroll", onScroll, { passive: true });
     container.addEventListener("pointerdown", onPointerDown, { passive: true });
     container.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("keydown", onKeyDown);
-
     return () => {
       container.removeEventListener("scroll", onScroll);
       container.removeEventListener("pointerdown", onPointerDown);
@@ -336,16 +296,12 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
     };
   }, [handleUserInteraction]);
 
-  // cleanup timers when unmount
   useEffect(() => {
     return () => stopAllHints();
   }, [stopAllHints]);
 
-  // --- render -------------------------------------------------------------
-
   return (
     <div className="relative mb-12">
-      {/* Desktop grid (unchanged) */}
       <div className="hidden lg:grid lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {menuCards.map((card) => (
           <div
@@ -399,8 +355,6 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
           </div>
         ))}
       </div>
-
-      {/* Mobile / tablet horizontal scroll area */}
       <div className="lg:hidden relative">
         <div ref={scrollRef} className="flex gap-4 overflow-x-auto pb-4 px-4 touch-pan-x scroll-smooth" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }} role="list" aria-label="Agent menu cards">
           {menuCards.map((card) => (
@@ -453,18 +407,12 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
             </div>
           ))}
         </div>
-
-        {/* VISUAL HINTS - positioned OUTSIDE the cards so they never cover them */}
-
-        {/* Floating bouncing arrows cluster - right side outside container */}
         {!userInteracted && isInitialMobile && (
           <div className="pointer-events-none">
             <div className="absolute right-0 top-1/2 translate-x-6 -translate-y-1/2 z-30 flex flex-col items-center gap-1">
               <ChevronRight className="h-7 w-7 text-amber-500 hint-bounce" strokeWidth={3} />
               <ChevronRight className="h-6 w-6 text-amber-400 hint-pulse slower" strokeWidth={3} />
             </div>
-
-            {/* Left side arrows to emphasize both directions (outside) */}
             <div className="absolute left-0 top-1/2 -translate-x-6 -translate-y-1/2 z-30 flex flex-col items-center gap-1">
               <div className="transform rotate-180">
                 <ChevronRight className="h-7 w-7 text-amber-500 hint-bounce" strokeWidth={3} />
@@ -473,42 +421,30 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
                 <ChevronRight className="h-6 w-6 text-amber-400 hint-pulse slower" strokeWidth={3} />
               </div>
             </div>
-
-            {/* Flashing "Swipe →" text hint above the scroll area (left aligned) */}
             <div className="absolute left-4 top-2 z-30 pointer-events-none">
               <div className="rounded-full px-3 py-1.5 shadow-md bg-amber-50/95 backdrop-blur-sm border border-amber-100 animate-flash">
                 <span className="text-amber-800 font-semibold select-none">Swipe →</span>
               </div>
             </div>
-
-            {/* Directional subtle gradient overlay on the far right (outside visual only) */}
             <div className="absolute right-0 top-0 bottom-0 w-14 pointer-events-none z-20">
               <div className="h-full w-full bg-gradient-to-l from-transparent to-amber-50/60 opacity-80" />
             </div>
           </div>
         )}
       </div>
-
-      {/* aria-live region for screen readers announcements */}
       <div className="sr-only" aria-live="polite">
         {announceMessage}
       </div>
-
       <style jsx>{`
-        /* hide scrollbar visually */
         .scroll-smooth::-webkit-scrollbar {
           display: none;
         }
-
-        /* line clamp for descriptions */
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
-
-        /* bounce for arrows */
         .hint-bounce {
           animation: hint-bounce 1.6s infinite;
         }
@@ -526,8 +462,6 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
             opacity: 0.95;
           }
         }
-
-        /* pulsing arrow for layered effect */
         .hint-pulse {
           animation: hint-pulse 1.3s infinite;
         }
@@ -548,8 +482,6 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
             opacity: 0.85;
           }
         }
-
-        /* flashing/swelling text */
         .animate-flash {
           animation: flash-text 1.6s infinite;
         }
@@ -567,8 +499,6 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
             opacity: 0.95;
           }
         }
-
-        /* subtle container shake for attention (short) */
         .hint-shake {
           animation: hint-shake 420ms cubic-bezier(.36,.07,.19,.97);
         }
@@ -580,13 +510,9 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
           80% { transform: translateX(4px); }
           100% { transform: translateX(0); }
         }
-
-        /* smooth scroll behavior helper class (applied inline) */
         .scroll-smooth {
           scroll-behavior: smooth;
         }
-
-        /* make sure hint visuals never capture pointer events */
         .pointer-events-none {
           pointer-events: none;
         }
