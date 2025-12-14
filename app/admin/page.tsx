@@ -79,6 +79,7 @@ const LinkCacheManagementTab = lazy(() => import("@/components/admin/tabs/LinkCa
 const ProfessionalWritingTab = lazy(() => import("@/components/admin/tabs/ProfessionalWritingTab"))
 const InvitationManagementTab = lazy(() => import("@/components/admin/tabs/InvitationManagementTab"))
 const BulkOrderManagementTab = lazy(() => import("@/components/admin/tabs/BulkOrderManagementTab"))
+const OnlineCoursesTab = lazy(() => import("@/components/admin/tabs/OnlineCoursesTab"))
 
 // Custom hook for managing tab loading state
 const useTabLoader = () => {
@@ -156,6 +157,7 @@ const TAB_CONFIG = [
   { id: "maintenance", label: "Maintenance", icon: Wrench, component: null },
   { id: "settings", label: "Settings", icon: Settings, component: null },
   { id: "invitation-management", label: "Invitation Management", icon: Mail, component: InvitationManagementTab },
+  { id: "online-courses", label: "Online Courses", icon: BookOpen, component: OnlineCoursesTab },
 ]
 function AdminDashboardContent() {
   const { loadedTabs, activeTab, loadTab } = useTabLoader()
@@ -447,6 +449,8 @@ function AdminDashboardContent() {
         return stats.pendingInvitations
       case "domestic-workers":
         return stats.pendingDomesticWorkers
+      case "online-courses":
+        return stats.pendingOnlineCourses
       default:
         return 0
     }

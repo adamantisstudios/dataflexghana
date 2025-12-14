@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { generateWhatsAppLink } from "@/utils/whatsapp"
 import { Zap, Calculator } from "lucide-react"
+import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
 
 const meterTypes = ["NURI", "Holley", "CLOU", "Hexing", "Landis+Gyr", "Other"]
 
@@ -22,6 +23,9 @@ export function ECGTopUpForm() {
     accountHolder: "",
     address: "",
   })
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState("")
 
   const serviceCharge = 8
   const totalAmount = formData.amount ? Number.parseFloat(formData.amount) + serviceCharge : 0
@@ -43,10 +47,29 @@ Total Amount: ₵${totalAmount.toFixed(2)}
 Meter Type: ${formData.meterType}
 Phone Number: ${formData.phoneNumber || "Not provided"}
 Account Holder: ${formData.accountHolder || "Not provided"}
-Address: ${formData.address || "Not provided"}`
+Address: ${formData.address || "Not provided"}
 
-    const whatsappUrl = generateWhatsAppLink(message)
+💳 PAYMENT CONFIRMATION:
+✅ Customer confirmed payment completed to 0557943392
+Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
+
+    setPendingMessage(message)
+    setShowPaymentModal(true)
+  }
+
+  const handlePaymentConfirmed = () => {
+    const whatsappUrl = generateWhatsAppLink(pendingMessage)
     window.open(whatsappUrl, "_blank")
+    setShowPaymentModal(false)
+
+    setFormData({
+      meterNumber: "",
+      amount: "",
+      meterType: "",
+      phoneNumber: "",
+      accountHolder: "",
+      address: "",
+    })
   }
 
   return (
@@ -143,7 +166,6 @@ Address: ${formData.address || "Not provided"}`
               />
             </div>
 
-            {/* Cost Breakdown */}
             {formData.amount && (
               <Card className="bg-green-50 border-green-200">
                 <CardContent className="p-4">
@@ -175,6 +197,18 @@ Address: ${formData.address || "Not provided"}`
           </form>
         </CardContent>
       </Card>
+
+      <PaymentConfirmationModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirmPayment={handlePaymentConfirmed}
+        orderSummary={{
+          service: "ECG Prepaid Top-Up",
+          amount: formData.amount ? Number.parseFloat(formData.amount) : 0,
+          serviceCharge: serviceCharge,
+          total: totalAmount,
+        }}
+      />
     </div>
   )
 }

@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from "react"
 import type React from "react"
 
-import { useRouter } from 'next/navigation'
-import { useSearchParams } from 'next/navigation'
+import { useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,7 +31,25 @@ import {
   type DataBundle,
 } from "@/lib/supabase"
 import { getCurrentAgent } from "@/lib/auth"
-import { ArrowLeft, Smartphone, CheckCircle, AlertTriangle, Phone, Wallet, CreditCard, ArrowDown, ShoppingCart, X, Clock } from 'lucide-react'
+import {
+  ArrowLeft,
+  Smartphone,
+  CheckCircle,
+  AlertTriangle,
+  Phone,
+  Wallet,
+  CreditCard,
+  ArrowDown,
+  ShoppingCart,
+  X,
+  Clock,
+  DollarSign,
+  AlertCircle,
+} from "lucide-react"
+// Import persistence functions
+import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence"
+// Import persistence hook
+import { useDataOrderPersistence } from "@/hooks/use-data-order-persistence"
 
 export default function DataOrderPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -45,6 +63,7 @@ export default function DataOrderPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [generatedReference, setGeneratedReference] = useState("")
   const [orderDetails, setOrderDetails] = useState<any>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -60,11 +79,15 @@ export default function DataOrderPage() {
   const [showTCModal, setShowTCModal] = useState(false)
   const [showDataOrderNotice, setShowDataOrderNotice] = useState(false)
   const [noticeTimerStarted, setNoticeTimerStarted] = useState(false)
+  const [persistedOrder, setPersistedOrder] = useState<DataOrderState | null>(null) // This is now managed by the hook, can be removed or repurposed
   const router = useRouter()
   const searchParams = useSearchParams()
 
   // Ref for payment section
   const paymentSectionRef = useRef<HTMLDivElement>(null)
+
+  // Initialize persistence hook
+  const { saveOrderState, restoreOrderState, clearOrderState } = useDataOrderPersistence()
 
   useEffect(() => {
     const currentAgent = getCurrentAgent()
@@ -114,6 +137,37 @@ export default function DataOrderPage() {
       }
     }
   }, [searchParams, dataBundles])
+
+  useEffect(() => {
+    const restored = restoreOrderState()
+    if (restored) {
+      // Ensure the restored bundle data is fully populated if possible
+      // For now, we assume selectedBundle in persisted state has sufficient info
+      setSelectedBundle(restored.selectedBundle)
+      setRecipientPhone(restored.recipientPhone)
+      setPaymentMethod(restored.paymentMethod)
+      setGeneratedReference(restored.generatedReference)
+      setOrderDetails(restored.orderDetails)
+      setShowConfirmDialog(true) // Open confirmation dialog immediately
+
+      // Show notification that order was restored
+      setShowSuccessNotification(true)
+      setSuccessNotificationData({
+        bundleName: restored.selectedBundle?.name || "Your Order",
+        recipientPhone: restored.recipientPhone,
+        amount: restored.selectedBundle?.price || 0,
+        paymentMethod: restored.paymentMethod === "wallet" ? "Wallet Balance" : "Manual Payment",
+        reference: restored.paymentMethod === "manual" ? restored.generatedReference : undefined,
+        deliveryTime: "10-45 minutes",
+      })
+
+      // Auto-dismiss the restoration notification
+      setTimeout(() => {
+        setShowSuccessNotification(false)
+        setSuccessNotificationData(null) // Clear data as well
+      }, 5000)
+    }
+  }, [restoreOrderState]) // Dependency array includes the hook function
 
   const setupWalletBalanceListener = (agentId: string) => {
     // Listen for changes to the agent's wallet balance
@@ -200,6 +254,28 @@ export default function DataOrderPage() {
 
       setDataBundles(bundlesData || [])
       setWalletBalance(approvedWalletBalance) // Use corrected balance
+
+      const saved = loadDataOrderState() // This seems to be an older persistence mechanism
+      if (saved) {
+        setPersistedOrder(saved) // Still keeping this for potential UI feedback if needed
+        // Pre-populate the form with saved data
+        if (bundlesData && bundlesData.length > 0) {
+          // Use bundlesData here
+          const bundle = bundlesData.find((b) => b.id === saved.bundleId)
+          if (bundle) {
+            setSelectedBundle(bundle)
+            setRecipientPhone(saved.recipientPhone)
+            setPaymentMethod(saved.paymentMethod)
+            setGeneratedReference(saved.generatedReference)
+            // Ensure correct wallet balance check if payment method is wallet
+            if (saved.paymentMethod === "wallet" && approvedWalletBalance < bundle.price) {
+              setError(
+                `Insufficient wallet balance. You need GH₵ ${bundle.price.toFixed(2)} but have GH₵ ${approvedWalletBalance.toFixed(2)}`,
+              )
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error("Error loading data:", error)
       setError("Failed to load data bundles")
@@ -257,7 +333,7 @@ export default function DataOrderPage() {
     return true
   }
 
-  const handleOrderSubmit = async (e: React.FormEvent) => {
+  const placeOrder = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!agent || !selectedBundle) return
 
@@ -288,6 +364,24 @@ export default function DataOrderPage() {
 
     setOrderDetails(orderData)
     setGeneratedReference(reference)
+
+    saveOrderState({
+      selectedBundle,
+      recipientPhone: cleanPhoneNumber,
+      paymentMethod,
+      generatedReference: reference,
+      orderDetails: orderData,
+    })
+
+    if (paymentMethod === "manual") {
+      setShowPaymentModal(true)
+    } else {
+      setShowConfirmDialog(true)
+    }
+  }
+
+  const handlePaymentConfirmed = () => {
+    setShowPaymentModal(false)
     setShowConfirmDialog(true)
   }
 
@@ -366,6 +460,11 @@ export default function DataOrderPage() {
       setRecipientPhone("")
       setPaymentMethod("manual")
       setShowConfirmDialog(false)
+      setGeneratedReference("") // Clear reference as well
+      setOrderDetails(null) // Clear order details
+
+      clearDataOrderState() // Clear old persistence
+      clearOrderState() // Clear new persistence hook state
 
       // Auto-dismiss notification after 8 seconds
       setTimeout(() => {
@@ -375,6 +474,8 @@ export default function DataOrderPage() {
     } catch (error: any) {
       console.error("Error placing order:", error)
       setError(error.message || "Failed to place order. Please try again.")
+      // Keep state saved so user can retry
+      // The saveOrderState will be called again if they retry and validateOrder passes
     } finally {
       setSubmitting(false)
     }
@@ -422,9 +523,35 @@ export default function DataOrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-white">
+      {/* Add UI to show restored order if available */}
+      {/* This UI is now replaced by the successNotificationData for restored orders */}
+      {/* {persistedOrder && (
+        <div className="fixed top-4 right-4 bg-blue-50 border border-blue-300 rounded-lg p-4 max-w-sm z-40 animate-in slide-in-from-right">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-blue-900">Order Restored</p>
+              <p className="text-sm text-blue-800 mt-1">
+                We found your previous order for <strong>{persistedOrder.bundleName}</strong>. Complete payment to
+                proceed.
+              </p>
+              <button
+                onClick={() => {
+                  setPersistedOrder(null)
+                  clearDataOrderState()
+                }}
+                className="text-xs text-blue-600 hover:text-blue-800 mt-2 underline"
+              >
+                Clear this notification
+              </button>
+            </div>
+          </div>
+        </div>
+      )} */}
+
+      {/* Header - Mobile Responsive */}
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Header - Mobile Responsive */}
         <div className="mb-6">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
@@ -587,7 +714,7 @@ export default function DataOrderPage() {
               <CardDescription className="text-emerald-600">Enter recipient details and payment method</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <form onSubmit={handleOrderSubmit} className="space-y-6">
+              <form onSubmit={placeOrder} className="space-y-6">
                 <div>
                   <Label htmlFor="recipientPhone" className="text-gray-700 font-medium">
                     Recipient Phone Number *
@@ -742,6 +869,100 @@ export default function DataOrderPage() {
           </Link>
         </div>
 
+        {showPaymentModal && selectedBundle && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="bg-gradient-to-r from-emerald-500 to-green-500 px-6 py-4 text-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">Payment Required</h3>
+                    <p className="text-emerald-100 text-sm">Complete payment before placing order</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="bg-amber-50 rounded-lg p-4 border-2 border-amber-200">
+                  <h4 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    Payment Details
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="bg-white rounded-lg p-3 border border-amber-200">
+                      <p className="text-sm text-gray-600 mb-1">Payment Name:</p>
+                      <p className="font-bold text-gray-900">Adamantis Solutions</p>
+                      <p className="text-sm text-gray-700">(Francis Ani-Johnson .K)</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-amber-200">
+                      <p className="text-sm text-gray-600 mb-1">Payment Line:</p>
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-xl text-emerald-600">0557943392</p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText("0557943392")
+                            alert("Payment number copied!")
+                          }}
+                          className="px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded text-sm font-semibold transition"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-amber-200">
+                      <p className="text-sm text-gray-600 mb-1">Amount to Pay:</p>
+                      <p className="font-bold text-2xl text-emerald-600">GH₵ {selectedBundle.price.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-amber-200">
+                      <p className="text-sm text-gray-600 mb-1">Payment Reference:</p>
+                      <div className="flex items-center justify-between">
+                        <p className="font-mono text-sm font-bold text-gray-900">{generatedReference}</p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(generatedReference)
+                            alert("Reference copied!")
+                          }}
+                          className="px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded text-sm font-semibold transition"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    <strong>Important:</strong> Please complete your payment to <strong>0557943392</strong> using the
+                    reference number <strong>{generatedReference}</strong> before clicking "Completed Payment".
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowPaymentModal(false)
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handlePaymentConfirmed}
+                    className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Completed Payment
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Confirmation Dialog */}
         <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
           <AlertDialogContent className="w-[95vw] max-w-md">
@@ -768,9 +989,15 @@ export default function DataOrderPage() {
                     <div className="flex justify-between">
                       <span className="text-emerald-700">Payment:</span>
                       <span className="font-medium text-emerald-900">
-                        {paymentMethod === "wallet" ? "Wallet Balance" : "Manual Payment"}
+                        {paymentMethod === "wallet" ? "Wallet Balance" : "Manual Payment (Confirmed)"}
                       </span>
                     </div>
+                    {paymentMethod === "manual" && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-emerald-200">
+                        <CheckCircle className="h-4 w-4 text-emerald-600" />
+                        <span className="text-sm text-emerald-700 font-medium">Payment Confirmed</span>
+                      </div>
+                    )}
                     {paymentMethod === "wallet" && (
                       <div className="flex justify-between">
                         <span className="text-emerald-700">New Balance:</span>
@@ -782,63 +1009,16 @@ export default function DataOrderPage() {
                   </div>
                 </div>
 
-                {paymentMethod === "manual" && (
-                  <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Phone className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm font-medium text-amber-800">Payment Instructions</span>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-amber-700 text-sm">
-                        <strong>Step 1:</strong> Pay the amount <strong>GH₵ {selectedBundle?.price.toFixed(2)}</strong>
-                      </p>
-                      <p className="text-amber-700 text-sm">
-                        <strong>Step 2:</strong> Use this reference number when paying:
-                      </p>
-                      <div className="bg-white rounded border border-amber-300 p-2 flex items-center justify-between gap-2">
-                        <span className="font-mono text-sm text-amber-900 font-bold flex-1 text-center">
-                          {generatedReference}
-                        </span>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(generatedReference)
-                            alert("Reference copied!")
-                          }}
-                          className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded text-xs font-semibold transition"
-                          title="Copy reference"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <p className="text-amber-700 text-sm">
-                        <strong>Step 3:</strong> Pay to
-                      </p>
-                      <div className="bg-white rounded border border-amber-300 p-2 flex items-center justify-between gap-2">
-                        <span className="font-mono text-sm text-amber-900 font-bold flex-1 text-center">
-                          0557943392
-                        </span>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText("0557943392")
-                            alert("Payment number copied!")
-                          }}
-                          className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded text-xs font-semibold transition"
-                          title="Copy payment number"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {paymentMethod === "wallet" && (
-                  <Alert className="border-green-200 bg-green-50">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800 text-sm">
-                      GH₵ {selectedBundle.price.toFixed(2)} will be deducted from your wallet balance immediately.
-                    </AlertDescription>
-                  </Alert>
+                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">Wallet Payment</span>
+                    </div>
+                    <p className="text-blue-700 text-sm">
+                      The amount will be deducted from your wallet balance immediately upon confirmation.
+                    </p>
+                  </div>
                 )}
               </div>
             )}
@@ -849,14 +1029,7 @@ export default function DataOrderPage() {
                 disabled={submitting}
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  "Confirm Order"
-                )}
+                {submitting ? "Processing..." : "Confirm Order"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

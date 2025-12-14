@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { generateWhatsAppLink } from "@/utils/whatsapp"
 import { Users, UserCheck } from "lucide-react"
+import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
 
 export function AFARegistrationForm() {
   const [formData, setFormData] = useState({
@@ -21,6 +22,11 @@ export function AFARegistrationForm() {
     referringAgent: "",
   })
 
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState("")
+
+  const registrationFee = 15
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -32,7 +38,7 @@ export function AFARegistrationForm() {
     const message = `AFA Registration Request:
 
 Registration Type: AFA Registration
-Registration Fee: ₵15
+Registration Fee: ₵${registrationFee}
 
 Personal Information:
 Full Name: ${formData.fullName}
@@ -41,10 +47,31 @@ Email: ${formData.email}
 Ghana Card ID: ${formData.ghanaCardId}
 Location: ${formData.location}
 Date of Birth: ${formData.dateOfBirth}
-Referring Agent: ${formData.referringAgent || "None"}`
+Referring Agent: ${formData.referringAgent || "None"}
 
-    const whatsappUrl = generateWhatsAppLink(message)
+💳 PAYMENT CONFIRMATION:
+✅ Customer confirmed payment completed to 0557943392
+Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
+
+    setPendingMessage(message)
+    setShowPaymentModal(true)
+  }
+
+  const handlePaymentConfirmed = () => {
+    const whatsappUrl = generateWhatsAppLink(pendingMessage)
     window.open(whatsappUrl, "_blank")
+    setShowPaymentModal(false)
+
+    // Reset form
+    setFormData({
+      fullName: "",
+      phone: "",
+      email: "",
+      location: "",
+      dateOfBirth: "",
+      ghanaCardId: "",
+      referringAgent: "",
+    })
   }
 
   const afaBenefits = [
@@ -194,6 +221,17 @@ Referring Agent: ${formData.referringAgent || "None"}`
           </Button>
         </CardContent>
       </Card>
+
+      <PaymentConfirmationModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirmPayment={handlePaymentConfirmed}
+        orderSummary={{
+          service: "AFA Registration",
+          amount: registrationFee,
+          total: registrationFee,
+        }}
+      />
     </div>
   )
 }

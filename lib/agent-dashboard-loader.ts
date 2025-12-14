@@ -121,12 +121,25 @@ export async function loadTabData(tabName: string, agentId: string): Promise<any
           .select("*")
           .eq("is_active", true)
           .order("created_at", { ascending: false })
-        
+
         if (jobsError) {
           console.error("Error loading jobs:", jobsError)
           return []
         }
         return jobsData || []
+
+      case "courses":
+        const { data: coursesData, error: coursesError } = await supabase
+          .from("online_courses")
+          .select("*")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+
+        if (coursesError) {
+          console.error("Error loading courses:", coursesError)
+          return { courses: [] }
+        }
+        return { courses: coursesData || [] }
 
       case "paid-commissions":
         const { data: paidWithdrawalsData } = await supabase

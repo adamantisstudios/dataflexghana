@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
 import type React from "react"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -11,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { supabase, type DataBundle } from "@/lib/supabase"
-import { Database, Plus, Edit, Trash2 } from "lucide-react"
+import { Database, Plus, Edit, Trash2, AlertCircle } from "lucide-react"
 
 interface BundleGridProps {
   provider: string
@@ -83,9 +82,7 @@ const BundleGrid: React.FC<BundleGridProps> = ({ provider, bundles, editBundle, 
                   <span className="text-sm font-semibold text-emerald-800">
                     {(bundle.commission_rate * 100).toFixed(4)}%
                   </span>
-                  <div className="text-xs text-gray-500">
-                    (₵{(bundle.price * bundle.commission_rate).toFixed(4)})
-                  </div>
+                  <div className="text-xs text-gray-500">(₵{(bundle.price * bundle.commission_rate).toFixed(4)})</div>
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -125,15 +122,20 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
   const [editingBundle, setEditingBundle] = useState<DataBundle | null>(null)
   const [bundleForm, setBundleForm] = useState({
     name: "",
-    provider: "",
+    provider: "MTN",
     size_gb: "",
     price: "",
-    validity_months: "3",
+    validity_months: "",
+    commission_rate: "",
     image_url: "",
-    commission_rate: "0.05", // Default 5%
   })
-  // CRITICAL FIX: Add validation state for commission rate
   const [commissionRateError, setCommissionRateError] = useState("")
+  const [providerStatus, setProviderStatus] = useState<Record<string, boolean>>({
+    MTN: true,
+    AirtelTigo: true,
+    Telecel: true,
+  })
+  const [togglingProvider, setTogglingProvider] = useState<string | null>(null)
 
   const loadData = async () => {
     const cachedData = getCachedData()
@@ -173,17 +175,32 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
     loadData()
   }, [getCachedData, setCachedData])
 
+  useEffect(() => {
+    if (dataBundles.length > 0) {
+      const status: Record<string, boolean> = {}
+      const providers = ["MTN", "AirtelTigo", "Telecel"]
+
+      providers.forEach((provider) => {
+        const providerBundles = dataBundles.filter((b) => b.provider === provider)
+        // Provider is enabled if at least one bundle is active
+        status[provider] = providerBundles.some((b) => b.is_active)
+      })
+
+      setProviderStatus(status)
+    }
+  }, [dataBundles])
+
   // CRITICAL FIX: Enhanced commission rate validation
   const validateCommissionRate = (value: string): boolean => {
     setCommissionRateError("")
-    
+
     if (!value || value.trim() === "") {
       setCommissionRateError("Commission rate is required")
       return false
     }
 
-    const numValue = parseFloat(value)
-    
+    const numValue = Number.parseFloat(value)
+
     if (isNaN(numValue)) {
       setCommissionRateError("Commission rate must be a valid number")
       return false
@@ -200,7 +217,7 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
     }
 
     // Check decimal places (allow up to 6 decimal places for precision like 0.008765)
-    const decimalPlaces = (value.split('.')[1] || '').length
+    const decimalPlaces = (value.split(".")[1] || "").length
     if (decimalPlaces > 6) {
       setCommissionRateError("Commission rate cannot have more than 6 decimal places")
       return false
@@ -224,81 +241,77 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
         price: Number.parseFloat(bundleForm.price),
         validity_months: Number.parseInt(bundleForm.validity_months),
         // CRITICAL FIX: Preserve exact decimal precision
-        commission_rate: parseFloat(parseFloat(bundleForm.commission_rate).toFixed(6)),
+        commission_rate: Number.parseFloat(Number.parseFloat(bundleForm.commission_rate).toFixed(6)),
       }
 
       // CRITICAL FIX: Additional validation before API call
       if (!bundleData.name || !bundleData.provider || !bundleData.size_gb || !bundleData.price) {
-        alert('Please fill in all required fields')
+        alert("Please fill in all required fields")
         return
       }
 
-      console.log('Submitting bundle data:', bundleData) // Debug log
+      console.log("Submitting bundle data:", bundleData) // Debug log
 
       // CRITICAL FIX: Use API route instead of direct Supabase calls for better error handling
       let response
       if (editingBundle) {
         // Update existing bundle via API
-        response = await fetch('/api/admin/data-bundles', {
-          method: 'PUT',
+        response = await fetch("/api/admin/data-bundles", {
+          method: "PUT",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             id: editingBundle.id,
-            ...bundleData
-          })
+            ...bundleData,
+          }),
         })
       } else {
         // Create new bundle via API
-        response = await fetch('/api/admin/data-bundles', {
-          method: 'POST',
+        response = await fetch("/api/admin/data-bundles", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify(bundleData)
+          body: JSON.stringify(bundleData),
         })
       }
 
-      console.log('API Response status:', response.status) // Debug log
+      console.log("API Response status:", response.status) // Debug log
 
       if (!response.ok) {
         let errorData
         try {
           errorData = await response.json()
         } catch (parseError) {
-          console.error('Failed to parse error response:', parseError)
+          console.error("Failed to parse error response:", parseError)
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
-        
-        console.error('API Error Response:', errorData) // Debug log
-        
+
+        console.error("API Error Response:", errorData) // Debug log
+
         // Extract error message with fallbacks
-        const errorMessage = errorData?.error || 
-                            errorData?.message || 
-                            errorData?.details || 
-                            `HTTP ${response.status}: ${response.statusText}`
-        
+        const errorMessage =
+          errorData?.error ||
+          errorData?.message ||
+          errorData?.details ||
+          `HTTP ${response.status}: ${response.statusText}`
+
         throw new Error(errorMessage)
       }
 
       const result = await response.json()
-      console.log('API Result:', result) // Debug log
+      console.log("API Result:", result) // Debug log
 
       if (!result.success) {
-        const errorMessage = result?.error || 
-                            result?.message || 
-                            result?.details || 
-                            'Failed to save bundle'
+        const errorMessage = result?.error || result?.message || result?.details || "Failed to save bundle"
         throw new Error(errorMessage)
       }
 
       // Update local state with the returned data
       let updatedBundles
       if (editingBundle) {
-        updatedBundles = dataBundles.map((bundle) =>
-          bundle.id === editingBundle.id ? result.data : bundle
-        )
+        updatedBundles = dataBundles.map((bundle) => (bundle.id === editingBundle.id ? result.data : bundle))
       } else {
         updatedBundles = [...dataBundles, result.data]
       }
@@ -318,19 +331,19 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
       setCommissionRateError("")
       setBundleForm({
         name: "",
-        provider: "",
+        provider: "MTN",
         size_gb: "",
         price: "",
-        validity_months: "3",
+        validity_months: "",
         image_url: "",
-        commission_rate: "0.05",
+        commission_rate: "",
       })
 
       // Show success message
-      alert(editingBundle ? 'Bundle updated successfully!' : 'Bundle created successfully!')
+      alert(editingBundle ? "Bundle updated successfully!" : "Bundle created successfully!")
     } catch (error) {
       console.error("Error saving bundle:", error)
-      alert(`Failed to save bundle: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      alert(`Failed to save bundle: ${error instanceof Error ? error.message : "Unknown error"}`)
     }
   }
 
@@ -341,13 +354,53 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
       provider: bundle.provider || "",
       size_gb: bundle.size_gb?.toString() || "",
       price: bundle.price?.toString() || "",
-      validity_months: bundle.validity_months?.toString() || "3",
+      validity_months: bundle.validity_months?.toString() || "",
       image_url: bundle.image_url || "",
       // CRITICAL FIX: Preserve exact decimal precision when editing
-      commission_rate: bundle.commission_rate?.toString() || "0.05",
+      commission_rate: bundle.commission_rate?.toString() || "",
     })
     setCommissionRateError("")
     setShowBundleDialog(true)
+  }
+
+  const toggleProvider = async (provider: string) => {
+    const currentStatus = providerStatus[provider]
+    const newStatus = !currentStatus
+
+    if (
+      !confirm(
+        `Are you sure you want to ${newStatus ? "enable" : "disable"} all ${provider} data bundles? This will affect all agents.`,
+      )
+    ) {
+      return
+    }
+
+    setTogglingProvider(provider)
+    try {
+      // Bulk update all bundles for this provider
+      const { error } = await supabase.from("data_bundles").update({ is_active: newStatus }).eq("provider", provider)
+
+      if (error) throw error
+
+      const updatedBundles = dataBundles.map((bundle) =>
+        bundle.provider === provider ? { ...bundle, is_active: newStatus } : bundle,
+      )
+      setDataBundles(updatedBundles)
+      setCachedData(updatedBundles)
+
+      // Update provider status immediately
+      setProviderStatus((prev) => ({ ...prev, [provider]: newStatus }))
+
+      // Reload data from database to ensure consistency
+      await loadData()
+
+      alert(`${provider} bundles have been ${newStatus ? "enabled" : "disabled"} successfully!`)
+    } catch (error) {
+      console.error(`Error toggling ${provider}:`, error)
+      alert(`Failed to ${newStatus ? "enable" : "disable"} ${provider} bundles.`)
+    } finally {
+      setTogglingProvider(null)
+    }
   }
 
   if (loading) {
@@ -387,8 +440,8 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
               AirtelTigo: "/images/airteltigo-logo.jpg",
               Telecel: "/images/telecel-logo.jpg",
             }
-            // Count bundles for each provider
             const bundleCount = dataBundles.filter((bundle) => bundle.provider === provider).length
+            const isEnabled = providerStatus[provider]
             return (
               <TabsTrigger
                 key={provider}
@@ -402,7 +455,14 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
                 />
                 <div className="flex flex-col items-center">
                   <span className="hidden sm:inline">{provider}</span>
-                  <span className="text-xs opacity-75">({bundleCount})</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs opacity-75">({bundleCount})</span>
+                    {!isEnabled && (
+                      <Badge variant="destructive" className="text-[10px] px-1 py-0">
+                        OFF
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </TabsTrigger>
             )
@@ -410,34 +470,84 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
         </TabsList>
 
         {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
-          // Filter and sort bundles by size_gb in ascending order for each provider
           const providerBundles = dataBundles
             .filter((bundle) => bundle.provider === provider)
             .sort((a, b) => a.size_gb - b.size_gb)
 
+          const activeBundles = providerBundles.filter((b) => b.is_active).length
+          const inactiveBundles = providerBundles.filter((b) => !b.is_active).length
+          const isEnabled = providerStatus[provider]
+
           return (
             <TabsContent key={provider} value={provider} className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-emerald-700 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md border-2 border-emerald-200">
-                    <img
-                      src={
-                        provider === "MTN"
-                          ? "/images/mtn.jpg"
-                          : provider === "AirtelTigo"
-                            ? "/images/airteltigo.jpg"
-                            : "/images/telecel.jpg"
-                      }
-                      alt={`${provider} logo`}
-                      className="w-full h-full object-cover"
-                    />
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-semibold text-emerald-700 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden shadow-md border-2 border-emerald-200">
+                      <img
+                        src={
+                          provider === "MTN"
+                            ? "/images/mtn.jpg"
+                            : provider === "AirtelTigo"
+                              ? "/images/airteltigo.jpg"
+                              : "/images/telecel.jpg"
+                        }
+                        alt={`${provider} logo`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <span>{provider} Data Bundles</span>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                      {activeBundles} active
+                    </Badge>
+                    {inactiveBundles > 0 && (
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                        {inactiveBundles} inactive
+                      </Badge>
+                    )}
                   </div>
-                  <span>{provider} Data Bundles</span>
-                </h3>
-                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
-                  {providerBundles.length} bundles
-                </Badge>
+                </div>
+
+                <Button
+                  variant={isEnabled ? "destructive" : "default"}
+                  size="sm"
+                  onClick={() => toggleProvider(provider)}
+                  disabled={togglingProvider === provider || providerBundles.length === 0}
+                  className={isEnabled ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"}
+                >
+                  {togglingProvider === provider ? (
+                    <>
+                      <Database className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : isEnabled ? (
+                    <>
+                      <Database className="h-4 w-4 mr-2" />
+                      Disable All {provider}
+                    </>
+                  ) : (
+                    <>
+                      <Database className="h-4 w-4 mr-2" />
+                      Enable All {provider}
+                    </>
+                  )}
+                </Button>
               </div>
+
+              {!isEnabled && providerBundles.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-red-800">
+                    <AlertCircle className="h-5 w-5" />
+                    <p className="font-semibold">{provider} bundles are currently disabled</p>
+                  </div>
+                  <p className="text-red-700 text-sm mt-1">
+                    Agents cannot order any {provider} data bundles until you enable them.
+                  </p>
+                </div>
+              )}
+
               {providerBundles.length === 0 ? (
                 <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
                   <CardContent className="pt-6 text-center">
@@ -533,14 +643,12 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
                 required
               />
             </div>
-            
+
             {/* CRITICAL FIX: Enhanced commission rate input */}
             <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="commission_rate" className="text-right pt-2">
                 Commission Rate
-                <span className="text-xs text-gray-500 block">
-                  (as decimal)
-                </span>
+                <span className="text-xs text-gray-500 block">(as decimal)</span>
               </Label>
               <div className="col-span-3 space-y-2">
                 <Input
@@ -562,26 +670,25 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
                   className={commissionRateError ? "border-red-500" : ""}
                   required
                 />
-                {commissionRateError && (
-                  <p className="text-xs text-red-500">{commissionRateError}</p>
-                )}
+                {commissionRateError && <p className="text-xs text-red-500">{commissionRateError}</p>}
                 <div className="text-xs text-gray-500 space-y-1">
                   <p>Enter as decimal: 0.01 = 1%, 0.0087 = 0.87%, 0.05 = 5%</p>
                   <p className="font-medium">
-                    Preview: {bundleForm.commission_rate ? 
-                      `${(parseFloat(bundleForm.commission_rate || "0") * 100).toFixed(4)}%` : 
-                      "0%"
-                    }
+                    Preview:{" "}
+                    {bundleForm.commission_rate
+                      ? `${(Number.parseFloat(bundleForm.commission_rate || "0") * 100).toFixed(4)}%`
+                      : "0%"}
                   </p>
                   {bundleForm.commission_rate && bundleForm.price && (
                     <p className="text-emerald-600 font-medium">
-                      Commission Amount: ₵{(parseFloat(bundleForm.price) * parseFloat(bundleForm.commission_rate)).toFixed(4)}
+                      Commission Amount: ₵
+                      {(Number.parseFloat(bundleForm.price) * Number.parseFloat(bundleForm.commission_rate)).toFixed(4)}
                     </p>
                   )}
                 </div>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="image_url" className="text-right">
                 Image URL
@@ -595,8 +702,8 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
               />
             </div>
             <DialogFooter>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={!!commissionRateError}
                 className={commissionRateError ? "opacity-50 cursor-not-allowed" : ""}
               >

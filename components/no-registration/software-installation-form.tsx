@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { generateWhatsAppLink } from "@/utils/whatsapp"
 import { Download } from "lucide-react"
+import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
 
 interface SoftwareInstallationFormProps {
   selectedSoftware: {
@@ -33,6 +34,9 @@ export function SoftwareInstallationForm({ selectedSoftware }: SoftwareInstallat
     hasLicense: "",
     additionalNotes: "",
   })
+
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState("")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,10 +61,33 @@ Preferred Date: ${formData.preferredDate}
 Preferred Time: ${formData.preferredTime}
 Internet Available: ${formData.hasInternet}
 Has License: ${formData.hasLicense}
-Additional Notes: ${formData.additionalNotes || "None"}`
+Additional Notes: ${formData.additionalNotes || "None"}
 
-    const whatsappUrl = generateWhatsAppLink(message)
+💳 PAYMENT CONFIRMATION:
+✅ Customer confirmed payment completed to 0557943392
+Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
+
+    setPendingMessage(message)
+    setShowPaymentModal(true)
+  }
+
+  const handlePaymentConfirmed = () => {
+    const whatsappUrl = generateWhatsAppLink(pendingMessage)
     window.open(whatsappUrl, "_blank")
+    setShowPaymentModal(false)
+
+    setFormData({
+      name: "",
+      phone: "",
+      serviceType: "",
+      deviceType: "",
+      operatingSystem: "",
+      preferredDate: "",
+      preferredTime: "",
+      hasInternet: "",
+      hasLicense: "",
+      additionalNotes: "",
+    })
   }
 
   return (
@@ -245,6 +272,17 @@ Additional Notes: ${formData.additionalNotes || "None"}`
           </form>
         </CardContent>
       </Card>
+
+      <PaymentConfirmationModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirmPayment={handlePaymentConfirmed}
+        orderSummary={{
+          service: `Software Installation - ${selectedSoftware.name}`,
+          amount: selectedSoftware.price,
+          total: selectedSoftware.price,
+        }}
+      />
     </div>
   )
 }
