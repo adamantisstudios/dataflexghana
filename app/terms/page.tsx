@@ -372,21 +372,99 @@ export default function TermsPage() {
           </p>
         </div>
 
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-lg border-l-4 border-amber-500 mb-6">
+          <h3 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            CRITICAL: Client SIM Requirements Before Ordering
+          </h3>
+          <div className="space-y-4 text-sm text-amber-800">
+            <p className="font-semibold">
+              You may ONLY report a completed order if the client's SIM card meets BOTH requirements:
+            </p>
+            <ul className="space-y-2 ml-6 list-disc">
+              <li>
+                <strong>The client's SIM card does NOT owe data bundles</strong>
+              </li>
+              <li>
+                <strong>The client's SIM card does NOT owe mobile money (momo)</strong>
+              </li>
+            </ul>
+            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-lg border border-red-300 mt-4">
+              <p className="font-semibold text-red-900 mb-2">IMPORTANT WARNING:</p>
+              <p className="text-red-800">
+                If the SIM owes data or momo, it is 99% likely the order will fail. In that situation, we cannot be
+                blamed and the money paid cannot be recovered. The liability falls on the client who hid this
+                information.
+              </p>
+              <p className="text-red-800 mt-2">
+                <strong>Who loses in this situation?</strong> The client loses. We have also lost the money since we
+                paid for the data. This is why data is not given for free.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border-l-4 border-blue-500 mb-6">
+          <h3 className="font-semibold text-blue-900 mb-3">Agent Responsibility: Client Verification</h3>
+          <div className="space-y-3 text-sm text-blue-800">
+            <p className="font-semibold">
+              The agent is REQUIRED to confirm from the client whether they owe any data or momo on their SIM before
+              proceeding with an order.
+            </p>
+            <p>
+              If the client confirms they owe data or momo, the processing may fail.{" "}
+              <strong>It is advised not to proceed with the order.</strong>
+            </p>
+            <p>
+              If a client hides the fact that they owe or fails to disclose it, the{" "}
+              <strong>responsibility is NOT on you as the agent. It is on the client.</strong>
+            </p>
+            <div className="bg-blue-100 dark:bg-blue-900/40 p-4 rounded-lg mt-3">
+              <p className="font-semibold text-blue-900">
+                Any financial loss in this situation cannot be recovered. Such money is unrecoverable once the failed
+                transaction occurs.
+              </p>
+            </div>
+            <p className="font-medium mt-3">
+              For smooth operations, it is highly recommended to always confirm with clients before processing an order.
+            </p>
+          </div>
+        </div>
+
         <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg border-l-4 border-green-500">
-          <h3 className="font-semibold text-green-900 mb-3">How to Report (Correct Way)</h3>
-          <p className="text-sm text-green-800 mb-3">When reporting, provide:</p>
+          <h3 className="font-semibold text-green-900 mb-3">What to Share With Us When Reporting</h3>
+          <p className="text-sm text-green-800 mb-3">
+            If you've confirmed the client does NOT owe data or momo and data still wasn't received, provide:
+          </p>
           <ul className="space-y-2 text-sm text-green-800">
             <li className="flex items-start gap-2">
               <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
-              <span>Screenshot of the client's data balance (with time clearly shown)</span>
+              <span>Screenshot of the client's current data balance (with time clearly shown)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>The phone number you bundled data for and the specific bundle you paid for</span>
             </li>
             <li className="flex items-start gap-2">
               <Check className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>Screenshot of the order from the agent platform</span>
             </li>
           </ul>
+
+          <div className="mt-4 pt-4 border-t border-green-200">
+            <h4 className="font-semibold text-green-900 mb-2">After Submission:</h4>
+            <p className="text-sm text-green-800 mb-2">
+              We will forward the details to our engineers for investigation. Possible outcomes:
+            </p>
+            <ul className="space-y-1 text-sm text-green-800 ml-6 list-disc">
+              <li>The issue will be resolved</li>
+              <li>You will be advised on next steps</li>
+              <li>The request may be rejected if the SIM is found to owe data or momo</li>
+            </ul>
+          </div>
+
           <p className="text-sm text-green-800 mt-4 font-medium">
-            We will review and provide a verdict. If data wasn't sent, we'll resend at no cost.
+            If investigation confirms data wasn't sent and the SIM is clear, we'll resend at no cost.
           </p>
         </div>
       </section>

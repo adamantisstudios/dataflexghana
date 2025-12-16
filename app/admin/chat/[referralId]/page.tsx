@@ -22,6 +22,7 @@ export default function AdminProjectChatPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false) // Added authChecked state to prevent multiple redirects
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -30,6 +31,8 @@ export default function AdminProjectChatPage() {
   const { markAsRead } = useUnreadMessages(user?.id || "", "admin")
 
   useEffect(() => {
+    if (authChecked) return // Prevent running multiple times
+
     const checkAuthAndLoadData = async () => {
       try {
         const {
@@ -38,6 +41,7 @@ export default function AdminProjectChatPage() {
         } = await supabase.auth.getSession()
 
         if (error || !session?.user) {
+          console.log("[v0] No session found, redirecting to login")
           router.push("/admin/login")
           return
         }
@@ -51,20 +55,22 @@ export default function AdminProjectChatPage() {
           .single()
 
         if (adminError || !adminUser) {
+          console.log("[v0] Admin verification failed, redirecting to login")
           router.push("/admin/login")
           return
         }
 
         setUser(session.user)
+        setAuthChecked(true)
         await loadData()
       } catch (error) {
-        console.error("Auth/data loading error:", error)
+        console.error("[v0] Auth/data loading error:", error)
         router.push("/admin/login")
       }
     }
 
     checkAuthAndLoadData()
-  }, [referralId, router])
+  }, [authChecked, referralId, router])
 
   useEffect(() => {
     scrollToBottom()

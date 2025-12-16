@@ -12,7 +12,7 @@ import { supabase, hashPassword } from "@/lib/supabase"
 import { getJoiningFeeFormatted, getPlatformName } from "@/lib/config"
 import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
-import { X } from "lucide-react"
+import { X, Play, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 const regions = [
@@ -630,29 +630,27 @@ export default function RegisterPage() {
           </Card>
 
           {/* Beyond Data Card - Responsive */}
-          <Card className="border-amber-100 bg-amber-50/50 mb-4 sm:mb-6 shadow-sm hover:shadow-md transition-shadow w-full">
+          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg">
             <CardContent className="p-3 sm:p-4">
-              <div className="flex flex-col gap-3 sm:gap-4">
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="p-2 sm:p-2.5 rounded-full bg-amber-100 flex-shrink-0">
-                    <X className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-amber-800 text-sm sm:text-lg">More Than Just Data</h3>
-                    <p className="text-xs sm:text-sm text-amber-700 mt-1 leading-relaxed">
-                      Data reselling is just the start. Discover how to earn{" "}
-                      <strong>GH₵50 to GH₵1,000+ per transaction</strong> with our trusted services.
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-2 sm:p-2.5 rounded-full bg-purple-100 flex-shrink-0">
+                  <X className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 transition-colors w-full bg-transparent text-xs sm:text-sm"
-                  onClick={() => setShowBeyondDataModal(true)}
-                >
-                  Learn How
-                </Button>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-purple-800 text-sm sm:text-lg">More Than Just Data</h3>
+                  <p className="text-sm sm:text-sm text-purple-700 mb-4 leading-relaxed">
+                    Data reselling is just the start. Discover how to earn{" "}
+                    <strong>GH₵50 to GH₵1,000+ per transaction</strong> with our trusted services.
+                  </p>
+                  <Button
+                    asChild
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white w-full sm:w-auto"
+                  >
+                    <Link href="/how-to-earn">
+                      Learn How <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
