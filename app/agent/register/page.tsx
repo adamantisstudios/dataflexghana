@@ -361,6 +361,8 @@ export default function RegisterPage() {
             </p>
           </div>
 
+          
+
           {/* Platform Sneak Peak Card - Responsive */}
           <Card className="border-blue-100 bg-blue-50/50 mb-4 sm:mb-6 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-3 sm:p-4">

@@ -22,7 +22,6 @@ export default function AdminProjectChatPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [authChecked, setAuthChecked] = useState(false) // Added authChecked state to prevent multiple redirects
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -31,20 +30,27 @@ export default function AdminProjectChatPage() {
   const { markAsRead } = useUnreadMessages(user?.id || "", "admin")
 
   useEffect(() => {
-    if (authChecked) return // Prevent running multiple times
-
     const checkAuthAndLoadData = async () => {
+      console.log("[v0] Starting auth check for admin chat")
       try {
         const {
           data: { session },
           error,
         } = await supabase.auth.getSession()
 
-        if (error || !session?.user) {
+        if (error) {
+          console.error("[v0] Session error:", error)
+          router.push("/admin/login")
+          return
+        }
+
+        if (!session?.user) {
           console.log("[v0] No session found, redirecting to login")
           router.push("/admin/login")
           return
         }
+
+        console.log("[v0] Session found, verifying admin status for:", session.user.email)
 
         // Verify admin status
         const { data: adminUser, error: adminError } = await supabase
@@ -54,14 +60,24 @@ export default function AdminProjectChatPage() {
           .eq("is_active", true)
           .single()
 
-        if (adminError || !adminUser) {
-          console.log("[v0] Admin verification failed, redirecting to login")
+        if (adminError) {
+          console.error("[v0] Admin verification error:", adminError)
+          // Don't redirect on minor errors, just log them
+          if (adminError.code === "PGRST116") {
+            console.error("[v0] Admin user not found in database")
+            router.push("/admin/login")
+            return
+          }
+        }
+
+        if (!adminUser) {
+          console.log("[v0] Admin user not active, redirecting to login")
           router.push("/admin/login")
           return
         }
 
+        console.log("[v0] Admin verified successfully, loading data")
         setUser(session.user)
-        setAuthChecked(true)
         await loadData()
       } catch (error) {
         console.error("[v0] Auth/data loading error:", error)
@@ -70,7 +86,8 @@ export default function AdminProjectChatPage() {
     }
 
     checkAuthAndLoadData()
-  }, [authChecked, referralId, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Empty dependency array to run only once on mount
 
   useEffect(() => {
     scrollToBottom()
@@ -87,6 +104,7 @@ export default function AdminProjectChatPage() {
   }
 
   const loadData = async () => {
+    console.log("[v0] Loading referral and chat data for:", referralId)
     try {
       // Load referral details
       const { data: referralData, error: referralError } = await supabase
@@ -99,7 +117,12 @@ export default function AdminProjectChatPage() {
         .eq("id", referralId)
         .single()
 
-      if (referralError) throw referralError
+      if (referralError) {
+        console.error("[v0] Error loading referral:", referralError)
+        throw referralError
+      }
+
+      console.log("[v0] Referral loaded:", referralData)
 
       // Load chat messages
       const { data: messagesData, error: messagesError } = await supabase
@@ -108,12 +131,18 @@ export default function AdminProjectChatPage() {
         .eq("referral_id", referralId)
         .order("timestamp", { ascending: true })
 
-      if (messagesError) throw messagesError
+      if (messagesError) {
+        console.error("[v0] Error loading messages:", messagesError)
+        throw messagesError
+      }
+
+      console.log("[v0] Messages loaded:", messagesData?.length || 0)
 
       setReferral(referralData)
       setMessages(messagesData || [])
     } catch (error) {
-      console.error("Error loading data:", error)
+      console.error("[v0] Error loading data:", error)
+      alert("Failed to load chat data. Please try again.")
       router.push("/admin")
     } finally {
       setLoading(false)
