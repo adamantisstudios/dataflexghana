@@ -12,10 +12,10 @@ import { supabase, type Referral, type ProjectChat } from "@/lib/supabase"
 import { ArrowLeft, Send, Upload, ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
-import type { User } from "@supabase/supabase-js"
+import { getStoredAdmin } from "@/lib/unified-auth-system"
 
 export default function AdminProjectChatPage() {
-  const [user, setUser] = useState<User | null>(null)
+  const [admin, setAdmin] = useState<any | null>(null)
   const [referral, setReferral] = useState<Referral | null>(null)
   const [messages, setMessages] = useState<ProjectChat[]>([])
   const [newMessage, setNewMessage] = useState("")
@@ -27,77 +27,39 @@ export default function AdminProjectChatPage() {
   const router = useRouter()
   const params = useParams()
   const referralId = params.referralId as string
-  const { markAsRead } = useUnreadMessages(user?.id || "", "admin")
+  const { markAsRead } = useUnreadMessages(admin?.id || "", "admin")
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
-      console.log("[v0] Starting auth check for admin chat")
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
+      console.log("[v0] Checking admin authentication")
 
-        if (error) {
-          console.error("[v0] Session error:", error)
-          router.push("/admin/login")
-          return
-        }
+      const storedAdmin = getStoredAdmin()
 
-        if (!session?.user) {
-          console.log("[v0] No session found, redirecting to login")
-          router.push("/admin/login")
-          return
-        }
-
-        console.log("[v0] Session found, verifying admin status for:", session.user.email)
-
-        // Verify admin status
-        const { data: adminUser, error: adminError } = await supabase
-          .from("admin_users")
-          .select("*")
-          .eq("email", session.user.email)
-          .eq("is_active", true)
-          .single()
-
-        if (adminError) {
-          console.error("[v0] Admin verification error:", adminError)
-          // Don't redirect on minor errors, just log them
-          if (adminError.code === "PGRST116") {
-            console.error("[v0] Admin user not found in database")
-            router.push("/admin/login")
-            return
-          }
-        }
-
-        if (!adminUser) {
-          console.log("[v0] Admin user not active, redirecting to login")
-          router.push("/admin/login")
-          return
-        }
-
-        console.log("[v0] Admin verified successfully, loading data")
-        setUser(session.user)
-        await loadData()
-      } catch (error) {
-        console.error("[v0] Auth/data loading error:", error)
+      if (!storedAdmin) {
+        console.log("[v0] No admin session found, redirecting to login")
         router.push("/admin/login")
+        return
       }
+
+      console.log("[v0] Admin session found:", storedAdmin.email)
+      setAdmin(storedAdmin)
+
+      await loadData()
     }
 
     checkAuthAndLoadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Empty dependency array to run only once on mount
+  }, [])
 
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
   useEffect(() => {
-    if (user?.id && referralId) {
+    if (admin?.id && referralId) {
       markAsRead(referralId)
     }
-  }, [user?.id, referralId, markAsRead])
+  }, [admin?.id, referralId, markAsRead])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -151,7 +113,7 @@ export default function AdminProjectChatPage() {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !referral || !user) return
+    if (!newMessage.trim() || !referral || !admin) return
 
     setSending(true)
 
@@ -160,7 +122,7 @@ export default function AdminProjectChatPage() {
         {
           referral_id: referral.id,
           sender_type: "admin",
-          sender_id: user.id,
+          sender_id: admin.id,
           message_type: "text",
           message_content: newMessage.trim(),
         },
@@ -180,7 +142,7 @@ export default function AdminProjectChatPage() {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !referral || !user) return
+    if (!file || !referral || !admin) return
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
@@ -211,7 +173,7 @@ export default function AdminProjectChatPage() {
         {
           referral_id: referral.id,
           sender_type: "admin",
-          sender_id: user.id,
+          sender_id: admin.id,
           message_type: "image",
           message_content: urlData.publicUrl,
         },

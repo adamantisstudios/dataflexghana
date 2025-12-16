@@ -361,7 +361,30 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          
+          {/* Testimonials Section - Responsive */}
+          <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-full bg-blue-100 flex-shrink-0">
+                  <Play className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">See What Other Agents Are Saying</h3>
+                  <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+                    Still not sure? Watch real success stories from agents across Ghana who are earning daily on Dataflex Ghana.
+                  </p>
+                  <Button
+                    asChild
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white w-full sm:w-auto"
+                  >
+                    <Link href="/testimonials">
+                      Watch Success Stories <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Platform Sneak Peak Card - Responsive */}
           <Card className="border-blue-100 bg-blue-50/50 mb-4 sm:mb-6 shadow-sm hover:shadow-md transition-shadow">
