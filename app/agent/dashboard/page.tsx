@@ -167,7 +167,7 @@ export default function AgentDashboard() {
     services: [],
     dataBundles: [],
     jobs: [],
-    onlineCourses: [], // Added state for online courses
+    onlineCourses: [],
   })
   const [activeTab, setActiveTab] = useState("services")
   const [loadedTabs, setLoadedTabs] = useState<Record<string, boolean>>({})
@@ -905,7 +905,7 @@ DataFlex Ghana Agent 🇬🇭`
       const response = await fetch("/api/agent/clear-old-records", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.JSON.stringify({
+        body: JSON.stringify({
           agent_id: agent?.id,
           cutoff_date: cutoffDate.toISOString(),
           record_type: "referrals",
@@ -1359,45 +1359,6 @@ DataFlex Ghana Agent 🇬🇭`
             </Card>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3 w-full max-w-full">
-            <div className="lg:col-span-1 space-y-6">
-              <div className="rounded-lg overflow-hidden shadow-lg bg-gray-100">
-                <div className="relative w-full bg-black" style={{ aspectRatio: "16/9" }}>
-                  <div className="absolute top-4 right-4 bg-black/20 text-white px-3 py-1 rounded text-sm font-medium backdrop-blur-sm z-10">
-                    Agent ID: {agent?.id?.slice(-6) || "XXXXXX"}
-                  </div>
-                  <video
-                    width="1920"
-                    height="1080"
-                    controls
-                    preload="metadata"
-                    className="w-full h-full object-cover"
-                    poster="/adamantis_introvideo_poster.jpg"
-                    style={{ aspectRatio: "16/9" }}
-                  >
-                    <source src="/adamantis_introvideo.mp4" type="video/mp4" />
-                    <source src="/adamantis_introvideo.webm" type="video/webm" />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
-              </div>
-              <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg shadow-lg border border-emerald-200 p-6">
-                <h3 className="text-xl font-bold text-emerald-800 mb-3">About Adamantis Studios</h3>
-                <p className="text-emerald-700 text-sm leading-relaxed mb-2">
-                  Adamantis Studios is a holistic marketing and IT firm offering comprehensive services to help
-                  businesses grow and thrive in today's competitive market.
-                </p>
-                <Button
-                  asChild
-                  size="sm"
-                  className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white w-full"
-                >
-                  <Link href="https://www.adamantisstudios.com" target="_blank" rel="noopener noreferrer">
-                    Learn More
-                    <ArrowRight className="ml-2 h-3 w-3" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
             <div className="lg:col-span-2 space-y-6">
               {showWalletStrategy && (
                 <div className="p-5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg shadow-lg border-l-4 border-l-blue-700 relative">
@@ -1477,7 +1438,6 @@ DataFlex Ghana Agent 🇬🇭`
               className="w-full max-w-full space-y-4 sm:space-y-6"
             >
               <TabsList className="grid grid-flow-col overflow-x-auto no-scrollbar h-auto py-2 px-3 rounded-xl border border-emerald-200 bg-white/80 backdrop-blur-sm shadow-lg">
-             
               </TabsList>
 
               <TabsContent value="referral-program" className="space-y-4">

@@ -1,17 +1,14 @@
-"use client"
-import { useState, useEffect, useRef } from "react"
-import type React from "react"
-
-import { useRouter } from "next/navigation"
-import { useSearchParams } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,16 +18,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   supabase,
   generatePaymentReference,
   calculateDataBundleCommission,
   type Agent,
   type DataBundle,
-} from "@/lib/supabase"
-import { getCurrentAgent } from "@/lib/auth"
+} from "@/lib/supabase";
+import { getCurrentAgent } from "@/lib/auth";
 import {
   ArrowLeft,
   Smartphone,
@@ -45,113 +42,103 @@ import {
   Clock,
   DollarSign,
   AlertCircle,
-} from "lucide-react"
-// Import persistence functions
-import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence"
-// Import persistence hook
-import { useDataOrderPersistence } from "@/hooks/use-data-order-persistence"
+} from "lucide-react";
+import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence";
+import { useDataOrderPersistence } from "@/hooks/use-data-order-persistence";
 
 export default function DataOrderPage() {
-  const [agent, setAgent] = useState<Agent | null>(null)
-  const [dataBundles, setDataBundles] = useState<DataBundle[]>([])
-  const [walletBalance, setWalletBalance] = useState(0)
-  const [selectedBundle, setSelectedBundle] = useState<DataBundle | null>(null)
-  const [recipientPhone, setRecipientPhone] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState<"manual" | "wallet">("manual")
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [generatedReference, setGeneratedReference] = useState("")
-  const [orderDetails, setOrderDetails] = useState<any>(null)
-  const [refreshing, setRefreshing] = useState(false)
-  const [showSuccessNotification, setShowSuccessNotification] = useState(false)
+  // State declarations
+  const [agent, setAgent] = useState<Agent | null>(null);
+  const [dataBundles, setDataBundles] = useState<DataBundle[]>([]);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [selectedBundle, setSelectedBundle] = useState<DataBundle | null>(null);
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"manual" | "wallet">("manual");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [generatedReference, setGeneratedReference] = useState("");
+  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
   const [successNotificationData, setSuccessNotificationData] = useState<{
-    bundleName: string
-    recipientPhone: string
-    amount: number
-    paymentMethod: string
-    reference?: string
-    deliveryTime: string
-  } | null>(null)
-  const [showTCModal, setShowTCModal] = useState(false)
-  const [showDataOrderNotice, setShowDataOrderNotice] = useState(false)
-  const [noticeTimerStarted, setNoticeTimerStarted] = useState(false)
-  const [persistedOrder, setPersistedOrder] = useState<DataOrderState | null>(null) // This is now managed by the hook, can be removed or repurposed
-  const router = useRouter()
-  const searchParams = useSearchParams()
+    bundleName: string;
+    recipientPhone: string;
+    amount: number;
+    paymentMethod: string;
+    reference?: string;
+    deliveryTime: string;
+  } | null>(null);
+  const [showTCModal, setShowTCModal] = useState(false);
+  const [showDataOrderNotice, setShowDataOrderNotice] = useState(false);
+  const [noticeTimerStarted, setNoticeTimerStarted] = useState(false);
+  const [persistedOrder, setPersistedOrder] = useState<DataOrderState | null>(null);
 
-  // Ref for payment section
-  const paymentSectionRef = useRef<HTMLDivElement>(null)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const paymentSectionRef = useRef<HTMLDivElement>(null);
 
   // Initialize persistence hook
-  const { saveOrderState, restoreOrderState, clearOrderState } = useDataOrderPersistence()
+  const { saveOrderState, restoreOrderState, clearOrderState } = useDataOrderPersistence();
 
+  // Load agent and data bundles
   useEffect(() => {
-    const currentAgent = getCurrentAgent()
+    const currentAgent = getCurrentAgent();
     if (!currentAgent) {
-      router.push("/agent/login")
-      return
+      router.push("/agent/login");
+      return;
     }
-    setAgent(currentAgent)
-    loadData(currentAgent.id)
+    setAgent(currentAgent);
+    loadData(currentAgent.id);
+    setupWalletBalanceListener(currentAgent.id);
+  }, [router]);
 
-    // Set up real-time wallet balance updates
-    setupWalletBalanceListener(currentAgent.id)
-  }, [router])
-
+  // Show data order notice after delay
   useEffect(() => {
     if (!noticeTimerStarted) {
       const timer = setTimeout(() => {
-        setShowDataOrderNotice(true)
-        setNoticeTimerStarted(true)
-      }, 5000)
-
-      return () => clearTimeout(timer)
+        setShowDataOrderNotice(true);
+        setNoticeTimerStarted(true);
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-  }, [noticeTimerStarted])
+  }, [noticeTimerStarted]);
 
-  // Handle pre-selected bundle from URL parameter
+  // Handle pre-selected bundle from URL
   useEffect(() => {
-    const bundleId = searchParams.get("bundle")
+    const bundleId = searchParams.get("bundle");
     if (bundleId && dataBundles.length > 0) {
-      const bundle = dataBundles.find((b) => b.id === bundleId)
+      const bundle = dataBundles.find((b) => b.id === bundleId);
       if (bundle) {
-        setSelectedBundle(bundle)
-        // Auto-scroll to payment section after a short delay
+        setSelectedBundle(bundle);
         setTimeout(() => {
           if (paymentSectionRef.current) {
-            paymentSectionRef.current.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            })
-            // Add a subtle highlight effect
-            paymentSectionRef.current.classList.add("animate-pulse")
+            paymentSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+            paymentSectionRef.current.classList.add("animate-pulse");
             setTimeout(() => {
-              paymentSectionRef.current?.classList.remove("animate-pulse")
-            }, 2000)
+              paymentSectionRef.current?.classList.remove("animate-pulse");
+            }, 2000);
           }
-        }, 500)
+        }, 500);
       }
     }
-  }, [searchParams, dataBundles])
+  }, [searchParams, dataBundles]);
 
+  // Restore persisted order state
   useEffect(() => {
-    const restored = restoreOrderState()
+    const restored = restoreOrderState();
     if (restored) {
-      // Ensure the restored bundle data is fully populated if possible
-      // For now, we assume selectedBundle in persisted state has sufficient info
-      setSelectedBundle(restored.selectedBundle)
-      setRecipientPhone(restored.recipientPhone)
-      setPaymentMethod(restored.paymentMethod)
-      setGeneratedReference(restored.generatedReference)
-      setOrderDetails(restored.orderDetails)
-      setShowConfirmDialog(true) // Open confirmation dialog immediately
+      setSelectedBundle(restored.selectedBundle);
+      setRecipientPhone(restored.recipientPhone);
+      setPaymentMethod(restored.paymentMethod);
+      setGeneratedReference(restored.generatedReference);
+      setOrderDetails(restored.orderDetails);
+      setShowConfirmDialog(true);
 
-      // Show notification that order was restored
-      setShowSuccessNotification(true)
+      setShowSuccessNotification(true);
       setSuccessNotificationData({
         bundleName: restored.selectedBundle?.name || "Your Order",
         recipientPhone: restored.recipientPhone,
@@ -159,18 +146,17 @@ export default function DataOrderPage() {
         paymentMethod: restored.paymentMethod === "wallet" ? "Wallet Balance" : "Manual Payment",
         reference: restored.paymentMethod === "manual" ? restored.generatedReference : undefined,
         deliveryTime: "10-45 minutes",
-      })
+      });
 
-      // Auto-dismiss the restoration notification
       setTimeout(() => {
-        setShowSuccessNotification(false)
-        setSuccessNotificationData(null) // Clear data as well
-      }, 5000)
+        setShowSuccessNotification(false);
+        setSuccessNotificationData(null);
+      }, 5000);
     }
-  }, [restoreOrderState]) // Dependency array includes the hook function
+  }, [restoreOrderState]);
 
+  // Set up wallet balance listener
   const setupWalletBalanceListener = (agentId: string) => {
-    // Listen for changes to the agent's wallet balance
     const channel = supabase
       .channel("wallet-balance-changes")
       .on(
@@ -182,15 +168,13 @@ export default function DataOrderPage() {
           filter: `id=eq.${agentId}`,
         },
         (payload) => {
-          console.log("Wallet balance updated:", payload)
           if (payload.new && payload.new.wallet_balance !== undefined) {
-            setWalletBalance(payload.new.wallet_balance)
+            setWalletBalance(payload.new.wallet_balance);
           }
-        },
+        }
       )
-      .subscribe()
+      .subscribe();
 
-    // Listen for wallet transactions that might affect balance
     const transactionChannel = supabase
       .channel("wallet-transactions")
       .on(
@@ -201,156 +185,130 @@ export default function DataOrderPage() {
           table: "wallet_transactions",
           filter: `agent_id=eq.${agentId}`,
         },
-        (payload) => {
-          console.log("Wallet transaction updated:", payload)
-          // Refresh wallet balance when transactions are updated
-          refreshWalletBalance(agentId)
-        },
+        () => refreshWalletBalance(agentId)
       )
-      .subscribe()
+      .subscribe();
 
-    // Cleanup function
     return () => {
-      supabase.removeChannel(channel)
-      supabase.removeChannel(transactionChannel)
-    }
-  }
+      supabase.removeChannel(channel);
+      supabase.removeChannel(transactionChannel);
+    };
+  };
 
+  // Refresh wallet balance
   const refreshWalletBalance = async (agentId: string) => {
     try {
-      // CRITICAL FIX: Use the corrected wallet balance calculation
-      // This ensures only approved transactions are included, excluding pending top-ups
-      const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-      const approvedWalletBalance = await calculateWalletBalance(agentId)
-
-      console.log("🔄 Refreshed approved wallet balance:", approvedWalletBalance)
-      setWalletBalance(approvedWalletBalance)
+      const { calculateWalletBalance } = await import("@/lib/earnings-calculator");
+      const approvedWalletBalance = await calculateWalletBalance(agentId);
+      setWalletBalance(approvedWalletBalance);
     } catch (error) {
-      console.error("Error refreshing wallet balance:", error)
+      console.error("Error refreshing wallet balance:", error);
     }
-  }
+  };
 
+  // Load data bundles and wallet balance
   const loadData = async (agentId: string) => {
     try {
-      setLoading(true)
-
-      // Load data bundles
+      setLoading(true);
       const { data: bundlesData, error: bundlesError } = await supabase
         .from("data_bundles")
         .select("*")
         .eq("is_active", true)
         .order("provider", { ascending: true })
-        .order("size_gb", { ascending: true })
+        .order("size_gb", { ascending: true });
 
-      if (bundlesError) throw bundlesError
+      if (bundlesError) throw bundlesError;
 
-      // CRITICAL FIX: Load agent's wallet balance using the corrected calculation
-      // Import the fixed wallet balance calculator
-      const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
+      const { calculateWalletBalance } = await import("@/lib/earnings-calculator");
+      const approvedWalletBalance = await calculateWalletBalance(agentId);
 
-      // Get the correct approved wallet balance (excluding pending transactions)
-      const approvedWalletBalance = await calculateWalletBalance(agentId)
-      console.log("✅ Data-order page using approved wallet balance:", approvedWalletBalance)
+      setDataBundles(bundlesData || []);
+      setWalletBalance(approvedWalletBalance);
 
-      setDataBundles(bundlesData || [])
-      setWalletBalance(approvedWalletBalance) // Use corrected balance
-
-      const saved = loadDataOrderState() // This seems to be an older persistence mechanism
+      const saved = loadDataOrderState();
       if (saved) {
-        setPersistedOrder(saved) // Still keeping this for potential UI feedback if needed
-        // Pre-populate the form with saved data
+        setPersistedOrder(saved);
         if (bundlesData && bundlesData.length > 0) {
-          // Use bundlesData here
-          const bundle = bundlesData.find((b) => b.id === saved.bundleId)
+          const bundle = bundlesData.find((b) => b.id === saved.bundleId);
           if (bundle) {
-            setSelectedBundle(bundle)
-            setRecipientPhone(saved.recipientPhone)
-            setPaymentMethod(saved.paymentMethod)
-            setGeneratedReference(saved.generatedReference)
-            // Ensure correct wallet balance check if payment method is wallet
+            setSelectedBundle(bundle);
+            setRecipientPhone(saved.recipientPhone);
+            setPaymentMethod(saved.paymentMethod);
+            setGeneratedReference(saved.generatedReference);
             if (saved.paymentMethod === "wallet" && approvedWalletBalance < bundle.price) {
               setError(
-                `Insufficient wallet balance. You need GH₵ ${bundle.price.toFixed(2)} but have GH₵ ${approvedWalletBalance.toFixed(2)}`,
-              )
+                `Insufficient wallet balance. You need GH₵ ${bundle.price.toFixed(2)} but have GH₵ ${approvedWalletBalance.toFixed(2)}`
+              );
             }
           }
         }
       }
     } catch (error) {
-      console.error("Error loading data:", error)
-      setError("Failed to load data bundles")
+      console.error("Error loading data:", error);
+      setError("Failed to load data bundles");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
+  // Handle bundle selection
   const handleBundleSelect = (bundleId: string) => {
-    const bundle = dataBundles.find((b) => b.id === bundleId)
-    setSelectedBundle(bundle || null)
-    setError("")
+    const bundle = dataBundles.find((b) => b.id === bundleId);
+    setSelectedBundle(bundle || null);
+    setError("");
 
-    // Smooth scroll to payment section with a slight delay
     setTimeout(() => {
       if (paymentSectionRef.current) {
-        paymentSectionRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        })
-
-        // Add a subtle highlight effect
-        paymentSectionRef.current.classList.add("animate-pulse")
+        paymentSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        paymentSectionRef.current.classList.add("animate-pulse");
         setTimeout(() => {
-          paymentSectionRef.current?.classList.remove("animate-pulse")
-        }, 2000)
+          paymentSectionRef.current?.classList.remove("animate-pulse");
+        }, 2000);
       }
-    }, 100)
-  }
+    }, 100);
+  };
 
+  // Validate order
   const validateOrder = () => {
     if (!selectedBundle) {
-      setError("Please select a data bundle")
-      return false
+      setError("Please select a data bundle");
+      return false;
     }
-
     if (!recipientPhone.trim()) {
-      setError("Please enter recipient phone number")
-      return false
+      setError("Please enter recipient phone number");
+      return false;
     }
-
-    const phoneRegex = /^[0-9]{10}$/
+    const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(recipientPhone.replace(/\s/g, ""))) {
-      setError("Please enter a valid 10-digit phone number")
-      return false
+      setError("Please enter a valid 10-digit phone number");
+      return false;
     }
-
     if (paymentMethod === "wallet" && walletBalance < selectedBundle.price) {
       setError(
-        `Insufficient wallet balance. You need GH₵ ${selectedBundle.price.toFixed(2)} but have GH₵ ${walletBalance.toFixed(2)}`,
-      )
-      return false
+        `Insufficient wallet balance. You need GH₵ ${selectedBundle.price.toFixed(2)} but have GH₵ ${walletBalance.toFixed(2)}`
+      );
+      return false;
     }
+    return true;
+  };
 
-    return true
-  }
-
+  // Place order
   const placeOrder = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!agent || !selectedBundle) return
+    e.preventDefault();
+    if (!agent || !selectedBundle) return;
+    if (!validateOrder()) return;
 
-    if (!validateOrder()) return
-
-    setError("")
-    setSuccess("")
-
-    const cleanPhoneNumber = recipientPhone.replace(/\D/g, "").slice(0, 10)
+    setError("");
+    setSuccess("");
+    const cleanPhoneNumber = recipientPhone.replace(/\D/g, "").slice(0, 10);
 
     if (cleanPhoneNumber.length !== 10) {
-      setError("Please enter a valid 10-digit phone number")
-      return
+      setError("Please enter a valid 10-digit phone number");
+      return;
     }
 
-    const commission = calculateDataBundleCommission(selectedBundle.price, selectedBundle.commission_rate)
-    const reference = generatePaymentReference()
+    const commission = calculateDataBundleCommission(selectedBundle.price, selectedBundle.commission_rate);
+    const reference = generatePaymentReference();
 
     const orderData = {
       agent_id: agent.id,
@@ -360,10 +318,10 @@ export default function DataOrderPage() {
       commission_amount: commission,
       payment_method: paymentMethod,
       status: paymentMethod === "wallet" ? "processing" : "pending",
-    }
+    };
 
-    setOrderDetails(orderData)
-    setGeneratedReference(reference)
+    setOrderDetails(orderData);
+    setGeneratedReference(reference);
 
     saveOrderState({
       selectedBundle,
@@ -371,44 +329,38 @@ export default function DataOrderPage() {
       paymentMethod,
       generatedReference: reference,
       orderDetails: orderData,
-    })
+    });
 
     if (paymentMethod === "manual") {
-      setShowPaymentModal(true)
+      setShowPaymentModal(true);
     } else {
-      setShowConfirmDialog(true)
+      setShowConfirmDialog(true);
     }
-  }
+  };
 
+  // Handle payment confirmation
   const handlePaymentConfirmed = () => {
-    setShowPaymentModal(false)
-    setShowConfirmDialog(true)
-  }
+    setShowPaymentModal(false);
+    setShowConfirmDialog(true);
+  };
 
+  // Confirm order
   const confirmOrder = async () => {
-    if (!orderDetails || !agent || !selectedBundle) return
-
-    setSubmitting(true)
+    if (!orderDetails || !agent || !selectedBundle) return;
+    setSubmitting(true);
     try {
-      // CRITICAL FIX: If paying with wallet, use APPROVED balance calculation
       if (paymentMethod === "wallet") {
-        // CRITICAL FIX: Check APPROVED wallet balance, not database column
-        const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-        const approvedWalletBalance = await calculateWalletBalance(agent.id)
-
-        console.log("🔍 Checking approved wallet balance for order:", approvedWalletBalance)
+        const { calculateWalletBalance } = await import("@/lib/earnings-calculator");
+        const approvedWalletBalance = await calculateWalletBalance(agent.id);
 
         if (approvedWalletBalance < selectedBundle.price) {
           throw new Error(
-            "Insufficient approved wallet balance. Please ensure your wallet top-up has been approved by admin.",
-          )
+            "Insufficient approved wallet balance. Please ensure your wallet top-up has been approved by admin."
+          );
         }
 
-        // Calculate new balance after deduction
-        const newBalance = approvedWalletBalance - selectedBundle.price
+        const newBalance = approvedWalletBalance - selectedBundle.price;
 
-        // CRITICAL FIX: Create wallet deduction transaction instead of direct balance update
-        // This maintains proper transaction history and approval workflow
         const { data: deductionTransaction, error: deductionError } = await supabase
           .from("wallet_transactions")
           .insert({
@@ -417,31 +369,24 @@ export default function DataOrderPage() {
             amount: selectedBundle.price,
             description: `Data bundle purchase: ${selectedBundle.name} for ${orderDetails.recipient_phone}`,
             reference_code: generatedReference,
-            status: "approved", // Immediate approval for purchases
+            status: "approved",
             source_type: "data_order",
-            source_id: null, // Will be updated after order creation
+            source_id: null,
           })
           .select()
-          .single()
+          .single();
 
         if (deductionError) {
-          console.error("Error creating wallet deduction transaction:", deductionError)
-          throw new Error("Failed to process wallet payment. Please try again.")
+          throw new Error("Failed to process wallet payment. Please try again.");
         }
 
-        console.log("✅ Wallet deduction transaction created:", deductionTransaction.id)
-
-        // Update local wallet balance state
-        setWalletBalance(newBalance)
+        setWalletBalance(newBalance);
       }
 
-      // Create the data order
-      const { error: orderError } = await supabase.from("data_orders").insert([orderDetails])
+      const { error: orderError } = await supabase.from("data_orders").insert([orderDetails]);
+      if (orderError) throw orderError;
 
-      if (orderError) throw orderError
-
-      // CRITICAL FIX: Show clean success notification instead of generic success message
-      const deliveryTime = "10-45 minutes"
+      const deliveryTime = "10-45 minutes";
       setSuccessNotificationData({
         bundleName: selectedBundle.name,
         recipientPhone: orderDetails.recipient_phone,
@@ -449,68 +394,61 @@ export default function DataOrderPage() {
         paymentMethod: paymentMethod === "wallet" ? "Wallet Balance" : "Manual Payment",
         reference: paymentMethod === "manual" ? generatedReference : undefined,
         deliveryTime,
-      })
-      setShowSuccessNotification(true)
+      });
+      setShowSuccessNotification(true);
+      setSelectedBundle(null);
+      setRecipientPhone("");
+      setPaymentMethod("manual");
+      setShowConfirmDialog(false);
+      setGeneratedReference("");
+      setOrderDetails(null);
+      clearDataOrderState();
+      clearOrderState();
 
-      // Clear the old success message
-      setSuccess("")
-
-      // Reset form
-      setSelectedBundle(null)
-      setRecipientPhone("")
-      setPaymentMethod("manual")
-      setShowConfirmDialog(false)
-      setGeneratedReference("") // Clear reference as well
-      setOrderDetails(null) // Clear order details
-
-      clearDataOrderState() // Clear old persistence
-      clearOrderState() // Clear new persistence hook state
-
-      // Auto-dismiss notification after 8 seconds
       setTimeout(() => {
-        setShowSuccessNotification(false)
-        setSuccessNotificationData(null)
-      }, 8000)
+        setShowSuccessNotification(false);
+        setSuccessNotificationData(null);
+      }, 8000);
     } catch (error: any) {
-      console.error("Error placing order:", error)
-      setError(error.message || "Failed to place order. Please try again.")
-      // Keep state saved so user can retry
-      // The saveOrderState will be called again if they retry and validateOrder passes
+      console.error("Error placing order:", error);
+      setError(error.message || "Failed to place order. Please try again.");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
+  // Refresh wallet balance manually
   const handleRefreshBalance = async () => {
-    if (!agent) return
-    setRefreshing(true)
-    await refreshWalletBalance(agent.id)
-    setRefreshing(false)
-  }
+    if (!agent) return;
+    setRefreshing(true);
+    await refreshWalletBalance(agent.id);
+    setRefreshing(false);
+  };
 
+  // Copy to clipboard
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-  }
+    navigator.clipboard.writeText(text);
+  };
 
+  // Handle reading T&Cs
   const handleReadTCs = () => {
-    setShowDataOrderNotice(false)
-    // Small delay to ensure notice is closed before opening T&Cs
+    setShowDataOrderNotice(false);
     setTimeout(() => {
-      setShowTCModal(true)
-    }, 100)
-  }
+      setShowTCModal(true);
+    }, 100);
+  };
 
+  // Group bundles by provider
   const groupedBundles = dataBundles.reduce(
-    (acc, bundle) => {
-      if (!acc[bundle.provider]) {
-        acc[bundle.provider] = []
-      }
-      acc[bundle.provider].push(bundle)
-      return acc
+    (acc: Record<string, DataBundle[]>, bundle) => {
+      if (!acc[bundle.provider]) acc[bundle.provider] = [];
+      acc[bundle.provider].push(bundle);
+      return acc;
     },
-    {} as Record<string, DataBundle[]>,
-  )
+    {}
+  );
 
+  // Render loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 flex items-center justify-center p-4">
@@ -519,38 +457,12 @@ export default function DataOrderPage() {
           <p className="text-gray-600">Loading data bundles...</p>
         </div>
       </div>
-    )
+    );
   }
 
+  // Main UI
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-white">
-      {/* Add UI to show restored order if available */}
-      {/* This UI is now replaced by the successNotificationData for restored orders */}
-      {/* {persistedOrder && (
-        <div className="fixed top-4 right-4 bg-blue-50 border border-blue-300 rounded-lg p-4 max-w-sm z-40 animate-in slide-in-from-right">
-          <div className="flex items-start gap-3">
-            <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-medium text-blue-900">Order Restored</p>
-              <p className="text-sm text-blue-800 mt-1">
-                We found your previous order for <strong>{persistedOrder.bundleName}</strong>. Complete payment to
-                proceed.
-              </p>
-              <button
-                onClick={() => {
-                  setPersistedOrder(null)
-                  clearDataOrderState()
-                }}
-                className="text-xs text-blue-600 hover:text-blue-800 mt-2 underline"
-              >
-                Clear this notification
-              </button>
-            </div>
-          </div>
-        </div>
-      )} */}
-
-      {/* Header - Mobile Responsive */}
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         <div className="mb-6">
           <div className="flex flex-col gap-4">
@@ -573,24 +485,21 @@ export default function DataOrderPage() {
           </div>
         </div>
 
-        {/* Main Content - Full Width Mobile Responsive */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-          {/* Bundle Selection with Network Tabs */}
+          {/* Bundle Selection */}
           <Card className="border-emerald-100 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b border-emerald-100">
               <CardTitle className="text-emerald-800 flex items-center gap-2">
                 <Smartphone className="h-5 w-5" />
                 Select Data Bundle
               </CardTitle>
-              <CardDescription className="text-emerald-600">
-                Choose from available data bundles by network
-              </CardDescription>
+              <CardDescription className="text-emerald-600">Choose from available data bundles by network</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <Tabs defaultValue="MTN" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm shadow-lg border border-emerald-200 p-1 rounded-xl gap-1 h-auto">
                   {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
-                    const bundleCount = dataBundles.filter((bundle) => bundle.provider === provider).length
+                    const bundleCount = dataBundles.filter((bundle) => bundle.provider === provider).length;
                     return (
                       <TabsTrigger
                         key={provider}
@@ -602,8 +511,8 @@ export default function DataOrderPage() {
                             provider === "MTN"
                               ? "/images/mtn.jpg"
                               : provider === "AirtelTigo"
-                                ? "/images/airteltigo.jpg"
-                                : "/images/telecel.jpg"
+                              ? "/images/airteltigo.jpg"
+                              : "/images/telecel.jpg"
                           }
                           alt={`${provider} logo`}
                           className="w-4 h-4 sm:w-5 sm:h-5 rounded object-cover flex-shrink-0"
@@ -614,12 +523,12 @@ export default function DataOrderPage() {
                           <span className="text-xs opacity-75">({bundleCount})</span>
                         </div>
                       </TabsTrigger>
-                    )
+                    );
                   })}
                 </TabsList>
 
                 {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
-                  const providerBundles = dataBundles.filter((bundle) => bundle.provider === provider)
+                  const providerBundles = dataBundles.filter((bundle) => bundle.provider === provider);
                   return (
                     <TabsContent key={provider} value={provider} className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -630,8 +539,8 @@ export default function DataOrderPage() {
                                 provider === "MTN"
                                   ? "/images/mtn.jpg"
                                   : provider === "AirtelTigo"
-                                    ? "/images/airteltigo.jpg"
-                                    : "/images/telecel.jpg"
+                                  ? "/images/airteltigo.jpg"
+                                  : "/images/telecel.jpg"
                               }
                               alt={`${provider} logo`}
                               className="w-full h-full object-cover"
@@ -693,13 +602,13 @@ export default function DataOrderPage() {
                         </div>
                       )}
                     </TabsContent>
-                  )
+                  );
                 })}
               </Tabs>
             </CardContent>
           </Card>
 
-          {/* Order Form - Full Width Mobile Responsive */}
+          {/* Order Form */}
           <Card
             ref={paymentSectionRef}
             className={`border-emerald-100 shadow-lg transition-all duration-500 ${
@@ -725,8 +634,8 @@ export default function DataOrderPage() {
                     required
                     value={recipientPhone}
                     onChange={(e) => {
-                      const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10)
-                      setRecipientPhone(cleaned)
+                      const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setRecipientPhone(cleaned);
                     }}
                     placeholder="e.g., 0241234567"
                     maxLength={10}
@@ -764,7 +673,9 @@ export default function DataOrderPage() {
                         </div>
                         <Badge
                           variant="secondary"
-                          className={`text-xs ${walletBalance >= (selectedBundle?.price || 0) ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                          className={`text-xs ${
+                            walletBalance >= (selectedBundle?.price || 0) ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          }`}
                         >
                           GH₵ {walletBalance.toFixed(2)}
                         </Badge>
@@ -776,8 +687,7 @@ export default function DataOrderPage() {
                     <Alert className="mt-3 border-amber-200 bg-amber-50">
                       <AlertTriangle className="h-4 w-4 text-amber-600" />
                       <AlertDescription className="text-amber-800 text-sm">
-                        Insufficient wallet balance. You need GH₵ {selectedBundle.price.toFixed(2)} but have GH₵{" "}
-                        {walletBalance.toFixed(2)}.{" "}
+                        Insufficient wallet balance. You need GH₵ {selectedBundle.price.toFixed(2)} but have GH₵ {walletBalance.toFixed(2)}.{" "}
                         <Link href="/agent/wallet" className="underline font-medium">
                           Top up your wallet
                         </Link>{" "}
@@ -807,9 +717,7 @@ export default function DataOrderPage() {
                         <span className="text-emerald-700">Your Commission:</span>
                         <span className="font-bold text-green-600">
                           GH₵{" "}
-                          {calculateDataBundleCommission(selectedBundle.price, selectedBundle.commission_rate).toFixed(
-                            2,
-                          )}
+                          {calculateDataBundleCommission(selectedBundle.price, selectedBundle.commission_rate).toFixed(2)}
                         </span>
                       </div>
                       <div className="flex justify-between pt-2 border-t border-emerald-200">
@@ -847,7 +755,7 @@ export default function DataOrderPage() {
           </Card>
         </div>
 
-        {/* Quick Actions - Mobile Responsive */}
+        {/* Quick Actions */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/agent/data-orders">
             <Button
@@ -869,92 +777,109 @@ export default function DataOrderPage() {
           </Link>
         </div>
 
+        {/* Payment Modal */}
         {showPaymentModal && selectedBundle && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in zoom-in-95 duration-300">
-              <div className="bg-gradient-to-r from-emerald-500 to-green-500 px-6 py-4 text-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                    <DollarSign className="h-6 w-6 text-white" />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-[92vw] sm:max-w-md mx-2 sm:mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-emerald-500 to-green-500 px-4 py-3 text-white">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold">Payment Required</h3>
-                    <p className="text-emerald-100 text-sm">Complete payment before placing order</p>
+                    <h3 className="text-lg sm:text-xl font-bold">Payment Required</h3>
+                    <p className="text-emerald-100 text-xs sm:text-sm">
+                      Complete payment before placing order
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
-                <div className="bg-amber-50 rounded-lg p-4 border-2 border-amber-200">
-                  <h4 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5" />
-                    Payment Details
+              {/* Content */}
+              <div className="p-4 sm:p-5 space-y-3">
+                {/* Payment Details Section */}
+                <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                  <h4 className="font-semibold text-amber-900 mb-2 flex items-center gap-1.5">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">Payment Details</span>
                   </h4>
-                  <div className="space-y-3">
-                    <div className="bg-white rounded-lg p-3 border border-amber-200">
-                      <p className="text-sm text-gray-600 mb-1">Payment Name:</p>
-                      <p className="font-bold text-gray-900">Adamantis Solutions</p>
-                      <p className="text-sm text-gray-700">(Francis Ani-Johnson .K)</p>
+                  <div className="space-y-2">
+                    {/* Payment Name */}
+                    <div className="bg-white rounded-lg p-2 border border-amber-100">
+                      <p className="text-xs text-gray-600 mb-0.5">Payment Name:</p>
+                      <p className="font-medium text-gray-900 text-sm">Adamantis Solutions</p>
+                      <p className="text-xs text-gray-600">(Francis Ani-Johnson .K)</p>
                     </div>
-                    <div className="bg-white rounded-lg p-3 border border-amber-200">
-                      <p className="text-sm text-gray-600 mb-1">Payment Line:</p>
+
+                    {/* Payment Line */}
+                    <div className="bg-white rounded-lg p-2 border border-amber-100">
+                      <p className="text-xs text-gray-600 mb-0.5">Payment Line:</p>
                       <div className="flex items-center justify-between">
-                        <p className="font-bold text-xl text-emerald-600">0557943392</p>
-                        <button
+                        <p className="font-bold text-lg text-emerald-600">0557943392</p>
+                        <Button
                           onClick={() => {
-                            navigator.clipboard.writeText("0557943392")
-                            alert("Payment number copied!")
+                            navigator.clipboard.writeText("0557943392");
+                            alert("Payment number copied!");
                           }}
-                          className="px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded text-sm font-semibold transition"
+                          className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded text-xs font-medium transition"
                         >
                           Copy
-                        </button>
+                        </Button>
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg p-3 border border-amber-200">
-                      <p className="text-sm text-gray-600 mb-1">Amount to Pay:</p>
-                      <p className="font-bold text-2xl text-emerald-600">GH₵ {selectedBundle.price.toFixed(2)}</p>
+
+                    {/* Amount to Pay */}
+                    <div className="bg-white rounded-lg p-2 border border-amber-100">
+                      <p className="text-xs text-gray-600 mb-0.5">Amount to Pay:</p>
+                      <p className="font-bold text-xl text-emerald-600">GH₵ {selectedBundle.price.toFixed(2)}</p>
                     </div>
-                    <div className="bg-white rounded-lg p-3 border border-amber-200">
-                      <p className="text-sm text-gray-600 mb-1">Payment Reference:</p>
+
+                    {/* Payment Reference */}
+                    <div className="bg-white rounded-lg p-2 border border-amber-100">
+                      <p className="text-xs text-gray-600 mb-0.5">Payment Reference:</p>
                       <div className="flex items-center justify-between">
-                        <p className="font-mono text-sm font-bold text-gray-900">{generatedReference}</p>
-                        <button
+                        <p className="font-mono text-xs font-bold text-gray-900 truncate max-w-[60%]">
+                          {generatedReference}
+                        </p>
+                        <Button
                           onClick={() => {
-                            navigator.clipboard.writeText(generatedReference)
-                            alert("Reference copied!")
+                            navigator.clipboard.writeText(generatedReference);
+                            alert("Reference copied!");
                           }}
-                          className="px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded text-sm font-semibold transition"
+                          className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded text-xs font-medium transition"
                         >
                           Copy
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <p className="text-sm text-blue-800">
-                    <strong>Important:</strong> Please complete your payment to <strong>0557943392</strong> using the
-                    reference number <strong>{generatedReference}</strong> before clicking "Completed Payment".
+                {/* Important Note */}
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                  <p className="text-xs text-blue-800">
+                    <strong>Important:</strong> Complete your payment to{" "}
+                    <strong>0557943392</strong> using the reference number{" "}
+                    <strong className="truncate inline-block max-w-[60%]">{generatedReference}</strong>{" "}
+                    before clicking "Completed Payment".
                   </p>
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2">
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      setShowPaymentModal(false)
-                    }}
-                    className="flex-1"
+                    onClick={() => setShowPaymentModal(false)}
+                    className="flex-1 text-xs py-1.5"
                   >
                     Cancel
                   </Button>
                   <Button
                     onClick={handlePaymentConfirmed}
-                    className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+                    className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-xs py-1.5"
                   >
-                    <CheckCircle className="h-4 w-4 mr-2" />
+                    <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
                     Completed Payment
                   </Button>
                 </div>
@@ -1035,21 +960,20 @@ export default function DataOrderPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* CRITICAL FIX: Clean Success Notification - Made Shorter & Mobile Responsive */}
+        {/* Success Notification */}
         {showSuccessNotification && successNotificationData && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden animate-in zoom-in-95 duration-300">
-              {/* Header - Simplified */}
               <div className="bg-gradient-to-r from-emerald-500 to-green-500 px-4 py-3 text-white relative">
-                <button
+                <Button
                   onClick={() => {
-                    setShowSuccessNotification(false)
-                    setSuccessNotificationData(null)
+                    setShowSuccessNotification(false);
+                    setSuccessNotificationData(null);
                   }}
                   className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors"
                 >
                   <X className="h-4 w-4" />
-                </button>
+                </Button>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-white" />
                   <div>
@@ -1058,10 +982,7 @@ export default function DataOrderPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Content - Simplified */}
               <div className="p-4 space-y-3">
-                {/* Essential Order Details Only */}
                 <div className="bg-gray-50 rounded-lg p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Bundle:</span>
@@ -1084,8 +1005,6 @@ export default function DataOrderPage() {
                     </div>
                   )}
                 </div>
-
-                {/* Delivery Info - Shortened */}
                 <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
                   <div className="flex items-center gap-2 mb-1">
                     <Clock className="h-4 w-4 text-blue-600" />
@@ -1095,8 +1014,6 @@ export default function DataOrderPage() {
                     Data will be delivered within <strong>{successNotificationData.deliveryTime}</strong>.
                   </p>
                 </div>
-
-                {/* Payment Instructions - Simplified */}
                 {successNotificationData.reference && (
                   <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
                     <div className="flex items-center gap-2 mb-1">
@@ -1117,13 +1034,11 @@ export default function DataOrderPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Action Buttons - Mobile Optimized */}
                 <div className="flex gap-2 pt-2">
                   <Button
                     onClick={() => {
-                      setShowSuccessNotification(false)
-                      setSuccessNotificationData(null)
+                      setShowSuccessNotification(false);
+                      setSuccessNotificationData(null);
                     }}
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2"
                   >
@@ -1132,9 +1047,9 @@ export default function DataOrderPage() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setShowSuccessNotification(false)
-                      setSuccessNotificationData(null)
-                      router.push("/agent/data-orders")
+                      setShowSuccessNotification(false);
+                      setSuccessNotificationData(null);
+                      router.push("/agent/data-orders");
                     }}
                     className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-sm py-2"
                   >
@@ -1146,6 +1061,7 @@ export default function DataOrderPage() {
           </div>
         )}
 
+        {/* Data Order Notice */}
         {showDataOrderNotice && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-in zoom-in-95 duration-300">
@@ -1154,12 +1070,12 @@ export default function DataOrderPage() {
                   <AlertTriangle className="h-5 w-5" />
                   <h2 className="text-lg font-bold">Important Notice</h2>
                 </div>
-                <button
+                <Button
                   onClick={() => setShowDataOrderNotice(false)}
                   className="text-white/80 hover:text-white transition-colors"
                 >
                   <X className="h-5 w-5" />
-                </button>
+                </Button>
               </div>
               <div className="p-6 space-y-4">
                 <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
@@ -1188,17 +1104,18 @@ export default function DataOrderPage() {
           </div>
         )}
 
+        {/* Terms & Conditions Modal */}
         {showTCModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto">
               <div className="sticky top-0 bg-gradient-to-r from-emerald-500 to-green-500 px-6 py-4 text-white flex items-center justify-between">
                 <h2 className="text-lg font-bold">Terms & Conditions</h2>
-                <button
+                <Button
                   onClick={() => setShowTCModal(false)}
                   className="text-white/80 hover:text-white transition-colors"
                 >
                   <X className="h-5 w-5" />
-                </button>
+                </Button>
               </div>
               <div className="p-6 space-y-4 text-sm text-gray-700">
                 <p>
@@ -1237,5 +1154,5 @@ export default function DataOrderPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
