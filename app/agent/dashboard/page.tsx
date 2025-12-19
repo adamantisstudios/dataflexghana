@@ -1052,7 +1052,7 @@ DataFlex Ghana Agent 🇬🇭`
             </div>
             <p className="text-white text-sm mb-3 leading-relaxed">
               When data bundles are disabled or on Sundays, order data manually. This is for urgent orders with manual
-              payment processing and no wallet deduction.
+              payment processing, no commission and no wallet deduction.
             </p>
             <Button asChild size="sm" className="w-full bg-white text-orange-600 hover:bg-orange-50 font-medium">
               <Link href="/no-registration">
