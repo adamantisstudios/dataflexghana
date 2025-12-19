@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         credits?.filter((c) => c.status === "confirmed" || c.status === "credited" || c.status === "paid_out").length ||
         0,
       completedReferrals: credits?.filter((c) => c.status === "credited" || c.status === "paid_out").length || 0,
-      totalEarnings: credits?.reduce((sum: number, c: any) => sum + (c.credit_amount || 15), 0) || 0,
+      totalEarnings: credits?.reduce((sum: number, c: any) => sum + (c.credit_amount || 7), 0) || 0,
       conversionRate:
         credits && credits.length > 0
           ? (

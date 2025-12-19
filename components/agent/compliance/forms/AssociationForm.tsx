@@ -1,6 +1,6 @@
 "use client"
 import { useState, useRef } from "react"
-import { ChevronLeft, ChevronRight, Upload, AlertCircle } from "lucide-react"
+import { ChevronLeft, ChevronRight, Upload, AlertCircle, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SignatureCanvas } from "@/components/agent/compliance/SignatureCanvas"
 import { scrollToElement } from "@/lib/scroll-utils"
@@ -174,14 +174,12 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
       formDataToSubmit.append("formType", "association-registration")
       formDataToSubmit.append("formData", JSON.stringify(formData))
 
-      // Add signatures if provided
       Object.entries(signatures).forEach(([key, value]) => {
         if (value) {
           formDataToSubmit.append(`signature_${key}`, value)
         }
       })
 
-      // Add Ghana cards if provided
       Object.entries(ghanaCards).forEach(([key, file]) => {
         if (file) {
           formDataToSubmit.append(`ghanacard_${key}`, file)
@@ -672,7 +670,6 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
                           : "Secretary"}
                 </h4>
 
-                {/* Signature Section - Full Width */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Signature</label>
                   <div className="w-full bg-gray-50 rounded-lg p-1 border border-gray-200">
@@ -688,7 +685,6 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
                   </div>
                 </div>
 
-                {/* Ghana Card Upload Section */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Ghana Card / ID Card</label>
                   <div className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
@@ -725,7 +721,6 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
             ))}
           </div>
         )
-
       case "submit":
         return (
           <div className="space-y-6 w-full" ref={formRef}>
@@ -751,30 +746,52 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
 
   if (showCostPopup) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
-        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Association Registration</h3>
-          <div className="space-y-3 mb-6">
-            <div className="flex justify-between items-center p-3 bg-blue-50 rounded">
-              <span className="text-gray-700 text-sm">Cost:</span>
-              <span className="font-bold text-blue-600">1,414 GHS</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-purple-50 rounded">
-              <span className="text-gray-700 text-sm">Duration:</span>
-              <span className="font-bold text-purple-600">14 Working Days</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-green-50 rounded">
-              <span className="text-gray-700 text-sm">Delivery:</span>
-              <span className="font-bold text-green-600">Nationwide</span>
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full border border-emerald-200">
+          <div className="px-6 pt-6 pb-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-6 w-6 text-emerald-600" />
+              <h3 className="text-xl font-bold text-gray-900">Association Registration Fee</h3>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onCancel} className="flex-1 bg-transparent text-xs">
-              Cancel
-            </Button>
-            <Button onClick={() => setShowCostPopup(false)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-xs">
-              Proceed
-            </Button>
+
+          <div className="px-6 pb-6 space-y-4">
+            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-emerald-800">Registration Cost:</span>
+                <span className="text-lg font-bold text-blue-600">1,414 GHS</span>
+              </div>
+              <div className="border-t border-emerald-200 pt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-emerald-700">Duration:</span>
+                  <span className="text-sm font-medium text-purple-600">14 Working Days</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-emerald-700">Delivery:</span>
+                  <span className="text-sm font-medium text-green-600">Nationwide</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Complete registration of your association with all required documentation and certificates delivered within 14 working days.
+            </p>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={onCancel}
+                className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 text-xs py-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => setShowCostPopup(false)}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2"
+              >
+                Proceed
+              </Button>
+            </div>
           </div>
         </div>
       </div>

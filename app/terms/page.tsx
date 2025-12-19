@@ -157,7 +157,7 @@ export default function TermsPage() {
         </h2>
 
         <div className="bg-amber-50 dark:bg-amber-900/20 p-6 rounded-lg border-l-4 border-amber-500 mb-6">
-          <h3 className="font-semibold text-amber-900 mb-3">Platform Entry Fee: GH₵50 (One-Time, Lifetime Access)</h3>
+          <h3 className="font-semibold text-amber-900 mb-3">Platform Entry Fee: GH₵40 (One-Time, Lifetime Access)</h3>
           <p className="text-sm text-amber-800 mb-3">
             Unlike free platforms that monetize through ads or data sales, DataFlex Ghana operates transparently with a
             single platform entry fee of GH₵40. This one-time payment grants you lifetime access to our ecosystem of 50+
@@ -266,6 +266,34 @@ export default function TermsPage() {
                 reopening. Sundays operate normally but delivery may be slower.
               </li>
             </ol>
+          </div>
+
+          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border-l-4 border-red-500">
+            <h3 className="font-semibold mb-2 text-red-900">
+              <AlertCircle className="h-5 w-5 inline mr-1" />
+              Critical: Reporting Delays
+            </h3>
+            <p className="text-sm text-red-800 mb-2">
+              If a data order is marked as <strong>"Completed"</strong> but the client hasn't received the bundle:
+            </p>
+            <ul className="list-disc pl-6 space-y-2 text-sm text-red-800">
+              <li>
+                Report the issue <strong>immediately</strong> if the delay exceeds <strong>1 hour</strong>.
+              </li>
+              <li>
+                Contact admin on WhatsApp: <strong>+233242799990</strong> with:
+                <ul className="list-disc pl-6 mt-1 space-y-1">
+                  <li>Client’s current data balance screenshot (with timestamp).</li>
+                  <li>Order details from the agent platform.</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Failure to report within 24 hours</strong> means the issue <strong>cannot be resolved</strong>. No refunds or resends will be possible.
+              </li>
+            </ul>
+            <p className="text-xs font-medium mt-3 text-red-900">
+              <strong>Note:</strong> DataFlex Ghana is not liable for unresolved issues due to late reporting.
+            </p>
           </div>
         </div>
       </section>

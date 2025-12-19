@@ -170,7 +170,7 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
   const shareViaEmail = () => {
     if (referralLink) {
       const subject = "Join DataFlex Ghana - Earn with Me"
-      const body = `Hi! I'm inviting you to join DataFlex Ghana. Click here to register: ${referralLink}\n\nEarn 15 GHS per successful registration!`
+      const body = `Hi! I'm inviting you to join DataFlex Ghana. Click here to register: ${referralLink}\n\nEarn 7 GHS per successful registration!`
       window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     }
   }
@@ -226,7 +226,7 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-bold text-emerald-800">Referral Program</h2>
-        <p className="text-xs text-gray-600">Share your link and earn 15 GHS per referral</p>
+        <p className="text-xs text-gray-600">Share your link and earn 7 GHS per referral</p>
       </div>
 
       {!referralLink ? (

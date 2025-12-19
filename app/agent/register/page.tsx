@@ -173,7 +173,7 @@ export default function RegisterPage() {
               const { error: creditError } = await supabase.from("referral_credits").insert([{
                 referring_agent_id: referralLink.agent_id,
                 referred_agent_id: newAgent.id,
-                credit_amount: 15.0,
+                credit_amount: 7.0,
                 status: "pending",
                 created_at: new Date().toISOString(),
               }])

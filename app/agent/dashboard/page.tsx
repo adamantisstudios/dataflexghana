@@ -1411,7 +1411,7 @@ DataFlex Ghana Agent 🇬🇭`
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-white">Invite Friends</h3>
-                    <p className="text-green-100 text-xs">Earn ₵15 when they join</p>
+                    <p className="text-green-100 text-xs">Earn ₵7 when they join</p>
                   </div>
                 </div>
                 <Button

@@ -329,40 +329,43 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
   return (
     <>
       {showCostPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
-          <Card className="max-w-md w-full border-blue-300 bg-white shadow-2xl">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <CreditCard className="h-6 w-6 text-blue-600" />
-                <CardTitle className="text-blue-600">Bank Account Opening Fee</CardTitle>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2">
+        <Card className="max-w-[95vw] sm:max-w-sm w-full border-blue-300 bg-white shadow-lg">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-blue-600 text-lg">Bank Account Opening</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-blue-800">Processing Cost:</span>
+                <span className="font-bold text-blue-600">FREE</span>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-blue-800">Processing Cost:</span>
-                  <span className="text-lg font-bold text-blue-600">FREE</span>
+              <div className="border-t border-blue-200 mt-2 pt-2">
+                <div className="flex items-center justify-between mb-1 text-sm">
+                  <span className="text-blue-700">Duration:</span>
+                  <span className="font-medium text-blue-800">1 Working Day</span>
                 </div>
-                <div className="border-t border-blue-200 pt-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-blue-700">Duration:</span>
-                    <span className="text-sm font-medium text-blue-800">1 Working Day</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-blue-700">Delivery:</span>
-                    <span className="text-sm font-medium text-blue-800">Account Info Via Email/WhatsApp</span>
-                  </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-blue-700">Delivery:</span>
+                  <span className="font-medium text-blue-800">Email/WhatsApp</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Open a bank account with complete account information delivered within 1 working day.
-              </p>
-              <Button onClick={() => setShowCostPopup(false)} className="w-full bg-blue-600 hover:bg-blue-700">
-                I Understand, Continue
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <p className="text-xs text-gray-600">
+              Open a bank account with complete details delivered within 1 working day.
+            </p>
+            <Button
+              onClick={() => setShowCostPopup(false)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-sm py-2"
+            >
+              Continue
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
       )}
 
       <Card className="border-blue-200 bg-white/90 backdrop-blur-sm w-full mx-0 px-0 sm:px-2">
