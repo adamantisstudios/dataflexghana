@@ -14,6 +14,7 @@ import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
 import { X, Play, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image" // <-- This was missing
 
 const regions = [
   "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta", "Northern",
@@ -258,43 +259,67 @@ export default function RegisterPage() {
 
       {/* Warning Popup */}
       {showWarningPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full border-red-300 bg-white shadow-2xl">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <X className="h-6 w-6 text-red-600" />
-                <CardTitle className="text-red-600">Important Notice</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                <p className="text-sm font-semibold text-red-900 mb-3">
-                  Please confirm you are ready to pay the one-time 40 GHS entry fee before registering.
-                </p>
-                <p className="text-sm text-red-800 leading-relaxed mb-3">
-                  This platform is for serious individuals committed to working as agents and earning commissions remotely.
-                </p>
-                <p className="text-sm text-red-800 leading-relaxed mb-3">
-                  Register only if you are motivated, prepared, and willing to follow our processes.
-                </p>
-                <p className="text-sm font-semibold text-red-900">
-                  Proceed only if you are ready to pay the 40 GHS fee.
-                </p>
-              </div>
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-sm font-medium text-gray-600">
-                  {canClosePopup ? "You may close this now" : `Please wait: ${popupTimeRemaining}s`}
-                </span>
-              </div>
-              <Button
-                onClick={() => setShowWarningPopup(false)}
-                disabled={!canClosePopup}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {canClosePopup ? "I Understand, Continue" : "Please wait..."}
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md">
+            {/* Image above popup */}
+            <div className="mb-4 overflow-hidden rounded-xl shadow-lg">
+              <Image
+                src="/pending.png"
+                alt="Pending Account Notice"
+                width={800}
+                height={300}
+                className="w-full h-40 object-cover"
+                priority
+              />
+            </div>
+
+            <Card className="border-red-300 bg-white shadow-2xl">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <X className="h-6 w-6 text-red-600" />
+                  <CardTitle className="text-red-600 text-lg font-bold">
+                    Important Notice
+                  </CardTitle>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-red-900">
+                    Please confirm you are ready to pay the one-time 40 GHS registration fee.
+                  </p>
+
+                  <p className="mb-3 text-sm text-red-800 leading-relaxed">
+                    This platform is strictly for serious individuals willing to work as agents and earn commissions remotely.
+                  </p>
+
+                  <p className="mb-3 text-sm text-red-800 leading-relaxed">
+                    Register only if you are fully prepared to follow our process.
+                  </p>
+
+                  <p className="text-sm font-semibold text-red-900">
+                    ⚠️ Unpaid accounts will remain <span className="uppercase">pending</span> permanently.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-sm font-medium text-gray-600">
+                    {canClosePopup
+                      ? "You may close this message now"
+                      : `Please wait: ${popupTimeRemaining}s`}
+                  </span>
+                </div>
+
+                <Button
+                  onClick={() => setShowWarningPopup(false)}
+                  disabled={!canClosePopup}
+                  className="w-full bg-emerald-600 font-semibold hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {canClosePopup ? "I Understand, Continue" : "Please wait..."}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
@@ -334,23 +359,45 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Testimonials Section */}
+         {/* Testimonials Section */}
           <Card className="border-none shadow-xl rounded-xl overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 mb-4 sm:mb-6">
             <CardContent className="p-0">
               <div className="flex flex-col md:flex-row items-center">
-                <div className="w-full md:w-1/3 p-6 flex justify-center items-center bg-blue-500/10">
-                  <div className="p-4 rounded-full bg-blue-100 flex-shrink-0">
-                    <Play className="h-8 w-8 text-blue-600" />
+
+                {/* Left section with background image */}
+                <div className="relative w-full md:w-1/3 p-6 flex justify-center items-center overflow-hidden">
+
+                  {/* Background image */}
+                  <Image
+                    src="/testimonial-bg.png" // your horizontal image
+                    alt="Testimonials preview"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+
+                  {/* Overlay for readability */}
+                  <div className="absolute inset-0 bg-blue-900/40" />
+
+                  {/* Play icon */}
+                  <div className="relative p-4 rounded-full bg-white/90 shadow-lg flex-shrink-0">
+                    <Play className="h-8 w-8 text-blue-600 ml-0.5" />
                   </div>
                 </div>
+
+                {/* Text content */}
                 <div className="w-full md:w-2/3 p-6 flex flex-col justify-center">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">See What Other Agents Are Saying</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                    See What Other Agents Are Saying
+                  </h3>
+
                   <p className="text-sm md:text-base text-gray-700 mb-5 leading-relaxed">
                     Still not sure? Watch real success stories from agents across Ghana who are earning daily on Dataflex Ghana.
                   </p>
+
                   <Button
                     asChild
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white w-full sm:w-auto py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white w-full sm:w-auto py-2 px-4 rounded-lg shadow-md transition-transform hover:scale-105"
                   >
                     <Link href="/testimonials" className="flex items-center justify-center">
                       Watch Success Stories <ArrowRight className="ml-2 h-4 w-4" />
@@ -611,7 +658,6 @@ export default function RegisterPage() {
               </form>
             </CardContent>
           </Card>
-
 
           {/* Important Notice Card */}
           <Card className="mb-4 sm:mb-6 border-amber-200 bg-amber-50">

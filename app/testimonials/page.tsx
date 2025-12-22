@@ -32,15 +32,23 @@ export default function TestimonialsPage() {
 
   const videoTestimonials: VideoTestimonial[] = [
     {
-      "id": 1,
-      "videoUrl": "/testimonials/agent1.mp4",
-      "thumbnail": "/testimonials/happy-agent-with-phone-earnings.png",
-      "agentName": "Asare Godfred",
-      "location": "Central Region, Ghana",
-      "title": "Their Data Bundles Are Affordable. They are not Scammers"
+      id: 1,
+      videoUrl: "/testimonials/agent0.mp4",
+      thumbnail: "/testimonials/alhassan_issah.png",
+      agentName: "Alhassan Issah",
+      location: "Northen Region, Ghana",
+      title: "They do alot of things, alot of services. not only data reselling ...",
     },
     {
       id: 2,
+      videoUrl: "/testimonials/agent1.mp4",
+      thumbnail: "/testimonials/happy-agent-with-phone-earnings.png",
+      agentName: "Asare Godfred",
+      location: "Central Region, Ghana",
+      title: "Their Data Bundle is affordable .. you earn commissions per every order",
+    },
+    {
+      id: 3,
       videoUrl: "/testimonials/agent2.mp4",
       thumbnail: "/testimonials/successful-female-agent-smiling.png",
       agentName: "Atta Alhassan Imoro",
@@ -111,15 +119,44 @@ export default function TestimonialsPage() {
         </div>
       </div>
 
-      {/* Hero Section */}
+  {/* STANDALONE HERO IMAGE */}
+    <section className="w-full bg-black">
+      <div
+        className="
+          relative w-full
+          aspect-[1473/842]
+          h-auto
+          max-h-[60vh]
+          sm:max-h-[65vh]
+          md:max-h-[520px]
+          lg:max-h-[560px]
+          xl:max-h-[600px]
+          mx-auto
+          overflow-hidden
+        "
+      >
+        <Image
+          src="/cover.png"
+          alt="DataFlex Ghana Agents Success"
+          fill
+          priority
+          sizes="100vw"
+          className="object-contain"
+        />
+      </div>
+    </section>
+
+
+
+      {/* HERO TEXT (SEPARATE FROM IMAGE) */}
       <section className="py-12 sm:py-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-6 text-balance">
             Real Agents. Real Success Stories.
           </h1>
-          <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto mb-8 text-pretty leading-relaxed">
-            Watch and read how agents across Ghana are transforming their lives with DataFlex Ghana. These are real
-            people earning real income.
+          <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
+            Watch and read how agents across Ghana are transforming their lives with DataFlex Ghana.
+            These are real people earning real income.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
@@ -140,13 +177,15 @@ export default function TestimonialsPage() {
       <section className="py-16 px-4 bg-white/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Watch Agent Success Stories</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              Watch Agent Success Stories
+            </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               See firsthand how our agents are building successful businesses and earning life-changing income
             </p>
           </div>
 
-          {/* Video Grid - Responsive */}
+          {/* Video Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
             {videoTestimonials.map((video) => (
               <Card
@@ -156,20 +195,20 @@ export default function TestimonialsPage() {
               >
                 <div className="relative aspect-[9/16] bg-gray-900">
                   <Image
-                    src={video.thumbnail || "/placeholder.svg"}
+                    src={video.thumbnail}
                     alt={video.agentName}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  {/* Play Button Overlay */}
-                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                    <div className="bg-emerald-600 group-hover:bg-emerald-500 rounded-full p-4 sm:p-5 shadow-2xl transform group-hover:scale-110 transition-transform">
+                  <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 flex items-center justify-center">
+                    <div className="bg-emerald-600 rounded-full p-4 sm:p-5 shadow-2xl group-hover:scale-110 transition-transform">
                       <Play className="h-6 w-6 sm:h-8 sm:w-8 text-white fill-white" />
                     </div>
                   </div>
-                  {/* Bottom Info Gradient */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/70 to-transparent p-3 sm:p-4">
-                    <p className="text-white font-semibold text-xs sm:text-sm mb-1">{video.agentName}</p>
+                    <p className="text-white font-semibold text-xs sm:text-sm mb-1">
+                      {video.agentName}
+                    </p>
                     <p className="text-emerald-300 text-xs">{video.title}</p>
                   </div>
                 </div>
@@ -181,7 +220,9 @@ export default function TestimonialsPage() {
           <div className="mt-12 text-center">
             <Card className="bg-gradient-to-r from-emerald-600 to-green-600 border-none text-white max-w-2xl mx-auto">
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-3">Ready to Share Your Own Success Story?</h3>
+                <h3 className="text-2xl font-bold mb-3">
+                  Ready to Share Your Own Success Story?
+                </h3>
                 <p className="text-emerald-50 mb-6">
                   Join thousands of agents earning life-changing income with DataFlex Ghana
                 </p>
@@ -198,31 +239,31 @@ export default function TestimonialsPage() {
       <section className="py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">What Our Agents Are Saying</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              What Our Agents Are Saying
+            </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Read detailed stories from agents who have transformed their financial lives
             </p>
           </div>
 
-          {/* Text Testimonials Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {textTestimonials.map((testimonial) => (
               <Card key={testimonial.id} className="hover:shadow-xl transition-shadow duration-300 border-emerald-100">
                 <CardContent className="p-6">
-                  {/* Header with Image */}
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-emerald-200 flex-shrink-0">
+                    <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-emerald-200">
                       <Image
-                        src={testimonial.imageUrl || "/placeholder.svg"}
+                        src={testimonial.imageUrl}
                         alt={testimonial.name}
                         fill
                         className="object-cover"
                       />
                     </div>
-                    <div className="flex-1">
+                    <div>
                       <h3 className="font-bold text-gray-900 text-lg">{testimonial.name}</h3>
                       <p className="text-sm text-gray-500">{testimonial.location}</p>
-                      <div className="flex items-center gap-1 mt-1">
+                      <div className="flex gap-1 mt-1">
                         {Array.from({ length: testimonial.rating }).map((_, i) => (
                           <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                         ))}
@@ -230,93 +271,55 @@ export default function TestimonialsPage() {
                     </div>
                   </div>
 
-                  {/* Earnings Badge */}
                   <div className="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-semibold mb-4">
                     {testimonial.earnings}
                   </div>
 
-                  {/* Testimonial Text */}
                   <div className="relative">
                     <Quote className="h-8 w-8 text-emerald-200 absolute -top-2 -left-2" />
-                    <p className="text-gray-700 text-sm leading-relaxed pl-6">{testimonial.testimonial}</p>
+                    <p className="text-gray-700 text-sm leading-relaxed pl-6">
+                      {testimonial.testimonial}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
-
-          {/* Final CTA */}
-          <div className="mt-16 text-center">
-            <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border-none text-white max-w-4xl mx-auto overflow-hidden">
-              <CardContent className="p-8 sm:p-12">
-                <h3 className="text-3xl sm:text-4xl font-bold mb-4 text-balance">Your Success Story Starts Here</h3>
-                <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto text-pretty">
-                  Join the DataFlex Ghana community and start earning real income. Pay a one-time 40 GHS fee and unlock
-                  access to 50+ services, unlimited earning potential, and a supportive community.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                  <Button
-                    asChild
-                    size="lg"
-                    className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-lg px-10"
-                  >
-                    <Link href="/agent/register">
-                      Register as Agent <ArrowRight className="ml-2 h-5 w-5" />
-                    </Link>
-                  </Button>
-                  <p className="text-sm text-gray-400">No monthly fees. Start earning immediately.</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </section>
 
-      {/* Video Modal - TikTok Style Vertical */}
+      {/* Video Modal */}
       {showVideo && currentVideo && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4">
           <div className="w-full max-w-[360px] sm:max-w-[420px] h-screen sm:h-auto sm:max-h-[95vh] mx-auto">
-            <div className="bg-gray-900 rounded-none sm:rounded-3xl overflow-hidden shadow-2xl h-full sm:h-auto flex flex-col">
-              {/* Close Button */}
-              <div className="absolute top-4 right-4 z-10">
-                <button
-                  onClick={closeVideoModal}
-                  className="bg-black/50 hover:bg-black/70 text-white rounded-full p-3 transition-colors backdrop-blur-sm"
-                  aria-label="Close video"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+            <div className="bg-gray-900 rounded-none sm:rounded-3xl overflow-hidden shadow-2xl h-full flex flex-col">
+              <button
+                onClick={closeVideoModal}
+                className="absolute top-4 right-4 bg-black/50 text-white rounded-full p-3"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="relative bg-black flex-1">
+                <video autoPlay controls className="w-full h-full object-cover" src={currentVideo.videoUrl} />
               </div>
 
-              {/* Video Container */}
-              <div className="relative bg-black h-full sm:h-[680px] overflow-hidden flex-1">
-                <video autoPlay controls className="w-full h-full object-cover" src={currentVideo.videoUrl}>
-                  Your browser does not support the video tag.
-                </video>
-                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none" />
-              </div>
+              <div className="bg-gray-900 px-6 py-5 space-y-4">
+                <h3 className="text-white font-bold text-lg">{currentVideo.agentName}</h3>
+                <p className="text-gray-400 text-sm">{currentVideo.location}</p>
+                <p className="text-emerald-400 text-sm">{currentVideo.title}</p>
 
-              {/* Footer Info */}
-              <div className="bg-gradient-to-t from-gray-900 to-gray-800 px-6 py-5 border-t border-gray-700 space-y-4">
-                <div>
-                  <h3 className="text-white font-bold text-lg mb-1">{currentVideo.agentName}</h3>
-                  <p className="text-gray-400 text-sm mb-1">{currentVideo.location}</p>
-                  <p className="text-emerald-400 text-sm font-medium">{currentVideo.title}</p>
-                </div>
-
-                {/* CTA Button */}
                 <Button
                   asChild
-                  className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-medium text-base py-3"
+                  className="w-full bg-gradient-to-r from-emerald-600 to-green-600"
                 >
                   <Link href="/agent/register">Start Your Journey Too</Link>
                 </Button>
 
-                {/* Close Button */}
                 <Button
                   onClick={closeVideoModal}
                   variant="outline"
-                  className="w-full border-gray-600 text-gray-300 hover:bg-gray-800 bg-transparent text-base py-3"
+                  className="w-full border-gray-600 text-gray-300"
                 >
                   Close
                 </Button>

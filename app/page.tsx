@@ -499,24 +499,39 @@ export default function HomePage() {
       <AppleServiceFeature />
 
       <section className="py-8 sm:py-12 bg-gradient-to-b from-white to-emerald-50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
-            <Card className="border-emerald-100 bg-emerald-50/50 shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col gap-4 sm:gap-6">
-                  {/* Header */}
-                  <div className="flex items-start gap-3 sm:gap-4">
-                    <div className="p-2 sm:p-3 rounded-full bg-emerald-100 flex-shrink-0">
-                      <Play className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-emerald-800 text-base sm:text-lg">See What's Inside</h3>
-                      <p className="text-xs sm:text-sm text-emerald-700 mt-1 leading-relaxed">
-                        Watch a quick tour of the DataFlex Ghana platform and discover all the earning opportunities
-                        waiting for you.
-                      </p>
-                    </div>
+      <div className="container mx-auto px-4">
+
+        {/* Hero/Illustration Image */}
+        <div className="max-w-4xl mx-auto mb-6 sm:mb-8">
+          <Image
+            src="/dashboard.png"
+            alt="Dashboard preview"
+            width={1200} 
+            height={600} 
+            className="w-full h-auto rounded-xl shadow-lg"
+            priority
+          />
+        </div>
+
+        <div className="max-w-3xl mx-auto">
+          <Card className="border-emerald-100 bg-emerald-50/50 shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col gap-4 sm:gap-6">
+                {/* Header */}
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 rounded-full bg-emerald-100 flex-shrink-0">
+                    <Play className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-emerald-800 text-base sm:text-lg">
+                      See What's Inside
+                    </h3>
+                    <p className="text-xs sm:text-sm text-emerald-700 mt-1 leading-relaxed">
+                      Watch a quick tour of the DataFlex Ghana platform and discover all the earning opportunities
+                      waiting for you.
+                    </p>
+                  </div>
+                </div>
 
                   {/* Video Player Button */}
                   <div className="flex justify-center sm:justify-start">

@@ -1038,29 +1038,40 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         )}
         <AgentMenuCards activeTab={activeTab} onTabChange={handleTabChange} />
-        <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-          {/* CHANGE: Added manual data order card above More Than Just Data section */}
-          <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-lg p-5 border border-orange-200">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                <ShoppingBag className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">Manual Data Order</h3>
-                <p className="text-orange-100 text-xs">No commissions • Manual payment only</p>
-              </div>
+        <div className="w-full max-w-full px-4 sm:px-6 py-6 sm:py-8">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-6 sm:p-10 shadow-2xl">
+
+          {/* soft glow overlay */}
+          <div className="absolute inset-0 bg-white/10 pointer-events-none rounded-3xl" />
+
+          {/* Header */}
+          <div className="relative flex items-center gap-4 mb-5 sm:mb-6">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+              <ShoppingBag className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
             </div>
-            <p className="text-white text-sm mb-3 leading-relaxed">
-              When data bundles are disabled or on Sundays, order data manually. This is for urgent orders with manual
-              payment processing, no commission and no wallet deduction.
-            </p>
-            <Button asChild size="sm" className="w-full bg-white text-orange-600 hover:bg-orange-50 font-medium">
-              <Link href="/no-registration">
-                <ArrowRight className="h-4 w-4 mr-2" />
-                Order Manual Data
-              </Link>
-            </Button>
+
+            <h3 className="text-lg sm:text-2xl font-extrabold text-white tracking-tight">
+              Manual Data Order
+            </h3>
           </div>
+
+          {/* Description */}
+          <p className="relative text-white text-sm sm:text-lg font-medium leading-relaxed mb-6 sm:mb-8">
+            Sunday Packages | No Commission | Fast Delivery | From 6:00am - 9:00pm
+          </p>
+
+          {/* Call to Action */}
+          <Button
+            asChild
+            size="lg"
+            className="relative w-full bg-white text-orange-600 hover:bg-orange-50 font-bold text-base sm:text-lg transition-colors duration-300"
+          >
+            <Link href="/no-registration" className="flex items-center justify-center gap-2">
+              Order Now
+              <ArrowRight className="h-5 w-5 sm:h-6 sm:w-6" />
+            </Link>
+          </Button>
+        </div>
           {/* START: MORE THAN JUST DATA CARD */}
           <div className="mb-8">
             <Card className="w-full max-w-fullborder-amber-100 bg-amber-50/50 shadow-sm hover:shadow-md transition-shadow w-full">
