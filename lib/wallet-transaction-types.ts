@@ -155,12 +155,11 @@ export function generateReferenceCode(transactionType: string, agentId: string):
 /**
  * Generate a safe reference code for transactions
  * This is an alias for generateReferenceCode with additional safety checks
- * Modified to generate 4-character alphanumeric codes for payment references
+ * Modified to generate 4-digit numeric codes for easy memorization and reduced errors
  */
 export function generateSafeReferenceCode(transactionType: string, agentId?: string): string {
   try {
-    // Generate a 4-character alphanumeric code for easy memorization
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    const chars = "0123456789"
     let code = ""
     for (let i = 0; i < 4; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length))
@@ -168,8 +167,9 @@ export function generateSafeReferenceCode(transactionType: string, agentId?: str
     return code
   } catch (error) {
     console.error("Error generating safe reference code:", error)
-    // Fallback to a 4-char code
-    return Math.random().toString(36).substring(2, 6).toUpperCase()
+    return Math.floor(Math.random() * 10000)
+      .toString()
+      .padStart(4, "0")
   }
 }
 

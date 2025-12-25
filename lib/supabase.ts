@@ -1,13 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import { getCalculatedCommission, calculateCommissionWithCaps } from "./commission-calculation"
-import { supabaseHybridAuth } from './supabase-hybrid-auth'
-import { 
-  getCurrentSupabaseUser,
-  signInWithSupabaseAuth,
-  signOutSupabaseAuth,
-  hasSupabaseAuthSession,
-  getSupabaseAuthSession
-} from './supabase-hybrid-auth'
 
 /**
  * In local/preview mode the required env variables may be missing.
@@ -358,9 +350,9 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
 }
 
 const generatePaymentReference = (): string => {
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  const characters = "0123456789"
   let result = ""
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 4; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length))
   }
   return result

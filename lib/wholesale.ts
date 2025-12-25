@@ -1104,9 +1104,9 @@ export async function deleteWholesaleOrderAdmin(id: string): Promise<void> {
 
 // Utility Functions
 export function generateWholesaleOrderReference(): string {
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-  let result = "WS-"
-  for (let i = 0; i < 6; i++) {
+  const characters = "0123456789"
+  let result = ""
+  for (let i = 0; i < 4; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length))
   }
   return result
