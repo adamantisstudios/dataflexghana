@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { generateWhatsAppLink } from "@/utils/whatsapp"
-import { Zap, Calculator } from "lucide-react"
+import { Zap, Calculator, Copy } from "lucide-react"
 import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
+import { toast } from "sonner"
+import { generatePaymentReferenceCode } from "@/lib/reference-code-generator"
 
 const meterTypes = ["NURI", "Holley", "CLOU", "Hexing", "Landis+Gyr", "Other"]
 
@@ -26,9 +28,15 @@ export function ECGTopUpForm() {
 
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [pendingMessage, setPendingMessage] = useState("")
+  const [paymentReference, setPaymentReference] = useState("")
 
   const serviceCharge = 8
   const totalAmount = formData.amount ? Number.parseFloat(formData.amount) + serviceCharge : 0
+
+  const generateNewReference = () => {
+    const reference = generatePaymentReferenceCode()
+    setPaymentReference(reference)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +44,11 @@ export function ECGTopUpForm() {
     if (!formData.meterNumber || !formData.amount || !formData.meterType) {
       alert("Please fill in all required fields")
       return
+    }
+
+    const reference = paymentReference || generatePaymentReferenceCode()
+    if (!paymentReference) {
+      setPaymentReference(reference)
     }
 
     const message = `ECG Prepaid Top-Up Request:
@@ -49,9 +62,14 @@ Phone Number: ${formData.phoneNumber || "Not provided"}
 Account Holder: ${formData.accountHolder || "Not provided"}
 Address: ${formData.address || "Not provided"}
 
-💳 PAYMENT CONFIRMATION:
-✅ Customer confirmed payment completed to 0557943392
-Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
+💳 PAYMENT REFERENCE: ${reference}
+Bank Transfer/MoMo Account: 0557943392
+Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
+
+Instructions:
+1. Use the payment reference above when making payment
+2. Send payment to: 0557943392
+3. Share this message via WhatsApp after confirming payment`
 
     setPendingMessage(message)
     setShowPaymentModal(true)
@@ -70,6 +88,14 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
       accountHolder: "",
       address: "",
     })
+    setPaymentReference("")
+  }
+
+  const copyReference = () => {
+    if (paymentReference) {
+      navigator.clipboard.writeText(paymentReference)
+      toast.success("Payment reference copied!")
+    }
   }
 
   return (
@@ -190,6 +216,46 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
                 </CardContent>
               </Card>
             )}
+
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-blue-900">Payment Reference Code</h3>
+                    <Button type="button" variant="ghost" size="sm" onClick={generateNewReference} className="text-xs">
+                      Generate New
+                    </Button>
+                  </div>
+
+                  {paymentReference ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 p-3 bg-white border border-blue-300 rounded-lg">
+                        <p className="text-lg font-mono font-bold text-blue-900">{paymentReference}</p>
+                        <p className="text-xs text-blue-600 mt-1">Use this code when making payment</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={copyReference}
+                        className="border-blue-300 bg-transparent"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={generateNewReference}
+                      className="w-full border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
+                    >
+                      Generate Payment Reference
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
               Submit Top-Up Request

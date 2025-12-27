@@ -496,42 +496,82 @@ export default function HomePage() {
 
       {/* Hero Section with 4 Sliders */}
       <HeroSlider />
+
+      {/* CHANGE: Added prominent No-Registration CTA section */}
+      <section className="relative py-12 sm:py-16 md:py-20 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            {/* Badge */}
+            <div className="inline-block mb-4 sm:mb-6">
+              <span className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-sm font-semibold text-white border border-white/30 shadow-lg">
+                Quick & Easy
+              </span>
+            </div>
+
+            {/* Main Heading */}
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 text-balance drop-shadow-lg">
+              Buy Data in <span className="underline decoration-white decoration-4 underline-offset-4">Seconds</span>
+            </h2>
+
+            {/* Description */}
+            <p className="text-lg sm:text-xl text-white/95 mb-8 sm:mb-10 leading-relaxed max-w-xl mx-auto drop-shadow-md">
+              No registration needed. Get instant data bundles for MTN, AirtelTigo, and Telecel with just a few clicks.
+            </p>
+
+            {/* CTA Button */}
+            <Button
+              size="lg"
+              asChild
+              className="bg-white text-emerald-700 hover:bg-gray-100 text-lg px-8 sm:px-10 py-6 sm:py-7 shadow-2xl transform hover:scale-105 transition-all duration-300 font-semibold rounded-full"
+            >
+              <Link href="/no-registration" className="flex items-center justify-center gap-2">
+                Buy Data Now
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       <AppleServiceFeature />
 
       <section className="py-8 sm:py-12 bg-gradient-to-b from-white to-emerald-50">
-      <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4">
+          {/* Hero/Illustration Image */}
+          <div className="max-w-4xl mx-auto mb-6 sm:mb-8">
+            <Image
+              src="/dashboard.png"
+              alt="Dashboard preview"
+              width={1200}
+              height={600}
+              className="w-full h-auto rounded-xl shadow-lg"
+              priority
+            />
+          </div>
 
-        {/* Hero/Illustration Image */}
-        <div className="max-w-4xl mx-auto mb-6 sm:mb-8">
-          <Image
-            src="/dashboard.png"
-            alt="Dashboard preview"
-            width={1200} 
-            height={600} 
-            className="w-full h-auto rounded-xl shadow-lg"
-            priority
-          />
-        </div>
-
-        <div className="max-w-3xl mx-auto">
-          <Card className="border-emerald-100 bg-emerald-50/50 shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col gap-4 sm:gap-6">
-                {/* Header */}
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="p-2 sm:p-3 rounded-full bg-emerald-100 flex-shrink-0">
-                    <Play className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+          <div className="max-w-3xl mx-auto">
+            <Card className="border-emerald-100 bg-emerald-50/50 shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col gap-4 sm:gap-6">
+                  {/* Header */}
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="p-2 sm:p-3 rounded-full bg-emerald-100 flex-shrink-0">
+                      <Play className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-emerald-800 text-base sm:text-lg">See What's Inside</h3>
+                      <p className="text-xs sm:text-sm text-emerald-700 mt-1 leading-relaxed">
+                        Watch a quick tour of the DataFlex Ghana platform and discover all the earning opportunities
+                        waiting for you.
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-emerald-800 text-base sm:text-lg">
-                      See What's Inside
-                    </h3>
-                    <p className="text-xs sm:text-sm text-emerald-700 mt-1 leading-relaxed">
-                      Watch a quick tour of the DataFlex Ghana platform and discover all the earning opportunities
-                      waiting for you.
-                    </p>
-                  </div>
-                </div>
 
                   {/* Video Player Button */}
                   <div className="flex justify-center sm:justify-start">
@@ -1120,7 +1160,6 @@ export default function HomePage() {
         </Card>
       </div>
 
-      {/* Business Registration & Compliance Section */}
       <div className="mb-16">
         <Card className="mx-auto max-w-6xl overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
           <div className="relative">

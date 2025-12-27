@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { generateWhatsAppLink } from "@/utils/whatsapp"
-import { Users, UserCheck } from "lucide-react"
+import { Users, UserCheck, Copy } from "lucide-react"
 import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
+import { toast } from "sonner"
+import { generatePaymentReferenceCode } from "@/lib/reference-code-generator"
 
 export function AFARegistrationForm() {
   const [formData, setFormData] = useState({
@@ -24,8 +26,14 @@ export function AFARegistrationForm() {
 
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [pendingMessage, setPendingMessage] = useState("")
+  const [paymentReference, setPaymentReference] = useState("")
 
   const registrationFee = 15
+
+  const generateNewReference = () => {
+    const reference = generatePaymentReferenceCode()
+    setPaymentReference(reference)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,6 +41,11 @@ export function AFARegistrationForm() {
     if (!formData.fullName || !formData.phone || !formData.email || !formData.ghanaCardId) {
       alert("Please fill in all required fields")
       return
+    }
+
+    const reference = paymentReference || generatePaymentReferenceCode()
+    if (!paymentReference) {
+      setPaymentReference(reference)
     }
 
     const message = `AFA Registration Request:
@@ -49,9 +62,14 @@ Location: ${formData.location}
 Date of Birth: ${formData.dateOfBirth}
 Referring Agent: ${formData.referringAgent || "None"}
 
-💳 PAYMENT CONFIRMATION:
-✅ Customer confirmed payment completed to 0557943392
-Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
+💳 PAYMENT REFERENCE: ${reference}
+Bank Transfer/MoMo Account: 0557943392
+Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
+
+Instructions:
+1. Use the payment reference above when making payment
+2. Send payment to: 0557943392
+3. Share this message via WhatsApp after confirming payment`
 
     setPendingMessage(message)
     setShowPaymentModal(true)
@@ -72,6 +90,14 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
       ghanaCardId: "",
       referringAgent: "",
     })
+    setPaymentReference("")
+  }
+
+  const copyReference = () => {
+    if (paymentReference) {
+      navigator.clipboard.writeText(paymentReference)
+      toast.success("Payment reference copied!")
+    }
   }
 
   const afaBenefits = [
@@ -197,6 +223,46 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
                 onChange={(e) => setFormData({ ...formData, referringAgent: e.target.value })}
               />
             </div>
+
+            <Card className="bg-green-50 border-green-200">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-green-900">Payment Reference Code</h3>
+                    <Button type="button" variant="ghost" size="sm" onClick={generateNewReference} className="text-xs">
+                      Generate New
+                    </Button>
+                  </div>
+
+                  {paymentReference ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 p-3 bg-white border border-green-300 rounded-lg">
+                        <p className="text-lg font-mono font-bold text-green-900">{paymentReference}</p>
+                        <p className="text-xs text-green-600 mt-1">Use this code when making payment</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={copyReference}
+                        className="border-green-300 bg-transparent"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={generateNewReference}
+                      className="w-full border-green-300 text-green-600 hover:bg-green-50 bg-transparent"
+                    >
+                      Generate Payment Reference
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
               Submit AFA Registration

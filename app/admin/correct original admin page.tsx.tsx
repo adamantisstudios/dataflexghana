@@ -56,6 +56,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { PendingAlertsCard } from "@/components/admin/pending-alerts-card"
 import { filterTabsForSubAdmin, isRestrictedSubAdmin } from "@/lib/sub-admin-middleware"
+import { getAdminSession } from "@/lib/auth" // Use your existing auth function
 
 // Lazy load tab components
 const AgentsTab = lazy(() => import("@/components/admin/tabs/AgentsTab"))
@@ -163,16 +164,13 @@ const TAB_CONFIG = [
   { id: "invitation-management", label: "Invitation Management", icon: Mail, component: InvitationManagementTab },
   { id: "online-courses", label: "Online Courses", icon: BookOpen, component: OnlineCoursesTab },
 ]
-
-export default function AdminDashboard() {
+async function AdminDashboardContent() {
   const { loadedTabs, activeTab, loadTab } = useTabLoader()
   const { getCachedData, setCachedData, clearCache } = useTabCache()
   const router = useRouter()
   const admin = getCurrentAdmin()
   const [showNotification, setShowNotification] = useState(true)
   const [connectionHealth, setConnectionHealth] = useState(connectionManager.getHealthStatus())
-  const [visibleTabs, setVisibleTabs] = useState(TAB_CONFIG)
-  const [isTabsLoaded, setIsTabsLoaded] = useState(false)
   const [stats, setStats] = useState({
     totalAgents: 1247,
     approvedAgents: 892,
@@ -208,7 +206,6 @@ export default function AdminDashboard() {
     pendingInvitations: 0,
     pendingDomesticWorkers: 0,
     totalPendingAlerts: 0,
-    pendingOnlineCourses: 0,
   })
   // Settings dialog state
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -224,30 +221,6 @@ export default function AdminDashboard() {
     getUnreadCount: adminGetUnreadCount,
     markAsRead: adminMarkAsRead,
   } = useUnreadMessages(admin?.id || "", "admin")
-
-  // Filter tabs on component mount
-  useEffect(() => {
-    const filterTabs = async () => {
-      const currentUserId = admin?.id || null
-      if (currentUserId) {
-        try {
-          const isSub = await isRestrictedSubAdmin(currentUserId)
-          if (isSub) {
-            const filtered = await filterTabsForSubAdmin(currentUserId, TAB_CONFIG)
-            setVisibleTabs(filtered)
-          } else {
-            setVisibleTabs(TAB_CONFIG)
-          }
-        } catch (error) {
-          console.error("[v0] Error filtering tabs:", error)
-          setVisibleTabs(TAB_CONFIG)
-        }
-      }
-      setIsTabsLoaded(true)
-    }
-    filterTabs()
-  }, [admin?.id])
-
   // Load stats on component mount
   useEffect(() => {
     let isMounted = true
@@ -317,7 +290,6 @@ export default function AdminDashboard() {
           pendingInvitations: 0,
           pendingDomesticWorkers: 0,
           totalAlerts: 0,
-          pendingOnlineCourses: 0,
         }
 
         if (alertsResponse.ok) {
@@ -366,7 +338,6 @@ export default function AdminDashboard() {
             pendingInvitations: alertsData.pendingInvitations || 0,
             pendingDomesticWorkers: alertsData.pendingDomesticWorkers || 0,
             totalPendingAlerts: alertsData.totalAlerts || 0,
-            pendingOnlineCourses: alertsData.pendingOnlineCourses || 0,
           }))
         }
       } catch (error) {
@@ -386,7 +357,6 @@ export default function AdminDashboard() {
       connectionUnsubscribe()
     }
   }, [])
-
   const handleLogout = async () => {
     try {
       const token = getAdminToken()
@@ -402,11 +372,9 @@ export default function AdminDashboard() {
       window.location.href = "/admin/login"
     }
   }
-
   const handleTabChange = (tabId: string) => {
     loadTab(tabId)
   }
-
   const handlePasswordUpdate = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error("Please fill in all password fields")
@@ -439,7 +407,6 @@ export default function AdminDashboard() {
       setUpdatingPassword(false)
     }
   }
-
   const resetPasswordForm = () => {
     setCurrentPassword("")
     setNewPassword("")
@@ -448,7 +415,6 @@ export default function AdminDashboard() {
     setShowNewPassword(false)
     setShowConfirmPassword(false)
   }
-
   const getSessionStatusIndicator = () => {
     return connectionHealth.overall === "healthy" ? (
       <div className="flex items-center gap-1 text-green-600">
@@ -462,7 +428,6 @@ export default function AdminDashboard() {
       </div>
     )
   }
-
   const getTabAlertCount = (tabId: string): number => {
     switch (tabId) {
       case "agents":
@@ -495,16 +460,17 @@ export default function AdminDashboard() {
         return 0
     }
   }
+  // Get current user's agent ID to check for sub-admin role
+  const userSession = await getAdminSession() // Use your existing auth function
+  const currentUserId = userSession?.user?.id || null
 
-  if (!isTabsLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full mx-auto" />
-          <Skeleton className="h-4 w-48 mx-auto" />
-        </div>
-      </div>
-    )
+  // Filter tabs based on sub-admin role
+  let visibleTabs = TAB_CONFIG
+  if (currentUserId) {
+    const isSubAdmin = await isRestrictedSubAdmin(currentUserId)
+    if (isSubAdmin) {
+      visibleTabs = await filterTabsForSubAdmin(currentUserId, TAB_CONFIG)
+    }
   }
 
   return (
@@ -1039,3 +1005,4 @@ export default function AdminDashboard() {
     </div>
   )
 }
+export default AdminDashboardContent

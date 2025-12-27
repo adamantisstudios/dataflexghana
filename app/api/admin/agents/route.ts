@@ -1,101 +1,73 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createSupabaseAdmin } from "@/lib/supabase-query"
-import { authenticateAdmin } from "@/lib/api-auth"
+import { createClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function GET(request: NextRequest) {
-  try {
-    const authResult = await authenticateAdmin(request)
-    if (!authResult.success) {
-      return NextResponse.json(
-        { success: false, error: authResult.error || "Admin authentication required" },
-        { status: 401 },
-      )
-    }
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    const admin = authResult.user
-    console.log("✅ Admin authenticated for agents list:", admin.id)
-
-    const supabase = createSupabaseAdmin()
-
-    const { data: agents, error } = await supabase
-      .from("agents")
-      .select(
-        `
-        *,
-        users!agents_user_id_fkey (
-          email,
-          phone,
-          created_at
-        ),
-        data_orders!data_orders_agent_id_fkey (
-          id,
-          amount,
-          status
-        ),
-        commissions!commissions_agent_id_fkey (
-          amount,
-          status
-        )
-      `,
-      )
-      .order("created_at", { ascending: false })
-
-    if (error) {
-      console.error("❌ Error fetching agents:", error)
-      return NextResponse.json({ success: false, error: "Failed to fetch agents" }, { status: 500 })
-    }
-
-    const processedAgents = agents.map((agent: any) => ({
-      ...agent,
-      user_email: agent.users?.email,
-      user_phone: agent.users?.phone,
-      user_created_at: agent.users?.created_at,
-      total_orders: agent.data_orders?.filter((o: any) => o.status === "completed").length || 0,
-      total_sales_amount:
-        agent.data_orders
-          ?.filter((o: any) => o.status === "completed")
-          .reduce((sum: number, o: any) => sum + (o.amount || 0), 0) || 0,
-      total_commission_earned:
-        agent.commissions
-          ?.filter((c: any) => c.status === "paid")
-          .reduce((sum: number, c: any) => sum + (c.amount || 0), 0) || 0,
-    }))
-
-    return NextResponse.json({
-      success: true,
-      agents: processedAgents,
-      total: processedAgents.length,
-    })
-  } catch (error) {
-    console.error("❌ Error fetching agents:", error)
-    return NextResponse.json({ success: false, error: "Failed to fetch agents" }, { status: 500 })
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Supabase environment variables are not set")
   }
+
+  return createClient(supabaseUrl, supabaseServiceKey)
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await authenticateAdmin(request)
-    if (!authResult.success) {
-      return NextResponse.json(
-        { success: false, error: authResult.error || "Admin authentication required" },
-        { status: 401 },
-      )
+    const supabase = getSupabaseAdmin()
+    const { searchTerm } = await request.json()
+
+    if (!searchTerm || typeof searchTerm !== "string") {
+      return NextResponse.json({ error: "Search term is required" }, { status: 400 })
     }
 
-    const admin = authResult.user
-    console.log("✅ Admin authenticated for agent creation:", admin.id)
+    console.log("[v0] Searching agents with term:", searchTerm)
 
-    const body = await request.json()
+    const { data, error } = await supabase
+      .from("agents")
+      .select("*")
+      .or(`full_name.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%,id.ilike.%${searchTerm}%`)
+      .order("created_at", { ascending: false })
+      .limit(50)
+
+    if (error) {
+      console.error("[v0] ❌ Agent search error:", error)
+      console.error("[v0] Error code:", error.code)
+      console.error("[v0] Error message:", error.message)
+
+      return NextResponse.json({ error: `Database error: ${error.message}` }, { status: 500 })
+    }
+
+    // Add computed status field for backward compatibility
+    const agents = (data || []).map((agent: any) => ({
+      ...agent,
+      status: agent.status || (agent.isapproved ? "active" : "pending"),
+    }))
+
+    console.log("[v0] ✅ Search results found:", agents.length)
 
     return NextResponse.json({
       success: true,
-      message: "Agent creation functionality would be implemented here",
+      agents,
+      count: agents.length,
     })
   } catch (error) {
-    console.error("❌ Error creating agent:", error)
-    return NextResponse.json({ success: false, error: "Failed to create agent" }, { status: 500 })
+    console.error("[v0] ❌ Agent search catch error:", error)
+
+    if (error instanceof Error) {
+      console.error("[v0] Error message:", error.message)
+
+      if (error.message.includes("Supabase")) {
+        return NextResponse.json(
+          { error: "Database configuration error. Please check environment variables." },
+          { status: 500 },
+        )
+      }
+    }
+
+    return NextResponse.json({ error: "Failed to search agents - Internal server error" }, { status: 500 })
   }
 }

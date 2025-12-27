@@ -1,8 +1,5 @@
-import { supabase } from "./supabase"
-import type { Agent } from "./supabase"
-
 // Re-export everything from the unified auth system
-export * from './unified-auth-system'
+export * from "./unified-auth-system"
 
 // Keep the original interfaces for backwards compatibility
 export interface AdminUser {
@@ -24,14 +21,7 @@ export interface AdminSession {
 }
 
 // Import the unified functions
-import {
-  getStoredAgent,
-  getStoredAdmin,
-  setStoredAdmin,
-  clearStoredAdmin,
-  loginAdmin as unifiedLoginAdmin,
-  logoutAdmin as unifiedLogoutAdmin
-} from './unified-auth-system'
+import { getStoredAdmin } from "./unified-auth-system"
 
 // ============ CLIENT-SIDE AUTHENTICATION ============
 
@@ -40,39 +30,43 @@ import {
  * Returns the admin object if authenticated, null otherwise
  */
 export function getCurrentAdmin(): any | null {
-  if (typeof window === 'undefined') return null
-  
+  if (typeof window === "undefined") return null
+
   try {
-    const adminData = localStorage.getItem('currentAdmin')
+    const adminData = localStorage.getItem("currentAdmin")
     if (!adminData) return null
-    
+
     const admin = JSON.parse(adminData)
-    
+
     // Validate admin object has required fields
     if (!admin.id || !admin.name) {
-      console.warn('Invalid admin data in localStorage')
-      localStorage.removeItem('currentAdmin')
+      console.warn("Invalid admin data in localStorage")
+      localStorage.removeItem("currentAdmin")
       return null
     }
-    
+
     return admin
   } catch (error) {
-    console.error('Error parsing admin data from localStorage:', error)
-    localStorage.removeItem('currentAdmin')
+    console.error("Error parsing admin data from localStorage:", error)
+    localStorage.removeItem("currentAdmin")
     return null
   }
+}
+
+export function getAdminSession(): any | null {
+  return getCurrentAdmin()
 }
 
 /**
  * Set current admin in localStorage
  */
 export function setCurrentAdmin(admin: any): void {
-  if (typeof window === 'undefined') return
-  
+  if (typeof window === "undefined") return
+
   try {
-    localStorage.setItem('currentAdmin', JSON.stringify(admin))
+    localStorage.setItem("currentAdmin", JSON.stringify(admin))
   } catch (error) {
-    console.error('Error saving admin data to localStorage:', error)
+    console.error("Error saving admin data to localStorage:", error)
   }
 }
 
@@ -80,12 +74,12 @@ export function setCurrentAdmin(admin: any): void {
  * Clear current admin from localStorage
  */
 export function clearCurrentAdmin(): void {
-  if (typeof window === 'undefined') return
-  
+  if (typeof window === "undefined") return
+
   try {
-    localStorage.removeItem('currentAdmin')
+    localStorage.removeItem("currentAdmin")
   } catch (error) {
-    console.error('Error clearing admin data from localStorage:', error)
+    console.error("Error clearing admin data from localStorage:", error)
   }
 }
 
@@ -105,7 +99,7 @@ export async function verifyAdminSession(token?: string): Promise<{ valid: boole
   const admin = getStoredAdmin()
   return {
     valid: !!admin,
-    user: admin || undefined
+    user: admin || undefined,
   }
 }
 

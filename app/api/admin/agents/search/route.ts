@@ -1,9 +1,12 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
+/* ---------------------------------------------
+   Supabase Admin Client
+--------------------------------------------- */
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -12,55 +15,95 @@ function getSupabaseAdmin() {
     throw new Error("Supabase environment variables are not set")
   }
 
-  return createClient(supabaseUrl, supabaseServiceKey)
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false },
+  })
 }
 
+/* ---------------------------------------------
+   UUID Validator (CRITICAL FIX)
+--------------------------------------------- */
+function isValidUUID(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value.trim()
+  )
+}
+
+/* ---------------------------------------------
+   POST: Search Agents
+--------------------------------------------- */
 export async function POST(request: NextRequest) {
   try {
     const supabase = getSupabaseAdmin()
-    const { searchTerm } = await request.json()
+    const body = await request.json()
+    const searchTerm = String(body?.searchTerm ?? "").trim()
 
-    if (!searchTerm || typeof searchTerm !== "string") {
-      return NextResponse.json({ error: "Search term is required" }, { status: 400 })
+    if (!searchTerm) {
+      return NextResponse.json(
+        { success: true, agents: [], count: 0 },
+        { status: 200 }
+      )
     }
 
+    console.log("[v0] 🔍 Searching agents:", searchTerm)
+
     const searchPattern = `%${searchTerm}%`
+
+    /* ---------------------------------------------
+       SAFE FILTER BUILD (NO UUID CRASH)
+    --------------------------------------------- */
+    const filters: string[] = [
+      `full_name.ilike.${searchPattern}`,
+      `phone_number.ilike.${searchPattern}`,
+    ]
+
+    // Only include ID search if valid UUID
+    if (isValidUUID(searchTerm)) {
+      filters.push(`id.eq.${searchTerm}`)
+    }
 
     const { data, error } = await supabase
       .from("agents")
       .select("*")
-      .or(`full_name.ilike.${searchPattern},phone_number.ilike.${searchPattern},id.ilike.${searchPattern}`)
+      .or(filters.join(","))
       .order("created_at", { ascending: false })
       .limit(50)
 
     if (error) {
-      console.error("❌ Agent search error:", error)
-      return NextResponse.json({ error: "Failed to search agents" }, { status: 500 })
+      console.error("[v0] ❌ Supabase error:", error)
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Search failed: ${error.message}`,
+        },
+        { status: 500 }
+      )
     }
 
-    // Add computed status field for backward compatibility
-    const agents = (data || []).map((agent: any) => ({
+    const agents = (data ?? []).map((agent: any) => ({
       ...agent,
-      status: agent.status || (agent.isapproved ? "active" : "pending"),
+      status: agent.status ?? (agent.isapproved ? "active" : "pending"),
     }))
+
+    console.log("[v0] ✅ Agents found:", agents.length)
 
     return NextResponse.json({
       success: true,
       agents,
       count: agents.length,
     })
-  } catch (error) {
-    console.error("❌ Agent search error:", error)
+  } catch (err) {
+    console.error(
+      "[v0] ❌ Unhandled error:",
+      err instanceof Error ? err.message : err
+    )
 
-    if (error instanceof Error) {
-      if (error.message.includes("Supabase")) {
-        return NextResponse.json(
-          { error: "Database configuration error. Please check environment variables." },
-          { status: 500 },
-        )
-      }
-    }
-
-    return NextResponse.json({ error: "Failed to search agents" }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to search agents",
+      },
+      { status: 500 }
+    )
   }
 }

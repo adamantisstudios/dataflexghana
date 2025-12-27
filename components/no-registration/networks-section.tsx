@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { generateWhatsAppLink } from "@/utils/whatsapp"
 import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
+import { generatePaymentReferenceCode } from "@/lib/reference-code-generator"
+import { ChevronDown } from "lucide-react"
 
 const networks = {
   mtn: {
@@ -24,7 +26,6 @@ const networks = {
       { size: "7GB", price: 34.5 },
       { size: "8GB", price: 38.5 },
       { size: "10GB", price: 46.5 },
-      { size: "12GB", price: 52.5 },
       { size: "15GB", price: 67.5 },
       { size: "20GB", price: 83.5 },
       { size: "25GB", price: 108.5 },
@@ -85,6 +86,19 @@ export function NetworksSection() {
   const [selectedPlan, setSelectedPlan] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [paymentReference, setPaymentReference] = useState("")
+  const phoneInputRef = useRef<HTMLInputElement>(null)
+
+  const handleSelectPlan = (plan: (typeof networks.mtn.plans)[0]) => {
+    const planValue = `${plan.size} - ₵${plan.price.toFixed(2)}`
+    setSelectedPlan(planValue)
+
+    // Scroll to phone number input after a brief delay to allow state update
+    setTimeout(() => {
+      phoneInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+      phoneInputRef.current?.focus()
+    }, 100)
+  }
 
   const handleOrder = () => {
     if (!selectedPlan || !phoneNumber) {
@@ -92,6 +106,8 @@ export function NetworksSection() {
       return
     }
 
+    const reference = generatePaymentReferenceCode()
+    setPaymentReference(reference)
     setShowPaymentModal(true)
   }
 
@@ -123,18 +139,21 @@ Plan: ${size}
 Price: ₵${priceStr}
 Phone Number: ${phoneNumber}
 
+💳 PAYMENT REFERENCE: ${paymentReference}
+
 ✅ PAYMENT CONFIRMED
 Customer has confirmed payment to:
 Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
 Payment Line: 0557943392
 
-Please process this order.`
+Please process this order using the payment reference above.`
 
     const whatsappUrl = generateWhatsAppLink(message)
     window.open(whatsappUrl, "_blank")
 
     setSelectedPlan("")
     setPhoneNumber("")
+    setPaymentReference("")
     setShowPaymentModal(false)
   }
 
@@ -184,43 +203,68 @@ Please process this order.`
                   <h3 className="text-2xl font-bold mb-4">{networks[activeNetwork].name} Data Bundles</h3>
                   <p className="text-gray-600 mb-6">{networks[activeNetwork].description}</p>
 
-                  {/* Price Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                     {networks[activeNetwork].plans.map((plan, index) => (
-                      <div
+                      <button
                         key={index}
-                        className="bg-gray-50 p-3 rounded-lg text-center hover:bg-green-50 transition-colors"
+                        onClick={() => handleSelectPlan(plan)}
+                        className={`p-3 rounded-lg text-center transition-all duration-200 cursor-pointer font-medium ${
+                          selectedPlan.startsWith(plan.size)
+                            ? "bg-green-600 text-white shadow-lg scale-105"
+                            : "bg-gray-50 text-gray-900 hover:bg-green-50 hover:scale-105"
+                        }`}
                       >
-                        <div className="font-bold text-gray-900">{plan.size}</div>
-                        <div className="text-green-600 font-semibold">₵{plan.price.toFixed(2)}</div>
-                      </div>
+                        <div className="font-bold">{plan.size}</div>
+                        <div className={selectedPlan.startsWith(plan.size) ? "text-white" : "text-green-600"}>
+                          ₵{plan.price.toFixed(2)}
+                        </div>
+                      </button>
                     ))}
                   </div>
 
+                  {selectedPlan && (
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-gray-600 mb-1">Selected Plan:</p>
+                      <p className="text-lg font-bold text-green-700">{selectedPlan}</p>
+                    </div>
+                  )}
+
                   {/* Order Form */}
                   <div className="space-y-4">
-                    <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a plan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {networks[activeNetwork].plans.map((plan, index) => (
-                          <SelectItem key={index} value={`${plan.size} - ₵${plan.price.toFixed(2)}`}>
-                            {networks[activeNetwork].name} {plan.size} - ₵{plan.price.toFixed(2)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {!selectedPlan && (
+                      <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                        <SelectTrigger className="border-green-300">
+                          <SelectValue placeholder="Or select a plan from above" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {networks[activeNetwork].plans.map((plan, index) => (
+                            <SelectItem key={index} value={`${plan.size} - ₵${plan.price.toFixed(2)}`}>
+                              {networks[activeNetwork].name} {plan.size} - ₵{plan.price.toFixed(2)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
 
+                    <div className="flex items-center gap-2 mb-2">
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                      <label className="text-sm font-semibold text-gray-700">Enter Phone Number</label>
+                    </div>
                     <Input
+                      ref={phoneInputRef}
                       type="tel"
-                      placeholder="Enter phone number"
+                      placeholder="Enter phone number (e.g., 0541234567)"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="border-green-300 focus:border-green-500 focus:ring-green-500"
                     />
 
-                    <Button onClick={handleOrder} className="w-full bg-green-600 hover:bg-green-700">
-                      Order Now
+                    <Button
+                      onClick={handleOrder}
+                      disabled={!selectedPlan || !phoneNumber}
+                      className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                    >
+                      Order Now & Proceed to Payment
                     </Button>
                   </div>
                 </div>
@@ -235,6 +279,7 @@ Please process this order.`
         onClose={() => setShowPaymentModal(false)}
         onConfirmPayment={handlePaymentConfirmed}
         orderSummary={getOrderSummary()}
+        paymentReference={paymentReference}
       />
     </>
   )
