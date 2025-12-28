@@ -87,28 +87,28 @@ export function AdminPortalAccess({ agentId, className, showAsHero = false }: Ad
   if (showAsHero) {
     return (
       <Card
-        className={`bg-gradient-to-br from-indigo-600 via-blue-700 to-indigo-900 text-white shadow-2xl border-none overflow-hidden relative ${className}`}
+        className={`bg-gradient-to-br from-indigo-600 via-blue-700 to-indigo-900 text-white shadow-2xl border-none overflow-hidden relative w-full ${className}`}
       >
         <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-          <Shield className="w-24 h-24" />
+          <Shield className="w-16 md:w-24 h-16 md:h-24" />
         </div>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-xl md:text-2xl font-black italic tracking-tighter uppercase">
-            <Shield className="h-6 w-6 text-indigo-200 fill-indigo-200" />
-            Admin Privileges Active
+        <CardHeader className="pb-2 px-4 md:px-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-2xl font-black italic tracking-tighter uppercase">
+            <Shield className="h-5 w-5 md:h-6 md:h-6 text-indigo-200 fill-indigo-200" />
+            Access Sub-Admin Portal
           </CardTitle>
-          <CardDescription className="text-indigo-100/80 font-medium">
-            You have been granted administrative access to specific management portals.
+          <CardDescription className="text-indigo-100/80 font-medium text-xs md:text-sm">
+            You have active administrative privileges for your assigned management modules.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 md:px-6 pb-6">
           {roleInfo?.assigned_tabs && roleInfo.assigned_tabs.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 md:gap-2">
               {roleInfo.assigned_tabs.map((tab) => (
                 <Badge
                   key={tab}
                   variant="secondary"
-                  className="bg-white/10 text-white hover:bg-white/20 border-white/20 px-3 py-1 text-xs font-bold uppercase tracking-widest"
+                  className="bg-white/10 text-white hover:bg-white/20 border-white/20 px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-bold uppercase tracking-widest"
                 >
                   {tab.replace(/-/g, " ")}
                 </Badge>
@@ -117,9 +117,9 @@ export function AdminPortalAccess({ agentId, className, showAsHero = false }: Ad
           )}
           <Button
             onClick={handleAccessPortal}
-            className="w-full md:w-auto bg-white text-indigo-900 hover:bg-indigo-50 font-black uppercase tracking-widest shadow-xl group transition-all duration-300"
+            className="w-full md:w-auto bg-white text-indigo-900 hover:bg-indigo-50 font-black uppercase tracking-widest shadow-xl group transition-all duration-300 text-xs md:text-sm h-10 md:h-11"
           >
-            Enter Admin Portal
+            Enter Portal
             <ExternalLink className="ml-2 h-4 w-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
           </Button>
         </CardContent>

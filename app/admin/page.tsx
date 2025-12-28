@@ -171,7 +171,7 @@ export default function AdminDashboard() {
   const admin = getCurrentAdmin()
   const [showNotification, setShowNotification] = useState(true)
   const [connectionHealth, setConnectionHealth] = useState(connectionManager.getHealthStatus())
-  const [visibleTabs, setVisibleTabs] = useState(TAB_CONFIG)
+  // const [visibleTabs, setVisibleTabs] = useState(TAB_CONFIG) // Removed and replaced by 'tabs' state
   const [isTabsLoaded, setIsTabsLoaded] = useState(false)
   const [stats, setStats] = useState({
     totalAgents: 1247,
@@ -225,28 +225,87 @@ export default function AdminDashboard() {
     markAsRead: adminMarkAsRead,
   } = useUnreadMessages(admin?.id || "", "admin")
 
-  // Filter tabs on component mount
+  // --- UPDATES START ---
+  const [tabs, setTabs] = useState<typeof TAB_CONFIG>([])
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [restricted, setRestricted] = useState(false)
+
   useEffect(() => {
-    const filterTabs = async () => {
-      const currentUserId = admin?.id || null
-      if (currentUserId) {
-        try {
-          const isSub = await isRestrictedSubAdmin(currentUserId)
-          if (isSub) {
-            const filtered = await filterTabsForSubAdmin(currentUserId, TAB_CONFIG)
-            setVisibleTabs(filtered)
-          } else {
-            setVisibleTabs(TAB_CONFIG)
-          }
-        } catch (error) {
-          console.error("[v0] Error filtering tabs:", error)
-          setVisibleTabs(TAB_CONFIG)
-        }
+    async function initDashboard() {
+      const currentAdmin = getCurrentAdmin()
+      if (!currentAdmin) {
+        console.log("[v0] No admin session found, redirecting to login.")
+        router.push("/admin/login")
+        return
       }
-      setIsTabsLoaded(true)
+
+      console.log("[v0] Initializing dashboard for admin:", currentAdmin.id, "Role:", currentAdmin.role)
+
+      try {
+        const isSub = await isRestrictedSubAdmin(currentAdmin.id)
+        setRestricted(isSub)
+
+        const isFullAdmin = !isSub && currentAdmin.role === "admin"
+        setIsAdmin(isFullAdmin)
+
+        if (isSub) {
+          console.log("[v0] Sub-admin detected. Fetching assigned tabs...")
+          const filtered = await filterTabsForSubAdmin(currentAdmin.id, TAB_CONFIG)
+
+          console.log(
+            "[v0] Filtered tabs for sub-admin:",
+            filtered.map((t) => t.id),
+          )
+          setTabs(filtered)
+
+          // We use a ref-like check or handle it once during init
+          const currentTab = activeTab
+          const isAllowed = filtered.some((t) => t.id === currentTab)
+          if (!isAllowed && currentTab !== "dashboard") {
+            console.log("[v0] Current tab not allowed, resetting to dashboard.")
+            loadTab("dashboard")
+          }
+        } else if (isFullAdmin) {
+          console.log("[v0] Full admin detected. Showing all tabs.")
+          setTabs(TAB_CONFIG)
+        } else {
+          // Safety fallback for unknown roles
+          console.log("[v0] Unknown role or restricted access, showing dashboard only.")
+          setTabs(TAB_CONFIG.filter((t) => t.id === "dashboard"))
+        }
+      } catch (error) {
+        console.error("[v0] Error initializing dashboard permissions:", error)
+        setTabs(TAB_CONFIG.filter((t) => t.id === "dashboard"))
+      } finally {
+        setIsTabsLoaded(true)
+      }
     }
-    filterTabs()
-  }, [admin?.id])
+    initDashboard()
+  }, [router])
+  // --- UPDATES END ---
+
+  // Filter tabs on component mount (This block is replaced by the new useEffect above)
+  // useEffect(() => {
+  //   const filterTabs = async () => {
+  //     const currentUserId = admin?.id || null
+  //     if (currentUserId) {
+  //       try {
+  //         const isSub = await isRestrictedSubAdmin(currentUserId)
+  //         if (isSub) {
+  //           const filtered = await filterTabsForSubAdmin(currentUserId, TAB_CONFIG)
+  //           setVisibleTabs(filtered)
+  //         } else {
+  //           setVisibleTabs(TAB_CONFIG)
+  //         }
+  //       } catch (error) {
+  //         console.error("[v0] Error filtering tabs:", error)
+  //         setVisibleTabs(TAB_CONFIG)
+  //       }
+  //     }
+  //     setIsTabsLoaded(true)
+  //   }
+  //   filterTabs()
+  // }, [admin?.id])
 
   // Load stats on component mount
   useEffect(() => {
@@ -653,7 +712,8 @@ export default function AdminDashboard() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <div className="w-full overflow-x-auto">
             <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
-              {visibleTabs.slice(0, 10).map(({ id, label, icon: Icon }) => {
+              {tabs.slice(0, 10).map(({ id, label, icon: Icon }) => {
+                // Changed from visibleTabs to tabs
                 const alertCount = getTabAlertCount(id)
                 return (
                   <TabsTrigger
@@ -677,7 +737,8 @@ export default function AdminDashboard() {
           {/* Additional tabs row for mobile */}
           <div className="w-full overflow-x-auto">
             <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
-              {visibleTabs.slice(10).map(({ id, label, icon: Icon }) => {
+              {tabs.slice(10).map(({ id, label, icon: Icon }) => {
+                // Changed from visibleTabs to tabs
                 const alertCount = getTabAlertCount(id)
                 return (
                   <TabsTrigger
@@ -963,7 +1024,7 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 <Button
                   asChild
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
                 >
                   <Link href="/admin/maintenance">
                     <Wrench className="h-4 w-4 mr-2" />
@@ -1002,7 +1063,7 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
           {/* Dynamic Tab Content for Components */}
-          {visibleTabs
+          {tabs // Changed from visibleTabs to tabs
             .filter((tab) => tab.component)
             .map(({ id, label, component: Component }) => (
               <TabsContent key={id} value={id} className="space-y-4">

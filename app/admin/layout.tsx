@@ -31,6 +31,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         const storedAdmin = getStoredAdmin()
 
         if (!storedAdmin) {
+          const { getStoredAgent } = await import("@/lib/unified-auth-system")
+          const { isAgentSubAdmin, getAgentSubAdminRole } = await import("@/lib/sub-admin-utils")
+
+          const agent = getStoredAgent()
+          if (agent) {
+            const isSubAdmin = await isAgentSubAdmin(agent.id)
+            if (isSubAdmin) {
+              const role = await getAgentSubAdminRole(agent.id)
+              if (role) {
+                // Auto-create a temporary admin session for the sub-admin agent
+                const { setStoredAdmin } = await import("@/lib/unified-auth-system")
+                const adminUser = {
+                  id: agent.id,
+                  email: agent.email || agent.phone_number,
+                  full_name: agent.full_name,
+                  role: "sub_admin",
+                  is_active: true,
+                }
+                setStoredAdmin(adminUser)
+                if (mounted) {
+                  setAdminUser(adminUser)
+                  setLoading(false)
+                }
+                return
+              }
+            }
+          }
+
           if (mounted && pathname !== "/admin/login") {
             router.push("/admin/login")
           }

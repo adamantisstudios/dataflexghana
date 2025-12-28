@@ -1,14 +1,16 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+"use client"
+import { useState, useEffect, useRef } from "react"
+import type React from "react"
+
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,16 +20,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from "@/components/ui/alert-dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   supabase,
   generatePaymentReference,
   calculateDataBundleCommission,
   type Agent,
   type DataBundle,
-} from "@/lib/supabase";
-import { getCurrentAgent } from "@/lib/auth";
+} from "@/lib/supabase"
+import { getCurrentAgent } from "@/lib/auth"
 import {
   ArrowLeft,
   Smartphone,
@@ -42,103 +44,103 @@ import {
   Clock,
   DollarSign,
   AlertCircle,
-} from "lucide-react";
-import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence";
-import { useDataOrderPersistence } from "@/hooks/use-data-order-persistence";
+} from "lucide-react"
+import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence"
+import { useDataOrderPersistence } from "@/hooks/use-data-order-persistence"
 
 export default function DataOrderPage() {
   // State declarations
-  const [agent, setAgent] = useState<Agent | null>(null);
-  const [dataBundles, setDataBundles] = useState<DataBundle[]>([]);
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [selectedBundle, setSelectedBundle] = useState<DataBundle | null>(null);
-  const [recipientPhone, setRecipientPhone] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"manual" | "wallet">("manual");
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [generatedReference, setGeneratedReference] = useState("");
-  const [orderDetails, setOrderDetails] = useState<any>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [agent, setAgent] = useState<Agent | null>(null)
+  const [dataBundles, setDataBundles] = useState<DataBundle[]>([])
+  const [walletBalance, setWalletBalance] = useState(0)
+  const [selectedBundle, setSelectedBundle] = useState<DataBundle | null>(null)
+  const [recipientPhone, setRecipientPhone] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState<"manual" | "wallet">("manual")
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [generatedReference, setGeneratedReference] = useState("")
+  const [orderDetails, setOrderDetails] = useState<any>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false)
   const [successNotificationData, setSuccessNotificationData] = useState<{
-    bundleName: string;
-    recipientPhone: string;
-    amount: number;
-    paymentMethod: string;
-    reference?: string;
-    deliveryTime: string;
-  } | null>(null);
-  const [showTCModal, setShowTCModal] = useState(false);
-  const [showDataOrderNotice, setShowDataOrderNotice] = useState(false);
-  const [noticeTimerStarted, setNoticeTimerStarted] = useState(false);
-  const [persistedOrder, setPersistedOrder] = useState<DataOrderState | null>(null);
+    bundleName: string
+    recipientPhone: string
+    amount: number
+    paymentMethod: string
+    reference?: string
+    deliveryTime: string
+  } | null>(null)
+  const [showTCModal, setShowTCModal] = useState(false)
+  const [showDataOrderNotice, setShowDataOrderNotice] = useState(false)
+  const [noticeTimerStarted, setNoticeTimerStarted] = useState(false)
+  const [persistedOrder, setPersistedOrder] = useState<DataOrderState | null>(null)
 
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const paymentSectionRef = useRef<HTMLDivElement>(null);
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const paymentSectionRef = useRef<HTMLDivElement>(null)
 
   // Initialize persistence hook
-  const { saveOrderState, restoreOrderState, clearOrderState } = useDataOrderPersistence();
+  const { saveOrderState, restoreOrderState, clearOrderState } = useDataOrderPersistence()
 
   // Load agent and data bundles
   useEffect(() => {
-    const currentAgent = getCurrentAgent();
+    const currentAgent = getCurrentAgent()
     if (!currentAgent) {
-      router.push("/agent/login");
-      return;
+      router.push("/agent/login")
+      return
     }
-    setAgent(currentAgent);
-    loadData(currentAgent.id);
-    setupWalletBalanceListener(currentAgent.id);
-  }, [router]);
+    setAgent(currentAgent)
+    loadData(currentAgent.id)
+    setupWalletBalanceListener(currentAgent.id)
+  }, [router])
 
   // Show data order notice after delay
   useEffect(() => {
     if (!noticeTimerStarted) {
       const timer = setTimeout(() => {
-        setShowDataOrderNotice(true);
-        setNoticeTimerStarted(true);
-      }, 5000);
-      return () => clearTimeout(timer);
+        setShowDataOrderNotice(true)
+        setNoticeTimerStarted(true)
+      }, 5000)
+      return () => clearTimeout(timer)
     }
-  }, [noticeTimerStarted]);
+  }, [noticeTimerStarted])
 
   // Handle pre-selected bundle from URL
   useEffect(() => {
-    const bundleId = searchParams.get("bundle");
+    const bundleId = searchParams.get("bundle")
     if (bundleId && dataBundles.length > 0) {
-      const bundle = dataBundles.find((b) => b.id === bundleId);
+      const bundle = dataBundles.find((b) => b.id === bundleId)
       if (bundle) {
-        setSelectedBundle(bundle);
+        setSelectedBundle(bundle)
         setTimeout(() => {
           if (paymentSectionRef.current) {
-            paymentSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-            paymentSectionRef.current.classList.add("animate-pulse");
+            paymentSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+            paymentSectionRef.current.classList.add("animate-pulse")
             setTimeout(() => {
-              paymentSectionRef.current?.classList.remove("animate-pulse");
-            }, 2000);
+              paymentSectionRef.current?.classList.remove("animate-pulse")
+            }, 2000)
           }
-        }, 500);
+        }, 500)
       }
     }
-  }, [searchParams, dataBundles]);
+  }, [searchParams, dataBundles])
 
   // Restore persisted order state
   useEffect(() => {
-    const restored = restoreOrderState();
+    const restored = restoreOrderState()
     if (restored) {
-      setSelectedBundle(restored.selectedBundle);
-      setRecipientPhone(restored.recipientPhone);
-      setPaymentMethod(restored.paymentMethod);
-      setGeneratedReference(restored.generatedReference);
-      setOrderDetails(restored.orderDetails);
-      setShowConfirmDialog(true);
+      setSelectedBundle(restored.selectedBundle)
+      setRecipientPhone(restored.recipientPhone)
+      setPaymentMethod(restored.paymentMethod)
+      setGeneratedReference(restored.generatedReference)
+      setOrderDetails(restored.orderDetails)
+      setShowConfirmDialog(true)
 
-      setShowSuccessNotification(true);
+      setShowSuccessNotification(true)
       setSuccessNotificationData({
         bundleName: restored.selectedBundle?.name || "Your Order",
         recipientPhone: restored.recipientPhone,
@@ -146,14 +148,14 @@ export default function DataOrderPage() {
         paymentMethod: restored.paymentMethod === "wallet" ? "Wallet Balance" : "Manual Payment",
         reference: restored.paymentMethod === "manual" ? restored.generatedReference : undefined,
         deliveryTime: "10-45 minutes",
-      });
+      })
 
       setTimeout(() => {
-        setShowSuccessNotification(false);
-        setSuccessNotificationData(null);
-      }, 5000);
+        setShowSuccessNotification(false)
+        setSuccessNotificationData(null)
+      }, 5000)
     }
-  }, [restoreOrderState]);
+  }, [restoreOrderState])
 
   // Set up wallet balance listener
   const setupWalletBalanceListener = (agentId: string) => {
@@ -169,11 +171,11 @@ export default function DataOrderPage() {
         },
         (payload) => {
           if (payload.new && payload.new.wallet_balance !== undefined) {
-            setWalletBalance(payload.new.wallet_balance);
+            setWalletBalance(payload.new.wallet_balance)
           }
-        }
+        },
       )
-      .subscribe();
+      .subscribe()
 
     const transactionChannel = supabase
       .channel("wallet-transactions")
@@ -185,130 +187,130 @@ export default function DataOrderPage() {
           table: "wallet_transactions",
           filter: `agent_id=eq.${agentId}`,
         },
-        () => refreshWalletBalance(agentId)
+        () => refreshWalletBalance(agentId),
       )
-      .subscribe();
+      .subscribe()
 
     return () => {
-      supabase.removeChannel(channel);
-      supabase.removeChannel(transactionChannel);
-    };
-  };
+      supabase.removeChannel(channel)
+      supabase.removeChannel(transactionChannel)
+    }
+  }
 
   // Refresh wallet balance
   const refreshWalletBalance = async (agentId: string) => {
     try {
-      const { calculateWalletBalance } = await import("@/lib/earnings-calculator");
-      const approvedWalletBalance = await calculateWalletBalance(agentId);
-      setWalletBalance(approvedWalletBalance);
+      const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
+      const approvedWalletBalance = await calculateWalletBalance(agentId)
+      setWalletBalance(approvedWalletBalance)
     } catch (error) {
-      console.error("Error refreshing wallet balance:", error);
+      console.error("Error refreshing wallet balance:", error)
     }
-  };
+  }
 
   // Load data bundles and wallet balance
   const loadData = async (agentId: string) => {
     try {
-      setLoading(true);
+      setLoading(true)
       const { data: bundlesData, error: bundlesError } = await supabase
         .from("data_bundles")
         .select("*")
         .eq("is_active", true)
         .order("provider", { ascending: true })
-        .order("size_gb", { ascending: true });
+        .order("size_gb", { ascending: true })
 
-      if (bundlesError) throw bundlesError;
+      if (bundlesError) throw bundlesError
 
-      const { calculateWalletBalance } = await import("@/lib/earnings-calculator");
-      const approvedWalletBalance = await calculateWalletBalance(agentId);
+      const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
+      const approvedWalletBalance = await calculateWalletBalance(agentId)
 
-      setDataBundles(bundlesData || []);
-      setWalletBalance(approvedWalletBalance);
+      setDataBundles(bundlesData || [])
+      setWalletBalance(approvedWalletBalance)
 
-      const saved = loadDataOrderState();
+      const saved = loadDataOrderState()
       if (saved) {
-        setPersistedOrder(saved);
+        setPersistedOrder(saved)
         if (bundlesData && bundlesData.length > 0) {
-          const bundle = bundlesData.find((b) => b.id === saved.bundleId);
+          const bundle = bundlesData.find((b) => b.id === saved.bundleId)
           if (bundle) {
-            setSelectedBundle(bundle);
-            setRecipientPhone(saved.recipientPhone);
-            setPaymentMethod(saved.paymentMethod);
-            setGeneratedReference(saved.generatedReference);
+            setSelectedBundle(bundle)
+            setRecipientPhone(saved.recipientPhone)
+            setPaymentMethod(saved.paymentMethod)
+            setGeneratedReference(saved.generatedReference)
             if (saved.paymentMethod === "wallet" && approvedWalletBalance < bundle.price) {
               setError(
-                `Insufficient wallet balance. You need GH₵ ${bundle.price.toFixed(2)} but have GH₵ ${approvedWalletBalance.toFixed(2)}`
-              );
+                `Insufficient wallet balance. You need GH₵ ${bundle.price.toFixed(2)} but have GH₵ ${approvedWalletBalance.toFixed(2)}`,
+              )
             }
           }
         }
       }
     } catch (error) {
-      console.error("Error loading data:", error);
-      setError("Failed to load data bundles");
+      console.error("Error loading data:", error)
+      setError("Failed to load data bundles")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   // Handle bundle selection
   const handleBundleSelect = (bundleId: string) => {
-    const bundle = dataBundles.find((b) => b.id === bundleId);
-    setSelectedBundle(bundle || null);
-    setError("");
+    const bundle = dataBundles.find((b) => b.id === bundleId)
+    setSelectedBundle(bundle || null)
+    setError("")
 
     setTimeout(() => {
       if (paymentSectionRef.current) {
-        paymentSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-        paymentSectionRef.current.classList.add("animate-pulse");
+        paymentSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+        paymentSectionRef.current.classList.add("animate-pulse")
         setTimeout(() => {
-          paymentSectionRef.current?.classList.remove("animate-pulse");
-        }, 2000);
+          paymentSectionRef.current?.classList.remove("animate-pulse")
+        }, 2000)
       }
-    }, 100);
-  };
+    }, 100)
+  }
 
   // Validate order
   const validateOrder = () => {
     if (!selectedBundle) {
-      setError("Please select a data bundle");
-      return false;
+      setError("Please select a data bundle")
+      return false
     }
     if (!recipientPhone.trim()) {
-      setError("Please enter recipient phone number");
-      return false;
+      setError("Please enter recipient phone number")
+      return false
     }
-    const phoneRegex = /^[0-9]{10}$/;
+    const phoneRegex = /^[0-9]{10}$/
     if (!phoneRegex.test(recipientPhone.replace(/\s/g, ""))) {
-      setError("Please enter a valid 10-digit phone number");
-      return false;
+      setError("Please enter a valid 10-digit phone number")
+      return false
     }
     if (paymentMethod === "wallet" && walletBalance < selectedBundle.price) {
       setError(
-        `Insufficient wallet balance. You need GH₵ ${selectedBundle.price.toFixed(2)} but have GH₵ ${walletBalance.toFixed(2)}`
-      );
-      return false;
+        `Insufficient wallet balance. You need GH₵ ${selectedBundle.price.toFixed(2)} but have GH₵ ${walletBalance.toFixed(2)}`,
+      )
+      return false
     }
-    return true;
-  };
+    return true
+  }
 
   // Place order
   const placeOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agent || !selectedBundle) return;
-    if (!validateOrder()) return;
+    e.preventDefault()
+    if (!agent || !selectedBundle) return
+    if (!validateOrder()) return
 
-    setError("");
-    setSuccess("");
-    const cleanPhoneNumber = recipientPhone.replace(/\D/g, "").slice(0, 10);
+    setError("")
+    setSuccess("")
+    const cleanPhoneNumber = recipientPhone.replace(/\D/g, "").slice(0, 10)
 
     if (cleanPhoneNumber.length !== 10) {
-      setError("Please enter a valid 10-digit phone number");
-      return;
+      setError("Please enter a valid 10-digit phone number")
+      return
     }
 
-    const commission = calculateDataBundleCommission(selectedBundle.price, selectedBundle.commission_rate);
-    const reference = generatePaymentReference();
+    const commission = calculateDataBundleCommission(selectedBundle.price, selectedBundle.commission_rate)
+    const reference = generatePaymentReference()
 
     const orderData = {
       agent_id: agent.id,
@@ -318,10 +320,10 @@ export default function DataOrderPage() {
       commission_amount: commission,
       payment_method: paymentMethod,
       status: paymentMethod === "wallet" ? "processing" : "pending",
-    };
+    }
 
-    setOrderDetails(orderData);
-    setGeneratedReference(reference);
+    setOrderDetails(orderData)
+    setGeneratedReference(reference)
 
     saveOrderState({
       selectedBundle,
@@ -329,37 +331,37 @@ export default function DataOrderPage() {
       paymentMethod,
       generatedReference: reference,
       orderDetails: orderData,
-    });
+    })
 
     if (paymentMethod === "manual") {
-      setShowPaymentModal(true);
+      setShowPaymentModal(true)
     } else {
-      setShowConfirmDialog(true);
+      setShowConfirmDialog(true)
     }
-  };
+  }
 
   // Handle payment confirmation
   const handlePaymentConfirmed = () => {
-    setShowPaymentModal(false);
-    setShowConfirmDialog(true);
-  };
+    setShowPaymentModal(false)
+    setShowConfirmDialog(true)
+  }
 
   // Confirm order
   const confirmOrder = async () => {
-    if (!orderDetails || !agent || !selectedBundle) return;
-    setSubmitting(true);
+    if (!orderDetails || !agent || !selectedBundle) return
+    setSubmitting(true)
     try {
       if (paymentMethod === "wallet") {
-        const { calculateWalletBalance } = await import("@/lib/earnings-calculator");
-        const approvedWalletBalance = await calculateWalletBalance(agent.id);
+        const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
+        const approvedWalletBalance = await calculateWalletBalance(agent.id)
 
         if (approvedWalletBalance < selectedBundle.price) {
           throw new Error(
-            "Insufficient approved wallet balance. Please ensure your wallet top-up has been approved by admin."
-          );
+            "Insufficient approved wallet balance. Please ensure your wallet top-up has been approved by admin.",
+          )
         }
 
-        const newBalance = approvedWalletBalance - selectedBundle.price;
+        const newBalance = approvedWalletBalance - selectedBundle.price
 
         const { data: deductionTransaction, error: deductionError } = await supabase
           .from("wallet_transactions")
@@ -374,19 +376,19 @@ export default function DataOrderPage() {
             source_id: null,
           })
           .select()
-          .single();
+          .single()
 
         if (deductionError) {
-          throw new Error("Failed to process wallet payment. Please try again.");
+          throw new Error("Failed to process wallet payment. Please try again.")
         }
 
-        setWalletBalance(newBalance);
+        setWalletBalance(newBalance)
       }
 
-      const { error: orderError } = await supabase.from("data_orders").insert([orderDetails]);
-      if (orderError) throw orderError;
+      const { error: orderError } = await supabase.from("data_orders").insert([orderDetails])
+      if (orderError) throw orderError
 
-      const deliveryTime = "10-45 minutes";
+      const deliveryTime = "10-45 minutes"
       setSuccessNotificationData({
         bundleName: selectedBundle.name,
         recipientPhone: orderDetails.recipient_phone,
@@ -394,59 +396,56 @@ export default function DataOrderPage() {
         paymentMethod: paymentMethod === "wallet" ? "Wallet Balance" : "Manual Payment",
         reference: paymentMethod === "manual" ? generatedReference : undefined,
         deliveryTime,
-      });
-      setShowSuccessNotification(true);
-      setSelectedBundle(null);
-      setRecipientPhone("");
-      setPaymentMethod("manual");
-      setShowConfirmDialog(false);
-      setGeneratedReference("");
-      setOrderDetails(null);
-      clearDataOrderState();
-      clearOrderState();
+      })
+      setShowSuccessNotification(true)
+      setSelectedBundle(null)
+      setRecipientPhone("")
+      setPaymentMethod("manual")
+      setShowConfirmDialog(false)
+      setGeneratedReference("")
+      setOrderDetails(null)
+      clearDataOrderState()
+      clearOrderState()
 
       setTimeout(() => {
-        setShowSuccessNotification(false);
-        setSuccessNotificationData(null);
-      }, 8000);
+        setShowSuccessNotification(false)
+        setSuccessNotificationData(null)
+      }, 8000)
     } catch (error: any) {
-      console.error("Error placing order:", error);
-      setError(error.message || "Failed to place order. Please try again.");
+      console.error("Error placing order:", error)
+      setError(error.message || "Failed to place order. Please try again.")
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
   // Refresh wallet balance manually
   const handleRefreshBalance = async () => {
-    if (!agent) return;
-    setRefreshing(true);
-    await refreshWalletBalance(agent.id);
-    setRefreshing(false);
-  };
+    if (!agent) return
+    setRefreshing(true)
+    await refreshWalletBalance(agent.id)
+    setRefreshing(false)
+  }
 
   // Copy to clipboard
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
+    navigator.clipboard.writeText(text)
+  }
 
   // Handle reading T&Cs
   const handleReadTCs = () => {
-    setShowDataOrderNotice(false);
+    setShowDataOrderNotice(false)
     setTimeout(() => {
-      setShowTCModal(true);
-    }, 100);
-  };
+      setShowTCModal(true)
+    }, 100)
+  }
 
   // Group bundles by provider
-  const groupedBundles = dataBundles.reduce(
-    (acc: Record<string, DataBundle[]>, bundle) => {
-      if (!acc[bundle.provider]) acc[bundle.provider] = [];
-      acc[bundle.provider].push(bundle);
-      return acc;
-    },
-    {}
-  );
+  const groupedBundles = dataBundles.reduce((acc: Record<string, DataBundle[]>, bundle) => {
+    if (!acc[bundle.provider]) acc[bundle.provider] = []
+    acc[bundle.provider].push(bundle)
+    return acc
+  }, {})
 
   // Render loading state
   if (loading) {
@@ -457,7 +456,7 @@ export default function DataOrderPage() {
           <p className="text-gray-600">Loading data bundles...</p>
         </div>
       </div>
-    );
+    )
   }
 
   // Main UI
@@ -493,13 +492,15 @@ export default function DataOrderPage() {
                 <Smartphone className="h-5 w-5" />
                 Select Data Bundle
               </CardTitle>
-              <CardDescription className="text-emerald-600">Choose from available data bundles by network</CardDescription>
+              <CardDescription className="text-emerald-600">
+                Choose from available data bundles by network
+              </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <Tabs defaultValue="MTN" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm shadow-lg border border-emerald-200 p-1 rounded-xl gap-1 h-auto">
                   {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
-                    const bundleCount = dataBundles.filter((bundle) => bundle.provider === provider).length;
+                    const bundleCount = dataBundles.filter((bundle) => bundle.provider === provider).length
                     return (
                       <TabsTrigger
                         key={provider}
@@ -511,8 +512,8 @@ export default function DataOrderPage() {
                             provider === "MTN"
                               ? "/images/mtn.jpg"
                               : provider === "AirtelTigo"
-                              ? "/images/airteltigo.jpg"
-                              : "/images/telecel.jpg"
+                                ? "/images/airteltigo.jpg"
+                                : "/images/telecel.jpg"
                           }
                           alt={`${provider} logo`}
                           className="w-4 h-4 sm:w-5 sm:h-5 rounded object-cover flex-shrink-0"
@@ -523,12 +524,12 @@ export default function DataOrderPage() {
                           <span className="text-xs opacity-75">({bundleCount})</span>
                         </div>
                       </TabsTrigger>
-                    );
+                    )
                   })}
                 </TabsList>
 
                 {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
-                  const providerBundles = dataBundles.filter((bundle) => bundle.provider === provider);
+                  const providerBundles = dataBundles.filter((bundle) => bundle.provider === provider)
                   return (
                     <TabsContent key={provider} value={provider} className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -539,8 +540,8 @@ export default function DataOrderPage() {
                                 provider === "MTN"
                                   ? "/images/mtn.jpg"
                                   : provider === "AirtelTigo"
-                                  ? "/images/airteltigo.jpg"
-                                  : "/images/telecel.jpg"
+                                    ? "/images/airteltigo.jpg"
+                                    : "/images/telecel.jpg"
                               }
                               alt={`${provider} logo`}
                               className="w-full h-full object-cover"
@@ -555,12 +556,18 @@ export default function DataOrderPage() {
                       </div>
 
                       {providerBundles.length === 0 ? (
-                        <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
+                        <Card className="border-red-100 bg-white/90 backdrop-blur-sm">
                           <CardContent className="pt-6 text-center">
                             <div className="text-gray-500 mb-4">
-                              <Smartphone className="h-8 sm:h-12 w-8 sm:w-12 mx-auto mb-2 opacity-50" />
-                              <p>No data bundles available for {provider}</p>
-                              <p className="text-sm">Please check back later</p>
+                              <Smartphone className="h-8 sm:h-12 w-8 sm:w-12 mx-auto mb-2 opacity-50 text-red-400" />
+                              {/* CHANGE: updated messaging and added redirect button for out of stock bundles */}
+                              <p className="font-bold text-red-600">This data bundle is out of stock</p>
+                              <p className="text-sm mb-4">
+                                Please buy the other type of data bundle available for purchase.
+                              </p>
+                              <Button asChild size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                                <Link href="/no-registration">View Alternatives</Link>
+                              </Button>
                             </div>
                           </CardContent>
                         </Card>
@@ -602,7 +609,7 @@ export default function DataOrderPage() {
                         </div>
                       )}
                     </TabsContent>
-                  );
+                  )
                 })}
               </Tabs>
             </CardContent>
@@ -634,8 +641,8 @@ export default function DataOrderPage() {
                     required
                     value={recipientPhone}
                     onChange={(e) => {
-                      const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10);
-                      setRecipientPhone(cleaned);
+                      const cleaned = e.target.value.replace(/\D/g, "").slice(0, 10)
+                      setRecipientPhone(cleaned)
                     }}
                     placeholder="e.g., 0241234567"
                     maxLength={10}
@@ -674,7 +681,9 @@ export default function DataOrderPage() {
                         <Badge
                           variant="secondary"
                           className={`text-xs ${
-                            walletBalance >= (selectedBundle?.price || 0) ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                            walletBalance >= (selectedBundle?.price || 0)
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
                           }`}
                         >
                           GH₵ {walletBalance.toFixed(2)}
@@ -687,7 +696,8 @@ export default function DataOrderPage() {
                     <Alert className="mt-3 border-amber-200 bg-amber-50">
                       <AlertTriangle className="h-4 w-4 text-amber-600" />
                       <AlertDescription className="text-amber-800 text-sm">
-                        Insufficient wallet balance. You need GH₵ {selectedBundle.price.toFixed(2)} but have GH₵ {walletBalance.toFixed(2)}.{" "}
+                        Insufficient wallet balance. You need GH₵ {selectedBundle.price.toFixed(2)} but have GH₵{" "}
+                        {walletBalance.toFixed(2)}.{" "}
                         <Link href="/agent/wallet" className="underline font-medium">
                           Top up your wallet
                         </Link>{" "}
@@ -717,7 +727,9 @@ export default function DataOrderPage() {
                         <span className="text-emerald-700">Your Commission:</span>
                         <span className="font-bold text-green-600">
                           GH₵{" "}
-                          {calculateDataBundleCommission(selectedBundle.price, selectedBundle.commission_rate).toFixed(2)}
+                          {calculateDataBundleCommission(selectedBundle.price, selectedBundle.commission_rate).toFixed(
+                            2,
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-between pt-2 border-t border-emerald-200">
@@ -789,9 +801,7 @@ export default function DataOrderPage() {
                   </div>
                   <div>
                     <h3 className="text-lg sm:text-xl font-bold">Payment Required</h3>
-                    <p className="text-emerald-100 text-xs sm:text-sm">
-                      Complete payment before placing order
-                    </p>
+                    <p className="text-emerald-100 text-xs sm:text-sm">Complete payment before placing order</p>
                   </div>
                 </div>
               </div>
@@ -819,8 +829,8 @@ export default function DataOrderPage() {
                         <p className="font-bold text-lg text-emerald-600">0557943392</p>
                         <Button
                           onClick={() => {
-                            navigator.clipboard.writeText("0557943392");
-                            alert("Payment number copied!");
+                            navigator.clipboard.writeText("0557943392")
+                            alert("Payment number copied!")
                           }}
                           className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded text-xs font-medium transition"
                         >
@@ -844,8 +854,8 @@ export default function DataOrderPage() {
                         </p>
                         <Button
                           onClick={() => {
-                            navigator.clipboard.writeText(generatedReference);
-                            alert("Reference copied!");
+                            navigator.clipboard.writeText(generatedReference)
+                            alert("Reference copied!")
                           }}
                           className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded text-xs font-medium transition"
                         >
@@ -859,10 +869,9 @@ export default function DataOrderPage() {
                 {/* Important Note */}
                 <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
                   <p className="text-xs text-blue-800">
-                    <strong>Important:</strong> Complete your payment to{" "}
-                    <strong>0557943392</strong> using the reference number{" "}
-                    <strong className="truncate inline-block max-w-[60%]">{generatedReference}</strong>{" "}
-                    before clicking "Completed Payment".
+                    <strong>Important:</strong> Complete your payment to <strong>0557943392</strong> using the reference
+                    number <strong className="truncate inline-block max-w-[60%]">{generatedReference}</strong> before
+                    clicking "Completed Payment".
                   </p>
                 </div>
 
@@ -967,8 +976,8 @@ export default function DataOrderPage() {
               <div className="bg-gradient-to-r from-emerald-500 to-green-500 px-4 py-3 text-white relative">
                 <Button
                   onClick={() => {
-                    setShowSuccessNotification(false);
-                    setSuccessNotificationData(null);
+                    setShowSuccessNotification(false)
+                    setSuccessNotificationData(null)
                   }}
                   className="absolute top-3 right-3 text-white/80 hover:text-white transition-colors"
                 >
@@ -1037,8 +1046,8 @@ export default function DataOrderPage() {
                 <div className="flex gap-2 pt-2">
                   <Button
                     onClick={() => {
-                      setShowSuccessNotification(false);
-                      setSuccessNotificationData(null);
+                      setShowSuccessNotification(false)
+                      setSuccessNotificationData(null)
                     }}
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2"
                   >
@@ -1047,9 +1056,9 @@ export default function DataOrderPage() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      setShowSuccessNotification(false);
-                      setSuccessNotificationData(null);
-                      router.push("/agent/data-orders");
+                      setShowSuccessNotification(false)
+                      setSuccessNotificationData(null)
+                      router.push("/agent/data-orders")
                     }}
                     className="flex-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-sm py-2"
                   >
@@ -1154,5 +1163,5 @@ export default function DataOrderPage() {
         )}
       </div>
     </div>
-  );
+  )
 }
