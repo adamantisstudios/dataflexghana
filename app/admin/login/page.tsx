@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Shield, ArrowLeft, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { loginAdmin, getStoredAdmin } from "@/lib/unified-auth-system"
+import { loginAdmin } from "@/lib/unified-auth-system"
 
 export default function AdminLoginPage() {
   const [formData, setFormData] = useState({
@@ -22,16 +22,8 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    // Check if already logged in
-    const checkSession = async () => {
-      const storedAdmin = getStoredAdmin()
-      if (storedAdmin) {
-        router.push("/admin")
-      }
-    }
-    checkSession()
-  }, [router])
+  // The admin layout will handle all auth checks and redirects
+  // This eliminates the circular redirect loop
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,18 +31,21 @@ export default function AdminLoginPage() {
     setError("")
 
     try {
+      console.log("[v0] Attempting admin login with email:", formData.email)
       const result = await loginAdmin(formData.email, formData.password)
 
       if (result.success) {
-        console.log("🎉 Login successful! Redirecting...")
+        console.log("[v0] Admin login successful, redirecting to /admin")
+        // Give localStorage time to sync before redirect
+        await new Promise((resolve) => setTimeout(resolve, 150))
         router.push("/admin")
       } else {
-        setError(result.error || "Login failed")
+        setError(result.error || "Login failed. Please check your credentials.")
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      console.log(`💥 Unexpected error: ${errorMessage}`)
-      setError(`An unexpected error occurred: ${errorMessage}`)
+      console.error("[v0] Login error:", errorMessage)
+      setError("An error occurred during login. Please try again.")
     } finally {
       setLoading(false)
     }

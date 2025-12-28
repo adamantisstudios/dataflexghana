@@ -3,7 +3,6 @@ import type { SubAdminRole, TabAccessInfo } from "./sub-admin-types"
 
 // Get agent's sub-admin role if they have one
 export async function getAgentSubAdminRole(agentId: string): Promise<SubAdminRole | null> {
-  console.log("[v0] Fetching sub-admin role for agent:", agentId)
   try {
     const { data, error } = await supabase
       .from("admin_sub_roles")
