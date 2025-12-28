@@ -24,9 +24,10 @@ export interface SubAdminAssignmentPayload {
 }
 
 export const AVAILABLE_TABS = [
+  { id: "dashboard", label: "Dashboard" }, // Added dashboard to available tabs for assignment
   { id: "agents", label: "Agents" },
   { id: "agent-management", label: "Agent Management" },
-  { id: "sub-admin-management", label: "Sub-Admin Management" }, // added sub-admin management to available tabs
+  { id: "sub-admin-management", label: "Sub-Admin Management" },
   { id: "manual-registration", label: "Manual Registration" },
   { id: "teacher-hub", label: "Teacher Hub" },
   { id: "audio-management", label: "Audio Management" },

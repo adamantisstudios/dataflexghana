@@ -46,7 +46,7 @@ import {
   Music,
   Mail,
 } from "lucide-react"
-import { getCurrentAdmin, logoutAdmin, getAdminToken, clearAdminSession } from "@/lib/auth"
+import { logoutAdmin, getAdminToken, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
 import { BackToTop } from "@/components/back-to-top"
 import { UnreadNotification } from "@/components/unread-notification"
@@ -92,7 +92,7 @@ const useTabLoader = () => {
     setLoadedTabs((prev) => new Set([...prev, tabName]))
     setActiveTab(tabName)
   }, [])
-  return { loadedTabs, activeTab, loadTab }
+  return { loadedTabs, activeTab, loadTab, setActiveTab }
 }
 // Custom hook for caching tab data
 const useTabCache = () => {
@@ -165,13 +165,13 @@ const TAB_CONFIG = [
 ]
 
 export default function AdminDashboard() {
-  const { loadedTabs, activeTab, loadTab } = useTabLoader()
+  const { loadedTabs, activeTab, loadTab, setActiveTab } = useTabLoader()
   const { getCachedData, setCachedData, clearCache } = useTabCache()
   const router = useRouter()
-  const admin = getCurrentAdmin()
+  const admin = getStoredAdmin()
   const [showNotification, setShowNotification] = useState(true)
   const [connectionHealth, setConnectionHealth] = useState(connectionManager.getHealthStatus())
-  const [visibleTabs, setVisibleTabs] = useState(TAB_CONFIG)
+  const [visibleTabs, setVisibleTabs] = useState<typeof TAB_CONFIG>([])
   const [isTabsLoaded, setIsTabsLoaded] = useState(false)
   const [stats, setStats] = useState({
     totalAgents: 1247,
@@ -229,24 +229,51 @@ export default function AdminDashboard() {
   useEffect(() => {
     const filterTabs = async () => {
       const currentUserId = admin?.id || null
-      if (currentUserId) {
-        try {
-          const isSub = await isRestrictedSubAdmin(currentUserId)
+      console.log("[v0] AdminPage: Checking tabs for user:", currentUserId, "Role:", admin?.role)
+
+      try {
+        if (currentUserId) {
+          const isSub = admin?.role === "sub_admin" || (await isRestrictedSubAdmin(currentUserId))
+
           if (isSub) {
+            console.log("[v0] Sub-admin detected:", currentUserId)
             const filtered = await filterTabsForSubAdmin(currentUserId, TAB_CONFIG)
-            setVisibleTabs(filtered)
+            console.log(
+              "[v0] Filtered visible tabs:",
+              filtered.map((t) => t.id),
+            )
+
+            if (filtered.length > 0) {
+              const currentInFiltered = filtered.find((t) => t.id === activeTab)
+              if (!currentInFiltered) {
+                const firstTab = filtered[0].id
+                console.log("[v0] Redirecting to first assigned tab:", firstTab)
+                setActiveTab(firstTab)
+                loadTab(firstTab)
+              }
+              setVisibleTabs(filtered)
+            } else {
+              console.log("[v0] No visible tabs found for sub-admin")
+              setVisibleTabs([])
+              toast.error("You have not been assigned any management tabs. Please contact the administrator.")
+            }
           } else {
+            console.log("[v0] Full admin detected, showing all tabs")
             setVisibleTabs(TAB_CONFIG)
           }
-        } catch (error) {
-          console.error("[v0] Error filtering tabs:", error)
+        } else {
           setVisibleTabs(TAB_CONFIG)
         }
+      } catch (error) {
+        console.error("[v0] Error filtering tabs:", error)
+        setVisibleTabs(TAB_CONFIG) // Fallback to showing all tabs on error
+      } finally {
+        setIsTabsLoaded(true)
       }
-      setIsTabsLoaded(true)
     }
+
     filterTabs()
-  }, [admin?.id])
+  }, [admin, loadTab, setActiveTab]) // existing dependencies
 
   // Load stats on component mount
   useEffect(() => {
@@ -426,6 +453,7 @@ export default function AdminDashboard() {
     }
     setUpdatingPassword(true)
     try {
+      // Simulate password update API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
       toast.success("Password updated successfully")
       setSettingsOpen(false)
@@ -447,6 +475,17 @@ export default function AdminDashboard() {
     setShowCurrentPassword(false)
     setShowNewPassword(false)
     setShowConfirmPassword(false)
+  }
+
+  if (!isTabsLoaded) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-blue-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+          <p className="text-blue-600 font-medium">Loading your portal...</p>
+        </div>
+      </div>
+    )
   }
 
   const getSessionStatusIndicator = () => {
@@ -494,17 +533,6 @@ export default function AdminDashboard() {
       default:
         return 0
     }
-  }
-
-  if (!isTabsLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full mx-auto" />
-          <Skeleton className="h-4 w-48 mx-auto" />
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -963,7 +991,7 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 <Button
                   asChild
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+                  className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
                 >
                   <Link href="/admin/maintenance">
                     <Wrench className="h-4 w-4 mr-2" />
@@ -1008,6 +1036,7 @@ export default function AdminDashboard() {
               <TabsContent key={id} value={id} className="space-y-4">
                 {loadedTabs.has(id) ? (
                   <Suspense fallback={<TabLoadingSkeleton />}>
+                    {/* Add condition to pass specific props to BulkOrderManagementTab */}
                     {id === "bulk-orders" ? (
                       <Component />
                     ) : (
