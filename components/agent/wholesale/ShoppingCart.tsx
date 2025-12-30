@@ -17,10 +17,49 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ShoppingCartIcon, Plus, Minus, Trash2, CreditCard, Wallet, AlertCircle, CheckCircle } from "lucide-react"
+import {
+  ShoppingCartIcon,
+  Plus,
+  Minus,
+  Trash2,
+  CreditCard,
+  Wallet,
+  AlertCircle,
+  CheckCircle,
+  Info,
+  Copy,
+  Check,
+  PhoneCall,
+} from "lucide-react"
 import type { WholesaleProduct } from "@/lib/wholesale"
 import type { Agent } from "@/lib/supabase"
 import OrderProcessHeroSlider from "./OrderProcessHeroSlider"
+import { generatePaymentPIN } from "@/lib/pin-generator"
+
+const copyToClipboard = async (text: string) => {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    } else {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea")
+      textArea.value = text
+      textArea.style.position = "fixed"
+      textArea.style.left = "-9999px"
+      textArea.style.top = "0"
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      const successful = document.execCommand("copy")
+      document.body.removeChild(textArea)
+      return successful
+    }
+  } catch (err) {
+    console.error("Failed to copy:", err)
+    return false
+  }
+}
 
 interface CartItem {
   product: WholesaleProduct
@@ -50,6 +89,8 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
   const [checkingOut, setCheckingOut] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<"wallet" | "manual">("wallet")
   const [paymentReference, setPaymentReference] = useState("")
+  const [generatedPaymentCode, setGeneratedPaymentCode] = useState("")
+  const [copied, setCopied] = useState(false)
   const [deliveryAddress, setDeliveryAddress] = useState("")
   const [deliveryPhone, setDeliveryPhone] = useState(agent?.phone_number || "")
 
@@ -104,10 +145,13 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
 
     setCheckingOut(true)
     try {
+      const finalReference = effectivePaymentMethod === "manual" ? generatedPaymentCode : undefined
+      console.log("[v0] Final payment reference being sent:", finalReference)
+
       await onCheckout({
         items: cartItems,
         paymentMethod: effectivePaymentMethod,
-        paymentReference: effectivePaymentMethod === "manual" ? paymentReference : undefined,
+        paymentReference: finalReference,
         deliveryAddress,
         deliveryPhone,
         totalAmount,
@@ -115,6 +159,7 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
       })
       setShowCheckoutDialog(false)
       setPaymentReference("")
+      setGeneratedPaymentCode("")
       setDeliveryAddress("")
       setShowOrderConfirmation(true)
       setTimeout(() => {
@@ -125,6 +170,16 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
       console.error("Checkout failed:", error)
     } finally {
       setCheckingOut(false)
+    }
+  }
+
+  const handleCopyCode = async () => {
+    if (generatedPaymentCode) {
+      const success = await copyToClipboard(generatedPaymentCode)
+      if (success) {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
     }
   }
 
@@ -249,7 +304,19 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
         </Card>
       </div>
 
-      <Dialog open={showCheckoutDialog} onOpenChange={setShowCheckoutDialog}>
+      <Dialog
+        open={showCheckoutDialog}
+        onOpenChange={(open) => {
+          setShowCheckoutDialog(open)
+          if (open) {
+            const newCode = generatePaymentPIN()
+            console.log("[v0] Generated payment code for order:", newCode)
+            setGeneratedPaymentCode(newCode)
+          } else {
+            setGeneratedPaymentCode("")
+          }
+        }}
+      >
         <DialogContent className="max-w-[95vw] sm:max-w-md md:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg md:text-xl">Checkout</DialogTitle>
@@ -297,15 +364,57 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
               )}
             </div>
 
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+              <PhoneCall className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-blue-800">Delivery Information</p>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  A service person will call you shortly after your order is placed to discuss delivery fees or pick-up
+                  arrangements with you for the items being purchased.
+                </p>
+              </div>
+            </div>
+
             {effectivePaymentMethod === "manual" && (
-              <div>
-                <Label className="text-sm md:text-base">Enter your Manual Momo Payment Reference</Label>
-                <Input
-                  placeholder="Enter your manual momo payment reference"
-                  value={paymentReference}
-                  onChange={(e) => setPaymentReference(e.target.value)}
-                  className="text-sm md:text-base"
-                />
+              <div className="space-y-3">
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="space-y-2 w-full">
+                      <p className="text-sm font-medium text-emerald-800">Manual Payment Instructions</p>
+                      <p className="text-xs text-emerald-700 leading-relaxed">
+                        Please make payment of{" "}
+                        <span className="font-bold text-emerald-900">GH₵{totalAmount.toFixed(2)}</span> to our payment
+                        line.{" "}
+                        <span className="font-semibold text-emerald-800">
+                          Use the 4-digit payment code below as your reference
+                        </span>{" "}
+                        to ensure your order is processed for you.
+                      </p>
+                      <div className="flex items-center justify-between bg-white border border-emerald-200 p-3 rounded-md mt-2 shadow-sm">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-semibold text-emerald-500 uppercase tracking-tighter">
+                            Your Payment Code
+                          </span>
+                          <span className="text-2xl font-mono font-bold tracking-[0.2em] text-emerald-800">
+                            {generatedPaymentCode || "----"}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCopyCode}
+                          className="h-10 w-10 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                        >
+                          {copied ? <Check className="h-5 w-5 text-green-600" /> : <Copy className="h-5 w-5" />}
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-emerald-500 italic text-center mt-1">
+                        Copy and paste this code in your mobile money reference field.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
