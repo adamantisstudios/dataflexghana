@@ -188,9 +188,9 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
   const totalSteps = 4
 
   return (
-    <>
-      {showCostPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <>
+    {showCostPopup && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
@@ -204,6 +204,13 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
                 <span className="text-sm font-medium text-emerald-800">Cost:</span>
                 <span className="text-lg font-bold text-emerald-600">120 GHS</span>
               </div>
+              
+              {/* COMMISSION SECTION ADDED HERE */}
+              <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
+                <span className="text-sm font-medium text-amber-700">Your Commission:</span>
+                <span className="text-lg font-bold text-amber-600">20 GHS</span>
+              </div>
+              
               <div className="border-t border-emerald-200 pt-2 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-emerald-700">Duration:</span>
@@ -224,7 +231,7 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
           </CardContent>
         </Card>
       </div>
-      )}
+    )}
 
       <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
         <CardHeader>

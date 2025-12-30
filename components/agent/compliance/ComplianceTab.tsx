@@ -38,7 +38,7 @@ const AVAILABLE_FORMS = [
   {
     id: "birth-certificate",
     form_type: "birth-certificate",
-    form_name: "Birth Cert.",
+    form_name: "Birth Certificate.",
     form_description: "Apply for birth certificate",
     icon: Baby,
     color: "border-green-200 hover:border-green-400 hover:bg-green-50",
@@ -48,7 +48,7 @@ const AVAILABLE_FORMS = [
   {
     id: "sole-proprietorship",
     form_type: "sole-proprietorship",
-    form_name: "Sole Prop.",
+    form_name: "Sole Proprietorship (One Man Business.)",
     form_description: "Register your business",
     icon: Building2,
     color: "border-blue-200 hover:border-blue-400 hover:bg-blue-50",
@@ -58,7 +58,7 @@ const AVAILABLE_FORMS = [
   {
     id: "tin-registration",
     form_type: "tin-registration",
-    form_name: "TIN Reg.",
+    form_name: "TIN Registration.",
     form_description: "Apply for Tax ID",
     icon: CreditCard,
     color: "border-purple-200 hover:border-purple-400 hover:bg-purple-50",
@@ -68,7 +68,7 @@ const AVAILABLE_FORMS = [
   {
     id: "partnership",
     form_type: "partnership",
-    form_name: "Partnership Reg.",
+    form_name: "Partnership Registration.",
     form_description: "Register partnership business",
     icon: Handshake,
     color: "border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50",
@@ -88,7 +88,7 @@ const AVAILABLE_FORMS = [
   {
     id: "association",
     form_type: "association",
-    form_name: "Association Reg.",
+    form_name: "Association Registration.",
     form_description: "Register an association",
     icon: Users,
     color: "border-amber-200 hover:border-amber-400 hover:bg-amber-50",
@@ -98,7 +98,7 @@ const AVAILABLE_FORMS = [
   {
     id: "company-shares",
     form_type: "company-shares",
-    form_name: "Company Shares",
+    form_name: "Company Limited By Shares",
     form_description: "Register company limited by shares",
     icon: Share2,
     color: "border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50",

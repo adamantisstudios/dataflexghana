@@ -745,58 +745,65 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
   }
 
   if (showCostPopup) {
-    return (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full border border-emerald-200">
-          <div className="px-6 pt-6 pb-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-6 w-6 text-emerald-600" />
-              <h3 className="text-xl font-bold text-gray-900">Association Registration Fee</h3>
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full border border-emerald-200">
+        <div className="px-4 sm:px-6 pt-6 pb-4">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900">Association Registration Fee</h3>
+          </div>
+        </div>
+
+        <div className="px-4 sm:px-6 pb-6 space-y-4">
+          <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-emerald-800">Registration Cost:</span>
+              <span className="text-base sm:text-lg font-bold text-blue-600">1,414 GHS</span>
+            </div>
+            
+            {/* COMMISSION SECTION ADDED HERE */}
+            <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
+              <span className="text-sm font-medium text-amber-700">Your Commission:</span>
+              <span className="text-base sm:text-lg font-bold text-amber-600">50 GHS</span>
+            </div>
+            
+            <div className="border-t border-emerald-200 pt-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-emerald-700">Duration:</span>
+                <span className="text-sm font-medium text-purple-600">14 Working Days</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-emerald-700">Delivery:</span>
+                <span className="text-sm font-medium text-green-600">Nationwide</span>
+              </div>
             </div>
           </div>
 
-          <div className="px-6 pb-6 space-y-4">
-            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-emerald-800">Registration Cost:</span>
-                <span className="text-lg font-bold text-blue-600">1,414 GHS</span>
-              </div>
-              <div className="border-t border-emerald-200 pt-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-emerald-700">Duration:</span>
-                  <span className="text-sm font-medium text-purple-600">14 Working Days</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-emerald-700">Delivery:</span>
-                  <span className="text-sm font-medium text-green-600">Nationwide</span>
-                </div>
-              </div>
-            </div>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Complete registration of your association with all required documentation and certificates delivered within 14 working days.
+          </p>
 
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Complete registration of your association with all required documentation and certificates delivered within 14 working days.
-            </p>
-
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={onCancel}
-                className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 text-xs py-2"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => setShowCostPopup(false)}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2"
-              >
-                Proceed
-              </Button>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <Button
+              variant="outline"
+              onClick={onCancel}
+              className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 text-xs py-2"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => setShowCostPopup(false)}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2"
+            >
+              Proceed
+            </Button>
           </div>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden w-full mx-0">

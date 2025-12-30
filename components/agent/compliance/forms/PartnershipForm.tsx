@@ -398,43 +398,50 @@ export function PartnershipForm({ agentId, onComplete, onCancel }: PartnershipFo
   }
 
   return (
-    <>
-      {showCostPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
-          <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Handshake className="h-6 w-6 text-emerald-600" />
-                <CardTitle className="text-emerald-600">Partnership Registration Fee</CardTitle>
+  <>
+    {showCostPopup && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+        <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Handshake className="h-6 w-6 text-emerald-600" />
+              <CardTitle className="text-emerald-600">Partnership Registration Fee</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
+                <span className="text-lg font-bold text-emerald-600">1,410 GHS</span>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
+              
+              {/* COMMISSION SECTION ADDED HERE */}
+              <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
+                <span className="text-sm font-medium text-amber-700">Your Commission:</span>
+                <span className="text-lg font-bold text-amber-600">50 GHS</span>
+              </div>
+              
+              <div className="border-t border-emerald-200 pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-emerald-700">Duration:</span>
+                  <span className="text-sm font-medium text-emerald-800">14 Working Days</span>
+                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
-                  <span className="text-lg font-bold text-emerald-600">1,410 GHS</span>
-                </div>
-                <div className="border-t border-emerald-200 pt-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-emerald-700">Duration:</span>
-                    <span className="text-sm font-medium text-emerald-800">14 Working Days</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-emerald-700">Delivery:</span>
-                    <span className="text-sm font-medium text-emerald-800">Nationwide Delivery</span>
-                  </div>
+                  <span className="text-sm text-emerald-700">Delivery:</span>
+                  <span className="text-sm font-medium text-emerald-800">Nationwide Delivery</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                This fee covers processing, platform fees, and registration of your partnership business.
-              </p>
-              <Button onClick={() => setShowCostPopup(false)} className="w-full bg-emerald-600 hover:bg-emerald-700">
-                I Understand, Continue
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              This fee covers processing, platform fees, and registration of your partnership business.
+            </p>
+            <Button onClick={() => setShowCostPopup(false)} className="w-full bg-emerald-600 hover:bg-emerald-700">
+              I Understand, Continue
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )}
 
       <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm w-full mx-0 px-0 sm:px-4">
         <CardHeader className="px-2 sm:px-6">

@@ -479,10 +479,10 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
 
   const totalSteps = 6 // 5 form sections + 1 documents section
 
-  return (
-    <>
-      {showCostPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+return (
+  <>
+    {showCostPopup && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
@@ -496,6 +496,13 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
                 <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
                 <span className="text-lg font-bold text-emerald-600">550 GHS</span>
               </div>
+              
+              {/* COMMISSION SECTION ADDED HERE */}
+              <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
+                <span className="text-sm font-medium text-amber-700">Your Commission:</span>
+                <span className="text-lg font-bold text-amber-600">50 GHS</span>
+              </div>
+              
               <div className="border-t border-emerald-200 pt-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-emerald-700">Duration:</span>
@@ -516,7 +523,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
           </CardContent>
         </Card>
       </div>
-      )}
+    )}
 
       <PaymentReminderModal
         isOpen={showPaymentReminder}

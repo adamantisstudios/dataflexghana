@@ -323,44 +323,51 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   }, [currentStep])
 
   return (
-    <>
-      {showCostPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Baby className="h-6 w-6 text-emerald-600" />
-                <CardTitle className="text-emerald-600">Birth Certificate Processing Fee</CardTitle>
+  <>
+    {showCostPopup && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Baby className="h-6 w-6 text-emerald-600" />
+              <CardTitle className="text-emerald-600">Birth Certificate Processing Fee</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
+                <span className="text-lg font-bold text-emerald-600">350 GHS</span>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
+              
+              {/* COMMISSION SECTION ADDED HERE */}
+              <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
+                <span className="text-sm font-medium text-amber-700">Your Commission:</span>
+                <span className="text-lg font-bold text-amber-600">50 GHS</span>
+              </div>
+              
+              <div className="border-t border-emerald-200 pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-emerald-700">Duration:</span>
+                  <span className="text-sm font-medium text-emerald-800">3–4 Weeks</span>
+                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
-                  <span className="text-lg font-bold text-emerald-600">350 GHS</span>
-                </div>
-                <div className="border-t border-emerald-200 pt-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-emerald-700">Duration:</span>
-                    <span className="text-sm font-medium text-emerald-800">3–4 Weeks</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-emerald-700">Delivery:</span>
-                    <span className="text-sm font-medium text-emerald-800">Pickup Only</span>
-                  </div>
+                  <span className="text-sm text-emerald-700">Delivery:</span>
+                  <span className="text-sm font-medium text-emerald-800">Pickup Only</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                This fee covers the processing and registration of your birth certificate application with the
-                appropriate government authorities.
-              </p>
-              <Button onClick={() => setShowCostPopup(false)} className="w-full bg-emerald-600 hover:bg-emerald-700">
-                I Understand, Continue
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            </div>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              This fee covers the processing and registration of your birth certificate application with the
+              appropriate government authorities.
+            </p>
+            <Button onClick={() => setShowCostPopup(false)} className="w-full bg-emerald-600 hover:bg-emerald-700">
+              I Understand, Continue
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )}
 
       <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
         <CardHeader>

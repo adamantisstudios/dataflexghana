@@ -327,9 +327,9 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
   }
 
   return (
-    <>
-      {showCostPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2">
+  <>
+    {showCostPopup && (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2">
         <Card className="max-w-[95vw] sm:max-w-sm w-full border-blue-300 bg-white shadow-lg">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
@@ -343,6 +343,13 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
                 <span className="font-medium text-blue-800">Processing Cost:</span>
                 <span className="font-bold text-blue-600">FREE</span>
               </div>
+              
+              {/* COMMISSION SECTION ADDED HERE */}
+              <div className="flex items-center justify-between text-sm pt-2 mt-2 border-t border-blue-200">
+                <span className="font-medium text-amber-700">Your Commission:</span>
+                <span className="font-bold text-amber-600">N/A</span>
+              </div>
+              
               <div className="border-t border-blue-200 mt-2 pt-2">
                 <div className="flex items-center justify-between mb-1 text-sm">
                   <span className="text-blue-700">Duration:</span>
@@ -366,7 +373,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
           </CardContent>
         </Card>
       </div>
-      )}
+    )}
 
       <Card className="border-blue-200 bg-white/90 backdrop-blur-sm w-full mx-0 px-0 sm:px-2">
         <CardHeader className="px-2 sm:px-6">
