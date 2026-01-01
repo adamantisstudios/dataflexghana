@@ -14,11 +14,26 @@ import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
 import { X, Play, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image" // <-- This was missing
+import Image from "next/image"
 
 const regions = [
-  "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta", "Northern",
-  "Upper East", "Upper West", "Brong-Ahafo", "Western North", "Ahafo", "Bono", "Bono East", "Oti", "North East", "Savannah"
+  "Greater Accra",
+  "Ashanti",
+  "Western",
+  "Central",
+  "Eastern",
+  "Volta",
+  "Northern",
+  "Upper East",
+  "Upper West",
+  "Brong-Ahafo",
+  "Western North",
+  "Ahafo",
+  "Bono",
+  "Bono East",
+  "Oti",
+  "North East",
+  "Savannah",
 ]
 
 export default function RegisterPage() {
@@ -59,7 +74,7 @@ export default function RegisterPage() {
   useEffect(() => {
     if (!showWarningPopup) return
     const timer = setInterval(() => {
-      setPopupTimeRemaining(prev => {
+      setPopupTimeRemaining((prev) => {
         if (prev <= 1) {
           setCanClosePopup(true)
           clearInterval(timer)
@@ -81,7 +96,7 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ referral_code: code }),
-      }).catch(err => console.error("[v0] Failed to track referral click:", err))
+      }).catch((err) => console.error("[v0] Failed to track referral click:", err))
     }
   }, [])
 
@@ -130,16 +145,18 @@ export default function RegisterPage() {
       const passwordHash = await hashPassword(formData.password)
       const { data, error: insertError } = await supabase
         .from("agents")
-        .insert([{
-          full_name: formData.fullName,
-          agent_name: formData.fullName,
-          phone_number: formData.phoneNumber,
-          momo_number: formData.paymentLine,
-          region: formData.region,
-          password_hash: passwordHash,
-          isapproved: false,
-          referral_code: referralCode || null,
-        }])
+        .insert([
+          {
+            full_name: formData.fullName,
+            agent_name: formData.fullName,
+            phone_number: formData.phoneNumber,
+            momo_number: formData.paymentLine,
+            region: formData.region,
+            password_hash: passwordHash,
+            isapproved: false,
+            referral_code: referralCode || null,
+          },
+        ])
         .select()
 
       if (insertError) {
@@ -171,13 +188,15 @@ export default function RegisterPage() {
               .maybeSingle()
 
             if (referralLink?.agent_id) {
-              const { error: creditError } = await supabase.from("referral_credits").insert([{
-                referring_agent_id: referralLink.agent_id,
-                referred_agent_id: newAgent.id,
-                credit_amount: 7.0,
-                status: "pending",
-                created_at: new Date().toISOString(),
-              }])
+              const { error: creditError } = await supabase.from("referral_credits").insert([
+                {
+                  referring_agent_id: referralLink.agent_id,
+                  referred_agent_id: newAgent.id,
+                  credit_amount: 7.0,
+                  status: "pending",
+                  created_at: new Date().toISOString(),
+                },
+              ])
 
               if (creditError) {
                 console.error("[v0] Error creating referral credit:", creditError)
@@ -277,9 +296,7 @@ export default function RegisterPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <X className="h-6 w-6 text-red-600" />
-                  <CardTitle className="text-red-600 text-lg font-bold">
-                    Important Notice
-                  </CardTitle>
+                  <CardTitle className="text-red-600 text-lg font-bold">Important Notice</CardTitle>
                 </div>
               </CardHeader>
 
@@ -290,7 +307,8 @@ export default function RegisterPage() {
                   </p>
 
                   <p className="mb-3 text-sm text-red-800 leading-relaxed">
-                    This platform is strictly for serious individuals willing to work as agents and earn commissions remotely.
+                    This platform is strictly for serious individuals willing to work as agents and earn commissions
+                    remotely.
                   </p>
 
                   <p className="mb-3 text-sm text-red-800 leading-relaxed">
@@ -304,9 +322,7 @@ export default function RegisterPage() {
 
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm font-medium text-gray-600">
-                    {canClosePopup
-                      ? "You may close this message now"
-                      : `Please wait: ${popupTimeRemaining}s`}
+                    {canClosePopup ? "You may close this message now" : `Please wait: ${popupTimeRemaining}s`}
                   </span>
                 </div>
 
@@ -355,18 +371,17 @@ export default function RegisterPage() {
             </div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Become an Agent</h1>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed px-2">
-              Ghana's number one platform to promote projects for commissions, invest, refer projects and earn, buy and sell at wholesale, and enjoy affordable data bundles.
+              Ghana's number one platform to promote projects for commissions, invest, refer projects and earn, buy and
+              sell at wholesale, and enjoy affordable data bundles.
             </p>
           </div>
 
-         {/* Testimonials Section */}
+          {/* Testimonials Section */}
           <Card className="border-none shadow-xl rounded-xl overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 mb-4 sm:mb-6">
             <CardContent className="p-0">
               <div className="flex flex-col md:flex-row items-center">
-
                 {/* Left section with background image */}
                 <div className="relative w-full md:w-1/3 p-6 flex justify-center items-center overflow-hidden">
-
                   {/* Background image */}
                   <Image
                     src="/testimonial-bg.png" // your horizontal image
@@ -387,12 +402,11 @@ export default function RegisterPage() {
 
                 {/* Text content */}
                 <div className="w-full md:w-2/3 p-6 flex flex-col justify-center">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
-                    See What Other Agents Are Saying
-                  </h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">See What Other Agents Are Saying</h3>
 
                   <p className="text-sm md:text-base text-gray-700 mb-5 leading-relaxed">
-                    Still not sure? Watch real success stories from agents across Ghana who are earning daily on Dataflex Ghana.
+                    Still not sure? Watch real success stories from agents across Ghana who are earning daily on
+                    Dataflex Ghana.
                   </p>
 
                   <Button
@@ -430,6 +444,41 @@ export default function RegisterPage() {
             </CardContent>
           </Card>
 
+          <Card className="mb-4 sm:mb-6 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex flex-col items-center gap-3 sm:gap-4 text-center">
+                <div className="p-2 sm:p-3 rounded-full bg-green-100">
+                  <svg
+                    className="h-5 w-5 sm:h-6 sm:w-6 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-green-800 text-sm sm:text-base mb-1">Not Ready to Register?</h3>
+                  <p className="text-xs sm:text-sm text-green-700 mb-3">
+                    You can buy affordable data bundles, Buy School forms, Scratch Card, Buy Software etc, without registration. No commitment needed!
+                  </p>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="border-green-300 text-green-600 hover:bg-green-50 text-xs sm:text-sm w-full sm:w-auto bg-transparent"
+                  >
+                    <Link href="/no-registration">Shop Data Bundles Instead</Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Registration Fee Card */}
           <Card className="mb-4 sm:mb-6 border-emerald-100 bg-gradient-to-br from-emerald-50 to-green-50">
             <CardContent className="p-3 sm:p-4">
@@ -441,7 +490,8 @@ export default function RegisterPage() {
                 <span className="text-2xl sm:text-3xl font-bold text-emerald-600">{getJoiningFeeFormatted()}</span>
               </div>
               <p className="text-xs sm:text-sm text-emerald-700 mb-3">
-                Platform entry fee (non-refundable) - like a movie theatre ticket to access Ghana's premier earning platform
+                Platform entry fee (non-refundable) - like a movie theatre ticket to access Ghana's premier earning
+                platform
               </p>
               <Button
                 variant="ghost"
@@ -518,7 +568,9 @@ export default function RegisterPage() {
                     Personal Information
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-xs sm:text-sm font-medium">Full Name</Label>
+                    <Label htmlFor="fullName" className="text-xs sm:text-sm font-medium">
+                      Full Name
+                    </Label>
                     <Input
                       id="fullName"
                       type="text"
@@ -530,7 +582,9 @@ export default function RegisterPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="region" className="text-xs sm:text-sm font-medium">Region</Label>
+                    <Label htmlFor="region" className="text-xs sm:text-sm font-medium">
+                      Region
+                    </Label>
                     <Select
                       value={formData.region}
                       onValueChange={(value) => setFormData({ ...formData, region: value })}
@@ -540,7 +594,9 @@ export default function RegisterPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {regions.map((region) => (
-                          <SelectItem key={region} value={region}>{region}</SelectItem>
+                          <SelectItem key={region} value={region}>
+                            {region}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -554,7 +610,9 @@ export default function RegisterPage() {
                     Contact Information
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phoneNumber" className="text-xs sm:text-sm font-medium">Agent Number</Label>
+                    <Label htmlFor="phoneNumber" className="text-xs sm:text-sm font-medium">
+                      Agent Number
+                    </Label>
                     <Input
                       id="phoneNumber"
                       type="tel"
@@ -568,7 +626,9 @@ export default function RegisterPage() {
                     <p className="text-xs text-gray-500">Maximum 10 digits</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="paymentLine" className="text-xs sm:text-sm font-medium">Payment Line</Label>
+                    <Label htmlFor="paymentLine" className="text-xs sm:text-sm font-medium">
+                      Payment Line
+                    </Label>
                     <Input
                       id="paymentLine"
                       type="tel"
@@ -590,7 +650,9 @@ export default function RegisterPage() {
                     Account Security
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-xs sm:text-sm font-medium">Password</Label>
+                    <Label htmlFor="password" className="text-xs sm:text-sm font-medium">
+                      Password
+                    </Label>
                     <Input
                       id="password"
                       type="password"
@@ -602,7 +664,9 @@ export default function RegisterPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium">Confirm Password</Label>
+                    <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium">
+                      Confirm Password
+                    </Label>
                     <Input
                       id="confirmPassword"
                       type="password"
@@ -653,7 +717,9 @@ export default function RegisterPage() {
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Creating Account...
                     </div>
-                  ) : "Create Agent Account"}
+                  ) : (
+                    "Create Agent Account"
+                  )}
                 </Button>
               </form>
             </CardContent>
@@ -667,7 +733,8 @@ export default function RegisterPage() {
                 <div className="min-w-0">
                   <p className="font-medium text-amber-800 mb-1 text-xs sm:text-sm">Important Notice</p>
                   <p className="text-xs sm:text-sm text-amber-700 leading-relaxed">
-                    Your account will be reviewed within 20 minutes. Please ensure all information is accurate. Fake registrations will result in permanent bans.
+                    Your account will be reviewed within 20 minutes. Please ensure all information is accurate. Fake
+                    registrations will result in permanent bans.
                   </p>
                 </div>
               </div>

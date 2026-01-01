@@ -39,17 +39,15 @@ const networks = {
     image: "/assets/telecel.jpg",
     description: "Competitive pricing for Telecel users with reliable connectivity.",
     plans: [
-      { size: "5GB", price: 26.0 },
-      { size: "10GB", price: 46.0 },
-      { size: "15GB", price: 62.0 },
-      { size: "20GB", price: 81.0 },
-      { size: "25GB", price: 102.0 },
-      { size: "30GB", price: 119.0 },
-      { size: "35GB", price: 139.0 },
-      { size: "40GB", price: 151.0 },
-      { size: "45GB", price: 178.0 },
-      { size: "50GB", price: 187.0 },
-      { size: "100GB", price: 369.0 },
+      { size: "5GB", price: 32.0 },
+      { size: "10GB", price: 54.0 },
+      { size: "15GB", price: 73.0 },
+      { size: "20GB", price: 93.0 },
+      { size: "25GB", price: 125.0 },
+      { size: "30GB", price: 132.0 },
+      { size: "40GB", price: 174.0 },
+      { size: "50GB", price: 219.0 },
+      { size: "100GB", price: 410.0 },
     ],
   },
   airteltigo: {
@@ -65,11 +63,11 @@ const networks = {
       { size: "6GB", price: 27.0 },
       { size: "7GB", price: 31.0 },
       { size: "8GB", price: 35.0 },
-      { size: "9GB", price: 45.0 },
-      { size: "10GB", price: 48.0 },
-      { size: "12GB", price: 53.0 },
-      { size: "15GB", price: 59.0 },
-      { size: "20GB", price: 79.0 },
+      { size: "9GB", price: 49.0 },
+      { size: "10GB", price: 52.0 },
+      { size: "12GB", price: 56.0 },
+      { size: "15GB", price: 64.0 },
+      { size: "20GB", price: 80.0 },
       { size: "25GB", price: 95.0 },
       { size: "30GB", price: 99.0 },
       { size: "40GB", price: 117.0 },
@@ -146,6 +144,8 @@ Customer has confirmed payment to:
 Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
 Payment Line: 0557943392
 
+⏱️ PROCESSING TIME: Data processing and delivery takes 10-30 minutes after payment confirmation.
+
 Please process this order using the payment reference above.`
 
     const whatsappUrl = generateWhatsAppLink(message)
@@ -165,6 +165,13 @@ Please process this order using the payment reference above.`
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Our Network Offerings</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Choose from Ghana's top 3 networks with our discounted rates
+            </p>
+          </div>
+
+          <div className="mb-8 max-w-6xl mx-auto p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-center text-sm font-medium text-blue-800">
+              ⏱️ <strong>Processing & Delivery Time:</strong> Data bundles are processed and delivered between 10-30
+              minutes after payment confirmation.
             </p>
           </div>
 

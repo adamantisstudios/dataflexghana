@@ -1,13 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, Copy, CreditCard } from "lucide-react"
 
@@ -50,9 +44,7 @@ export function PaymentConfirmationModal({
             <CreditCard className="h-7 w-7 text-green-600" />
           </div>
           <DialogTitle>Confirm Payment</DialogTitle>
-          <DialogDescription>
-            Complete payment to continue
-          </DialogDescription>
+          <DialogDescription>Complete payment to continue</DialogDescription>
         </DialogHeader>
 
         {/* Order Summary */}
@@ -77,24 +69,22 @@ export function PaymentConfirmationModal({
           </div>
         </div>
 
+        {/* Processing Time Notice */}
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+          <p className="text-blue-800">
+            <strong>⏱️ Processing Time:</strong> Data bundles are typically processed and delivered within 10-30 minutes
+            after payment confirmation.
+          </p>
+        </div>
+
         {/* Reference */}
         {paymentReference && (
           <div className="rounded-lg border p-3 text-center space-y-2">
             <p className="text-xs text-muted-foreground">Payment Reference</p>
             <div className="flex items-center justify-center gap-2">
-              <span className="font-mono text-xl font-bold">
-                {paymentReference}
-              </span>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => copy(paymentReference)}
-              >
-                {copied ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
+              <span className="font-mono text-xl font-bold">{paymentReference}</span>
+              <Button size="icon" variant="ghost" onClick={() => copy(paymentReference)}>
+                {copied ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -110,16 +100,8 @@ export function PaymentConfirmationModal({
             <span>Payment Line</span>
             <div className="flex items-center gap-2">
               <span className="font-bold">{paymentLine}</span>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => copy(paymentLine)}
-              >
-                {copied ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
+              <Button size="icon" variant="ghost" onClick={() => copy(paymentLine)}>
+                {copied ? <CheckCircle className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -127,18 +109,11 @@ export function PaymentConfirmationModal({
 
         {/* Actions */}
         <div className="space-y-3">
-          <Button
-            onClick={onConfirmPayment}
-            className="w-full h-12"
-          >
+          <Button onClick={onConfirmPayment} className="w-full h-12">
             <CheckCircle className="mr-2 h-5 w-5" />
             I’ve Completed Payment
           </Button>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="w-full"
-          >
+          <Button variant="outline" onClick={onClose} className="w-full bg-transparent">
             Cancel
           </Button>
         </div>
