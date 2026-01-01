@@ -41,6 +41,7 @@ import {
   getAllWholesaleProducts,
 } from "@/lib/wholesale"
 import { getStoredAdmin } from "@/lib/auth"
+import { uploadWholesaleProductImage } from "@/lib/wholesale-image-upload"
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<WholesaleProduct[]>([])
@@ -83,6 +84,10 @@ export default function ProductManagement() {
 
   const [newImageUrl, setNewImageUrl] = useState("")
 
+  // Image upload state
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+
   // Enhanced operation wrapper with session validation
   const withSessionValidation = useCallback(
     async <T,>(operation: () => Promise<T>, operationName: string): Promise<T> => {
@@ -104,9 +109,11 @@ export default function ProductManagement() {
         console.error(`${operationName} failed:`, error)
 
         // Mark as session error for proper handling
-        if (error.message?.includes("Authentication required") || 
-            error.message?.includes("session has expired") ||
-            error.message?.includes("account is not active")) {
+        if (
+          error.message?.includes("Authentication required") ||
+          error.message?.includes("session has expired") ||
+          error.message?.includes("account is not active")
+        ) {
           error.isSessionError = true
         }
 
@@ -252,6 +259,39 @@ export default function ProductManagement() {
       ...prev,
       image_urls: prev.image_urls.filter((_, i) => i !== index),
     }))
+  }
+
+  // Add a new function to handle file input image uploads
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.currentTarget.files
+    if (!files || files.length === 0) return
+
+    try {
+      setUploadingImages(true)
+      setUploadProgress(0)
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const uploadedUrl = await uploadWholesaleProductImage(file, (progress) => {
+          setUploadProgress(Math.round(((i + progress.percentage / 100) / files.length) * 100))
+        })
+
+        // Add the uploaded URL to image_urls
+        setFormData((prev) => ({
+          ...prev,
+          image_urls: [...prev.image_urls, uploadedUrl],
+        }))
+      }
+
+      // Reset file input
+      e.currentTarget.value = ""
+    } catch (error) {
+      console.error("[v0] Error uploading images:", error)
+      alert(`Failed to upload image: ${error instanceof Error ? error.message : "Unknown error"}`)
+    } finally {
+      setUploadingImages(false)
+      setUploadProgress(0)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -579,9 +619,12 @@ export default function ProductManagement() {
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-emerald-800 text-sm leading-tight mb-1" title={product.name}>
+                            <h3
+                              className="font-semibold text-emerald-800 text-sm leading-tight mb-1"
+                              title={product.name}
+                            >
                               {product.name}
                             </h3>
                             <p className="text-xs text-emerald-600 mb-2 line-clamp-2" title={product.description}>
@@ -716,7 +759,10 @@ export default function ProductManagement() {
                             >
                               {product.name.length > 12 ? `${product.name.substring(0, 12)}...` : product.name}
                             </p>
-                            <p className="text-sm text-emerald-600 line-clamp-1 cursor-help" title={product.description}>
+                            <p
+                              className="text-sm text-emerald-600 line-clamp-1 cursor-help"
+                              title={product.description}
+                            >
                               {product.description.length > 13
                                 ? `${product.description.substring(0, 13)}...`
                                 : product.description}
@@ -746,9 +792,7 @@ export default function ProductManagement() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Star className="h-4 w-4 text-yellow-500" />
-                          <span className="text-sm text-emerald-700">
-                            GH₵ {product.commission_value.toFixed(2)}
-                          </span>
+                          <span className="text-sm text-emerald-700">GH₵ {product.commission_value.toFixed(2)}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -950,21 +994,46 @@ export default function ProductManagement() {
               </div>
             </div>
 
-            {/* Image URLs */}
+            {/* Image URLs section - UPDATED */}
             <div>
               <h4 className="font-semibold text-emerald-800 mb-3">Product Images</h4>
-              <div className="flex gap-2 mb-3">
-                <Input
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  placeholder="Add image URL..."
-                  className="border-emerald-200 focus:border-emerald-500"
-                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addImageUrl())}
-                />
-                <Button type="button" onClick={addImageUrl} variant="outline">
-                  <Upload className="h-4 w-4" />
-                </Button>
+
+              <div className="space-y-3 mb-3">
+                {/* URL input section */}
+                <div className="flex gap-2">
+                  <Input
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    placeholder="Add image URL..."
+                    className="border-emerald-200 focus:border-emerald-500"
+                    onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addImageUrl())}
+                  />
+                  <Button type="button" onClick={addImageUrl} variant="outline" disabled={uploadingImages}>
+                    <Upload className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="flex-1 flex items-center justify-center px-4 py-2 border-2 border-dashed border-emerald-300 rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <Upload className="h-4 w-4 text-emerald-600" />
+                      <span className="text-sm text-emerald-700 font-medium">
+                        {uploadingImages ? `Uploading... ${uploadProgress}%` : "Upload Images"}
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageFileUpload}
+                      disabled={uploadingImages}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               </div>
+
+              {/* Display uploaded images */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {formData.image_urls.map((url, index) => (
                   <div key={index} className="relative">

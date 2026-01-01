@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ShoppingCartIcon, Plus, Minus, Trash2, CreditCard, Wallet, AlertCircle, CheckCircle } from "lucide-react"
+import { generatePaymentReferenceCode } from "@/lib/reference-code-generator"
+import { Copy, CheckCircle2 } from "lucide-react"
 import type { WholesaleProduct } from "@/lib/wholesale"
 import type { Agent } from "@/lib/supabase"
 import OrderProcessHeroSlider from "./OrderProcessHeroSlider"
@@ -50,6 +52,7 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
   const [checkingOut, setCheckingOut] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<"wallet" | "manual">("wallet")
   const [paymentReference, setPaymentReference] = useState("")
+  const [copiedPaymentCode, setCopiedPaymentCode] = useState(false)
   const [deliveryAddress, setDeliveryAddress] = useState("")
   const [deliveryPhone, setDeliveryPhone] = useState(agent?.phone_number || "")
 
@@ -125,6 +128,22 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
       console.error("Checkout failed:", error)
     } finally {
       setCheckingOut(false)
+    }
+  }
+
+  const handleGeneratePaymentCode = () => {
+    const code = generatePaymentReferenceCode()
+    setPaymentReference(code)
+    navigator.clipboard.writeText(code)
+    setCopiedPaymentCode(true)
+    setTimeout(() => setCopiedPaymentCode(false), 2000)
+  }
+
+  const handleCopyPaymentCode = () => {
+    if (paymentReference) {
+      navigator.clipboard.writeText(paymentReference)
+      setCopiedPaymentCode(true)
+      setTimeout(() => setCopiedPaymentCode(false), 2000)
     }
   }
 
@@ -298,14 +317,40 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
             </div>
 
             {effectivePaymentMethod === "manual" && (
-              <div>
-                <Label className="text-sm md:text-base">Enter your Manual Momo Payment Reference</Label>
-                <Input
-                  placeholder="Enter your manual momo payment reference"
-                  value={paymentReference}
-                  onChange={(e) => setPaymentReference(e.target.value)}
-                  className="text-sm md:text-base"
-                />
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm md:text-base font-semibold mb-2 block">Payment Code</Label>
+                  <p className="text-xs md:text-sm text-muted-foreground mb-3">
+                    Generate a 4-digit code to use when making manual payment
+                  </p>
+                  {paymentReference ? (
+                    <div className="flex items-center gap-2 p-3 bg-emerald-50 border-2 border-emerald-300 rounded-lg">
+                      <div className="flex-1">
+                        <p className="text-xs text-emerald-600 font-medium mb-1">Your Payment Code</p>
+                        <p className="text-2xl font-mono font-bold text-emerald-900">{paymentReference}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCopyPaymentCode}
+                        className="flex-shrink-0 h-10 w-10 p-0 bg-transparent"
+                      >
+                        {copiedPaymentCode ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Copy className="h-5 w-5" />
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={handleGeneratePaymentCode}
+                      className="w-full text-sm md:text-base bg-emerald-600 hover:bg-emerald-700"
+                    >
+                      Generate Payment Code
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -362,7 +407,8 @@ export default function ShoppingCart({ cartItems, onUpdateCart, onCheckout, agen
                 checkingOut ||
                 !deliveryAddress.trim() ||
                 !deliveryPhone.trim() ||
-                (effectivePaymentMethod === "wallet" && !isWalletBalanceSufficient)
+                (effectivePaymentMethod === "wallet" && !isWalletBalanceSufficient) ||
+                (effectivePaymentMethod === "manual" && !paymentReference)
               }
               className="text-sm md:text-base"
             >
