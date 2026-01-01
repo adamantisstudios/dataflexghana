@@ -182,6 +182,27 @@ export default function ProductBrowser({ onAddToCart, cartItems, onCartUpdate }:
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
+  const renderBrowserImage = (product: WholesaleProduct) => {
+    const imageUrl = (product.image_urls || [])[0] || "/placeholder-product.jpg"
+    console.log(`[v0] Rendering agent browser image for ${product.name}:`, imageUrl)
+    return (
+      <div className="aspect-square w-full bg-gray-100 overflow-hidden relative">
+        <ImageWithFallback
+          src={imageUrl || "/placeholder.svg"}
+          alt={product.name}
+          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => openImageModal(product.image_urls || [], 0, product.name)}
+          fallbackSrc="/placeholder-product.jpg"
+        />
+        {product.image_urls && product.image_urls.length > 1 && (
+          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+            +{product.image_urls.length - 1}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -305,22 +326,7 @@ export default function ProductBrowser({ onAddToCart, cartItems, onCartUpdate }:
                   key={product.id}
                   className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-shadow overflow-hidden"
                 >
-                  <div className="relative">
-                    <div className="aspect-square w-full bg-gray-100 overflow-hidden relative">
-                      <ImageWithFallback
-                        src={(product.image_urls || [])[0]}
-                        alt={product.name}
-                        className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                        onClick={() => openImageModal(product.image_urls || [], 0, product.name)}
-                        fallbackSrc="/placeholder-product.jpg"
-                      />
-                      {product.image_urls && product.image_urls.length > 1 && (
-                        <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                          +{product.image_urls.length - 1}
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <div className="relative">{renderBrowserImage(product)}</div>
 
                   <CardContent className="p-3 md:p-4">
                     <div className="space-y-2 md:space-y-3">
@@ -474,17 +480,23 @@ export default function ProductBrowser({ onAddToCart, cartItems, onCartUpdate }:
 
           {selectedProduct && (
             <div className="space-y-4">
-              {/* Simplified Image Display - First Image Only, No Zoom or Interactions */}
               {(selectedProduct.image_urls || []).length > 0 && (
                 <div className="w-full">
-                  <div className="aspect-square w-full bg-gray-100 rounded-lg overflow-hidden">
+                  <div className="aspect-square w-full bg-gray-100 rounded-lg overflow-hidden relative">
                     <ImageWithFallback
                       src={(selectedProduct.image_urls || [])[0]}
                       alt={`${selectedProduct.name}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => openImageModal(selectedProduct.image_urls, 0, selectedProduct.name)}
                       fallbackSrc="/placeholder-product.jpg"
                     />
+                    {selectedProduct.image_urls.length > 1 && (
+                      <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        +{selectedProduct.image_urls.length - 1} images
+                      </div>
+                    )}
                   </div>
+                  <p className="text-xs text-center text-emerald-600 mt-2">Click image to view full gallery</p>
                 </div>
               )}
 

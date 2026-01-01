@@ -263,12 +263,16 @@ export default function ProductManagement() {
 
   // Add a new function to handle file input image uploads
   const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.currentTarget.files
+    const files = e.target.files // Using e.target instead of e.currentTarget for better stability
     if (!files || files.length === 0) return
+
+    // Store reference to target for clearing later
+    const target = e.target
 
     try {
       setUploadingImages(true)
       setUploadProgress(0)
+      console.log("[v0] Processing file uploads...")
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
@@ -283,11 +287,18 @@ export default function ProductManagement() {
         }))
       }
 
-      // Reset file input
-      e.currentTarget.value = ""
+      if (target) {
+        target.value = ""
+      }
     } catch (error) {
-      console.error("[v0] Error uploading images:", error)
-      alert(`Failed to upload image: ${error instanceof Error ? error.message : "Unknown error"}`)
+      console.error("[v0] Image upload workflow failed:", error)
+      const errorMessage = error instanceof Error ? error.message : "Unknown error during upload"
+      alert(`Upload Error: ${errorMessage}\n\nTechnical Details: See console for full log.`)
+
+      // Set an error message in the local state if available
+      if (typeof setMessage === "function") {
+        setMessage({ type: "error", text: `Image upload failed: ${errorMessage}` })
+      }
     } finally {
       setUploadingImages(false)
       setUploadProgress(0)
