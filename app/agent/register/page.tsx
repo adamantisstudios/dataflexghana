@@ -472,7 +472,7 @@ export default function RegisterPage() {
                     variant="outline"
                     className="border-green-300 text-green-600 hover:bg-green-50 text-xs sm:text-sm w-full sm:w-auto bg-transparent"
                   >
-                    <Link href="/no-registration">Shop Data Bundles Instead</Link>
+                    <Link href="/no-registration">Start Shopping From Here</Link>
                   </Button>
                 </div>
               </div>
