@@ -1,3 +1,5 @@
+"use client"
+
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { NoRegistrationSlider } from "@/components/no-registration/no-registration-slider"
@@ -9,38 +11,41 @@ import { AFAContextSection } from "@/components/no-registration/afa-context-sect
 import { AFARegistrationForm } from "@/components/no-registration/afa-registration-form"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, X, FileText, Shield, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-
-export const metadata = {
-  title: "No Registration Required - Affordable Services - DataFlex Ghana",
-  description:
-    "Access affordable data bundles, ECG top-ups, software installation, and more without registration. Quality services at competitive prices.",
-}
+import { useState, useEffect } from "react"
 
 export default function NoRegistrationPage() {
+  const [showNotification, setShowNotification] = useState(true)
+  const [isVisible, setIsVisible] = useState(false)
+
+  const handleClose = () => {
+    setIsVisible(false)
+    setTimeout(() => {
+      setShowNotification(false)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('termsNotificationClosed', Date.now().toString())
+      }
+    }, 300)
+  }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    const timer = setTimeout(() => {
+      setIsVisible(true)
+    }, 500)
+    
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <main className="min-h-screen">
       <Header />
 
-      <div className="bg-amber-50 border-y border-amber-200 py-2">
-        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-amber-800">
-          <span className="font-medium">Operational Hours: 6:00 AM - 9:30 PM Daily</span>
-          <span className="hidden sm:inline">•</span>
-          <Link href="/terms" className="underline font-bold hover:text-amber-900 flex items-center gap-1">
-            Read Terms & Conditions that apply to No-Registration Services
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
-      </div>
-
-      {/* Hero Slider */}
       <NoRegistrationSlider />
 
-      {/* Benefits Section */}
       <section className="py-12 bg-white">
         <div className="container mx-auto px-4">
           <Card className="max-w-4xl mx-auto bg-gradient-to-r from-green-600 to-blue-600 text-white">
@@ -68,13 +73,9 @@ export default function NoRegistrationPage() {
         </div>
       </section>
 
-      {/* Data Bundles Section */}
       <NetworksSection />
-
-      {/* Devices Section */}
       <DevicesSection />
 
-      {/* ECG Top-Up Section */}
       <section id="ecg-topup" className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -87,7 +88,6 @@ export default function NoRegistrationPage() {
         </div>
       </section>
 
-      {/* Software Installation Section */}
       <section id="software" className="py-16 bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -100,7 +100,6 @@ export default function NoRegistrationPage() {
         </div>
       </section>
 
-      {/* AFA Registration Section */}
       <section id="afa-registration" className="py-16 bg-gradient-to-br from-green-50 to-emerald-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -176,10 +175,8 @@ export default function NoRegistrationPage() {
         </div>
       </section>
 
-      {/* AFA Bundle Information */}
       <AFAContextSection />
 
-      {/* Call to Action */}
       <section className="py-16 bg-gradient-to-r from-emerald-600 to-green-600 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Get Started?</h2>
@@ -211,6 +208,91 @@ export default function NoRegistrationPage() {
       </section>
 
       <Footer />
+
+      {/* ELEGANT DARK GREEN NOTIFICATION */}
+      {showNotification && (
+        <div className={`
+          fixed bottom-0 left-0 right-0 z-50 
+          transform transition-all duration-500 ease-out
+          ${isVisible ? 'translate-y-0' : 'translate-y-full'}
+          shadow-2xl
+        `}>
+          <div className="bg-gradient-to-r from-green-800 via-green-900 to-emerald-900 border-t border-green-700">
+            <div className="container mx-auto px-4">
+              <div className="py-5 md:py-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
+                
+                {/* Left side with icon and text */}
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-green-600 rounded-xl blur-md opacity-50"></div>
+                    <div className="relative bg-green-800/80 backdrop-blur-sm border border-green-600/30 rounded-xl p-3">
+                      <Shield className="w-7 h-7 md:w-8 md:h-8 text-green-200" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                      <span className="text-green-100 font-semibold text-base md:text-lg tracking-wide">
+                        Important Notice
+                      </span>
+                    </div>
+                    <p className="text-green-200/90 text-sm md:text-base leading-relaxed">
+                      Please review our 
+                      <span className="font-semibold text-white mx-1">Terms & Conditions</span>
+                      before using no-registration services to understand applicable policies.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right side with buttons */}
+                <div className="flex items-center gap-3">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="bg-white text-green-900 hover:bg-green-50 font-semibold px-5 md:px-6 py-4 md:py-5 text-sm md:text-base shadow-lg hover:shadow-xl transition-all duration-200 border border-white/30 rounded-lg"
+                  >
+                    <Link href="/terms" className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 md:w-5 md:h-5" />
+                      Read Terms
+                      <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                  
+                  <button
+                    onClick={handleClose}
+                    className="flex-shrink-0 p-2.5 md:p-3 hover:bg-green-800/60 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400/30 border border-green-600/30 hover:border-green-500/50"
+                    aria-label="Close notification"
+                  >
+                    <X className="w-5 h-5 md:w-6 md:h-6 text-green-200" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Subtle animated border */}
+            <div className="h-[2px] bg-gradient-to-r from-transparent via-green-500 to-transparent">
+              <div className="h-full w-1/3 bg-green-300 animate-slide-right"></div>
+            </div>
+          </div>
+          
+          {/* Animation styles */}
+          <style jsx>{`
+            @keyframes slide-right {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(300%); }
+            }
+            .animate-slide-right {
+              animation: slide-right 8s ease-in-out infinite;
+            }
+          `}</style>
+        </div>
+      )}
+
+      {/* Add bottom padding to prevent content overlap */}
+      {showNotification && isVisible && (
+        <div className="pb-24 md:pb-20"></div>
+      )}
     </main>
   )
 }
