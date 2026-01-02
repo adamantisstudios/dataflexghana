@@ -15,6 +15,11 @@ export async function getAgentSubAdminRole(agentId: string): Promise<SubAdminRol
       if (error.code === "PGRST116") {
         return null // No role found
       }
+      if (error.status === 406) {
+        console.error("[v0] RLS policy issue - admin_sub_roles table blocked:", error)
+        console.warn("[v0] Sub-admin features may be unavailable. Check RLS policies.")
+        return null
+      }
       console.error("[v0] Error fetching sub-admin role:", error)
       return null
     }
@@ -68,6 +73,11 @@ export async function getAllSubAdminAssignments(): Promise<SubAdminRole[]> {
       .order("created_at", { ascending: false })
 
     if (error) {
+      if (error.status === 406) {
+        console.error("[v0] RLS policy issue preventing sub-admin assignments fetch:", error)
+        console.warn("[v0] Check RLS policies on admin_sub_roles table")
+        return []
+      }
       console.error("[v0] Error fetching sub-admin assignments:", error)
       return []
     }

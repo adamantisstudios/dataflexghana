@@ -24,6 +24,19 @@ export default function NoRegistrationPage() {
     <main className="min-h-screen">
       <Header />
 
+      <div className="bg-amber-50 border-y border-amber-200 py-2">
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-sm text-amber-800">
+          <span className="font-medium">Operational Hours: 6:00 AM - 9:30 PM Daily</span>
+          <span className="hidden sm:inline">•</span>
+          <Link href="/terms" className="underline font-bold hover:text-amber-900 flex items-center gap-1">
+            Read Terms & Conditions that apply to No-Registration Services
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      </div>
+
       {/* Hero Slider */}
       <NoRegistrationSlider />
 

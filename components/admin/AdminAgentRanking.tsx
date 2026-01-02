@@ -1,293 +1,242 @@
-"use client"
+import { type NextRequest, NextResponse } from "next/server"
+import { createSupabaseAdmin } from "@/lib/supabase-query"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Trophy, TrendingUp, Calendar, RefreshCw, Users, Medal, Crown, Star } from "lucide-react"
-import { rankingCache } from "@/lib/ranking-cache"
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const revalidate = 300 // ISR: cache API response for 5 minutes to reduce Supabase calls
 
-interface SimpleAgent {
-  name: string
-  activity: number
-  rank: number
-}
+// Timeout for the entire request
+const REQUEST_TIMEOUT = 25000 // 25 seconds (Vercel max is 30s)
 
-interface RankingData {
-  agents: SimpleAgent[]
-  timeframe: string
-  total_count: number
-  last_updated: string
-  fallback?: boolean
-}
-
-export default function AdminAgentRanking() {
-  const [rankingData, setRankingData] = useState<RankingData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [timeframe, setTimeframe] = useState<"7d" | "30d">("30d")
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const cachedData = rankingCache.get<RankingData>(`admin-rankings-${timeframe}`)
-    if (cachedData) {
-      setRankingData(cachedData)
-      setLoading(false)
-    } else {
-      fetchRankings()
-    }
-
-    const interval = setInterval(
-      () => {
-        rankingCache.invalidate(`admin-rankings-${timeframe}`)
-        fetchRankings()
-      },
-      3 * 60 * 60 * 1000,
-    )
-    return () => clearInterval(interval)
-  }, [timeframe])
-
-  const fetchRankings = async () => {
-    try {
-      setError(null)
-      const cacheKey = `admin-rankings-${timeframe}`
-
-      const result = await rankingCache.getOrFetch(
-        cacheKey,
-        async () => {
-          const response = await fetch(`/api/admin/agents/ranking?timeframe=${timeframe}&limit=10`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          })
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-          }
-
-          return response.json()
-        },
-        5 * 60 * 1000,
-      )
-
-      if (result.success) {
-        setRankingData(result.data)
-      } else {
-        throw new Error(result.error || "Failed to fetch rankings")
-      }
-    } catch (err) {
-      console.error("❌ Error fetching admin rankings:", err)
-      const errorMessage = err instanceof Error ? err.message : "Network error occurred"
-      setError(errorMessage)
-      setRankingData(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
-      case 2:
-        return <Medal className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-      case 3:
-        return <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600" />
-      default:
-        return (
-          <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center font-bold">
-            {rank}
-          </div>
-        )
-    }
-  }
-
-  const formatLastUpdated = (dateString: string) => {
-    try {
-      const date = new Date(dateString)
-      return date.toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    } catch {
-      return "Unknown"
-    }
-  }
-
-  if (loading && !rankingData) {
-    return (
-      <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm shadow-lg">
-        <CardHeader className="pb-3 sm:pb-4">
-          <CardTitle className="text-lg sm:text-xl font-bold text-emerald-800 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
-            <span className="text-sm sm:text-xl">Agent Performance Rankings</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="p-3 sm:p-4 rounded-lg bg-emerald-50 animate-pulse">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 bg-emerald-200 rounded"></div>
-                  <div className="h-3 sm:h-4 bg-emerald-200 rounded w-16 sm:w-20"></div>
-                </div>
-                <div className="h-5 sm:h-6 bg-emerald-200 rounded w-6 sm:w-8 mb-1"></div>
-                <div className="h-2 sm:h-3 bg-emerald-200 rounded w-12 sm:w-16"></div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
-      <CardHeader className="pb-3 sm:pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
-          <CardTitle className="text-lg sm:text-xl font-bold text-emerald-800 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
-            <span className="text-base sm:text-xl">Agent Performance Rankings</span>
-          </CardTitle>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <div className="flex gap-1">
-              <Button
-                variant={timeframe === "7d" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTimeframe("7d")}
-                className="h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm flex-1 sm:flex-none"
-              >
-                7 Days
-              </Button>
-              <Button
-                variant={timeframe === "30d" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTimeframe("30d")}
-                className="h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm flex-1 sm:flex-none"
-              >
-                30 Days
-              </Button>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchRankings}
-              className="h-7 sm:h-8 px-2 sm:px-3 bg-transparent"
-            >
-              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 text-xs sm:text-sm text-emerald-600">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-1">
-              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span>{rankingData?.total_count || 0} total agents</span>
-            </div>
-            {rankingData?.last_updated && (
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span>Updated: {formatLastUpdated(rankingData.last_updated)}</span>
-                {rankingData.fallback && (
-                  <Badge variant="outline" className="text-xs px-1 sm:px-2 py-0 ml-1">
-                    Demo Data
-                  </Badge>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="px-3 sm:px-6">
-        {error ? (
-          <div className="text-center py-6 sm:py-8">
-            <div className="text-red-600 mb-4">
-              <TrendingUp className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
-              <p className="text-xs sm:text-sm">{error}</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={fetchRankings} className="text-xs sm:text-sm bg-transparent">
-              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        ) : !rankingData?.agents || rankingData.agents.length === 0 ? (
-          <div className="text-center py-6 sm:py-8 text-emerald-600">
-            <TrendingUp className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
-            <h3 className="text-base sm:text-lg font-semibold mb-2">No Active Agents</h3>
-            <p className="text-xs sm:text-sm">No agent activity found for the selected timeframe</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              {rankingData.agents.slice(0, 3).map((agent, index) => (
-                <div
-                  key={`${agent.name}-${agent.rank}`}
-                  className={`relative p-3 sm:p-4 rounded-xl transition-all duration-300 hover:scale-105 ${
-                    agent.rank === 1
-                      ? "bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 shadow-lg"
-                      : agent.rank === 2
-                        ? "bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300 shadow-md"
-                        : "bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 shadow-md"
-                  }`}
-                >
-                  <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2">
-                    <div
-                      className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm ${
-                        agent.rank === 1 ? "bg-yellow-500" : agent.rank === 2 ? "bg-gray-400" : "bg-amber-600"
-                      }`}
-                    >
-                      {agent.rank}
-                    </div>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="mb-2 sm:mb-3 flex justify-center">{getRankIcon(agent.rank)}</div>
-                    <h4 className="font-bold text-emerald-800 text-sm sm:text-lg mb-1 truncate">{agent.name}</h4>
-                    <div className="text-xl sm:text-2xl font-bold text-emerald-700 mb-1">{agent.activity}</div>
-                    <p className="text-xs text-emerald-600">Activity Score</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {rankingData.agents.length > 3 && (
-              <div className="space-y-2">
-                <h4 className="font-semibold text-emerald-800 mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
-                  <Star className="h-3 w-3 sm:h-4 sm:w-4" />
-                  Other Top Performers
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3">
-                  {rankingData.agents.slice(3).map((agent) => (
-                    <div
-                      key={`${agent.name}-${agent.rank}`}
-                      className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-all duration-200"
-                    >
-                      <div className="flex items-center justify-center w-5 sm:w-6">{getRankIcon(agent.rank)}</div>
-                      <div className="flex-1 min-w-0">
-                        <h5 className="font-semibold text-emerald-800 text-xs sm:text-sm truncate">{agent.name}</h5>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm sm:text-lg font-bold text-emerald-700">{agent.activity}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-emerald-100">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 text-xs text-emerald-600">
-                <p>Activity Score = Data Orders + Referrals + Wholesale Orders</p>
-                <p className="hidden sm:block">Auto-refreshes every 3 hours</p>
-              </div>
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  const timeoutPromise = new Promise<T>((_, reject) =>
+    setTimeout(() => reject(new Error(`Timeout: ${label} exceeded ${ms}ms`)), ms),
   )
+  return Promise.race([promise, timeoutPromise])
+}
+
+export async function GET(request: NextRequest) {
+  const startTime = Date.now()
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const timeframe = searchParams.get("timeframe") || "30d"
+    const limit = Number.parseInt(searchParams.get("limit") || "10")
+
+    console.log("[v0] Starting ranking calculation", { timeframe, limit })
+
+    // Validate timeframe
+    if (!["7d", "30d"].includes(timeframe)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid timeframe. Use "7d" or "30d"',
+        },
+        { status: 400 },
+      )
+    }
+
+    // Calculate date range
+    const endDate = new Date()
+    const startDate = new Date()
+    if (timeframe === "7d") {
+      startDate.setDate(endDate.getDate() - 7)
+    } else {
+      startDate.setDate(endDate.getDate() - 30)
+    }
+
+    console.log("[v0] Date range:", {
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      timeframe,
+    })
+
+    const supabase = createSupabaseAdmin()
+
+    console.log("[v0] Fetching approved agents...")
+    const { data: agents, error: agentsError } = await withTimeout(
+      supabase.from("agents").select("id, full_name, phone_number").eq("isapproved", true).limit(500),
+      5000,
+      "Fetching agents",
+    )
+
+    if (agentsError) {
+      console.error("[v0] Error fetching agents:", agentsError)
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to fetch agents",
+          details: agentsError.message,
+        },
+        { status: 500 },
+      )
+    }
+
+    if (!agents || agents.length === 0) {
+      console.log("[v0] No approved agents found")
+      return NextResponse.json({
+        success: true,
+        data: {
+          agents: [],
+          timeframe: timeframe,
+          total_count: 0,
+          last_updated: new Date().toISOString(),
+        },
+      })
+    }
+
+    console.log("[v0] Found agents:", agents.length)
+    const agentIds = agents.map((a) => a.id)
+
+    console.log("[v0] Starting parallel queries for activities...")
+    const queries = [
+      withTimeout(
+        supabase
+          .from("referrals")
+          .select("agent_id", { count: "exact", head: false })
+          .in("agent_id", agentIds)
+          .gte("created_at", startDate.toISOString())
+          .lte("created_at", endDate.toISOString()),
+        8000,
+        "Referrals query",
+      ),
+      withTimeout(
+        supabase
+          .from("data_orders")
+          .select("agent_id", { count: "exact", head: false })
+          .in("agent_id", agentIds)
+          .gte("created_at", startDate.toISOString())
+          .lte("created_at", endDate.toISOString()),
+        8000,
+        "Data orders query",
+      ),
+      withTimeout(
+        supabase
+          .from("wholesale_orders")
+          .select("agent_id", { count: "exact", head: false })
+          .in("agent_id", agentIds)
+          .gte("created_at", startDate.toISOString())
+          .lte("created_at", endDate.toISOString()),
+        8000,
+        "Wholesale orders query",
+      ),
+      withTimeout(
+        supabase
+          .from("e_orders")
+          .select("agent_id", { count: "exact", head: false })
+          .in("agent_id", agentIds)
+          .gte("created_at", startDate.toISOString())
+          .lte("created_at", endDate.toISOString()),
+        8000,
+        "E-commerce orders query",
+      ),
+    ]
+
+    let results
+    try {
+      results = await Promise.allSettled(queries)
+    } catch (error) {
+      console.error("[v0] Promise.allSettled error:", error)
+      throw error
+    }
+
+    const activityMap: Record<string, number> = {}
+    agentIds.forEach((id) => {
+      activityMap[id] = 0
+    })
+
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        const { data, error } = result.value
+        const tableNames = ["referrals", "data_orders", "wholesale_orders", "e_orders"]
+
+        if (error) {
+          console.warn(`[v0] ${tableNames[index]} query error:`, error.message)
+        } else if (data) {
+          console.log(`[v0] ${tableNames[index]} records for ${timeframe}:`, data.length)
+          data.forEach((item: any) => {
+            activityMap[item.agent_id] = (activityMap[item.agent_id] || 0) + 1
+          })
+        }
+      } else {
+        console.error(
+          `[v0] ${["referrals", "data_orders", "wholesale_orders", "e_orders"][index]} query rejected:`,
+          result.reason,
+        )
+      }
+    })
+
+    const agentActivities = agents.map((agent) => ({
+      agent_id: agent.id,
+      agent_name: agent.full_name || agent.phone_number || "Unknown Agent",
+      total_activity: activityMap[agent.id] || 0,
+    }))
+
+    const sortedAgents = agentActivities
+      .filter((agent) => agent.total_activity > 0)
+      .sort((a, b) => b.total_activity - a.total_activity)
+      .slice(0, limit)
+      .map((agent, index) => ({
+        name: agent.agent_name,
+        activity: agent.total_activity,
+        rank: index + 1,
+      }))
+
+    const duration = Date.now() - startTime
+    console.log(
+      `[v0] Ranking calculation completed in ${duration}ms for ${sortedAgents.length} agents with timeframe ${timeframe}`,
+    )
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          agents: sortedAgents,
+          timeframe: timeframe,
+          total_count: sortedAgents.length,
+          last_updated: new Date().toISOString(),
+          calculation_time_ms: duration,
+        },
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        },
+      },
+    )
+  } catch (error) {
+    console.error("[v0] Agent ranking API error:", error instanceof Error ? error.message : error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to calculate rankings",
+        details: errorMessage,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 502 },
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // This endpoint can be used to trigger manual ranking calculations
+    // For now, it just returns success since we calculate rankings on-demand
+    return NextResponse.json({
+      success: true,
+      message: "Rankings are calculated on-demand",
+      updated_at: new Date().toISOString(),
+    })
+  } catch (error) {
+    console.error("[v0] Error in ranking update:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error",
+      },
+      { status: 500 },
+    )
+  }
 }

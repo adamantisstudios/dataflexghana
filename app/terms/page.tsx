@@ -49,8 +49,34 @@ export default function TermsPage() {
           <FileText className="h-8 w-8 text-emerald-600" />
           {"Terms & Conditions"}
         </h1>
-        <p className="text-sm text-muted-foreground">Last updated: September 2, 2025</p>
+        <p className="text-sm text-muted-foreground">Last updated: January 2, 2026</p>
       </header>
+
+      {/* Unified Terms for Agents and Non-Registration Users */}
+      <section
+        id="unified-terms"
+        className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-xl border border-emerald-200 mb-12"
+      >
+        <h2 className="flex items-center gap-2 mt-0">
+          <ShieldCheck className="h-5 w-5 text-emerald-600" />
+          {"Unified Terms of Service"}
+        </h2>
+        <p className="text-sm leading-relaxed">
+          These Terms and Conditions apply to <strong>all users</strong> of the DataFlex Ghana platform, including
+          registered agents and customers using the <strong>No-Registration Services</strong>. By accessing any part of
+          our platform, you agree to be bound by these terms.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Check className="h-4 w-4 text-emerald-600" />
+            <span>Applies to Registered Agents</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Check className="h-4 w-4 text-emerald-600" />
+            <span>Applies to No-Registration Users</span>
+          </div>
+        </div>
+      </section>
 
       {/* PLATFORM OVERVIEW */}
       <section id="platform-overview">
@@ -227,6 +253,16 @@ export default function TermsPage() {
           {"General Terms"}
         </h2>
         <ul>
+          <li>
+            <strong>Operational Hours:</strong> Our team is active and processing orders from{" "}
+            <strong>6:00 AM to 9:30 PM DAILY</strong>. Orders placed outside these hours will be processed starting at
+            6:00 AM the following day.
+          </li>
+          <li>
+            <strong>No-Registration Services:</strong> Users opting for services without registration (e.g., ECG Top-up,
+            Instant Data, Software Store) are subject to the same verification and delivery protocols as registered
+            agents.
+          </li>
           <li>No refunds – double-check all phone numbers & amounts before submitting.</li>
           <li>
             <strong>Data delivery takes between 10 minutes to 24 hours depending on network conditions.</strong>
@@ -255,15 +291,16 @@ export default function TermsPage() {
             <ol className="list-decimal pl-6 space-y-2 text-sm">
               <li>
                 <strong>Time of Order</strong> - Early morning orders (6–10am) process fastest. Peak hours (11am–4pm)
-                may take up to an hour. Evening (5pm–9pm) varies. Orders after 9:50pm process after we reopen at 6am.
+                may take up to an hour. Evening (5pm–9:30pm) varies. Orders after 9:30pm process after we reopen at 6am.
               </li>
               <li>
                 <strong>Network Conditions</strong> - Network providers perform maintenance and upgrades that affect
                 delivery speed.
               </li>
               <li>
-                <strong>Operational Hours</strong> - We're closed 9:50pm to 6am. Orders during this period process after
-                reopening. Sundays operate normally but delivery may be slower.
+                <strong>Operational Hours</strong> - We're active from 6:00 AM to 9:30 PM. Orders during the closed
+                period (9:30 PM to 6:00 AM) process after reopening. Sundays operate normally but delivery may be
+                slower.
               </li>
             </ol>
           </div>
@@ -288,7 +325,8 @@ export default function TermsPage() {
                 </ul>
               </li>
               <li>
-                <strong>Failure to report within 24 hours</strong> means the issue <strong>cannot be resolved</strong>. No refunds or resends will be possible.
+                <strong>Failure to report within 24 hours</strong> means the issue <strong>cannot be resolved</strong>.
+                No refunds or resends will be possible.
               </li>
             </ul>
             <p className="text-xs font-medium mt-3 text-red-900">
@@ -864,7 +902,7 @@ export default function TermsPage() {
               +233 242 799 990
             </a>
             <br />
-            Hours: Monday - Sunday, 6:00 AM - 10:00 PM (GMT)
+            Hours: Monday - Sunday, 6:00 AM - 9:30 PM (GMT)
           </p>
         </div>
       </section>

@@ -475,6 +475,29 @@ export default function ProductManagement() {
     setModalImageIndex(newIndex)
   }
 
+  const renderProductImage = (product: WholesaleProduct) => {
+    const imageUrl = (product.image_urls || [])[0] || "/placeholder.svg"
+    console.log(`[v0] Rendering admin image for ${product.name}:`, imageUrl)
+    return (
+      <div
+        className="relative group cursor-pointer"
+        onClick={() => openImageModal(product.image_urls || [], 0, product.name)}
+      >
+        <ImageWithFallback
+          src={imageUrl || "/placeholder.svg"}
+          alt={product.name}
+          className="h-10 w-10 md:h-12 md:w-12 rounded-md object-cover border border-emerald-100 group-hover:scale-110 transition-transform"
+          fallbackSrc="/placeholder-product.jpg"
+        />
+        {product.image_urls && product.image_urls.length > 1 && (
+          <Badge className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-emerald-600">
+            +{product.image_urls.length - 1}
+          </Badge>
+        )}
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -749,20 +772,7 @@ export default function ProductManagement() {
                     <TableRow key={product.id} className="hover:bg-emerald-50/50">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg overflow-hidden cursor-pointer flex-shrink-0 relative">
-                            <ImageWithFallback
-                              src={product.image_urls?.[0] || "/placeholder.svg"}
-                              alt={product.name}
-                              className="w-full h-full object-cover hover:scale-105 transition-transform"
-                              onClick={() => openImageModal(product.image_urls || [], 0, product.name)}
-                              fallbackSrc="/placeholder.svg?height=48&width=48"
-                            />
-                            {product.image_urls && product.image_urls.length > 1 && (
-                              <div className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1 py-0.5 rounded">
-                                +{product.image_urls.length - 1}
-                              </div>
-                            )}
-                          </div>
+                          {renderProductImage(product)} {/* Use the new function here */}
                           <div className="min-w-0 flex-1">
                             <p
                               className="text-sm font-medium text-emerald-800 cursor-help leading-tight"
