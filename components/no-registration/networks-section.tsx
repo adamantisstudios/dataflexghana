@@ -130,6 +130,9 @@ export function NetworksSection() {
 
   const handlePaymentConfirmed = () => {
     const [size, priceStr] = selectedPlan.split(" - ₵")
+    const now = new Date()
+    const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+
     const message = `DATA BUNDLE ORDER
 
 Network: ${networks[activeNetwork].name}
@@ -143,6 +146,11 @@ Phone Number: ${phoneNumber}
 Customer has confirmed payment to:
 Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
 Payment Line: 0557943392
+
+⏱️ ORDER PLACED AT: ${timeString}
+🏢 CLOSING TIME: 11:30 PM
+
+🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
 
 ⏱️ PROCESSING TIME: Data processing and delivery takes 10-30 minutes after payment confirmation.
 

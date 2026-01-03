@@ -10,8 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { generateWhatsAppLink } from "@/utils/whatsapp"
-import { Download } from "lucide-react"
+import { Download, Copy } from "lucide-react"
 import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
+import { generatePaymentReferenceCode } from "@/lib/reference-code-generator"
+import { toast } from "sonner"
 
 interface SoftwareInstallationFormProps {
   selectedSoftware: {
@@ -37,6 +39,12 @@ export function SoftwareInstallationForm({ selectedSoftware }: SoftwareInstallat
 
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [pendingMessage, setPendingMessage] = useState("")
+  const [paymentReference, setPaymentReference] = useState("")
+
+  const generateNewReference = () => {
+    const reference = generatePaymentReferenceCode()
+    setPaymentReference(reference)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,6 +53,14 @@ export function SoftwareInstallationForm({ selectedSoftware }: SoftwareInstallat
       alert("Please fill in all required fields")
       return
     }
+
+    const reference = paymentReference || generatePaymentReferenceCode()
+    if (!paymentReference) {
+      setPaymentReference(reference)
+    }
+
+    const now = new Date()
+    const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
 
     const message = `Software Installation Request:
 
@@ -62,6 +78,15 @@ Preferred Time: ${formData.preferredTime}
 Internet Available: ${formData.hasInternet}
 Has License: ${formData.hasLicense}
 Additional Notes: ${formData.additionalNotes || "None"}
+
+💳 PAYMENT REFERENCE: ${reference}
+Bank Transfer/MoMo Account: 0557943392
+Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
+
+⏱️ ORDER PLACED AT: ${timeString}
+🏢 CLOSING TIME: 11:30 PM
+
+🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
 
 💳 PAYMENT CONFIRMATION:
 ✅ Customer confirmed payment completed to 0557943392
@@ -88,6 +113,14 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
       hasLicense: "",
       additionalNotes: "",
     })
+    setPaymentReference("")
+  }
+
+  const copyReference = () => {
+    if (paymentReference) {
+      navigator.clipboard.writeText(paymentReference)
+      toast.success("Payment reference copied!")
+    }
   }
 
   return (
@@ -266,6 +299,46 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
               />
             </div>
 
+            <Card className="bg-purple-50 border-purple-200">
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-purple-900">Payment Reference Code</h3>
+                    <Button type="button" variant="ghost" size="sm" onClick={generateNewReference} className="text-xs">
+                      Generate New
+                    </Button>
+                  </div>
+
+                  {paymentReference ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 p-3 bg-white border border-purple-300 rounded-lg">
+                        <p className="text-lg font-mono font-bold text-purple-900">{paymentReference}</p>
+                        <p className="text-xs text-purple-600 mt-1">Use this code when making payment</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={copyReference}
+                        className="border-purple-300 bg-transparent"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={generateNewReference}
+                      className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 bg-transparent"
+                    >
+                      Generate Payment Reference
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
               Submit Installation Request
             </Button>
@@ -282,6 +355,7 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
           amount: selectedSoftware.price,
           total: selectedSoftware.price,
         }}
+        paymentReference={paymentReference}
       />
     </div>
   )
