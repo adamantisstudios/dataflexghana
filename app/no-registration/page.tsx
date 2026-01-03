@@ -9,6 +9,8 @@ import { NetworksSection } from "@/components/no-registration/networks-section"
 import { SoftwareStore } from "@/components/no-registration/software-store"
 import { AFAContextSection } from "@/components/no-registration/afa-context-section"
 import { AFARegistrationForm } from "@/components/no-registration/afa-registration-form"
+import { MTNSimForms } from "@/components/no-registration/mtn-sim-forms"
+import { VoucherOrderForm } from "@/components/no-registration/voucher-order-form"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, X, FileText, Shield, ChevronRight } from "lucide-react"
@@ -24,19 +26,19 @@ export default function NoRegistrationPage() {
     setIsVisible(false)
     setTimeout(() => {
       setShowNotification(false)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('termsNotificationClosed', Date.now().toString())
+      if (typeof window !== "undefined") {
+        localStorage.setItem("termsNotificationClosed", Date.now().toString())
       }
     }, 300)
   }
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    
+    if (typeof window === "undefined") return
+
     const timer = setTimeout(() => {
       setIsVisible(true)
     }, 500)
-    
+
     return () => clearTimeout(timer)
   }, [])
 
@@ -75,6 +77,8 @@ export default function NoRegistrationPage() {
 
       <NetworksSection />
       <DevicesSection />
+
+      <MTNSimForms />
 
       <section id="ecg-topup" className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="container mx-auto px-4">
@@ -177,6 +181,8 @@ export default function NoRegistrationPage() {
 
       <AFAContextSection />
 
+      <VoucherOrderForm />
+
       <section className="py-16 bg-gradient-to-r from-emerald-600 to-green-600 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Get Started?</h2>
@@ -211,16 +217,17 @@ export default function NoRegistrationPage() {
 
       {/* ELEGANT DARK GREEN NOTIFICATION */}
       {showNotification && (
-        <div className={`
+        <div
+          className={`
           fixed bottom-0 left-0 right-0 z-50 
           transform transition-all duration-500 ease-out
-          ${isVisible ? 'translate-y-0' : 'translate-y-full'}
+          ${isVisible ? "translate-y-0" : "translate-y-full"}
           shadow-2xl
-        `}>
+        `}
+        >
           <div className="bg-gradient-to-r from-green-800 via-green-900 to-emerald-900 border-t border-green-700">
             <div className="container mx-auto px-4">
               <div className="py-5 md:py-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
-                
                 {/* Left side with icon and text */}
                 <div className="flex items-center gap-4 flex-1">
                   <div className="relative">
@@ -229,7 +236,7 @@ export default function NoRegistrationPage() {
                       <Shield className="w-7 h-7 md:w-8 md:h-8 text-green-200" />
                     </div>
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
@@ -238,7 +245,7 @@ export default function NoRegistrationPage() {
                       </span>
                     </div>
                     <p className="text-green-200/90 text-sm md:text-base leading-relaxed">
-                      Please review our 
+                      Please review our
                       <span className="font-semibold text-white mx-1">Terms & Conditions</span>
                       before using no-registration services to understand applicable policies.
                     </p>
@@ -258,7 +265,7 @@ export default function NoRegistrationPage() {
                       <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </Button>
-                  
+
                   <button
                     onClick={handleClose}
                     className="flex-shrink-0 p-2.5 md:p-3 hover:bg-green-800/60 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400/30 border border-green-600/30 hover:border-green-500/50"
@@ -269,13 +276,13 @@ export default function NoRegistrationPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Subtle animated border */}
             <div className="h-[2px] bg-gradient-to-r from-transparent via-green-500 to-transparent">
               <div className="h-full w-1/3 bg-green-300 animate-slide-right"></div>
             </div>
           </div>
-          
+
           {/* Animation styles */}
           <style jsx>{`
             @keyframes slide-right {
@@ -290,9 +297,7 @@ export default function NoRegistrationPage() {
       )}
 
       {/* Add bottom padding to prevent content overlap */}
-      {showNotification && isVisible && (
-        <div className="pb-24 md:pb-20"></div>
-      )}
+      {showNotification && isVisible && <div className="pb-24 md:pb-20"></div>}
     </main>
   )
 }

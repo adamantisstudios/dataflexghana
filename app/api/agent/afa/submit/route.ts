@@ -16,22 +16,24 @@ export async function POST(request: NextRequest) {
     })
 
     const data = await request.json()
+    console.log("[v0] AFA Submission Data:", data)
     const { agent_id, full_name, phone_number, ghana_card, location, occupation, notes, payment_instructions } = data
 
     // Validate required fields
-    if (!agent_id || !full_name || !phone_number || !ghana_card || !location) {
-      return NextResponse.json({ status: "error", message: "Missing required fields" }, { status: 400 })
+    if (!full_name || !phone_number) {
+      return NextResponse.json({ status: "error", message: "Full name and phone number are required" }, { status: 400 })
     }
 
-    // Validate phone format (10 digits, starts with 0-5)
-    if (!/^\d{10}$/.test(phone_number) || !/^0[2345]\d{8}$/.test(phone_number)) {
-      return NextResponse.json({ status: "error", message: "Invalid phone number format" }, { status: 400 })
+    // Validate phone format (relaxed to any 10 digits)
+    if (!/^\d{10}$/.test(phone_number)) {
+      return NextResponse.json(
+        { status: "error", message: "Invalid phone number format. Must be 10 digits" },
+        { status: 400 },
+      )
     }
 
     // Validate Ghana Card format
-    if (!/^GHA-\d{10}-\d$/i.test(ghana_card)) {
-      return NextResponse.json({ status: "error", message: "Invalid Ghana Card format" }, { status: 400 })
-    }
+    const cardValue = ghana_card ? ghana_card.trim() : "NOT_PROVIDED"
 
     const paymentPin = generatePaymentPIN()
 
@@ -39,11 +41,11 @@ export async function POST(request: NextRequest) {
     const { data: submission, error } = await supabase
       .from("mtnafa_registrations")
       .insert({
-        agent_id,
+        agent_id: agent_id || null, // allow null agent_id
         full_name,
         phone_number,
-        ghana_card: ghana_card.toUpperCase(),
-        location,
+        ghana_card: cardValue.toUpperCase(),
+        location: location || "NOT_PROVIDED", // provide default location
         occupation: occupation || null,
         notes: notes || null,
         status: "pending_admin_review",

@@ -1,9 +1,12 @@
 "use client"
 
 import Image from "next/image"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { generateWhatsAppLink } from "@/utils/whatsapp"
+import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
+import { generatePaymentReferenceCode } from "@/lib/reference-code-generator"
 
 const devices = [
   {
@@ -45,15 +48,50 @@ const devices = [
 ]
 
 export function DevicesSection() {
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState("")
+  const [selectedDevice, setSelectedDevice] = useState<any>(null)
+  const [paymentReference, setPaymentReference] = useState("")
+
   const handleOrderDevice = (device: any) => {
-    const message = `I want to order:
+    const reference = generatePaymentReferenceCode()
+    setPaymentReference(reference)
+    setSelectedDevice(device)
+
+    const now = new Date()
+    const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+
+    const message = `DEVICE ORDER REQUEST
 
 Device: ${device.name}
 Price: ₵${device.price}
-Description: ${device.description}`
+Description: ${device.description}
 
-    const whatsappUrl = generateWhatsAppLink(message)
+💳 PAYMENT REFERENCE: ${reference}
+Bank Transfer/MoMo Account: 0557943392
+Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
+
+⏱️ ORDER PLACED AT: ${timeString}
+🏢 CLOSING TIME: 11:30 PM
+
+🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
+
+✅ PAYMENT CONFIRMED
+Customer has confirmed payment to:
+Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
+Payment Line: 0557943392
+
+Please process this device order.`
+
+    setPendingMessage(message)
+    setShowPaymentModal(true)
+  }
+
+  const handlePaymentConfirmed = () => {
+    const whatsappUrl = generateWhatsAppLink(pendingMessage)
     window.open(whatsappUrl, "_blank")
+    setShowPaymentModal(false)
+    setPaymentReference("")
   }
 
   return (
@@ -91,6 +129,20 @@ Description: ${device.description}`
           ))}
         </div>
       </div>
+
+      {selectedDevice && (
+        <PaymentConfirmationModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onConfirmPayment={handlePaymentConfirmed}
+          orderSummary={{
+            service: selectedDevice.name,
+            amount: selectedDevice.price,
+            total: selectedDevice.price,
+          }}
+          paymentReference={paymentReference}
+        />
+      )}
     </section>
   )
 }

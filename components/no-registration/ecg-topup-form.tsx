@@ -51,6 +51,9 @@ export function ECGTopUpForm() {
       setPaymentReference(reference)
     }
 
+    const now = new Date()
+    const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+
     const message = `ECG Prepaid Top-Up Request:
 
 Meter Number: ${formData.meterNumber}
@@ -65,6 +68,11 @@ Address: ${formData.address || "Not provided"}
 💳 PAYMENT REFERENCE: ${reference}
 Bank Transfer/MoMo Account: 0557943392
 Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
+
+⏱️ ORDER PLACED AT: ${timeString}
+🏢 CLOSING TIME: 11:30 PM
+
+🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
 
 Instructions:
 1. Use the payment reference above when making payment

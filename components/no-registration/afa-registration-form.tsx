@@ -38,15 +38,13 @@ export function AFARegistrationForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.fullName || !formData.phone || !formData.email || !formData.ghanaCardId) {
-      alert("Please fill in all required fields")
-      return
-    }
-
     const reference = paymentReference || generatePaymentReferenceCode()
     if (!paymentReference) {
       setPaymentReference(reference)
     }
+
+    const now = new Date()
+    const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
 
     const message = `AFA Registration Request:
 
@@ -65,6 +63,11 @@ Referring Agent: ${formData.referringAgent || "None"}
 💳 PAYMENT REFERENCE: ${reference}
 Bank Transfer/MoMo Account: 0557943392
 Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
+
+⏱️ ORDER PLACED AT: ${timeString}
+🏢 CLOSING TIME: 9:30 PM
+
+🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
 
 Instructions:
 1. Use the payment reference above when making payment
@@ -101,13 +104,14 @@ Instructions:
   }
 
   const afaBenefits = [
-    "General user access to all services",
-    "Priority customer support",
-    "Access to exclusive promotions",
-    "Birthday treats and gift bundles",
-    "Bulk data deals",
-    "Free service updates",
+    "Free or heavily discounted calls to other MTN AFA members",
+    "Discounted call rates to non-AFA MTN numbers",
+    "Included call minutes to other networks",
+    "Better value for airtime through bundled talk time",
+    "Flexible weekly or monthly bundle options",
+    "Affordable communication within groups or communities",
   ]
+
 
   return (
     <div className="space-y-8">
@@ -122,9 +126,9 @@ Instructions:
             <Users className="h-8 w-8 text-green-600" />
           </div>
           <CardTitle className="text-2xl">AFA Registration</CardTitle>
-          <CardDescription className="text-gray-600">Full access to all DataFlex Ghana services</CardDescription>
+          <CardDescription className="text-gray-600">Fill Forms To Register For AFA Services</CardDescription>
           <div className="text-3xl font-bold mt-4">
-            <span className="text-green-600">₵15</span>
+            <span className="text-green-600">₵30</span>
           </div>
         </CardHeader>
 

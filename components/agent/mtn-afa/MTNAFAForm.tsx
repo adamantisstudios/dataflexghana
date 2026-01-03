@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, AlertTriangle, Phone, FileText } from "lucide-react"
-import { validateGhanaCard } from "@/lib/mtn-afa-utils"
 import { CopyButton } from "@/components/ui/copy-button"
 
 interface AFAFormData {
@@ -74,57 +73,37 @@ export default function MTNAFAForm() {
   // Custom function to normalize phone number without adding "00"
   const normalizePhoneNumber = (value: string): string => {
     // Remove all non-digit characters
-    const digitsOnly = value.replace(/\D/g, "");
+    const digitsOnly = value.replace(/\D/g, "")
     // Ensure the number starts with 0 and is 10 digits long
     if (digitsOnly.startsWith("0") && digitsOnly.length === 10) {
-      return digitsOnly;
+      return digitsOnly
     }
     // If the number starts with 233, replace it with 0
     if (digitsOnly.startsWith("233") && digitsOnly.length === 12) {
-      return "0" + digitsOnly.slice(3);
+      return "0" + digitsOnly.slice(3)
     }
     // If the number starts with 00233, replace it with 0
     if (digitsOnly.startsWith("00233") && digitsOnly.length === 14) {
-      return "0" + digitsOnly.slice(5);
+      return "0" + digitsOnly.slice(5)
     }
     // Default: return the first 10 digits if they start with 0
     if (digitsOnly.length >= 10 && digitsOnly[0] === "0") {
-      return digitsOnly.slice(0, 10);
+      return digitsOnly.slice(0, 10)
     }
     // Otherwise, return the value as-is (or empty string if invalid)
-    return digitsOnly.length > 0 ? digitsOnly : "";
+    return digitsOnly.length > 0 ? digitsOnly : ""
   }
 
   const handlePhoneChange = (value: string) => {
-    const normalized = normalizePhoneNumber(value);
+    const normalized = normalizePhoneNumber(value)
     setFormData((prev) => ({
       ...prev,
       phone_number: normalized,
-    }));
+    }))
   }
 
   const validateForm = (): boolean => {
-    const newErrors: AFAFormErrors = {}
-    if (!formData.full_name.trim()) {
-      newErrors.full_name = "Full name is required"
-    }
-    if (!formData.phone_number.trim()) {
-      newErrors.phone_number = "Phone number is required"
-    } else if (formData.phone_number.length !== 10) {
-      newErrors.phone_number = "Phone number must be 10 digits (format: 0XXXXXXXXX)"
-    } else if (!/^(02|03|04|05)\d{8}$/.test(formData.phone_number)) {
-      newErrors.phone_number = "Phone number must start with 02-05"
-    }
-    if (!formData.ghana_card.trim()) {
-      newErrors.ghana_card = "Ghana Card number is required"
-    } else if (!validateGhanaCard(formData.ghana_card)) {
-      newErrors.ghana_card = "Invalid Ghana Card format (GHA-XXXXXXXXXX-X)"
-    }
-    if (!formData.location.trim()) {
-      newErrors.location = "Location is required"
-    }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return true
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -268,12 +247,12 @@ export default function MTNAFAForm() {
                 type="text"
                 value={formData.ghana_card}
                 onChange={(e) => setFormData((prev) => ({ ...prev, ghana_card: e.target.value.toUpperCase() }))}
-                placeholder="GHA-XXXXXXXXXX-X"
+                placeholder="Enter Ghana Card number"
                 className={`mt-2 border-emerald-200 focus:border-emerald-500 font-mono ${
                   errors.ghana_card ? "border-red-500" : ""
                 }`}
               />
-              <p className="text-xs text-gray-500 mt-1">Format: GHA-XXXXXXXXXX-X</p>
+              <p className="text-xs text-gray-500 mt-1">Enter your Ghana Card number exactly as it appears</p>
               {errors.ghana_card && <p className="text-red-500 text-sm mt-1">{errors.ghana_card}</p>}
             </div>
             {/* Location */}
