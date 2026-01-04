@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/dialog"
 import { supabase, type Agent } from "@/lib/supabase"
 import { getCurrentAgent } from "@/lib/auth"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback"
+import { ImageModal } from "@/components/ui/image-modal"
 import {
   ArrowLeft,
   Users,
@@ -36,6 +38,7 @@ import {
   Phone,
   User,
   FileText,
+  ChevronDown,
 } from "lucide-react"
 
 interface Service {
@@ -46,6 +49,7 @@ interface Service {
   product_cost?: number
   materials_link?: string
   image_url?: string
+  image_urls?: string[]
 }
 
 export default function ReferServicePage() {
@@ -62,6 +66,13 @@ export default function ReferServicePage() {
     description: "",
     allowDirectContact: true,
   })
+  const [currentImageIdx, setCurrentImageIdx] = useState(0)
+
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [modalImages, setModalImages] = useState<string[]>([])
+  const [modalImageIndex, setModalImageIndex] = useState(0)
+  const [modalImageAlt, setModalImageAlt] = useState("")
+
   const router = useRouter()
 
   useEffect(() => {
@@ -117,6 +128,17 @@ export default function ReferServicePage() {
       setSubmitting(false)
       setShowConfirmDialog(false)
     }
+  }
+
+  const openImageModal = (images: string[], index: number, alt: string) => {
+    setModalImages(images.filter((img) => img && img.trim() !== ""))
+    setModalImageIndex(index)
+    setModalImageAlt(alt)
+    setShowImageModal(true)
+  }
+
+  const handleModalIndexChange = (newIndex: number) => {
+    setModalImageIndex(newIndex)
   }
 
   const canSubmit = formData.clientName && formData.clientPhone && formData.description
@@ -195,24 +217,92 @@ export default function ReferServicePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Service Details */}
           <div className="space-y-6">
-            <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm shadow-lg">
+            <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm shadow-lg overflow-hidden">
+              {/* Image Gallery */}
+              {service && (
+                <div className="relative w-full h-64 sm:h-80 bg-gradient-to-br from-emerald-100 to-green-100 overflow-hidden group">
+                  {(() => {
+                    const images =
+                      service.image_urls && service.image_urls.length > 0
+                        ? service.image_urls
+                        : service.image_url
+                          ? [service.image_url]
+                          : []
+
+                    if (images.length === 0)
+                      return (
+                        <div className="w-full h-full flex items-center justify-center text-emerald-300">
+                          <FileText className="h-16 w-16 opacity-30" />
+                        </div>
+                      )
+
+                    return (
+                      <>
+                        <ImageWithFallback
+                          src={images[currentImageIdx] || "/placeholder.svg"}
+                          alt={service.title}
+                          className="w-full h-full object-cover transition-all duration-500 cursor-pointer"
+                          onClick={() => openImageModal(images, currentImageIdx, service.title)}
+                        />
+                        {images.length > 1 && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openImageModal(images, currentImageIdx, service.title)
+                              }}
+                              className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm font-medium z-10 transition-colors cursor-pointer"
+                            >
+                              {currentImageIdx + 1} / {images.length}
+                            </button>
+                            <div className="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setCurrentImageIdx((prev) => (prev - 1 + images.length) % images.length)
+                                }}
+                                className="bg-white/80 hover:bg-white rounded-full shadow-lg h-10 w-10 pointer-events-auto"
+                              >
+                                <ChevronDown className="h-6 w-6 rotate-90" />
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setCurrentImageIdx((prev) => (prev + 1) % images.length)
+                                }}
+                                className="bg-white/80 hover:bg-white rounded-full shadow-lg h-10 w-10 pointer-events-auto"
+                              >
+                                <ChevronDown className="h-6 w-6 -rotate-90" />
+                              </Button>
+                            </div>
+                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                              {images.map((_, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => setCurrentImageIdx(i)}
+                                  className={`h-2 rounded-full transition-all ${
+                                    i === currentImageIdx ? "bg-white w-8" : "bg-white/50 w-2"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
               <CardHeader>
-                <div className="flex items-start gap-4">
-                  {service.image_url && (
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg overflow-hidden shrink-0">
-                      <img
-                        src={service.image_url || "/placeholder.svg"}
-                        alt={service.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-emerald-800 text-lg sm:text-xl">{service.title}</CardTitle>
-                    <CardDescription className="text-gray-600 mb-6">
-                      <RichTextRenderer content={service.description} />
-                    </CardDescription>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-emerald-800 text-lg sm:text-xl">{service.title}</CardTitle>
+                  <CardDescription className="text-gray-600 mb-6">
+                    <RichTextRenderer content={service.description} />
+                  </CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -460,12 +550,8 @@ export default function ReferServicePage() {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowConfirmDialog(false)}
-              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-            >
-              Review Again
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={submitting}>
+              Cancel
             </Button>
             <Button
               onClick={handleSubmit}
@@ -477,6 +563,15 @@ export default function ReferServicePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImageModal
+        isOpen={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        images={modalImages}
+        currentIndex={modalImageIndex}
+        onIndexChange={handleModalIndexChange}
+        alt={modalImageAlt}
+      />
     </div>
   )
 }

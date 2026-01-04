@@ -17,7 +17,9 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { supabase, type Service } from "@/lib/supabase"
-import { Plus, Edit, Trash2, Search, Filter } from "lucide-react"
+import { Plus, Edit, Trash2, Search, Filter, Upload, X } from "lucide-react"
+import { ImageModal } from "@/components/ui/image-modal"
+import { Badge } from "@/components/ui/badge"
 
 // Rich text editor component
 interface RichTextEditorProps {
@@ -206,9 +208,24 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
     product_cost: "",
     materials_link: "",
     image_url: "",
+    image_urls: [] as string[],
   })
   const itemsPerPage = 12
   const [expandedServiceIds, setExpandedServiceIds] = useState<Set<string>>(new Set())
+
+  // Added Image Modal state
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [modalImages, setModalImages] = useState<string[]>([])
+  const [modalImageIndex, setModalImageIndex] = useState(0)
+  const [modalImageAlt, setModalImageAlt] = useState("")
+  const [newImageUrl, setNewImageUrl] = useState("")
+
+  const openImageModal = (images: string[], index: number, alt: string) => {
+    setModalImages(images.filter((img) => img && img.trim() !== ""))
+    setModalImageIndex(index)
+    setModalImageAlt(alt)
+    setShowImageModal(true)
+  }
 
   const toggleServiceDescription = (serviceId: string) => {
     setExpandedServiceIds((prev) => {
@@ -282,6 +299,8 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
         commission_amount: Number.parseFloat(serviceForm.commission_amount),
         product_cost: serviceForm.product_cost ? Number.parseFloat(serviceForm.product_cost) : 0,
         service_type: "referral" as const,
+        // Ensure image_url is the first image in the array for backward compatibility
+        image_url: serviceForm.image_urls[0] || "",
       }
 
       let updatedServices
@@ -308,6 +327,8 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
         product_cost: "",
         materials_link: "",
         image_url: "",
+        // Reset image_urls
+        image_urls: [],
       })
     } catch (error) {
       console.error("Error saving service:", error)
@@ -324,8 +345,30 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
       product_cost: service.product_cost?.toString() || "",
       materials_link: service.materials_link || "",
       image_url: service.image_url || "",
+      // Populate image_urls from the service, with fallback to image_url
+      image_urls: service.image_urls && service.image_urls.length > 0 
+        ? service.image_urls 
+        : service.image_url ? [service.image_url] : [],
     })
     setShowServiceDialog(true)
+  }
+
+  // Added image management functions
+  const addImageUrl = () => {
+    if (newImageUrl.trim() && !serviceForm.image_urls.includes(newImageUrl.trim())) {
+      setServiceForm((prev) => ({
+        ...prev,
+        image_urls: [...prev.image_urls, newImageUrl.trim()],
+      }))
+      setNewImageUrl("")
+    }
+  }
+
+  const removeImageUrl = (index: number) => {
+    setServiceForm((prev) => ({
+      ...prev,
+      image_urls: prev.image_urls.filter((_, i) => i !== index),
+    }))
   }
 
   const deleteService = async (serviceId: string) => {
@@ -456,89 +499,105 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {getPaginatedData(filteredServicesAdmin, currentServicesPage).map((service) => (
-          <Card
-            key={service.id}
-            className="hover:shadow-xl transition-all duration-300 border-emerald-200 bg-white/90 backdrop-blur-sm"
-          >
-            <CardHeader>
-              {service.image_url && (
-                <div className="w-full h-56 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg mb-2 overflow-hidden">
-                  <img
-                    src={service.image_url || "/placeholder.svg?height=224&width=400"}
-                    alt={service.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              <CardTitle className="text-lg text-emerald-800">{service.title}</CardTitle>
-              <div className="text-emerald-600">
-                {expandedServiceIds.has(service.id) ? (
-                  <RichTextRenderer content={service.description} className="text-sm" />
-                ) : (
-                  <>
-                    <div className="text-sm line-clamp-3">
-                      <RichTextRenderer content={service.description} className="text-sm" />
-                    </div>
-                    {service.description && service.description.length > 150 && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        onClick={() => toggleServiceDescription(service.id)}
-                        className="text-emerald-600 hover:text-emerald-800 mt-2 p-0 h-auto"
-                      >
-                        Read more
-                      </Button>
-                    )}
-                  </>
-                )}
-                {expandedServiceIds.has(service.id) && service.description && service.description.length > 150 && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={() => toggleServiceDescription(service.id)}
-                    className="text-emerald-600 hover:text-emerald-800 mt-2 p-0 h-auto ml-2"
+        {getPaginatedData(filteredServicesAdmin, currentServicesPage).map((service) => {
+          // Extract images for display
+          const displayImages = service.image_urls && service.image_urls.length > 0
+            ? service.image_urls
+            : service.image_url ? [service.image_url] : []
+          
+          return (
+            <Card
+              key={service.id}
+              className="hover:shadow-xl transition-all duration-300 border-emerald-200 bg-white/90 backdrop-blur-sm"
+            >
+              <CardHeader>
+                {displayImages.length > 0 && (
+                  <div 
+                    className="w-full h-56 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg mb-2 overflow-hidden relative group cursor-pointer"
+                    onClick={() => openImageModal(displayImages, 0, service.title)}
                   >
-                    Show less
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 mb-4">
-                {service.product_cost && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-emerald-600">Product Cost:</span>
-                    <span className="text-sm font-semibold text-emerald-800">
-                      GH₵ {service.product_cost.toLocaleString()}
-                    </span>
+                    <img
+                      src={displayImages[0] || "/placeholder.svg?height=224&width=400"}
+                      alt={service.title}
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    {/* Show image count badge like wholesale */}
+                    {displayImages.length > 1 && (
+                      <Badge className="absolute top-2 right-2 bg-emerald-600">
+                        +{displayImages.length - 1}
+                      </Badge>
+                    )}
                   </div>
                 )}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-emerald-600">Commission:</span>
-                  <span className="text-lg font-bold text-green-600">
-                    GH₵ {service.commission_amount.toLocaleString()}
-                  </span>
+                <CardTitle className="text-lg text-emerald-800">{service.title}</CardTitle>
+                <div className="text-emerald-600">
+                  {expandedServiceIds.has(service.id) ? (
+                    <RichTextRenderer content={service.description} className="text-sm" />
+                  ) : (
+                    <>
+                      <div className="text-sm line-clamp-3">
+                        <RichTextRenderer content={service.description} className="text-sm" />
+                      </div>
+                      {service.description && service.description.length > 150 && (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => toggleServiceDescription(service.id)}
+                          className="text-emerald-600 hover:text-emerald-800 mt-2 p-0 h-auto"
+                        >
+                          Read more
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  {expandedServiceIds.has(service.id) && service.description && service.description.length > 150 && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => toggleServiceDescription(service.id)}
+                      className="text-emerald-600 hover:text-emerald-800 mt-2 p-0 h-auto ml-2"
+                    >
+                      Show less
+                    </Button>
+                  )}
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => editService(service)}
-                  className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 flex-1"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => deleteService(service.id)} className="flex-1">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 mb-4">
+                  {service.product_cost && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-emerald-600">Product Cost:</span>
+                      <span className="text-sm font-semibold text-emerald-800">
+                        GH₵ {service.product_cost.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-emerald-600">Commission:</span>
+                    <span className="text-lg font-bold text-green-600">
+                      GH₵ {service.commission_amount.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => editService(service)}
+                    className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 flex-1"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => deleteService(service.id)} className="flex-1">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       <PaginationControls
@@ -547,14 +606,23 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
         onPageChange={setCurrentServicesPage}
       />
 
+      {/* Added Image Modal for full screen viewing */}
+      <ImageModal
+        isOpen={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        images={modalImages}
+        currentIndex={modalImageIndex}
+        onIndexChange={setModalImageIndex}
+        alt={modalImageAlt}
+      />
+
       {/* Service Dialog */}
       <Dialog open={showServiceDialog} onOpenChange={setShowServiceDialog}>
         <DialogContent className="sm:max-w-[425px] w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto mx-auto">
           <DialogHeader>
-            <DialogTitle>{editingService ? "Edit Service" : "Create Service"}</DialogTitle>
+            <DialogTitle className="text-emerald-800">{editingService ? "Edit Service" : "Add New Service"}</DialogTitle>
           </DialogHeader>
-
-          <form onSubmit={createOrUpdateService} className="grid gap-4 py-4">
+          <form onSubmit={createOrUpdateService} className="space-y-4 pt-4">
             <div className="space-y-4">
               <div>
                 <Label htmlFor="title">Service Title</Label>
@@ -605,31 +673,58 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
               </div>
 
               <div>
-                <Label htmlFor="materials_link">Materials Link</Label>
+                <Label htmlFor="materials_link" className="text-emerald-700">Materials Link (Optional)</Label>
                 <Input
-                  type="url"
                   id="materials_link"
                   value={serviceForm.materials_link}
                   onChange={(e) => setServiceForm({ ...serviceForm, materials_link: e.target.value })}
-                  className="w-full mt-1"
-                  placeholder="https://example.com/materials"
+                  className="border-emerald-200 focus:border-emerald-500"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  type="url"
-                  id="image_url"
-                  value={serviceForm.image_url}
-                  onChange={(e) => setServiceForm({ ...serviceForm, image_url: e.target.value })}
-                  className="w-full mt-1"
-                  placeholder="https://example.com/image.jpg"
-                />
+              {/* Replaced single image URL input with multi-image gallery management */}
+              <div className="space-y-4 pt-2 border-t border-emerald-100">
+                <Label className="text-emerald-800 font-semibold flex items-center gap-2">
+                  Service Gallery
+                  <Badge variant="outline" className="text-[10px] uppercase">{serviceForm.image_urls.length} Images</Badge>
+                </Label>
+                
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Paste image URL..."
+                    value={newImageUrl}
+                    onChange={(e) => setNewImageUrl(e.target.value)}
+                    className="border-emerald-200 focus:border-emerald-500 flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    onClick={addImageUrl}
+                    className="bg-emerald-600 hover:bg-emerald-700 h-10 w-10 p-0"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {serviceForm.image_urls.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {serviceForm.image_urls.map((url, index) => (
+                      <div key={index} className="relative aspect-square rounded-md overflow-hidden border border-emerald-100 group">
+                        <img src={url || "/placeholder.svg"} alt={`Gallery ${index}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeImageUrl(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            <DialogFooter className="mt-6">
+            <DialogFooter className="pt-4 flex-col sm:flex-row gap-2">
               <Button type="submit" className="w-full sm:w-auto">
                 {editingService ? "Update Service" : "Create Service"}
               </Button>

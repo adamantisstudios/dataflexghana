@@ -102,6 +102,7 @@ export interface Service {
   service_type?: "referral" | "data_bundle"
   materials_link?: string
   image_url?: string
+  image_urls?: string[]
   created_at: string
 }
 export interface DataBundle {

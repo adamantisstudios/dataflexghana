@@ -18,8 +18,9 @@ export function normalizePhoneNumber(phone: string): string {
 
 export function validateGhanaCard(card: string): boolean {
   // Format: GHA-XXXXXXXXXX-X
-  const pattern = /^GHA-\d{10}-\d$/
-  return pattern.test(card.toUpperCase())
+  // const pattern = /^GHA-\d{10}-\d$/
+  // return pattern.test(card.toUpperCase())
+  return card.trim().length > 0
 }
 
 export function validatePhoneNumber(phone: string): boolean {

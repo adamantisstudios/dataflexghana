@@ -84,7 +84,7 @@ Bank Transfer/MoMo Account: 0557943392
 Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
 
 ⏱️ ORDER PLACED AT: ${timeString}
-🏢 CLOSING TIME: 11:30 PM
+🏢 CLOSING TIME: 9:30 PM
 
 🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
 

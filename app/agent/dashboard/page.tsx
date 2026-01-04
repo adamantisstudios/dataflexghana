@@ -77,6 +77,7 @@ import { loadAgentDashboardData, loadTabData } from "@/lib/agent-dashboard-loade
 import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
 import ReferralDashboard from "@/components/agent/referral-program/ReferralDashboard"
 import Image from "next/image"
+import { ImageModal } from "@/components/ui/image-modal"
 import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
 import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
 import AgentOnlineCoursesDisplay from "@/components/agent/online-courses/AgentOnlineCoursesDisplay"
@@ -144,6 +145,29 @@ export default function AgentDashboard() {
 
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
   const [expandedReferrals, setExpandedReferrals] = useState<Set<string>>(new Set())
+  const [serviceImageIndices, setServiceImageIndices] = useState<Record<string, number>>({})
+
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [modalImages, setModalImages] = useState<string[]>([])
+  const [modalImageIndex, setModalImageIndex] = useState(0)
+  const [modalImageAlt, setModalImageAlt] = useState("")
+
+  const nextServiceImage = (e: React.MouseEvent, serviceId: string, max: number) => {
+    e.stopPropagation()
+    setServiceImageIndices((prev) => ({
+      ...prev,
+      [serviceId]: ((prev[serviceId] || 0) + 1) % max,
+    }))
+  }
+
+  const prevServiceImage = (e: React.MouseEvent, serviceId: string, max: number) => {
+    e.stopPropagation()
+    setServiceImageIndices((prev) => ({
+      ...prev,
+      [serviceId]: ((prev[serviceId] || 0) - 1 + max) % max,
+    }))
+  }
+
   const router = useRouter()
   const { getFromCache, setInCache } = useAgentDashboardCache()
   const [agent, setAgent] = useState(null)
@@ -181,10 +205,7 @@ export default function AgentDashboard() {
   const [domesticReferralWhatsAppError, setDomesticReferralWhatsAppError] = useState("")
   const [showNotification, setShowNotification] = useState(true)
   const [showWalletStrategy, setShowWalletStrategy] = useState(true)
-  const [showImageModal, setShowImageModal] = useState(false)
-  const [modalImages, setModalImages] = useState<string[]>([])
-  const [modalImageIndex, setModalImageIndex] = useState(0)
-  const [modalImageAlt, setModalImageAlt] = useState("")
+  // Removed duplicate state declarations for showImageModal, modalImages, modalImageIndex, modalImageAlt
   const [showStatistics, setShowStatistics] = useState(false)
   const [statisticsLoading, setStatisticsLoading] = useState(false)
   const [showDashboardAudioPlayer, setShowDashboardAudioPlayer] = useState(false)
@@ -773,6 +794,10 @@ export default function AgentDashboard() {
     setShowImageModal(true)
   }
 
+  const handleModalIndexChange = (newIndex: number) => {
+    setModalImageIndex(newIndex)
+  }
+
   const loadEarningsData = async () => {
     if (!agentId) return
     try {
@@ -979,57 +1004,53 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         </DialogContent>
       </Dialog>
-  {/* START: HERO SECTION WITH ADMIN PORTAL ACCESS - MOBILE OPTIMIZED */}
-<div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg border-b border-slate-700">
-  <div className="w-full max-w-full px-3 sm:px-4 py-3">
-    <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
-      {/* Logo and User Info */}
-      <div className="flex items-center gap-3 w-full xs:w-auto">
-        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 backdrop-blur-sm rounded-xl shadow-lg flex items-center justify-center p-1.5 shrink-0 border border-white/20">
-          <img 
-            src="/images/logo.png" 
-            alt="DataFlex Logo" 
-            className="w-full h-full object-contain" 
-          />
-        </div>
-        <div className="min-w-0 flex-1 xs:flex-none">
-          <h1 className="text-base sm:text-lg md:text-xl font-bold text-white drop-shadow-sm truncate">
-            Data Flex Agent
-          </h1>
-          <p className="text-slate-200 text-xs font-medium truncate">
-            Welcome back, <span className="font-semibold text-white">{agent?.full_name}</span>
-          </p>
-        </div>
-      </div>
+      {/* START: HERO SECTION WITH ADMIN PORTAL ACCESS - MOBILE OPTIMIZED */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg border-b border-slate-700">
+        <div className="w-full max-w-full px-3 sm:px-4 py-3">
+          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
+            {/* Logo and User Info */}
+            <div className="flex items-center gap-3 w-full xs:w-auto">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 backdrop-blur-sm rounded-xl shadow-lg flex items-center justify-center p-1.5 shrink-0 border border-white/20">
+                <img src="/images/logo.png" alt="DataFlex Logo" className="w-full h-full object-contain" />
+              </div>
+              <div className="min-w-0 flex-1 xs:flex-none">
+                <h1 className="text-base sm:text-lg md:text-xl font-bold text-white drop-shadow-sm truncate">
+                  Data Flex Agent
+                </h1>
+                <p className="text-slate-200 text-xs font-medium truncate">
+                  Welcome back, <span className="font-semibold text-white">{agent?.full_name}</span>
+                </p>
+              </div>
+            </div>
 
-      {/* Action Buttons - Stacked on mobile, inline on larger screens */}
-      <div className="flex items-center justify-between xs:justify-end gap-2 w-full xs:w-auto">
-        <Button
-          variant="secondary"
-          size="sm"
-          asChild
-          className="bg-white hover:bg-slate-100 text-slate-900 border-white shadow-sm hover:shadow h-8 sm:h-9 px-3 sm:px-4 flex-1 xs:flex-none font-medium"
-        >
-          <Link href="/agent/settings" className="flex items-center justify-center">
-            <Settings className="h-3.5 w-3.5 mr-1.5" />
-            <span className="text-xs">Settings</span>
-          </Link>
-        </Button>
-        
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 text-white border-red-600 shadow-sm hover:shadow h-8 sm:h-9 px-3 sm:px-4 flex-1 xs:flex-none font-medium"
-        >
-          <LogOut className="h-3.5 w-3.5 mr-1.5" />
-          <span className="text-xs">Logout</span>
-        </Button>
+            {/* Action Buttons - Stacked on mobile, inline on larger screens */}
+            <div className="flex items-center justify-between xs:justify-end gap-2 w-full xs:w-auto">
+              <Button
+                variant="secondary"
+                size="sm"
+                asChild
+                className="bg-white hover:bg-slate-100 text-slate-900 border-white shadow-sm hover:shadow h-8 sm:h-9 px-3 sm:px-4 flex-1 xs:flex-none font-medium"
+              >
+                <Link href="/agent/settings" className="flex items-center justify-center">
+                  <Settings className="h-3.5 w-3.5 mr-1.5" />
+                  <span className="text-xs">Settings</span>
+                </Link>
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleLogout}
+                className="bg-red-500 hover:bg-red-600 text-white border-red-600 shadow-sm hover:shadow h-8 sm:h-9 px-3 sm:px-4 flex-1 xs:flex-none font-medium"
+              >
+                <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                <span className="text-xs">Logout</span>
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
-</div>
-{/* END: HERO SECTION WITH ADMIN PORTAL ACCESS */}
+      {/* END: HERO SECTION WITH ADMIN PORTAL ACCESS */}
       <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <Suspense fallback={<div className="h-24 w-full animate-pulse bg-indigo-100 rounded-xl" />}>
           {agentId && (
@@ -1472,7 +1493,7 @@ DataFlex Ghana Agent 🇬🇭`
               <TabsList className="grid grid-flow-col overflow-x-auto no-scrollbar h-auto py-2 px-3 rounded-xl border border-emerald-200 bg-white/80 backdrop-blur-sm shadow-lg">
                 <TabsTrigger value="services" className="text-xs sm:text-sm font-medium">
                   Services
-                               </TabsTrigger>
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="referral-program" className="space-y-4">
@@ -1571,121 +1592,170 @@ DataFlex Ghana Agent 🇬🇭`
                     </div>
                     {/* Services Grid - Minimal Design */}
                     <div ref={servicesGridRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {getPaginatedData(filteredServices, currentServicesPage).map((service) => (
-                        <div
-                          key={service.id}
-                          className="bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col"
-                        >
-                          {/* Clean Image Section */}
-                          <div className="relative w-full h-56 overflow-hidden">
-                            {service.image_url ? (
-                              <ImageWithFallback
-                                src={service.image_url || "/placeholder.svg"}
-                                alt={service.title}
-                                className="w-full h-full object-cover"
-                                onClick={() => openImageModal([service.image_url], 0, service.title)}
-                                fallbackSrc="/placeholder.svg?height=224&width=400"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                                <div className="text-gray-400 text-center p-4">
-                                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                  <p className="text-sm">No Image</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          {/* Content Section - Minimal Layout */}
-                          <div className="p-4 flex-1 flex flex-col">
-                            {/* Service Title */}
-                            <h3 className="text-lg font-semibold text-gray-800 mb-3 line-clamp-2">{service.title}</h3>
-                            {/* Pricing Section - Clear Separation */}
-                            <div className="space-y-3 mb-4">
-                              {/* Commission - Clear Highlight */}
-                              <div className="bg-emerald-50 rounded-lg p-3">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium text-emerald-700">Your Commission</span>
-                                  <span className="text-lg font-bold text-emerald-800">
-                                    GH₵ {safeCommissionDisplay(service.commission_amount).toFixed(2)}
-                                  </span>
-                                </div>
-                              </div>
-                              {/* Service Cost (if available) */}
-                              {service.product_cost && (
-                                <div className="border border-gray-200 rounded-lg p-3">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-700">Service Cost</span>
-                                    <span className="text-base font-semibold text-gray-800">
-                                      GH₵ {safeCommissionDisplay(service.product_cost).toFixed(2)}
-                                    </span>
+                      {getPaginatedData(filteredServices, currentServicesPage).map((service) => {
+                        const images =
+                          service.image_urls && service.image_urls.length > 0
+                            ? service.image_urls
+                            : service.image_url
+                              ? [service.image_url]
+                              : []
+                        const currentIdx = serviceImageIndices[service.id] || 0
+
+                        return (
+                          <div
+                            key={service.id}
+                            className="bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col"
+                          >
+                            {/* Clean Image Section */}
+                            <div className="relative w-full h-56 overflow-hidden group">
+                              {images.length > 0 ? (
+                                <>
+                                  <ImageWithFallback
+                                    src={images[currentIdx] || "/placeholder.svg"}
+                                    alt={service.title}
+                                    className="w-full h-full object-cover transition-opacity duration-500 cursor-pointer"
+                                    onClick={() => openImageModal(images, currentIdx, service.title)}
+                                    fallbackSrc="/placeholder.svg?height=224&width=400"
+                                  />
+                                  {images.length > 1 && (
+                                    <>
+                                      <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm font-medium z-10">
+                                        {currentIdx + 1} / {images.length}
+                                      </div>
+
+                                      <div className="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                          onClick={(e) => prevServiceImage(e, service.id, images.length)}
+                                          className="bg-black/30 hover:bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm transition-all"
+                                        >
+                                          <ChevronDown className="h-4 w-4 rotate-90" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => nextServiceImage(e, service.id, images.length)}
+                                          className="bg-black/30 hover:bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm transition-all"
+                                        >
+                                          <ChevronDown className="h-4 w-4 -rotate-90" />
+                                        </button>
+                                      </div>
+                                      {/* Image Indicators */}
+                                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+                                        {images.map((_, i) => (
+                                          <div
+                                            key={i}
+                                            className={`h-1 rounded-full transition-all ${
+                                              i === currentIdx ? "bg-white w-4" : "bg-white/40 w-1"
+                                            }`}
+                                          />
+                                        ))}
+                                      </div>
+                                    </>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                  <div className="text-gray-400 text-center p-4">
+                                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">No Image</p>
                                   </div>
                                 </div>
                               )}
                             </div>
-                            {/* Description */}
-                            <div className="mb-4 flex-1">
-                              <div
-                                className={`text-gray-600 text-sm leading-relaxed ${
-                                  !expandedDescriptions[service.id] ? "line-clamp-2" : ""
-                                }`}
-                              >
-                                {getDisplayDescription(service.description || "", service.id)}
+                            {/* Content Section - Minimal Layout */}
+                            <div className="p-4 flex-1 flex flex-col">
+                              {/* Service Title */}
+                              <h3 className="text-lg font-semibold text-gray-800 mb-3 line-clamp-2">{service.title}</h3>
+                              {/* Pricing Section - Clear Separation */}
+                              <div className="space-y-3 mb-4">
+                                {/* Commission - Clear Highlight */}
+                                <div className="bg-emerald-50 rounded-lg p-3">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-emerald-700">Your Commission</span>
+                                    <span className="text-lg font-bold text-emerald-800">
+                                      GH₵ {safeCommissionDisplay(service.commission_amount).toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                                {/* Service Cost (if available) */}
+                                {service.product_cost && (
+                                  <div className="border border-gray-200 rounded-lg p-3">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium text-gray-700">Service Cost</span>
+                                      <span className="text-base font-semibold text-gray-800">
+                                        GH₵ {safeCommissionDisplay(service.product_cost).toFixed(2)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              {shouldTruncateDescription(service.description || "") && (
-                                <button
-                                  onClick={() => toggleDescriptionExpanded(service.id)}
-                                  className="text-emerald-600 hover:text-emerald-800 text-sm font-medium mt-2 flex items-center gap-1"
+                              {/* Description */}
+                              <div className="mb-4 flex-1">
+                                <div
+                                  className={`text-gray-600 text-sm leading-relaxed ${
+                                    !expandedDescriptions[service.id] ? "line-clamp-2" : ""
+                                  }`}
                                 >
-                                  {expandedDescriptions[service.id] ? (
-                                    <>
-                                      Show Less
-                                      <ChevronUp className="h-3 w-3" />
-                                    </>
-                                  ) : (
-                                    <>
-                                      Read More
-                                      <ChevronDown className="h-3 w-3" />
-                                    </>
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                            {/* Action Buttons - Clean & Simple */}
-                            <div className="flex gap-3 pt-3 border-t border-gray-100">
-                              <Button
-                                asChild
-                                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                                size="sm"
-                              >
-                                <Link href={`/agent/refer/${service.id}`}>
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Refer
-                                </Link>
-                              </Button>
-                              {service.material?.material_link && (
+                                  {getDisplayDescription(service.description || "", service.id)}
+                                </div>
+                                {shouldTruncateDescription(service.description || "") && (
+                                  <button
+                                    onClick={() => toggleDescriptionExpanded(service.id)}
+                                    className="text-emerald-600 hover:text-emerald-800 text-sm font-medium mt-2 flex items-center gap-1"
+                                  >
+                                    {expandedDescriptions[service.id] ? (
+                                      <>
+                                        Show Less
+                                        <ChevronUp className="h-3 w-3" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        Read More
+                                        <ChevronDown className="h-3 w-3" />
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                              {/* Action Buttons - Clean & Simple */}
+                              <div className="flex gap-3 pt-3 border-t border-gray-100">
                                 <Button
-                                  variant="outline"
-                                  size="sm"
                                   asChild
-                                  className="border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
+                                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                                  size="sm"
                                 >
-                                  <Link href={service.material.material_link} target="_blank">
-                                    <ExternalLink className="h-4 w-4" />
+                                  <Link href={`/agent/refer/${service.id}`}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Refer
                                   </Link>
                                 </Button>
-                              )}
+                                {service.material?.material_link && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
+                                  >
+                                    <Link href={service.material.material_link} target="_blank">
+                                      <ExternalLink className="h-4 w-4" />
+                                    </Link>
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                     {/* Pagination Controls */}
-                    <PaginationControls
-                      currentPage={currentServicesPage}
-                      totalPages={getTotalPages(filteredServices.length)}
-                      onPageChange={(page) => handlePageChange(page, setCurrentServicesPage, servicesGridRef)}
-                      sectionRef={servicesGridRef}
-                    />
+                    <div className="flex justify-center mt-8">
+                      <PaginationControls
+                        currentPage={currentServicesPage}
+                        totalPages={getTotalPages(filteredServices.length)}
+                        onPageChange={(page) => {
+                          setCurrentServicesPage(page)
+                          servicesGridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }}
+                      />
+                    </div>
                   </>
                 )}
               </TabsContent>
@@ -2411,7 +2481,7 @@ DataFlex Ghana Agent 🇬🇭`
                       >
                         {statisticsLoading ? (
                           <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-4 border-white border-t-transparent mr-2"></div>
                             Loading Statistics...
                           </>
                         ) : (
@@ -2952,6 +3022,15 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         </DialogContent>
       </Dialog>
+
+      <ImageModal
+        isOpen={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        images={modalImages}
+        currentIndex={modalImageIndex}
+        onIndexChange={handleModalIndexChange}
+        alt={modalImageAlt}
+      />
     </div>
   )
 }

@@ -148,7 +148,7 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
 Payment Line: 0557943392
 
 ⏱️ ORDER PLACED AT: ${timeString}
-🏢 CLOSING TIME: 11:30 PM
+🏢 CLOSING TIME: 9:30 PM
 
 🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
 
