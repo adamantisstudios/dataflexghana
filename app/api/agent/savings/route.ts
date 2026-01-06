@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 import { withUnifiedAuth } from "@/lib/auth-middleware"
+import { calculateWalletBalance } from "@/lib/earnings-calculator"
 
 // GET - Fetch agent's savings accounts
 export const GET = withUnifiedAuth(async (request: NextRequest, user: any) => {
@@ -90,17 +91,8 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       )
     }
 
-    const { data: agentData, error: agentError } = await supabase
-      .from("agents")
-      .select("wallet_balance")
-      .eq("id", targetAgentId)
-      .single()
+    const currentWalletBalance = await calculateWalletBalance(targetAgentId)
 
-    if (agentError || !agentData) {
-      return NextResponse.json({ error: "Agent not found" }, { status: 404 })
-    }
-
-    const currentWalletBalance = Number(agentData.wallet_balance) || 0
     if (currentWalletBalance < amount) {
       return NextResponse.json(
         {
@@ -158,7 +150,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
 
     const { error: walletTransactionError } = await supabase.from("wallet_transactions").insert({
       agent_id: targetAgentId,
-      transaction_type: "savings_commitment",
+      transaction_type: "deduction",
       amount: amount,
       description: `Savings commitment to ${plan.name}`,
       reference_code: `SAV-${Date.now()}-${newSaving.id.slice(0, 8)}`,
@@ -174,7 +166,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       return NextResponse.json({ error: "Failed to process wallet transaction" }, { status: 500 })
     }
 
-    const newWalletBalance = currentWalletBalance - amount
+    const newWalletBalance = await calculateWalletBalance(targetAgentId)
     const { error: balanceUpdateError } = await supabase
       .from("agents")
       .update({
@@ -207,8 +199,8 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       agentId: targetAgentId,
       amount,
       planName: plan.name,
-      oldWalletBalance: currentWalletBalance,
-      newWalletBalance,
+      walletBalanceBeforeDeduction: currentWalletBalance,
+      walletBalanceAfterDeduction: newWalletBalance,
       savingsId: newSaving.id,
     })
 

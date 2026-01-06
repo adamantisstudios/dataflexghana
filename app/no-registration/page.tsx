@@ -10,7 +10,7 @@ import { SoftwareStore } from "@/components/no-registration/software-store"
 import { AFAContextSection } from "@/components/no-registration/afa-context-section"
 import { AFARegistrationForm } from "@/components/no-registration/afa-registration-form"
 import { MTNSimForms } from "@/components/no-registration/mtn-sim-forms"
-import { VoucherOrderForm } from "@/components/no-registration/voucher-order-form"
+import { BusinessRegistrationForm } from "@/components/no-registration/business-registration-form"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, X, FileText, Shield, ChevronRight } from "lucide-react"
@@ -181,7 +181,7 @@ export default function NoRegistrationPage() {
 
       <AFAContextSection />
 
-      <VoucherOrderForm />
+      <BusinessRegistrationForm />
 
       <section className="py-16 bg-gradient-to-r from-emerald-600 to-green-600 text-white">
         <div className="container mx-auto px-4 text-center">

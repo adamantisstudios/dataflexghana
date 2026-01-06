@@ -48,6 +48,7 @@ interface Service {
   commission_amount: number
   product_cost?: number
   materials_link?: string
+  materials_link_label?: string
   image_url?: string
   image_urls?: string[]
 }
@@ -251,8 +252,9 @@ export default function ReferServicePage() {
                                 e.stopPropagation()
                                 openImageModal(images, currentImageIdx, service.title)
                               }}
-                              className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm font-medium z-10 transition-colors cursor-pointer"
+                              className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm font-medium z-10 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1"
                             >
+                              <FileText className="h-3 w-3" />
                               {currentImageIdx + 1} / {images.length}
                             </button>
                             <div className="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -329,17 +331,25 @@ export default function ReferServicePage() {
                 </div>
 
                 {service.materials_link && (
-                  <div className="pt-4 border-t border-emerald-200">
+                  <div className="pt-4 border-t border-emerald-100">
                     <Button
                       asChild
                       variant="outline"
-                      className="w-full border-emerald-300 text-emerald-600 hover:bg-emerald-50 bg-transparent"
+                      className="w-full h-12 border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-white shadow-sm hover:shadow transition-all group"
                     >
-                      <a href={service.materials_link} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        View Service Materials
+                      <a
+                        href={service.materials_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        <span className="font-semibold">
+                          {service.materials_link_label || "View Service Materials"}
+                        </span>
                       </a>
                     </Button>
+                    <p className="text-[10px] text-emerald-500/70 text-center mt-2 font-medium">Opens in a new tab</p>
                   </div>
                 )}
               </CardContent>

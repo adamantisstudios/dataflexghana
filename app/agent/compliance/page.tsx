@@ -44,7 +44,7 @@ const AVAILABLE_FORMS = [
     duration: "3–4 Weeks",
     cost: "350 GHS",
     commission: "50 GHS",
-    delivery: "Pickup Only",
+    delivery: "Free Delivery Nationwide",
   },
   {
     id: "sole-proprietorship",
@@ -56,7 +56,7 @@ const AVAILABLE_FORMS = [
     duration: "14 Working Days",
     cost: "550 GHS",
     commission: "50 GHS",
-    delivery: "Pickup or Nationwide Delivery",
+    delivery: "Free Delivery Nationwide",
   },
   {
     id: "tin-registration",
@@ -80,7 +80,7 @@ const AVAILABLE_FORMS = [
     duration: "14 Working Days",
     cost: "1,410 GHS",
     commission: "50 GHS",
-    delivery: "Nationwide Delivery",
+    delivery: "Free Delivery Nationwide",
   },
   {
     id: "company-shares",
@@ -92,7 +92,7 @@ const AVAILABLE_FORMS = [
     duration: "14 Working Days",
     cost: "1,900 GHS",
     commission: "70 GHS",
-    delivery: "Nationwide Delivery",
+    delivery: "Free Delivery Nationwide",
   },
   {
     id: "association-registration",
@@ -104,7 +104,7 @@ const AVAILABLE_FORMS = [
     duration: "14 Working Days",
     cost: "1,414 GHS",
     commission: "50 GHS",
-    delivery: "Nationwide Delivery",
+    delivery: "Free Delivery Nationwide",
   },
   {
     id: "bank-account",

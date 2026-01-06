@@ -1,15 +1,17 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, PiggyBank } from 'lucide-react'
-import Link from 'next/link'
-import { BackToTop } from '@/components/back-to-top'
-import SavingsPlansSelector from '@/components/agent/savings/SavingsPlansSelector'
-import { getStoredAgent, type Agent } from '@/lib/unified-auth-system'
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, PiggyBank } from "lucide-react"
+import Link from "next/link"
+import { BackToTop } from "@/components/back-to-top"
+import SavingsPlansSelector from "@/components/agent/savings/SavingsPlansSelector"
+import { getStoredAgent, type Agent } from "@/lib/unified-auth-system"
+import { calculateWalletBalance } from "@/lib/earnings-calculator"
 
 export default function SavingsPlansPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
+  const [realTimeWalletBalance, setRealTimeWalletBalance] = useState(0)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -20,14 +22,23 @@ export default function SavingsPlansPage() {
         const storedAgent = getStoredAgent()
 
         if (!storedAgent) {
-          router.push('/agent/login')
+          router.push("/agent/login")
           return
         }
 
         setAgent(storedAgent)
+
+        try {
+          const balance = await calculateWalletBalance(storedAgent.id)
+          setRealTimeWalletBalance(balance)
+        } catch (error) {
+          console.error("Error calculating wallet balance:", error)
+          // Fallback to stored balance if calculation fails
+          setRealTimeWalletBalance(storedAgent.wallet_balance || 0)
+        }
       } catch (error) {
-        console.error('Error loading agent data:', error)
-        router.push('/agent/login')
+        console.error("Error loading agent data:", error)
+        router.push("/agent/login")
       } finally {
         setLoading(false)
       }
@@ -37,7 +48,7 @@ export default function SavingsPlansPage() {
   }, [router])
 
   const formatCurrency = (amount: number) => {
-    return `₵${amount.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    return `₵${amount.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   if (loading) {
@@ -70,20 +81,14 @@ export default function SavingsPlansPage() {
                   <PiggyBank className="w-full h-full text-blue-600" />
                 </div>
                 <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
-                    Savings Plans
-                  </h1>
-                  <p className="text-blue-100 font-medium">
-                    Choose the perfect plan for your financial goals
-                  </p>
+                  <h1 className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">Savings Plans</h1>
+                  <p className="text-blue-100 font-medium">Choose the perfect plan for your financial goals</p>
                 </div>
               </div>
             </div>
             <div className="text-right">
               <p className="text-blue-100 text-sm">Wallet Balance</p>
-              <p className="text-white font-bold text-lg">
-                {formatCurrency(agent.wallet_balance || 0)}
-              </p>
+              <p className="text-white font-bold text-lg">{formatCurrency(realTimeWalletBalance)}</p>
             </div>
           </div>
         </div>
@@ -91,10 +96,7 @@ export default function SavingsPlansPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <SavingsPlansSelector
-          agentId={agent.id}
-          walletBalance={agent.wallet_balance || 0}
-        />
+        <SavingsPlansSelector agentId={agent.id} walletBalance={realTimeWalletBalance} />
       </main>
 
       <BackToTop />

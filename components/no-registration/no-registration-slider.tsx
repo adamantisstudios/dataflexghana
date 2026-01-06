@@ -80,6 +80,20 @@ const slides: SlideData[] = [
       color: "text-purple-700",
     },
   },
+  {
+    id: 5,
+    title: "Business Registration Services",
+    subtitle: "🏢 Legal & Compliance",
+    description:
+      "Professional business registration, renewals, amendments, and document replacements. All services delivered nationwide with expert support.",
+    image: "/business-office-ghana.jpg",
+    gradient: "from-slate-700 via-slate-600 to-slate-800",
+    primaryCTA: {
+      text: "Register Your Business",
+      href: "#business-registration",
+      color: "text-slate-700",
+    },
+  },
 ]
 
 export function NoRegistrationSlider() {

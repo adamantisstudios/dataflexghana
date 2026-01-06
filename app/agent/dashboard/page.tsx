@@ -1239,18 +1239,19 @@ DataFlex Ghana Agent 🇬🇭`
                   {/* Image Section */}
                   <div className="relative h-64 md:h-full md:min-h-80 overflow-hidden">
                     <img
-                      src="https://fashionablyhired.netlify.app/images/slide2.jpg"
+                      src="/assets/slide2.jpg"
                       alt="Custom Fashion Design Service"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
                       onClick={() =>
                         openImageModal(
-                          ["https://fashionablyhired.netlify.app/images/slide2.jpg"],
+                          ["/assets/slide2.jpg"],
                           0,
-                          "Fashionably Hired",
+                          "Fashionably Hired"
                         )
                       }
                     />
                   </div>
+
                   {/* Content Section */}
                   <div className="p-6 lg:p-8 space-y-6">
                     <div>
@@ -1591,160 +1592,162 @@ DataFlex Ghana Agent 🇬🇭`
                       </div>
                     </div>
                     {/* Services Grid - Minimal Design */}
-                    <div ref={servicesGridRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {getPaginatedData(filteredServices, currentServicesPage).map((service) => {
-                        const images =
-                          service.image_urls && service.image_urls.length > 0
-                            ? service.image_urls
-                            : service.image_url
-                              ? [service.image_url]
-                              : []
-                        const currentIdx = serviceImageIndices[service.id] || 0
+<div ref={servicesGridRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {getPaginatedData(filteredServices, currentServicesPage).map((service) => {
+    const images =
+      service.image_urls && service.image_urls.length > 0
+        ? service.image_urls
+        : service.image_url
+        ? [service.image_url]
+        : [];
+    const currentIdx = serviceImageIndices[service.id] || 0;
 
-                        return (
-                          <div
-                            key={service.id}
-                            className="bg-white rounded-lg border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col"
-                          >
-                            {/* Clean Image Section */}
-                            <div className="relative w-full h-56 overflow-hidden group">
-                              {images.length > 0 ? (
-                                <>
-                                  <ImageWithFallback
-                                    src={images[currentIdx] || "/placeholder.svg"}
-                                    alt={service.title}
-                                    className="w-full h-full object-cover transition-opacity duration-500 cursor-pointer"
-                                    onClick={() => openImageModal(images, currentIdx, service.title)}
-                                    fallbackSrc="/placeholder.svg?height=224&width=400"
-                                  />
-                                  {images.length > 1 && (
-                                    <>
-                                      <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded backdrop-blur-sm font-medium z-10">
-                                        {currentIdx + 1} / {images.length}
-                                      </div>
+    return (
+      <Card
+        key={service.id}
+        className="flex flex-col overflow-hidden transition-all duration-300 bg-white border border-gray-200 rounded-lg hover:border-emerald-300 hover:shadow-md"
+      >
+        {/* Image Section */}
+        <div className="relative w-full h-56 overflow-hidden group">
+          {images.length > 0 ? (
+            <>
+              <ImageWithFallback
+                src={images[currentIdx] || "/placeholder.svg"}
+                alt={service.title}
+                className="w-full h-full object-cover cursor-pointer transition-opacity duration-500"
+                onClick={() => openImageModal(images, currentIdx, service.title)}
+                fallbackSrc="/placeholder.svg?height=224&width=400"
+              />
+              {images.length > 1 && (
+                <>
+                  {/* Image Counter */}
+                  <div className="absolute top-2 right-2 z-10 px-1.5 py-0.5 text-[10px] font-medium text-white rounded backdrop-blur-sm bg-black/60">
+                    {currentIdx + 1} / {images.length}
+                  </div>
 
-                                      <div className="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                          onClick={(e) => prevServiceImage(e, service.id, images.length)}
-                                          className="bg-black/30 hover:bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm transition-all"
-                                        >
-                                          <ChevronDown className="h-4 w-4 rotate-90" />
-                                        </button>
-                                        <button
-                                          onClick={(e) => nextServiceImage(e, service.id, images.length)}
-                                          className="bg-black/30 hover:bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm transition-all"
-                                        >
-                                          <ChevronDown className="h-4 w-4 -rotate-90" />
-                                        </button>
-                                      </div>
-                                      {/* Image Indicators */}
-                                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-                                        {images.map((_, i) => (
-                                          <div
-                                            key={i}
-                                            className={`h-1 rounded-full transition-all ${
-                                              i === currentIdx ? "bg-white w-4" : "bg-white/40 w-1"
-                                            }`}
-                                          />
-                                        ))}
-                                      </div>
-                                    </>
-                                  )}
-                                </>
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                                  <div className="text-gray-400 text-center p-4">
-                                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                    <p className="text-sm">No Image</p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            {/* Content Section - Minimal Layout */}
-                            <div className="p-4 flex-1 flex flex-col">
-                              {/* Service Title */}
-                              <h3 className="text-lg font-semibold text-gray-800 mb-3 line-clamp-2">{service.title}</h3>
-                              {/* Pricing Section - Clear Separation */}
-                              <div className="space-y-3 mb-4">
-                                {/* Commission - Clear Highlight */}
-                                <div className="bg-emerald-50 rounded-lg p-3">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-emerald-700">Your Commission</span>
-                                    <span className="text-lg font-bold text-emerald-800">
-                                      GH₵ {safeCommissionDisplay(service.commission_amount).toFixed(2)}
-                                    </span>
-                                  </div>
-                                </div>
-                                {/* Service Cost (if available) */}
-                                {service.product_cost && (
-                                  <div className="border border-gray-200 rounded-lg p-3">
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-sm font-medium text-gray-700">Service Cost</span>
-                                      <span className="text-base font-semibold text-gray-800">
-                                        GH₵ {safeCommissionDisplay(service.product_cost).toFixed(2)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              {/* Description */}
-                              <div className="mb-4 flex-1">
-                                <div
-                                  className={`text-gray-600 text-sm leading-relaxed ${
-                                    !expandedDescriptions[service.id] ? "line-clamp-2" : ""
-                                  }`}
-                                >
-                                  {getDisplayDescription(service.description || "", service.id)}
-                                </div>
-                                {shouldTruncateDescription(service.description || "") && (
-                                  <button
-                                    onClick={() => toggleDescriptionExpanded(service.id)}
-                                    className="text-emerald-600 hover:text-emerald-800 text-sm font-medium mt-2 flex items-center gap-1"
-                                  >
-                                    {expandedDescriptions[service.id] ? (
-                                      <>
-                                        Show Less
-                                        <ChevronUp className="h-3 w-3" />
-                                      </>
-                                    ) : (
-                                      <>
-                                        Read More
-                                        <ChevronDown className="h-3 w-3" />
-                                      </>
-                                    )}
-                                  </button>
-                                )}
-                              </div>
-                              {/* Action Buttons - Clean & Simple */}
-                              <div className="flex gap-3 pt-3 border-t border-gray-100">
-                                <Button
-                                  asChild
-                                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
-                                  size="sm"
-                                >
-                                  <Link href={`/agent/refer/${service.id}`}>
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Refer
-                                  </Link>
-                                </Button>
-                                {service.material?.material_link && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                    className="border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
-                                  >
-                                    <Link href={service.material.material_link} target="_blank">
-                                      <ExternalLink className="h-4 w-4" />
-                                    </Link>
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                  {/* Navigation Buttons */}
+                  <div className="absolute inset-0 flex items-center justify-between px-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <button
+                      onClick={(e) => prevServiceImage(e, service.id, images.length)}
+                      className="p-1.5 transition-all bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50"
+                    >
+                      <ChevronDown className="h-4 w-4 rotate-90 text-white" />
+                    </button>
+                    <button
+                      onClick={(e) => nextServiceImage(e, service.id, images.length)}
+                      className="p-1.5 transition-all bg-black/30 rounded-full backdrop-blur-sm hover:bg-black/50"
+                    >
+                      <ChevronDown className="h-4 w-4 -rotate-90 text-white" />
+                    </button>
+                  </div>
+
+                  {/* Image Indicators */}
+                  <div className="absolute bottom-3 left-1/2 flex gap-1 -translate-x-1/2">
+                    {images.map((_, i) => (
+                      <div
+                        key={i}
+                        className={`h-1 rounded-full transition-all ${
+                          i === currentIdx ? "bg-white w-4" : "bg-white/40 w-1"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-gray-100 to-gray-200">
+              <div className="p-4 text-center text-gray-400">
+                <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No Image</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Content Section */}
+        <div className="flex flex-col flex-1 p-4">
+          {/* Service Title */}
+          <h3 className="mb-3 text-lg font-semibold text-gray-800 line-clamp-2">
+            {service.title}
+          </h3>
+
+          {/* Pricing Section */}
+          <div className="mb-4 space-y-3">
+            <div className="p-3 rounded-lg bg-emerald-50">
+              <div className="flex justify-between">
+                <span className="text-sm font-medium text-emerald-700">Your Commission</span>
+                <span className="text-lg font-bold text-emerald-800">
+                  GH₵ {safeCommissionDisplay(service.commission_amount).toFixed(2)}
+                </span>
+              </div>
+            </div>
+            {service.product_cost && (
+              <div className="p-3 border rounded-lg border-gray-200">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-700">Service Cost</span>
+                  <span className="text-base font-semibold text-gray-800">
+                    GH₵ {safeCommissionDisplay(service.product_cost).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="flex-1 mb-4">
+            <div
+              className={`text-sm leading-relaxed text-gray-600 ${
+                !expandedDescriptions[service.id] ? "line-clamp-2" : ""
+              }`}
+            >
+              {getDisplayDescription(service.description || "", service.id)}
+            </div>
+            {shouldTruncateDescription(service.description || "") && (
+              <button
+                onClick={() => toggleDescriptionExpanded(service.id)}
+                className="flex mt-2 text-sm font-medium text-emerald-600 gap-1 hover:text-emerald-800"
+              >
+                {expandedDescriptions[service.id] ? (
+                  <>
+                    Show Less <ChevronUp className="w-3 h-3" />
+                  </>
+                ) : (
+                  <>
+                    Read More <ChevronDown className="w-3 h-3" />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-3 border-t border-gray-100">
+            <Button asChild size="sm" className="flex-1 text-white bg-emerald-600 font-medium hover:bg-emerald-700">
+              <Link href={`/agent/refer/${service.id}`}>
+                <Plus className="w-4 h-4 mr-2" /> Refer
+              </Link>
+            </Button>
+
+            {service.material?.material_link && (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="text-gray-700 border-gray-300 hover:bg-gray-50"
+              >
+                <Link href={service.material.material_link} target="_blank">
+                  <ExternalLink className="w-4 h-4" />
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  })}
+</div>
+
                     {/* Pagination Controls */}
                     <div className="flex justify-center mt-8">
                       <PaginationControls

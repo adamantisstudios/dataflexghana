@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, PiggyBank } from "lucide-react"
@@ -23,7 +23,7 @@ interface SavingsPlan {
   early_withdrawal_penalty: number
 }
 
-export default function SavingsCommitPage() {
+export default function CommitPageClient() {
   const [agent, setAgent] = useState<Agent | null>(null)
   const [realTimeWalletBalance, setRealTimeWalletBalance] = useState(0)
   const [selectedPlan, setSelectedPlan] = useState<SavingsPlan | null>(null)
@@ -31,15 +31,13 @@ export default function SavingsCommitPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const searchParams = window.location.search
-  const urlParams = new URLSearchParams(searchParams)
-  const planId = urlParams.get("planId")
-  const amountParam = urlParams.get("amount")
+  const searchParams = useSearchParams()
+  const planId = searchParams.get("planId")
+  const amountParam = searchParams.get("amount")
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Get agent from localStorage using unified auth system
         const storedAgent = getStoredAgent()
 
         if (!storedAgent) {
@@ -77,7 +75,7 @@ export default function SavingsCommitPage() {
     }
 
     loadData()
-  }, [router])
+  }, [router, planId, amountParam])
 
   const fetchPlan = async (planId: string) => {
     try {

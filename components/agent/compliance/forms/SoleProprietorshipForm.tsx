@@ -510,7 +510,7 @@ return (
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-emerald-700">Delivery:</span>
-                  <span className="text-sm font-medium text-emerald-800">Pickup or Nationwide</span>
+                  <span className="text-sm font-medium text-emerald-800">Free Delivery Nationwide</span>
                 </div>
               </div>
             </div>

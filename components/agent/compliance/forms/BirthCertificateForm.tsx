@@ -353,7 +353,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-emerald-700">Delivery:</span>
-                  <span className="text-sm font-medium text-emerald-800">Pickup Only</span>
+                  <span className="text-sm font-medium text-emerald-800">Free Delivery</span>
                 </div>
               </div>
             </div>
