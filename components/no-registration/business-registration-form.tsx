@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -262,7 +261,6 @@ const RENEWAL_SERVICES: Service[] = [
 
 // AMENDMENTS SERVICES
 const AMENDMENT_SERVICES: Service[] = [
-  // Sole Proprietorship Amendments
   {
     id: "sole-prop-name-change",
     name: "Sole Proprietorship - Change of Name",
@@ -337,7 +335,6 @@ const AMENDMENT_SERVICES: Service[] = [
     ],
     icon: <PencilSquare className="w-6 h-6" />,
   },
-  // Limited Liability Company Amendments
   {
     id: "llc-name-change",
     name: "Limited Liability Company - Change of Name",
@@ -481,7 +478,6 @@ const AMENDMENT_SERVICES: Service[] = [
     ],
     icon: <PencilSquare className="w-6 h-6" />,
   },
-  // Company Limited by Guarantee Amendments
   {
     id: "guarantee-name-change",
     name: "Company Limited by Guarantee - Change of Name",
@@ -594,7 +590,6 @@ const AMENDMENT_SERVICES: Service[] = [
     ],
     icon: <PencilSquare className="w-6 h-6" />,
   },
-  // Subsidiary Company Amendments
   {
     id: "subsidiary-name-change",
     name: "Subsidiary Company - Change of Name",
@@ -650,7 +645,6 @@ const AMENDMENT_SERVICES: Service[] = [
     ],
     icon: <PencilSquare className="w-6 h-6" />,
   },
-  // Partnership Amendments
   {
     id: "partnership-name-change",
     name: "Partnership - Change of Name",
@@ -727,7 +721,6 @@ const AMENDMENT_SERVICES: Service[] = [
     ],
     icon: <PencilSquare className="w-6 h-6" />,
   },
-  // Special Resolution Services
   {
     id: "special-resolution-name",
     name: "Special Resolution - Change of Name",
@@ -791,7 +784,6 @@ const AMENDMENT_SERVICES: Service[] = [
 
 // REPLACEMENTS / RE-PRINTS SERVICES
 const REPLACEMENT_SERVICES: Service[] = [
-  // Sole Proprietorship Replacements
   {
     id: "sole-prop-cert-replacement",
     name: "Sole Proprietorship - Certificate of Registration Replacement",
@@ -834,7 +826,6 @@ const REPLACEMENT_SERVICES: Service[] = [
     ],
     icon: <Copy className="w-6 h-6" />,
   },
-  // Limited Liability Company Replacements
   {
     id: "llc-cert-inc-replacement",
     name: "Limited Liability Company - Certificate of Incorporation Replacement",
@@ -941,7 +932,6 @@ const REPLACEMENT_SERVICES: Service[] = [
     ],
     icon: <Copy className="w-6 h-6" />,
   },
-  // Company Limited by Guarantee Replacements
   {
     id: "guarantee-cert-inc-replacement",
     name: "Company Limited by Guarantee - Certificate of Incorporation Replacement",
@@ -1026,7 +1016,6 @@ const REPLACEMENT_SERVICES: Service[] = [
     ],
     icon: <Copy className="w-6 h-6" />,
   },
-  // Subsidiary Company Replacements
   {
     id: "subsidiary-cert-replacement",
     name: "Subsidiary Company - Certificate of Registration Replacement",
@@ -1069,7 +1058,6 @@ const REPLACEMENT_SERVICES: Service[] = [
     ],
     icon: <Copy className="w-6 h-6" />,
   },
-  // Partnership Replacements
   {
     id: "partnership-cert-replacement",
     name: "Partnership - Certificate of Registration Replacement",
@@ -1117,7 +1105,7 @@ const REPLACEMENT_SERVICES: Service[] = [
 const ALL_SERVICES = [...NEW_BUSINESS_SERVICES, ...RENEWAL_SERVICES, ...AMENDMENT_SERVICES, ...REPLACEMENT_SERVICES]
 
 const CATEGORIES = [
-  { id: "new", label: "New Registration", icon: <Building2 className="w-4 h-4" /> },
+  { id: "new", label: "Registration", icon: <Building2 className="w-4 h-4" /> },
   { id: "renewal", label: "Renewals", icon: <RotateCcw className="w-4 h-4" /> },
   { id: "amendment", label: "Amendments", icon: <PencilSquare className="w-4 h-4" /> },
   { id: "replacement", label: "Replacements", icon: <Copy className="w-4 h-4" /> },
@@ -1183,34 +1171,41 @@ Please confirm receipt and let us know if you need any clarifications.`
   }
 
   return (
-    <section id="business-registration" className="py-16 bg-gradient-to-br from-slate-50 to-slate-100">
+    <section id="business-registration" className="py-12 md:py-16 bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-slate-900 mb-4">Business Registration Services</h2>
-          <p className="text-xl text-slate-700 max-w-3xl mx-auto">
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">Business Registration Services</h2>
+          <p className="text-lg md:text-xl text-slate-700 max-w-3xl mx-auto">
             Complete business registration, renewals, amendments, and document replacements for all business types.
-            Expert service delivery nationwide with transparent pricing and professional support.
           </p>
         </div>
 
         <div className="max-w-6xl mx-auto">
           {!selectedService ? (
             <>
-              {/* Category Tabs */}
-              <Tabs defaultValue="new" value={activeCategory} onValueChange={setActiveCategory} className="mb-8">
-                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2 bg-white p-2 rounded-lg shadow">
+              {/* Category Tabs (Mobile: Horizontal Scroll) */}
+              <Tabs
+                defaultValue="new"
+                value={activeCategory}
+                onValueChange={setActiveCategory}
+                className="mb-6 md:mb-8"
+              >
+                <TabsList className="flex overflow-x-auto pb-2 w-full bg-white p-1 rounded-lg shadow gap-2 justify-start scroll-ml-4">
                   {CATEGORIES.map((cat) => (
                     <TabsTrigger
                       key={cat.id}
                       value={cat.id}
-                      className="flex items-center gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                      className="min-w-[120px] flex items-center justify-center gap-2
+                                data-[state=active]:bg-slate-900 data-[state=active]:text-white
+                                text-sm py-2 px-3 rounded whitespace-nowrap"
                     >
                       {cat.icon}
-                      <span className="hidden sm:inline">{cat.label}</span>
+                      <span className="font-medium">{cat.label}</span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
+
 
                 {CATEGORIES.map((cat) => (
                   <TabsContent key={cat.id} value={cat.id}>
@@ -1218,42 +1213,51 @@ Please confirm receipt and let us know if you need any clarifications.`
                       {categoryServices.map((service) => (
                         <Card
                           key={service.id}
-                          className="cursor-pointer hover:shadow-lg transition-all border-slate-200 hover:border-slate-400"
+                          className="cursor-pointer hover:shadow-lg transition-shadow border-slate-200"
                           onClick={() => setExpandedService(expandedService === service.id ? null : service.id)}
                         >
-                          <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-start gap-4 flex-1">
-                                <div className="text-slate-600 mt-1">{service.icon}</div>
-                                <div className="flex-1">
-                                  <CardTitle className="text-lg md:text-xl text-slate-900">{service.name}</CardTitle>
-                                  {service.subcategory && (
-                                    <p className="text-xs md:text-sm text-slate-500 mt-1">
-                                      Category: {service.subcategory}
-                                    </p>
-                                  )}
-                                  <p className="text-slate-600 text-sm mt-2">{service.description}</p>
-                                </div>
+                          <CardHeader className="pb-2 px-4">
+                            <div className="flex flex-col sm:flex-row items-start gap-4">
+                              {/* Icon/Image on the Left */}
+                              <div className="flex-shrink-0 bg-slate-100 p-3 rounded-lg">
+                                {service.icon}
                               </div>
-                              <div className="text-right ml-4 flex-shrink-0">
-                                <p className="text-2xl font-bold text-slate-900">₵{service.price}</p>
+
+                              {/* Text and CTA on the Right */}
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-lg font-semibold text-slate-900">
+                                  {service.name}
+                                </CardTitle>
+                                {service.subcategory && (
+                                  <p className="text-sm text-slate-500 mt-1">
+                                    {service.subcategory}
+                                  </p>
+                                )}
+                                <p className="text-sm text-slate-600 mt-2">
+                                  {service.description}
+                                </p>
+                              </div>
+
+                              {/* Price */}
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-xl font-bold text-slate-900">₵{service.price}</p>
                                 <p className="text-xs text-slate-500">Service fee</p>
                               </div>
                             </div>
                           </CardHeader>
 
                           {expandedService === service.id && (
-                            <CardContent className="space-y-6 border-t border-slate-200 pt-6">
+                            <CardContent className="space-y-4 border-t border-slate-200 pt-4 px-4">
                               {/* Required Documents */}
                               <div>
-                                <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                                <h4 className="font-semibold text-slate-900 mb-2 flex items-center gap-2 text-sm">
+                                  <AlertCircle className="w-4 h-4 text-amber-600" />
                                   Required Documents
                                 </h4>
-                                <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <ul className="space-y-1.5 pl-4">
                                   {service.requiredDocs.map((doc, idx) => (
-                                    <li key={idx} className="flex gap-2 text-slate-700 text-sm md:text-base">
-                                      <span className="text-slate-400 flex-shrink-0">•</span>
+                                    <li key={idx} className="flex gap-2 text-sm text-slate-700">
+                                      <span>•</span>
                                       <span>{doc}</span>
                                     </li>
                                   ))}
@@ -1262,39 +1266,34 @@ Please confirm receipt and let us know if you need any clarifications.`
 
                               {/* Deliverables */}
                               <div>
-                                <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                  <FileCheck className="w-5 h-5 text-green-600" />
+                                <h4 className="font-semibold text-slate-900 mb-2 flex items-center gap-2 text-sm">
+                                  <FileCheck className="w-4 h-4 text-green-600" />
                                   What You Get
                                 </h4>
-                                <ul className="space-y-2">
+                                <ul className="space-y-1.5 pl-4">
                                   {service.deliverables.map((item, idx) => (
-                                    <li key={idx} className="flex gap-2 text-slate-700 text-sm md:text-base">
-                                      <span className="text-green-600 font-bold flex-shrink-0">✓</span>
+                                    <li key={idx} className="flex gap-2 text-sm text-slate-700">
+                                      <span className="text-green-600 font-bold">✓</span>
                                       <span>{item}</span>
                                     </li>
                                   ))}
                                 </ul>
                               </div>
 
-                              {/* Request Button */}
                               <Button
-                                onClick={() => handleSelectService(service)}
-                                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 text-lg font-semibold"
+                                onClick={(e) => { e.stopPropagation(); handleSelectService(service); }}
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2 text-sm font-medium"
                               >
                                 Request This Service
                               </Button>
                             </CardContent>
                           )}
 
-                          {expandedService === service.id ? (
-                            <div className="px-6 py-3 border-t border-slate-200 flex justify-center">
-                              <ChevronDown className="w-5 h-5 text-slate-600 rotate-180" />
-                            </div>
-                          ) : (
-                            <div className="px-6 py-3 border-t border-slate-200 flex justify-center">
-                              <ChevronDown className="w-5 h-5 text-slate-600" />
-                            </div>
-                          )}
+                          <div className="px-4 py-2 border-t border-slate-200 flex justify-center">
+                            <ChevronDown
+                              className={`w-4 h-4 text-slate-600 transition-transform ${expandedService === service.id ? "rotate-180" : ""}`}
+                            />
+                          </div>
                         </Card>
                       ))}
                     </div>
@@ -1304,22 +1303,22 @@ Please confirm receipt and let us know if you need any clarifications.`
             </>
           ) : (
             /* Service Request Form */
-            <Card className="border-slate-200 shadow-xl">
-              <CardHeader className="bg-slate-900 text-white rounded-t-lg">
-                <CardTitle className="text-2xl">{selectedService.service.name}</CardTitle>
-                <p className="text-slate-300 text-lg mt-2">Cost: ₵{selectedService.service.price}</p>
+            <Card className="border-slate-200 shadow-lg">
+              <CardHeader className="bg-slate-900 text-white rounded-t-lg p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-2xl break-words">{selectedService.service.name}</CardTitle>
+                <p className="text-slate-300 text-base sm:text-lg mt-2">Cost: ₵{selectedService.service.price}</p>
               </CardHeader>
-              <CardContent className="p-8">
+              <CardContent className="p-4 sm:p-8">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Service Summary */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 space-y-4">
-                    <h4 className="font-semibold text-slate-900">Service Summary</h4>
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 sm:p-6 space-y-4">
+                    <h4 className="font-semibold text-slate-900 text-base sm:text-lg">Service Summary</h4>
                     <div>
-                      <h5 className="font-semibold text-slate-900 mb-2 flex items-center gap-2 text-sm md:text-base">
-                        <AlertCircle className="w-4 h-4" />
+                      <h5 className="font-semibold text-slate-900 mb-2 flex items-center gap-2 text-xs sm:text-base">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
                         Required Documents
                       </h5>
-                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                         {selectedService.service.requiredDocs.map((doc, idx) => (
                           <li key={idx} className="flex gap-2 text-slate-700">
                             <span className="flex-shrink-0">•</span>
@@ -1329,11 +1328,11 @@ Please confirm receipt and let us know if you need any clarifications.`
                       </ul>
                     </div>
                     <div>
-                      <h5 className="font-semibold text-slate-900 mb-2 flex items-center gap-2 text-sm md:text-base">
-                        <FileCheck className="w-4 h-4 text-green-600" />
+                      <h5 className="font-semibold text-slate-900 mb-2 flex items-center gap-2 text-xs sm:text-base">
+                        <FileCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
                         Deliverables
                       </h5>
-                      <ul className="space-y-1 text-sm">
+                      <ul className="space-y-1 text-xs sm:text-sm">
                         {selectedService.service.deliverables.map((item, idx) => (
                           <li key={idx} className="flex gap-2 text-slate-700">
                             <span className="text-green-600 font-bold flex-shrink-0">✓</span>
@@ -1346,9 +1345,9 @@ Please confirm receipt and let us know if you need any clarifications.`
 
                   {/* Customer Details Form */}
                   <div className="space-y-4">
-                    <h4 className="font-semibold text-slate-900 mb-4">Your Details</h4>
+                    <h4 className="font-semibold text-slate-900 mb-4 text-base sm:text-lg">Your Details</h4>
                     <div>
-                      <Label htmlFor="name" className="text-slate-900">
+                      <Label htmlFor="name" className="text-slate-900 text-sm sm:text-base">
                         Full Name <span className="text-red-600">*</span>
                       </Label>
                       <Input
@@ -1358,11 +1357,11 @@ Please confirm receipt and let us know if you need any clarifications.`
                         value={selectedService.customerName}
                         onChange={(e) => setSelectedService({ ...selectedService, customerName: e.target.value })}
                         required
-                        className="mt-2"
+                        className="mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="phone" className="text-slate-900">
+                      <Label htmlFor="phone" className="text-slate-900 text-sm sm:text-base">
                         Phone Number <span className="text-red-600">*</span>
                       </Label>
                       <Input
@@ -1372,11 +1371,11 @@ Please confirm receipt and let us know if you need any clarifications.`
                         value={selectedService.customerPhone}
                         onChange={(e) => setSelectedService({ ...selectedService, customerPhone: e.target.value })}
                         required
-                        className="mt-2"
+                        className="mt-2 text-sm"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email" className="text-slate-900">
+                      <Label htmlFor="email" className="text-slate-900 text-sm sm:text-base">
                         Email Address <span className="text-red-600">*</span>
                       </Label>
                       <Input
@@ -1386,16 +1385,16 @@ Please confirm receipt and let us know if you need any clarifications.`
                         value={selectedService.customerEmail}
                         onChange={(e) => setSelectedService({ ...selectedService, customerEmail: e.target.value })}
                         required
-                        className="mt-2"
+                        className="mt-2 text-sm"
                       />
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <Button
                       type="submit"
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-6 text-lg font-semibold"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-4 sm:py-6 text-base sm:text-lg font-semibold"
                     >
                       Send Request via WhatsApp
                     </Button>
@@ -1403,7 +1402,7 @@ Please confirm receipt and let us know if you need any clarifications.`
                       type="button"
                       variant="outline"
                       onClick={() => setSelectedService(null)}
-                      className="flex-1 py-6"
+                      className="w-full py-4 sm:py-6 text-base sm:text-lg"
                     >
                       Back to Services
                     </Button>
