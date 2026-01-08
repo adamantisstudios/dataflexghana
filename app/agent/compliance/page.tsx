@@ -41,8 +41,8 @@ const AVAILABLE_FORMS = [
     icon: Baby,
     color: "border-green-200 hover:border-green-400",
     iconColor: "text-green-600",
-    duration: "3–4 Weeks",
-    cost: "350 GHS",
+    duration: "Tiered Options",
+    cost: "₵460 - ₵920",
     commission: "50 GHS",
     delivery: "Free Delivery Nationwide",
   },
@@ -67,7 +67,7 @@ const AVAILABLE_FORMS = [
     iconColor: "text-purple-600",
     duration: "1 Day",
     cost: "120 GHS",
-    commission: "2o GHS",
+    commission: "20 GHS",
     delivery: "WhatsApp or E-mail",
   },
   {
@@ -415,14 +415,14 @@ export default function AgentCompliancePage() {
               <Info className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
               Form Information
             </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm">
-              Details about the selected form
-            </DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">Details about the selected form</DialogDescription>
           </DialogHeader>
           {selectedFormForInfo && (
             <div className="space-y-3 sm:space-y-4">
               <div>
-                <h3 className="font-semibold text-sm sm:text-base md:text-lg mb-2 sm:mb-4">{selectedFormForInfo.name}</h3>
+                <h3 className="font-semibold text-sm sm:text-base md:text-lg mb-2 sm:mb-4">
+                  {selectedFormForInfo.name}
+                </h3>
               </div>
 
               <div className="space-y-2 sm:space-y-3">
