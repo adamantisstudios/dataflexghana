@@ -45,43 +45,23 @@ const BIRTH_CERT_COST_TIERS = [
 
 const COMMISSION_AMOUNT = 50
 const GHANA_REGIONS = [
-  "Greater Accra Region",
-  "Ashanti Region",
-  "Western Region",
-  "Eastern Region",
-  "Volta Region",
-  "Northern Region",
-  "Upper East Region",
-  "Upper West Region",
-  "Central Region",
-  "Bono Region",
-  "Bono East Region",
-  "Ahafo Region",
-  "Savannah Region",
-  "North East Region",
-  "Oti Region",
-  "Western North Region",
+  "Greater Accra Region", "Ashanti Region", "Western Region", "Eastern Region",
+  "Volta Region", "Northern Region", "Upper East Region", "Upper West Region",
+  "Central Region", "Bono Region", "Bono East Region", "Ahafo Region",
+  "Savannah Region", "North East Region", "Oti Region", "Western North Region",
 ]
 
 const BIRTH_TYPES = ["Single", "Twin", "Triplet", "Multiple Birth"]
 const PLACE_OF_DELIVERY = ["Hospital", "Clinic", "Mat Home", "House", "Other"]
 const ATTENDANT_AT_BIRTH = ["Doctor", "Registered Midwife", "TBA", "Other"]
 const EDUCATION_LEVELS = [
-  "None",
-  "Primary",
-  "Middle/JHS",
-  "Secondary/SHS/Tech Vocational",
+  "None", "Primary", "Middle/JHS", "Secondary/SHS/Tech Vocational",
   "Tertiary (Teacher Training/Poly/University)",
 ]
 const MARITAL_STATUS = ["Married", "Single", "Divorced", "Widowed"]
 const RELATIONSHIP_TO_CHILD = [
-  "Mother",
-  "Father",
-  "Guardian",
-  "Grandparent",
-  "Other Relative",
-  "Hospital Staff",
-  "Other",
+  "Mother", "Father", "Guardian", "Grandparent", "Other Relative",
+  "Hospital Staff", "Other",
 ]
 
 export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCertificateFormProps) {
@@ -92,7 +72,6 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   const [isFormFilled, setIsFormFilled] = useState(false)
 
   const [formData, setFormData] = useState({
-    // Section A: Child Information
     registry_code: "",
     serial_number: "",
     child_first_name: "",
@@ -102,8 +81,6 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
     date_of_birth: "",
     nid_number: "",
     type_of_birth: "",
-
-    // Place of Delivery
     place_of_delivery: "",
     place_of_delivery_other: "",
     attendant_at_birth: "",
@@ -114,8 +91,6 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
     town: "",
     district: "",
     region: "",
-
-    // Section B: Mother Information
     mother_first_name: "",
     mother_middle_name: "",
     mother_surname: "",
@@ -132,8 +107,6 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
     mother_occupation: "",
     mother_religion: "",
     mother_residential_address: "",
-
-    // Father Information
     father_first_name: "",
     father_middle_name: "",
     father_surname: "",
@@ -142,13 +115,9 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
     father_nid: "",
     father_occupation: "",
     father_residential_address: "",
-
-    // Additional Information
     urgent_processing: false,
     urgency_reason: "",
     additional_notes: "",
-
-    // Informant Details
     informant_full_name: "",
     informant_relationship: "",
     informant_phone: "",
@@ -239,46 +208,27 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
 
       if (uploadError) throw uploadError
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("compliance-images").getPublicUrl(filePath)
+      const { data: { publicUrl } } = supabase.storage.from("compliance-images").getPublicUrl(filePath)
 
       return publicUrl
     } catch (error) {
-      console.error("[v0] Error uploading image:", error)
+      console.error("Error uploading image:", error)
       return null
     }
   }
 
   const handleSubmit = async () => {
-    console.log("[v0] Starting birth certificate form submission", { agentId, formData })
+    console.log("Starting birth certificate form submission", { agentId, formData })
 
     if (!selectedCostTier) {
       toast.error("Please select a service option before submitting")
       return
     }
 
-    if (!motherIdFrontFile || !motherIdBackFile) {
-      toast.error("Please upload mother's ID card (both sides)")
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
-      console.log("[v0] Uploading ID card images...")
-      const motherIdFrontUrl = await uploadImage(motherIdFrontFile, "mother_id_front")
-      const motherIdBackUrl = await uploadImage(motherIdBackFile, "mother_id_back")
-      const fatherIdFrontUrl = fatherIdFrontFile ? await uploadImage(fatherIdFrontFile, "father_id_front") : null
-      const fatherIdBackUrl = fatherIdBackFile ? await uploadImage(fatherIdBackFile, "father_id_back") : null
-
-      if (!motherIdFrontUrl || !motherIdBackUrl) {
-        throw new Error("Failed to upload mother's ID card images")
-      }
-
-      console.log("[v0] Images uploaded successfully")
-
-      console.log("[v0] Creating submission...")
+      console.log("Creating submission...")
       const { data: submission, error: submissionError } = await supabase
         .from("form_submissions")
         .insert({
@@ -291,60 +241,76 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
         .single()
 
       if (submissionError) {
-        console.error("[v0] Error creating submission:", submissionError)
+        console.error("Error creating submission:", submissionError)
         throw submissionError
       }
 
-      console.log("[v0] Submission created with ID:", submission.id)
+      console.log("Submission created with ID:", submission.id)
 
-      // Insert images
-      const imagesToInsert = [
-        {
-          submission_id: submission.id,
-          image_type: "mother_id_front",
-          image_url: motherIdFrontUrl,
-        },
-        {
-          submission_id: submission.id,
-          image_type: "mother_id_back",
-          image_url: motherIdBackUrl,
-        },
-      ]
+      // Upload images if they exist
+      const imagesToInsert = []
 
-      if (fatherIdFrontUrl) {
-        imagesToInsert.push({
-          submission_id: submission.id,
-          image_type: "father_id_front",
-          image_url: fatherIdFrontUrl,
-        })
+      if (motherIdFrontFile) {
+        const motherIdFrontUrl = await uploadImage(motherIdFrontFile, "mother_id_front")
+        if (motherIdFrontUrl) {
+          imagesToInsert.push({
+            submission_id: submission.id,
+            image_type: "mother_id_front",
+            image_url: motherIdFrontUrl,
+          })
+        }
       }
 
-      if (fatherIdBackUrl) {
-        imagesToInsert.push({
-          submission_id: submission.id,
-          image_type: "father_id_back",
-          image_url: fatherIdBackUrl,
-        })
+      if (motherIdBackFile) {
+        const motherIdBackUrl = await uploadImage(motherIdBackFile, "mother_id_back")
+        if (motherIdBackUrl) {
+          imagesToInsert.push({
+            submission_id: submission.id,
+            image_type: "mother_id_back",
+            image_url: motherIdBackUrl,
+          })
+        }
       }
 
-      console.log("[v0] Inserting form images...")
-      const { error: imagesError } = await supabase.from("form_images").insert(imagesToInsert)
-
-      if (imagesError) {
-        console.error("[v0] Error inserting images:", imagesError)
-        throw imagesError
+      if (fatherIdFrontFile) {
+        const fatherIdFrontUrl = await uploadImage(fatherIdFrontFile, "father_id_front")
+        if (fatherIdFrontUrl) {
+          imagesToInsert.push({
+            submission_id: submission.id,
+            image_type: "father_id_front",
+            image_url: fatherIdFrontUrl,
+          })
+        }
       }
 
-      console.log("[v0] Birth certificate form submitted successfully!")
+      if (fatherIdBackFile) {
+        const fatherIdBackUrl = await uploadImage(fatherIdBackFile, "father_id_back")
+        if (fatherIdBackUrl) {
+          imagesToInsert.push({
+            submission_id: submission.id,
+            image_type: "father_id_back",
+            image_url: fatherIdBackUrl,
+          })
+        }
+      }
+
+      // Insert images if any
+      if (imagesToInsert.length > 0) {
+        const { error: imagesError } = await supabase.from("form_images").insert(imagesToInsert)
+        if (imagesError) {
+          console.error("Error inserting images:", imagesError)
+          // Do not throw error, as images are optional
+        }
+      }
+
+      console.log("Birth certificate form submitted successfully!")
       toast.success(
         "Form submitted successfully! Your Birth Certificate application has been received and will be processed.",
-        {
-          duration: 5000,
-        },
+        { duration: 5000 }
       )
       onComplete()
     } catch (error) {
-      console.error("[v0] Error submitting form:", error)
+      console.error("Error submitting form:", error)
       toast.error("Failed to submit form. Please try again.")
     } finally {
       setIsSubmitting(false)
@@ -366,84 +332,69 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
     <>
       {showCostPopup && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl">
+          <Card className="max-w-2xl w-full border-emerald-300 bg-white shadow-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Baby className="h-6 w-6 text-emerald-600" />
-                <CardTitle className="text-emerald-600">Birth Certificate Processing Options</CardTitle>
+                <div>
+                  <CardTitle className="text-emerald-600">Birth Certificate Processing Options</CardTitle>
+                  <p className="text-xs text-gray-600 mt-1">Select your preferred processing option to continue</p>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!isFormFilled ? (
-                // Before form is filled - show single cost
-                <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-emerald-800">Starting Cost From:</span>
-                    <span className="text-lg font-bold text-emerald-600">₵460</span>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
-                    <span className="text-sm font-medium text-amber-700">Your Commission:</span>
-                    <span className="text-lg font-bold text-amber-600">₵50</span>
-                  </div>
-
-                  <div className="border-t border-emerald-200 pt-3">
+              <div className="space-y-3">
+                <p className="text-sm text-gray-700 font-semibold">Choose your processing speed and cost:</p>
+                {BIRTH_CERT_COST_TIERS.map((tier) => (
+                  <div
+                    key={tier.id}
+                    onClick={() => setSelectedCostTier(tier.id)}
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      selectedCostTier === tier.id
+                        ? "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-300"
+                        : "border-emerald-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/50"
+                    }`}
+                  >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-emerald-700">Processing:</span>
-                      <span className="text-sm font-medium text-emerald-800">Tiered Options</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-emerald-700">Delivery:</span>
-                      <span className="text-sm font-medium text-emerald-800">Nationwide Delivery</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                // After form is filled - show all tier options
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-600 font-medium">Select your preferred processing option:</p>
-                  {BIRTH_CERT_COST_TIERS.map((tier) => (
-                    <div
-                      key={tier.id}
-                      onClick={() => setSelectedCostTier(tier.id)}
-                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        selectedCostTier === tier.id
-                          ? "border-emerald-600 bg-emerald-50"
-                          : "border-emerald-200 bg-white hover:border-emerald-400"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <h4 className="font-semibold text-emerald-800">{tier.description}</h4>
-                          <p className="text-xs text-gray-600">{tier.days}</p>
-                        </div>
-                        <span className="text-lg font-bold text-emerald-600">₵{tier.cost}</span>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-emerald-800">{tier.description}</h4>
+                        <p className="text-xs text-gray-600">{tier.days}</p>
                       </div>
-                      <p className="text-xs text-gray-600">{tier.delivery}</p>
+                      <div className="text-right ml-4">
+                        <span className="text-2xl font-bold text-emerald-600">₵{tier.cost}</span>
+                        <p className="text-xs text-gray-500">+ ₵{COMMISSION_AMOUNT} commission</p>
+                      </div>
                     </div>
-                  ))}
-                  <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-                    <p className="text-xs text-amber-800">
-                      <span className="font-semibold">Your Commission: ₵{COMMISSION_AMOUNT}</span> for any option
-                      selected
-                    </p>
+                    <p className="text-xs text-gray-600">{tier.delivery}</p>
+                    {selectedCostTier === tier.id && (
+                      <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center gap-1">
+                        <span className="text-xs font-semibold text-emerald-700">✓ Selected</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-900 leading-relaxed">
+                  <span className="font-semibold">ℹ️ How it works:</span> Select your preferred processing option above.
+                  After you complete the form, you can change this selection anytime before final submission.
+                </p>
+              </div>
+
               <p className="text-xs text-gray-600 leading-relaxed">
-                This fee covers the processing and registration of your birth certificate application with the
-                appropriate government authorities.
+                This fee covers the processing and registration of your birth certificate application with government
+                authorities. Nationwide delivery is included for all options.
               </p>
+
               <Button
                 onClick={() => setShowCostPopup(false)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                disabled={isFormFilled && !selectedCostTier}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2"
+                disabled={!selectedCostTier}
               >
-                {isFormFilled
-                  ? selectedCostTier
-                    ? "Continue"
-                    : "Select Option to Continue"
-                  : "I Understand, Continue"}
+                {selectedCostTier
+                  ? `Continue with ₵${BIRTH_CERT_COST_TIERS.find((t) => t.id === selectedCostTier)?.cost} Option`
+                  : "Please Select an Option Above"}
               </Button>
             </CardContent>
           </Card>
@@ -1078,14 +1029,16 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
             </div>
           )}
 
-          {/* Step 5: Document Uploads */}
+          {/* Step 5: Document Uploads (Optional) */}
           {currentStep === 5 && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-emerald-800">Document Uploads</h3>
-              <p className="text-sm text-gray-600">Upload ID cards for both mother and father (both sides)</p>
+              <h3 className="text-lg font-semibold text-emerald-800">Document Uploads (Optional)</h3>
+              <p className="text-sm text-gray-600">
+                You can upload ID cards for both mother and father (both sides) if available.
+              </p>
 
               <div className="space-y-2">
-                <Label className="text-base font-semibold">Mother's ID Card (Front) *</Label>
+                <Label className="text-base font-semibold">Mother's ID Card (Front)</Label>
                 <div className="border-2 border-dashed border-emerald-300 rounded-lg p-4">
                   {motherIdFrontPreview ? (
                     <div className="relative">
@@ -1123,7 +1076,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
               </div>
 
               <div className="space-y-2">
-                <Label className="text-base font-semibold">Mother's ID Card (Back) *</Label>
+                <Label className="text-base font-semibold">Mother's ID Card (Back)</Label>
                 <div className="border-2 border-dashed border-emerald-300 rounded-lg p-4">
                   {motherIdBackPreview ? (
                     <div className="relative">
@@ -1259,7 +1212,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !selectedCostTier}
                 className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 transition-all duration-300"
               >
                 {isSubmitting ? "Submitting..." : "Submit Application"}

@@ -13,7 +13,7 @@ import { MTNSimForms } from "@/components/no-registration/mtn-sim-forms"
 import { BusinessRegistrationForm } from "@/components/no-registration/business-registration-form"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, X, FileText, Shield, ChevronRight } from "lucide-react"
+import { CheckCircle, Shield, ChevronRight, PiggyBank, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
@@ -80,6 +80,90 @@ export default function NoRegistrationPage() {
 
       <MTNSimForms />
 
+      <section className="py-16 bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+        <div className="container mx-auto px-4">
+          <Card className="max-w-4xl mx-auto border-amber-300 hover:shadow-2xl transition-all duration-300 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid md:grid-cols-2 gap-0">
+                {/* Left side - Content */}
+                <div className="p-8 md:p-10 flex flex-col justify-center bg-gradient-to-br from-amber-600 to-orange-600 text-white space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                      <PiggyBank className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl md:text-3xl font-bold">Savings & Investment Plans</h3>
+                      <p className="text-amber-100">Grow your wealth with our flexible plans</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                      <TrendingUp className="w-5 h-5 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold">Competitive Interest Rates</p>
+                        <p className="text-sm text-amber-100">Earn attractive returns on your investments</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                      <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold">Flexible Withdrawal</p>
+                        <p className="text-sm text-amber-100">Access your funds when you need them</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                      <Shield className="w-5 h-5 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold">Secure & Transparent</p>
+                        <p className="text-sm text-amber-100">Track your investments in real-time</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/20">
+                    <p className="text-sm text-amber-100 mb-4">
+                      Both agents and non-agents can invest and earn interest on their savings. Sign up today to get
+                      started!
+                    </p>
+                    <Button
+                      asChild
+                      size="lg"
+                      className="w-full bg-white text-amber-600 hover:bg-amber-50 font-bold text-base py-6"
+                    >
+                      <Link href="/agent/register" className="flex items-center justify-center gap-2">
+                        <span>Sign Up Now</span>
+                        <ChevronRight className="w-5 h-5" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Right side - Visual */}
+                <div className="relative hidden md:flex items-center justify-center bg-gradient-to-br from-amber-100 to-orange-100 p-8">
+                  <div className="relative w-full h-full flex items-center justify-center">
+                    <div className="absolute inset-0 opacity-10">
+                      <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="40" fill="currentColor" className="text-amber-600" />
+                        <path
+                          d="M 50 20 L 60 35 L 75 35 L 63 45 L 68 60 L 50 50 L 32 60 L 37 45 L 25 35 L 40 35 Z"
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </div>
+                    <div className="relative text-center space-y-4">
+                      <div className="text-5xl font-bold text-amber-600">₵</div>
+                      <p className="text-xl font-semibold text-amber-800">Start Growing</p>
+                      <p className="text-sm text-amber-700">Your money today</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       <section id="ecg-topup" className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -134,7 +218,7 @@ export default function NoRegistrationPage() {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold text-blue-800">Educational Products & Services</h3>
+                      <h3 className="text-2xl md:text-3xl font-bold text-blue-800">Educational Products & Services</h3>
                       <p className="text-blue-600">Results Checker Cards, School Forms & Subscriptions</p>
                     </div>
                   </div>
@@ -214,90 +298,6 @@ export default function NoRegistrationPage() {
       </section>
 
       <Footer />
-
-      {/* ELEGANT DARK GREEN NOTIFICATION */}
-      {showNotification && (
-        <div
-          className={`
-          fixed bottom-0 left-0 right-0 z-50 
-          transform transition-all duration-500 ease-out
-          ${isVisible ? "translate-y-0" : "translate-y-full"}
-          shadow-2xl
-        `}
-        >
-          <div className="bg-gradient-to-r from-green-800 via-green-900 to-emerald-900 border-t border-green-700">
-            <div className="container mx-auto px-4">
-              <div className="py-5 md:py-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
-                {/* Left side with icon and text */}
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-green-600 rounded-xl blur-md opacity-50"></div>
-                    <div className="relative bg-green-800/80 backdrop-blur-sm border border-green-600/30 rounded-xl p-3">
-                      <Shield className="w-7 h-7 md:w-8 md:h-8 text-green-200" />
-                    </div>
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                      <span className="text-green-100 font-semibold text-base md:text-lg tracking-wide">
-                        Important Notice
-                      </span>
-                    </div>
-                    <p className="text-green-200/90 text-sm md:text-base leading-relaxed">
-                      Please review our
-                      <span className="font-semibold text-white mx-1">Terms & Conditions</span>
-                      before using no-registration services to understand applicable policies.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right side with buttons */}
-                <div className="flex items-center gap-3">
-                  <Button
-                    asChild
-                    size="lg"
-                    className="bg-white text-green-900 hover:bg-green-50 font-semibold px-5 md:px-6 py-4 md:py-5 text-sm md:text-base shadow-lg hover:shadow-xl transition-all duration-200 border border-white/30 rounded-lg"
-                  >
-                    <Link href="/terms" className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 md:w-5 md:h-5" />
-                      Read Terms
-                      <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-
-                  <button
-                    onClick={handleClose}
-                    className="flex-shrink-0 p-2.5 md:p-3 hover:bg-green-800/60 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400/30 border border-green-600/30 hover:border-green-500/50"
-                    aria-label="Close notification"
-                  >
-                    <X className="w-5 h-5 md:w-6 md:h-6 text-green-200" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Subtle animated border */}
-            <div className="h-[2px] bg-gradient-to-r from-transparent via-green-500 to-transparent">
-              <div className="h-full w-1/3 bg-green-300 animate-slide-right"></div>
-            </div>
-          </div>
-
-          {/* Animation styles */}
-          <style jsx>{`
-            @keyframes slide-right {
-              0% { transform: translateX(-100%); }
-              100% { transform: translateX(300%); }
-            }
-            .animate-slide-right {
-              animation: slide-right 8s ease-in-out infinite;
-            }
-          `}</style>
-        </div>
-      )}
-
-      {/* Add bottom padding to prevent content overlap */}
-      {showNotification && isVisible && <div className="pb-24 md:pb-20"></div>}
     </main>
   )
 }
