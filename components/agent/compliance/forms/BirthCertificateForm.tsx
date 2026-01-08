@@ -19,7 +19,15 @@ interface BirthCertificateFormProps {
   onCancel: () => void
 }
 
-const BIRTH_CERT_COST_TIERS = [
+interface CostTier {
+  id: string
+  days: string
+  cost: number
+  delivery: string
+  description: string
+}
+
+const BIRTH_CERT_COST_TIERS: CostTier[] = [
   {
     id: "express",
     days: "7 Days",
@@ -68,7 +76,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCostPopup, setShowCostPopup] = useState(true)
-  const [selectedCostTier, setSelectedCostTier] = useState<string | null>(null)
+  const [selectedCostTier, setSelectedCostTier] = useState<CostTier | null>(null)
   const [isFormFilled, setIsFormFilled] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -231,7 +239,11 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
         .insert({
           agent_id: agentId,
           form_id: "birth-certificate",
-          form_data: { ...formData, selected_cost_tier: selectedCostTier },
+          form_data: {
+            ...formData,
+            selected_cost_tier: selectedCostTier.id,
+            selected_cost: selectedCostTier.cost,
+          },
           status: "Pending",
         })
         .select()
@@ -343,9 +355,9 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
                 {BIRTH_CERT_COST_TIERS.map((tier) => (
                   <div
                     key={tier.id}
-                    onClick={() => setSelectedCostTier(tier.id)}
+                    onClick={() => setSelectedCostTier(tier)}
                     className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                      selectedCostTier === tier.id
+                      selectedCostTier?.id === tier.id
                         ? "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-300"
                         : "border-emerald-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/50"
                     }`}
@@ -361,7 +373,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
                       </div>
                     </div>
                     <p className="text-xs text-gray-600 mt-1">{tier.delivery}</p>
-                    {selectedCostTier === tier.id && (
+                    {selectedCostTier?.id === tier.id && (
                       <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center gap-1">
                         <span className="text-xs font-semibold text-emerald-700">✓ Selected</span>
                       </div>
@@ -381,7 +393,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
                 disabled={!selectedCostTier}
               >
                 {selectedCostTier
-                  ? `Continue with ₵${BIRTH_CERT_COST_TIERS.find((t) => t.id === selectedCostTier)?.cost} Option`
+                  ? `Continue with ₵${selectedCostTier.cost} Option`
                   : "Please Select an Option Above"}
               </Button>
             </CardContent>
