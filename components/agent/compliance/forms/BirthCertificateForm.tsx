@@ -19,6 +19,31 @@ interface BirthCertificateFormProps {
   onCancel: () => void
 }
 
+const BIRTH_CERT_COST_TIERS = [
+  {
+    id: "express",
+    days: "7 Days",
+    cost: 920,
+    delivery: "Nationwide Delivery",
+    description: "Express Processing",
+  },
+  {
+    id: "standard",
+    days: "14 Days",
+    cost: 620,
+    delivery: "Nationwide Delivery",
+    description: "Standard Processing",
+  },
+  {
+    id: "economy",
+    days: "1 Month",
+    cost: 460,
+    delivery: "Nationwide Delivery",
+    description: "Economy Processing",
+  },
+]
+
+const COMMISSION_AMOUNT = 50
 const GHANA_REGIONS = [
   "Greater Accra Region",
   "Ashanti Region",
@@ -63,6 +88,8 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCostPopup, setShowCostPopup] = useState(true)
+  const [selectedCostTier, setSelectedCostTier] = useState<string | null>(null)
+  const [isFormFilled, setIsFormFilled] = useState(false)
 
   const [formData, setFormData] = useState({
     // Section A: Child Information
@@ -140,6 +167,15 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    checkIfFormFilled()
+  }
+
+  const checkIfFormFilled = () => {
+    const hasEssentialData =
+      formData.child_first_name.trim() !== "" &&
+      formData.child_surname.trim() !== "" &&
+      formData.mother_first_name.trim() !== ""
+    setIsFormFilled(hasEssentialData)
   }
 
   const handleFileChange = (
@@ -217,7 +253,11 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   const handleSubmit = async () => {
     console.log("[v0] Starting birth certificate form submission", { agentId, formData })
 
-    // Only check for mother ID images as they are required for upload
+    if (!selectedCostTier) {
+      toast.error("Please select a service option before submitting")
+      return
+    }
+
     if (!motherIdFrontFile || !motherIdBackFile) {
       toast.error("Please upload mother's ID card (both sides)")
       return
@@ -244,7 +284,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
         .insert({
           agent_id: agentId,
           form_id: "birth-certificate",
-          form_data: formData,
+          form_data: { ...formData, selected_cost_tier: selectedCostTier },
           status: "Pending",
         })
         .select()
@@ -323,51 +363,92 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   }, [currentStep])
 
   return (
-  <>
-    {showCostPopup && (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Baby className="h-6 w-6 text-emerald-600" />
-              <CardTitle className="text-emerald-600">Birth Certificate Processing Fee</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
-                <span className="text-lg font-bold text-emerald-600">350 GHS</span>
+    <>
+      {showCostPopup && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Baby className="h-6 w-6 text-emerald-600" />
+                <CardTitle className="text-emerald-600">Birth Certificate Processing Options</CardTitle>
               </div>
-              
-              {/* COMMISSION SECTION ADDED HERE */}
-              <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
-                <span className="text-sm font-medium text-amber-700">Your Commission:</span>
-                <span className="text-lg font-bold text-amber-600">50 GHS</span>
-              </div>
-              
-              <div className="border-t border-emerald-200 pt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-emerald-700">Duration:</span>
-                  <span className="text-sm font-medium text-emerald-800">3–4 Weeks</span>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!isFormFilled ? (
+                // Before form is filled - show single cost
+                <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-emerald-800">Starting Cost From:</span>
+                    <span className="text-lg font-bold text-emerald-600">₵460</span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
+                    <span className="text-sm font-medium text-amber-700">Your Commission:</span>
+                    <span className="text-lg font-bold text-amber-600">₵50</span>
+                  </div>
+
+                  <div className="border-t border-emerald-200 pt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-emerald-700">Processing:</span>
+                      <span className="text-sm font-medium text-emerald-800">Tiered Options</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-emerald-700">Delivery:</span>
+                      <span className="text-sm font-medium text-emerald-800">Nationwide Delivery</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-emerald-700">Delivery:</span>
-                  <span className="text-sm font-medium text-emerald-800">Free Delivery</span>
+              ) : (
+                // After form is filled - show all tier options
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 font-medium">Select your preferred processing option:</p>
+                  {BIRTH_CERT_COST_TIERS.map((tier) => (
+                    <div
+                      key={tier.id}
+                      onClick={() => setSelectedCostTier(tier.id)}
+                      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        selectedCostTier === tier.id
+                          ? "border-emerald-600 bg-emerald-50"
+                          : "border-emerald-200 bg-white hover:border-emerald-400"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <h4 className="font-semibold text-emerald-800">{tier.description}</h4>
+                          <p className="text-xs text-gray-600">{tier.days}</p>
+                        </div>
+                        <span className="text-lg font-bold text-emerald-600">₵{tier.cost}</span>
+                      </div>
+                      <p className="text-xs text-gray-600">{tier.delivery}</p>
+                    </div>
+                  ))}
+                  <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    <p className="text-xs text-amber-800">
+                      <span className="font-semibold">Your Commission: ₵{COMMISSION_AMOUNT}</span> for any option
+                      selected
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              This fee covers the processing and registration of your birth certificate application with the
-              appropriate government authorities.
-            </p>
-            <Button onClick={() => setShowCostPopup(false)} className="w-full bg-emerald-600 hover:bg-emerald-700">
-              I Understand, Continue
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )}
+              )}
+              <p className="text-xs text-gray-600 leading-relaxed">
+                This fee covers the processing and registration of your birth certificate application with the
+                appropriate government authorities.
+              </p>
+              <Button
+                onClick={() => setShowCostPopup(false)}
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                disabled={isFormFilled && !selectedCostTier}
+              >
+                {isFormFilled
+                  ? selectedCostTier
+                    ? "Continue"
+                    : "Select Option to Continue"
+                  : "I Understand, Continue"}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
         <CardHeader>
