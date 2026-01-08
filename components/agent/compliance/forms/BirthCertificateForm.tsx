@@ -218,8 +218,6 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   }
 
   const handleSubmit = async () => {
-    console.log("Starting birth certificate form submission", { agentId, formData })
-
     if (!selectedCostTier) {
       toast.error("Please select a service option before submitting")
       return
@@ -228,7 +226,6 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
     setIsSubmitting(true)
 
     try {
-      console.log("Creating submission...")
       const { data: submission, error: submissionError } = await supabase
         .from("form_submissions")
         .insert({
@@ -245,9 +242,6 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
         throw submissionError
       }
 
-      console.log("Submission created with ID:", submission.id)
-
-      // Upload images if they exist
       const imagesToInsert = []
 
       if (motherIdFrontFile) {
@@ -294,16 +288,13 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
         }
       }
 
-      // Insert images if any
       if (imagesToInsert.length > 0) {
         const { error: imagesError } = await supabase.from("form_images").insert(imagesToInsert)
         if (imagesError) {
           console.error("Error inserting images:", imagesError)
-          // Do not throw error, as images are optional
         }
       }
 
-      console.log("Birth certificate form submitted successfully!")
       toast.success(
         "Form submitted successfully! Your Birth Certificate application has been received and will be processed.",
         { duration: 5000 }
@@ -332,40 +323,44 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
     <>
       {showCostPopup && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="max-w-2xl w-full border-emerald-300 bg-white shadow-2xl">
+          <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Baby className="h-6 w-6 text-emerald-600" />
                 <div>
                   <CardTitle className="text-emerald-600">Birth Certificate Processing Options</CardTitle>
-                  <p className="text-xs text-gray-600 mt-1">Select your preferred processing option to continue</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Select your preferred processing option to continue
+                  </p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                <p className="text-sm text-gray-700 font-semibold">Choose your processing speed and cost:</p>
+                <p className="text-sm text-gray-700 font-semibold">
+                  Choose your processing speed and cost:
+                </p>
                 {BIRTH_CERT_COST_TIERS.map((tier) => (
                   <div
                     key={tier.id}
                     onClick={() => setSelectedCostTier(tier.id)}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                       selectedCostTier === tier.id
                         ? "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-300"
                         : "border-emerald-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/50"
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <h4 className="font-semibold text-emerald-800">{tier.description}</h4>
                         <p className="text-xs text-gray-600">{tier.days}</p>
                       </div>
                       <div className="text-right ml-4">
-                        <span className="text-2xl font-bold text-emerald-600">₵{tier.cost}</span>
+                        <span className="text-xl font-bold text-emerald-600">₵{tier.cost}</span>
                         <p className="text-xs text-gray-500">+ ₵{COMMISSION_AMOUNT} commission</p>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600">{tier.delivery}</p>
+                    <p className="text-xs text-gray-600 mt-1">{tier.delivery}</p>
                     {selectedCostTier === tier.id && (
                       <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center gap-1">
                         <span className="text-xs font-semibold text-emerald-700">✓ Selected</span>
@@ -375,21 +370,14 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
                 ))}
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <p className="text-xs text-blue-900 leading-relaxed">
-                  <span className="font-semibold">ℹ️ How it works:</span> Select your preferred processing option above.
-                  After you complete the form, you can change this selection anytime before final submission.
-                </p>
-              </div>
-
-              <p className="text-xs text-gray-600 leading-relaxed">
-                This fee covers the processing and registration of your birth certificate application with government
-                authorities. Nationwide delivery is included for all options.
+              <p className="text-xs text-gray-600 leading-relaxed mt-2">
+                This fee covers the processing and registration of your birth certificate application with government authorities.
+                Nationwide delivery is included for all options.
               </p>
 
               <Button
                 onClick={() => setShowCostPopup(false)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 mt-3"
                 disabled={!selectedCostTier}
               >
                 {selectedCostTier
