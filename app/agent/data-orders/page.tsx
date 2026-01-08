@@ -725,385 +725,386 @@ export default function DataOrdersPage() {
 
   return (
     <>
-      {showSavingsNotification && (
-        <div
-          className={`
-            fixed bottom-0 left-0 right-0 z-50 
-            transform transition-all duration-500 ease-out
-            ${isSavingsNotificationVisible ? "translate-y-0" : "translate-y-full"}
-            shadow-2xl
-          `}
-        >
-          <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 border-t-4 border-emerald-400">
-            <div className="container mx-auto px-4">
-              <div className="py-5 md:py-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
-                {/* Left side with icon and text */}
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-emerald-400 rounded-xl blur-md opacity-50"></div>
-                    <div className="relative bg-emerald-500/80 backdrop-blur-sm border border-emerald-300/50 rounded-xl p-3">
-                      <PiggyBank className="w-7 h-7 md:w-8 md:h-8 text-white" />
+      <div className="flex flex-col">
+        {showSavingsNotification && (
+          <div
+            className={`
+              fixed bottom-0 left-0 right-0 z-50 transform transition-all duration-500 ease-out
+              ${isSavingsNotificationVisible ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}
+              shadow-2xl
+            `}
+          >
+            <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 border-t-4 border-emerald-400">
+              <div className="container mx-auto px-4">
+                <div className="py-5 md:py-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
+                  {/* Left side with icon and text */}
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-emerald-400 rounded-xl blur-md opacity-50"></div>
+                      <div className="relative bg-emerald-500/80 backdrop-blur-sm border border-emerald-300/50 rounded-xl p-3">
+                        <PiggyBank className="w-7 h-7 md:w-8 md:h-8 text-white" />
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                        <span className="text-white font-bold text-base md:text-lg tracking-wide">
+                          Maximize Your Earnings
+                        </span>
+                      </div>
+                      <p className="text-emerald-50/90 text-sm md:text-base leading-relaxed">
+                        Our Savings & Investment Plans offer competitive interest rates. Grow your wealth while you work
+                        with us!
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-                      <span className="text-white font-bold text-base md:text-lg tracking-wide">
-                        Maximize Your Earnings
-                      </span>
-                    </div>
-                    <p className="text-emerald-50/90 text-sm md:text-base leading-relaxed">
-                      Our Savings & Investment Plans offer competitive interest rates. Grow your wealth while you work
-                      with us!
+                  {/* Right side with buttons */}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      asChild
+                      size="lg"
+                      className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold px-5 md:px-6 py-4 md:py-5 text-sm md:text-base shadow-lg hover:shadow-xl transition-all duration-200 border border-white/30 rounded-lg"
+                    >
+                      <Link href="/agent/savings" className="flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
+                        View Plans
+                        <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </Button>
+
+                    <button
+                      onClick={() => {
+                        setIsSavingsNotificationVisible(false)
+                        setTimeout(() => setShowSavingsNotification(false), 300)
+                      }}
+                      className="flex-shrink-0 p-2.5 md:p-3 hover:bg-emerald-700/60 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 border border-emerald-400/30 hover:border-emerald-200/50"
+                      aria-label="Close notification"
+                    >
+                      <X className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subtle animated border */}
+              <div className="h-[2px] bg-gradient-to-r from-transparent via-white to-transparent">
+                <div className="h-full w-1/3 bg-emerald-200 animate-slide-right"></div>
+              </div>
+            </div>
+
+            {/* Animation styles */}
+            <style jsx>{`
+              @keyframes slide-right {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(300%); }
+              }
+              .animate-slide-right {
+                animation: slide-right 8s ease-in-out infinite;
+              }
+            `}</style>
+          </div>
+        )}
+
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
+          <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 shadow-xl border-b-4 border-emerald-700">
+            <div className="container mx-auto px-4 py-4 sm:py-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    asChild
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 shrink-0"
+                  >
+                    <Link href="/agent/dashboard">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      <span className="hidden sm:inline">Back to Dashboard</span>
+                      <span className="sm:hidden">Back</span>
+                    </Link>
+                  </Button>
+                  <div>
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
+                      My Data Orders
+                    </h1>
+                    <p className="text-emerald-100 font-medium text-sm sm:text-base">
+                      Track your data bundle orders and commissions
                     </p>
                   </div>
                 </div>
-
-                {/* Right side with buttons */}
-                <div className="flex items-center gap-3">
-                  <Button
-                    asChild
-                    size="lg"
-                    className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold px-5 md:px-6 py-4 md:py-5 text-sm md:text-base shadow-lg hover:shadow-xl transition-all duration-200 border border-white/30 rounded-lg"
-                  >
-                    <Link href="/agent/savings" className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
-                      View Plans
-                      <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-
-                  <button
-                    onClick={() => {
-                      setIsSavingsNotificationVisible(false)
-                      setTimeout(() => setShowSavingsNotification(false), 300)
-                    }}
-                    className="flex-shrink-0 p-2.5 md:p-3 hover:bg-emerald-700/60 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 border border-emerald-400/30 hover:border-emerald-200/50"
-                    aria-label="Close notification"
-                  >
-                    <X className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Subtle animated border */}
-            <div className="h-[2px] bg-gradient-to-r from-transparent via-white to-transparent">
-              <div className="h-full w-1/3 bg-emerald-200 animate-slide-right"></div>
-            </div>
-          </div>
-
-          {/* Animation styles */}
-          <style jsx>{`
-            @keyframes slide-right {
-              0% { transform: translateX(-100%); }
-              100% { transform: translateX(300%); }
-            }
-            .animate-slide-right {
-              animation: slide-right 8s ease-in-out infinite;
-            }
-          `}</style>
-        </div>
-      )}
-
-      {/* Add bottom padding to prevent content overlap */}
-      {showSavingsNotification && isSavingsNotificationVisible && <div className="pb-24 md:pb-20"></div>}
-
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
-        <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 shadow-xl border-b-4 border-emerald-700">
-          <div className="container mx-auto px-4 py-4 sm:py-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3 sm:gap-4">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  asChild
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 shrink-0"
-                >
-                  <Link href="/agent/dashboard">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Back to Dashboard</span>
-                    <span className="sm:hidden">Back</span>
-                  </Link>
-                </Button>
-                <div>
-                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
-                    My Data Orders
-                  </h1>
-                  <p className="text-emerald-100 font-medium text-sm sm:text-base">
-                    Track your data bundle orders and commissions
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/30">
-                  <div className="flex items-center gap-2 text-white">
-                    <Wallet className="h-4 w-4" />
-                    <span className="text-sm font-medium">GH₵ {walletBalance.toFixed(2)}</span>
-                    <Button
-                      onClick={refreshWalletBalance}
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 text-white hover:bg-white/20"
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                    </Button>
+                <div className="flex items-center gap-2">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/30">
+                    <div className="flex items-center gap-2 text-white">
+                      <Wallet className="h-4 w-4" />
+                      <span className="text-sm font-medium">GH₵ {walletBalance.toFixed(2)}</span>
+                      <Button
+                        onClick={refreshWalletBalance}
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-white hover:bg-white/20"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl">
-              <CardContent className="p-4">
-                <div className="text-center">
-                  <p className="text-blue-100 text-xs sm:text-sm font-medium">Total Orders</p>
-                  <p className="text-xl sm:text-2xl font-bold">{orders.length}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-xl">
-              <CardContent className="p-4">
-                <div className="text-center">
-                  <p className="text-green-100 text-xs sm:text-sm font-medium">Completed</p>
-                  <p className="text-xl sm:text-2xl font-bold">
-                    {orders.filter((order) => order.status === "completed").length}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-xl">
-              <CardContent className="p-4">
-                <div className="text-center">
-                  <p className="text-amber-100 text-xs sm:text-sm font-medium">Pending</p>
-                  <p className="text-xl sm:text-2xl font-bold">
-                    {orders.filter((order) => order.status === "pending").length}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 shadow-xl">
-              <CardContent className="p-4">
-                <div className="text-center">
-                  <p className="text-purple-100 text-xs sm:text-sm font-medium">Commission For Withdraw</p>
-                  <p className="text-lg sm:text-xl font-bold">
-                    GH₵ {commissionData.totalAvailableCommissions.toFixed(2)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm shadow-lg mb-6">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="text-emerald-800 flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
-                    Data Orders ({filteredOrders.length} total)
-                  </CardTitle>
-                  <CardDescription className="text-emerald-600">
-                    Showing {paginatedOrders.length} of {filteredOrders.length} orders
-                    {(statusFilter !== "all" || providerFilter !== "all" || searchTerm) && (
-                      <span className="ml-2 text-blue-600 font-medium">• Filtered results</span>
-                    )}
-                  </CardDescription>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={refreshOrders}
-                      variant="outline"
-                      size="sm"
-                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Refresh
-                    </Button>
-                    <Button
-                      asChild
-                      className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-                    >
-                      <Link href="/agent/data-order">
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Order
-                      </Link>
-                    </Button>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={downloadReport}
-                      disabled={isDownloading || filteredOrders.length === 0}
-                      variant="outline"
-                      size="sm"
-                      className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-white min-w-[140px]"
-                    >
-                      {isDownloading ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="h-4 w-4 mr-2" />
-                          Download Report
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4"></div>
-                  <Input
-                    placeholder="Search orders..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-emerald-200 focus:border-emerald-500"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="border-emerald-200 focus:border-emerald-500">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="canceled">Canceled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={providerFilter} onValueChange={setProviderFilter}>
-                  <SelectTrigger className="border-emerald-200 focus:border-emerald-500">
-                    <SelectValue placeholder="Filter by provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Providers</SelectItem>
-                    <SelectItem value="MTN">MTN</SelectItem>
-                    <SelectItem value="AirtelTigo">AirtelTigo</SelectItem>
-                    <SelectItem value="Telecel">Telecel</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-          </Card>
-          <div className="space-y-4">
-            {paginatedOrders.map((order) => (
-              <Card key={order.id} className="border-emerald-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+          <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl">
                 <CardContent className="p-4">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(order.status)}
-                        <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-emerald-700">
-                          GH₵ {order.data_bundles?.price?.toFixed(2) || "0.00"}
-                        </p>
-                        <p className="text-xs text-emerald-600">
-                          Commission: GH₵ {order.commission_amount?.toFixed(2) || "0.00"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-emerald-800 truncate">
-                            {getBundleDisplayName(order.data_bundles)}
-                          </h3>
-                          <p className="text-sm text-emerald-600 mt-1">
-                            {order.data_bundles?.provider} • {order.data_bundles?.size_gb || 0}GB
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 text-emerald-600">
-                          <Smartphone className="h-4 w-4" />
-                          <span className="text-sm font-mono">{order.recipient_phone}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-emerald-500" />
-                        <div>
-                          <span className="text-emerald-600">Payment:</span>
-                          <span className="ml-1 font-medium text-emerald-800 capitalize">{order.payment_method}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-emerald-500" />
-                        <div>
-                          <span className="text-emerald-600">Date:</span>
-                          <span className="ml-1 font-medium text-emerald-800">
-                            {format(new Date(order.created_at), "MMM dd, yyyy")}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-2 border">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-600">Reference:</span>
-                        <code className="text-sm font-mono bg-white px-2 py-1 rounded border text-emerald-700">
-                          {order.payment_reference}
-                        </code>
-                      </div>
-                    </div>
-
-                    {order.admin_message && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <div className="flex items-start gap-2">
-                          <MessageCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs font-medium text-blue-700 mb-1">Admin Message:</p>
-                            <p className="text-sm text-blue-800">{order.admin_message}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between pt-2 border-t border-emerald-100">
-                      <div className="flex items-center gap-2">
-                        {order.admin_message && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openMessageDialog(order)}
-                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                          >
-                            <MessageCircle className="h-3 w-3 mr-1" />
-                            View Message
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-emerald-600">
-                          {formatTimestamp(order.created_at).localDateTime}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openDeleteDialog(order.id)}
-                          className="text-red-600 border-red-200 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                  <div className="text-center">
+                    <p className="text-blue-100 text-xs sm:text-sm font-medium">Total Orders</p>
+                    <p className="text-xl sm:text-2xl font-bold">{orders.length}</p>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-xl">
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <p className="text-green-100 text-xs sm:text-sm font-medium">Completed</p>
+                    <p className="text-xl sm:text-2xl font-bold">
+                      {orders.filter((order) => order.status === "completed").length}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-xl">
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <p className="text-amber-100 text-xs sm:text-sm font-medium">Pending</p>
+                    <p className="text-xl sm:text-2xl font-bold">
+                      {orders.filter((order) => order.status === "pending").length}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 shadow-xl">
+                <CardContent className="p-4">
+                  <div className="text-center">
+                    <p className="text-purple-100 text-xs sm:text-sm font-medium">Commission For Withdraw</p>
+                    <p className="text-lg sm:text-xl font-bold">
+                      GH₵ {commissionData.totalAvailableCommissions.toFixed(2)}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm shadow-lg mb-6">
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-emerald-800 flex items-center gap-2">
+                      <Smartphone className="h-5 w-5" />
+                      Data Orders ({filteredOrders.length} total)
+                    </CardTitle>
+                    <CardDescription className="text-emerald-600">
+                      Showing {paginatedOrders.length} of {filteredOrders.length} orders
+                      {(statusFilter !== "all" || providerFilter !== "all" || searchTerm) && (
+                        <span className="ml-2 text-blue-600 font-medium">• Filtered results</span>
+                      )}
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={refreshOrders}
+                        variant="outline"
+                        size="sm"
+                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Refresh
+                      </Button>
+                      <Button
+                        asChild
+                        className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                      >
+                        <Link href="/agent/data-order">
+                          <Plus className="h-4 w-4 mr-2" />
+                          New Order
+                        </Link>
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={downloadReport}
+                        disabled={isDownloading || filteredOrders.length === 0}
+                        variant="outline"
+                        size="sm"
+                        className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-white min-w-[140px]"
+                      >
+                        {isDownloading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Downloading...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Report
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4"></div>
+                    <Input
+                      placeholder="Search orders..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 border-emerald-200 focus:border-emerald-500"
+                    />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="border-emerald-200 focus:border-emerald-500">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="canceled">Canceled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={providerFilter} onValueChange={setProviderFilter}>
+                    <SelectTrigger className="border-emerald-200 focus:border-emerald-500">
+                      <SelectValue placeholder="Filter by provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Providers</SelectItem>
+                      <SelectItem value="MTN">MTN</SelectItem>
+                      <SelectItem value="AirtelTigo">AirtelTigo</SelectItem>
+                      <SelectItem value="Telecel">Telecel</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+            </Card>
+            <div className="space-y-4">
+              {paginatedOrders.map((order) => (
+                <Card
+                  key={order.id}
+                  className="border-emerald-200 bg-white shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <CardContent className="p-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(order.status)}
+                          <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-emerald-700">
+                            GH₵ {order.data_bundles?.price?.toFixed(2) || "0.00"}
+                          </p>
+                          <p className="text-xs text-emerald-600">
+                            Commission: GH₵ {order.commission_amount?.toFixed(2) || "0.00"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-emerald-800 truncate">
+                              {getBundleDisplayName(order.data_bundles)}
+                            </h3>
+                            <p className="text-sm text-emerald-600 mt-1">
+                              {order.data_bundles?.provider} • {order.data_bundles?.size_gb || 0}GB
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 text-emerald-600">
+                            <Smartphone className="h-4 w-4" />
+                            <span className="text-sm font-mono">{order.recipient_phone}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-emerald-500" />
+                          <div>
+                            <span className="text-emerald-600">Payment:</span>
+                            <span className="ml-1 font-medium text-emerald-800 capitalize">{order.payment_method}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-emerald-500" />
+                          <div>
+                            <span className="text-emerald-600">Date:</span>
+                            <span className="ml-1 font-medium text-emerald-800">
+                              {format(new Date(order.created_at), "MMM dd, yyyy")}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-lg p-2 border">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-600">Reference:</span>
+                          <code className="text-sm font-mono bg-white px-2 py-1 rounded border text-emerald-700">
+                            {order.payment_reference}
+                          </code>
+                        </div>
+                      </div>
+
+                      {order.admin_message && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <MessageCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-medium text-blue-700 mb-1">Admin Message:</p>
+                              <p className="text-sm text-blue-800">{order.admin_message}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-emerald-100">
+                        <div className="flex items-center gap-2">
+                          {order.admin_message && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMessageDialog(order)}
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            >
+                              <MessageCircle className="h-3 w-3 mr-1" />
+                              View Message
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-emerald-600">
+                            {formatTimestamp(order.created_at).localDateTime}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openDeleteDialog(order.id)}
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </div>

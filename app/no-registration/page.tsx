@@ -80,83 +80,70 @@ export default function NoRegistrationPage() {
 
       <MTNSimForms />
 
-      <section className="py-16 bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+      <section className="py-16 bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50">
         <div className="container mx-auto px-4">
-          <Card className="max-w-4xl mx-auto border-amber-300 hover:shadow-2xl transition-all duration-300 overflow-hidden">
-            <CardContent className="p-0">
-              <div className="grid md:grid-cols-2 gap-0">
-                {/* Left side - Content */}
-                <div className="p-8 md:p-10 flex flex-col justify-center bg-gradient-to-br from-amber-600 to-orange-600 text-white space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                      <PiggyBank className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl md:text-3xl font-bold">Savings & Investment Plans</h3>
-                      <p className="text-amber-100">Grow your wealth with our flexible plans</p>
-                    </div>
-                  </div>
+          <Card className="max-w-2xl mx-auto border-emerald-300 hover:shadow-2xl transition-all duration-300 overflow-hidden">
+            <CardContent className="p-0 flex flex-col">
+              <div className="relative w-full h-48 md:h-72 bg-gradient-to-br from-emerald-100 to-teal-100">
+                <Image
+                  src="/savings.jpg"
+                  alt="Savings and investment plans visualization"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                      <TrendingUp className="w-5 h-5 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">Competitive Interest Rates</p>
-                        <p className="text-sm text-amber-100">Earn attractive returns on your investments</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                      <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">Flexible Withdrawal</p>
-                        <p className="text-sm text-amber-100">Access your funds when you need them</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                      <Shield className="w-5 h-5 flex-shrink-0" />
-                      <div>
-                        <p className="font-semibold">Secure & Transparent</p>
-                        <p className="text-sm text-amber-100">Track your investments in real-time</p>
-                      </div>
-                    </div>
+              <div className="p-8 md:p-10 flex flex-col space-y-6 bg-gradient-to-br from-emerald-600 to-teal-600 text-white">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
+                    <PiggyBank className="w-6 h-6 text-white" />
                   </div>
-
-                  <div className="pt-4 border-t border-white/20">
-                    <p className="text-sm text-amber-100 mb-4">
-                      Both agents and non-agents can invest and earn interest on their savings. Sign up today to get
-                      started!
-                    </p>
-                    <Button
-                      asChild
-                      size="lg"
-                      className="w-full bg-white text-amber-600 hover:bg-amber-50 font-bold text-base py-6"
-                    >
-                      <Link href="/agent/register" className="flex items-center justify-center gap-2">
-                        <span>Sign Up Now</span>
-                        <ChevronRight className="w-5 h-5" />
-                      </Link>
-                    </Button>
+                  <div>
+                    <h3 className="text-2xl md:text-3xl font-bold">Savings & Investment Plans</h3>
+                    <p className="text-emerald-100">Grow your wealth with our flexible plans</p>
                   </div>
                 </div>
 
-                {/* Right side - Visual */}
-                <div className="relative hidden md:flex items-center justify-center bg-gradient-to-br from-amber-100 to-orange-100 p-8">
-                  <div className="relative w-full h-full flex items-center justify-center">
-                    <div className="absolute inset-0 opacity-10">
-                      <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="50" cy="50" r="40" fill="currentColor" className="text-amber-600" />
-                        <path
-                          d="M 50 20 L 60 35 L 75 35 L 63 45 L 68 60 L 50 50 L 32 60 L 37 45 L 25 35 L 40 35 Z"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </div>
-                    <div className="relative text-center space-y-4">
-                      <div className="text-5xl font-bold text-amber-600">₵</div>
-                      <p className="text-xl font-semibold text-amber-800">Start Growing</p>
-                      <p className="text-sm text-amber-700">Your money today</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                    <TrendingUp className="w-5 h-5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold">Competitive Interest Rates</p>
+                      <p className="text-sm text-emerald-100">Earn attractive returns on your investments</p>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold">Flexible Withdrawal</p>
+                      <p className="text-sm text-emerald-100">Access your funds when you need them</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
+                    <Shield className="w-5 h-5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold">Secure & Transparent</p>
+                      <p className="text-sm text-emerald-100">Track your investments in real-time</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-white/20">
+                  <p className="text-sm text-emerald-100 mb-4">
+                    Both agents and non-agents can invest and earn interest on their savings. Sign up today to get
+                    started!
+                  </p>
+                  <Button
+                    asChild
+                    size="lg"
+                    className="w-full bg-white text-emerald-600 hover:bg-emerald-50 font-bold text-base py-6"
+                  >
+                    <Link href="/agent/register" className="flex items-center justify-center gap-2">
+                      <span>Sign Up Now</span>
+                      <ChevronRight className="w-5 h-5" />
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -213,7 +200,7 @@ export default function NoRegistrationPage() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13M0 6.253v13C0 18.477 1.586 18 3 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                         />
                       </svg>
                     </div>
