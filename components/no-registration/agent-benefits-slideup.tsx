@@ -7,7 +7,7 @@ import Link from "next/link"
 
 export function AgentBenefitsSlideup() {
   const [isVisible, setIsVisible] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
+  const [shouldSlideUp, setShouldSlideUp] = useState(false)
 
   const benefits = [
     { icon: Sparkles, text: "Free Sales Training", color: "text-yellow-600" },
@@ -21,17 +21,18 @@ export function AgentBenefitsSlideup() {
   ]
 
   useEffect(() => {
+    if (typeof window === "undefined") return
+
     const showNotification = () => {
-      setIsAnimating(true)
       setIsVisible(true)
-      setTimeout(() => setIsAnimating(false), 300)
+      setShouldSlideUp(true)
     }
 
     // Show initially after 30 seconds
     const initialTimer = setTimeout(showNotification, 30000)
 
     // Show every 30 seconds after that
-    const intervalTimer = setInterval(showNotification, 180000)
+    const intervalTimer = setInterval(showNotification, 30000)
 
     return () => {
       clearTimeout(initialTimer)
@@ -40,34 +41,33 @@ export function AgentBenefitsSlideup() {
   }, [])
 
   const handleDismiss = () => {
-    setIsAnimating(true)
+    setShouldSlideUp(false)
     setTimeout(() => {
       setIsVisible(false)
-      setIsAnimating(false)
     }, 300)
   }
 
   if (!isVisible) return null
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none px-3 sm:px-4">
       <div
-        className={`pointer-events-auto mx-4 mb-4 bg-white rounded-t-2xl shadow-2xl border-t-4 border-green-600 overflow-hidden transition-all duration-300 ${
-          isAnimating ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+        className={`pointer-events-auto bg-white rounded-t-2xl shadow-2xl border-t-4 border-green-600 overflow-hidden transition-all duration-500 ease-out mb-4 ${
+          shouldSlideUp ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
         }`}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Award className="h-5 w-5 sm:h-6 sm:w-6" />
-            <div>
-              <h3 className="font-bold text-sm sm:text-base">Become an Agent Today</h3>
-              <p className="text-xs sm:text-sm text-green-100">Unlock exclusive benefits & start earning</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <Award className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+            <div className="min-w-0">
+              <h3 className="font-bold text-sm sm:text-base truncate">Become an Agent Today</h3>
+              <p className="text-xs sm:text-sm text-green-100 truncate">Unlock exclusive benefits & start earning</p>
             </div>
           </div>
           <button
             onClick={handleDismiss}
-            className="p-1 hover:bg-green-700 rounded-lg transition-colors ml-2 flex-shrink-0"
+            className="p-1 hover:bg-green-700 rounded-lg transition-colors ml-3 flex-shrink-0"
             aria-label="Close notification"
           >
             <X className="h-5 w-5" />
@@ -75,12 +75,12 @@ export function AgentBenefitsSlideup() {
         </div>
 
         {/* Benefits Grid */}
-        <div className="px-4 py-4 sm:px-6 sm:py-5 bg-white">
+        <div className="px-4 py-4 sm:px-6 sm:py-5 bg-white max-h-96 overflow-y-auto">
           <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">
             {benefits.map((benefit, index) => (
-              <div key={index} className="flex items-center gap-2 text-sm sm:text-base">
+              <div key={index} className="flex items-center gap-2 text-xs sm:text-sm">
                 <benefit.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${benefit.color} flex-shrink-0`} />
-                <span className="font-medium text-gray-700">{benefit.text}</span>
+                <span className="font-medium text-gray-700 leading-tight">{benefit.text}</span>
               </div>
             ))}
           </div>
@@ -90,7 +90,7 @@ export function AgentBenefitsSlideup() {
             asChild
             onClick={handleDismiss}
             size="sm"
-            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-5 sm:py-6 text-sm sm:text-base"
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-5 sm:py-6 text-xs sm:text-sm"
           >
             <Link href="/agent/register">Register Now & Start Earning</Link>
           </Button>
