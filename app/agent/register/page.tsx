@@ -11,8 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { supabase, hashPassword } from "@/lib/supabase"
 import { getJoiningFeeFormatted, getPlatformName } from "@/lib/config"
 import { FloatingAudioPlayer } from "@/components/floating-audio-player"
-import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
-import { X, Play, ArrowRight } from "lucide-react"
+import { X, Play, ArrowRight, Award, Sparkles, Users, Shield, Target, Zap, TrendingUp, CreditCard } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -422,134 +421,148 @@ export default function RegisterPage() {
             </CardContent>
           </Card>
 
-          {/* Platform Sneak Peak Card */}
-          <Card className="border-blue-100 bg-blue-50/50 mb-4 sm:mb-6 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex flex-col gap-3 sm:gap-4">
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="p-2 sm:p-2.5 rounded-full bg-blue-100 flex-shrink-0">
-                    <X className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+          {/* What You Get After Registration Card */}
+          <Card className="border-purple-200 shadow-xl bg-white/80 backdrop-blur-sm mb-4 sm:mb-6">
+            <CardHeader className="pb-3 sm:pb-4">
+              <CardTitle className="flex items-center gap-2 text-purple-800 text-base sm:text-lg">
+                <Award className="h-4 w-4 sm:h-5 sm:w-5" />
+                What You Get As An Agent
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
+              <div className="grid gap-2 sm:gap-3">
+                {[
+                  {
+                    icon: Sparkles,
+                    text: "Free Sales Training Manual (PDF, Audio, Video)",
+                    color: "text-yellow-600",
+                  },
+                  { icon: Users, text: "Part of 10,000+ Active Agents Nationwide", color: "text-blue-600" },
+                  { icon: Shield, text: "Supportive & Friendly Admin Access 24/7", color: "text-purple-600" },
+                  { icon: Target, text: "Personal Support Assistant Access", color: "text-orange-600" },
+                  { icon: Zap, text: "Instant access to earning opportunities", color: "text-red-600" },
+                  { icon: TrendingUp, text: "Start earning within 24 hours", color: "text-green-600" },
+                  { icon: CreditCard, text: "Discounted Service Costs", color: "text-indigo-600" },
+                  { icon: Award, text: "Attract Extra Commissions", color: "text-pink-600" },
+                ].map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <item.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${item.color} flex-shrink-0`} />
+                    <span className="font-medium text-gray-800 text-sm sm:text-base">{item.text}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-blue-800 text-sm sm:text-lg">See What You'll Get</h3>
-                    <p className="text-xs sm:text-sm text-blue-700 mt-1">
-                      Watch a quick tour of the platform features and earning opportunities
-                    </p>
-                  </div>
-                </div>
-                <div className="w-full">
-                  <PlatformSneakPeakButton variant="default" size="sm" />
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="mb-4 sm:mb-6 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex flex-col items-center gap-3 sm:gap-4 text-center">
-                <div className="p-2 sm:p-3 rounded-full bg-green-100">
-                  <svg
-                    className="h-5 w-5 sm:h-6 sm:w-6 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+          {/* Redesigned "Not Ready to Register?" section */}
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white mb-4 sm:mb-6 overflow-hidden hover:shadow-2xl transition-all duration-300">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                  <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2z"
                     />
                   </svg>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-green-800 text-sm sm:text-base mb-1">Not Ready to Register?</h3>
-                  <p className="text-xs sm:text-sm text-green-700 mb-3">
-                    You can buy affordable data bundles, Buy School forms, Scratch Card, Buy Software etc, without registration. No commitment needed!
+                  <h3 className="font-bold text-xl sm:text-2xl mb-2">Explore Without Commitment</h3>
+                  <p className="text-blue-100 text-sm sm:text-base mb-4 leading-relaxed">
+                    Try our platform risk-free! Buy data bundles, school forms, scratch cards, software, and more
+                    without registration.
                   </p>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="border-green-300 text-green-600 hover:bg-green-50 text-xs sm:text-sm w-full sm:w-auto bg-transparent"
-                  >
-                    <Link href="/no-registration">Start Shopping From Here</Link>
-                  </Button>
                 </div>
+                <Button
+                  asChild
+                  className="bg-white text-blue-600 hover:bg-blue-50 font-semibold py-2 px-6 rounded-lg shadow-lg transition-transform hover:scale-105 text-sm sm:text-base"
+                >
+                  <Link href="/no-registration" className="flex items-center justify-center gap-2">
+                    Start Shopping Now
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Registration Fee Card */}
-          <Card className="mb-4 sm:mb-6 border-emerald-100 bg-gradient-to-br from-emerald-50 to-green-50">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3">
-                <div className="flex items-center gap-2">
-                  <X className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                  <span className="font-semibold text-emerald-800 text-sm sm:text-base">Registration Fee</span>
+          {/* Redesigned Registration Fee section */}
+          <Card className="mb-4 sm:mb-6 border-0 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 hover:shadow-2xl transition-all duration-300 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="bg-gradient-to-r from-emerald-600 to-green-600 px-6 sm:px-8 py-4 sm:py-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-white text-lg sm:text-xl flex items-center gap-2">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Platform Entry Fee
+                  </h3>
+                  <span className="text-3xl sm:text-4xl font-bold text-white">{getJoiningFeeFormatted()}</span>
                 </div>
-                <span className="text-2xl sm:text-3xl font-bold text-emerald-600">{getJoiningFeeFormatted()}</span>
+                <p className="text-blue-100 text-xs sm:text-sm">One-time non-refundable fee</p>
               </div>
-              <p className="text-xs sm:text-sm text-emerald-700 mb-3">
-                Platform entry fee (non-refundable) - like a movie theatre ticket to access Ghana's premier earning
-                platform
-              </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowInfo(!showInfo)}
-                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 p-0 h-auto font-normal text-xs sm:text-sm"
-              >
-                <X className="h-4 w-4 mr-1" />
-                {showInfo ? "Hide details" : "Why this fee?"}
-              </Button>
-              {showInfo && (
-                <div className="mt-3 pt-3 border-t border-emerald-200">
-                  <div className="space-y-2 text-xs sm:text-sm text-emerald-700">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
-                        <X className="h-4 w-4 text-emerald-600" />
+              <div className="px-6 sm:px-8 py-6 sm:py-8 space-y-4">
+                <p className="text-emerald-900 text-sm sm:text-base leading-relaxed font-medium">
+                  Your ticket to Ghana's premier earning platform. Like a movie theatre ticket, it grants you full
+                  access to all features.
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowInfo(!showInfo)}
+                  className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100 p-0 h-auto font-semibold text-xs sm:text-sm"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d={showInfo ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"}
+                    />
+                  </svg>
+                  {showInfo ? "Hide" : "Show"} what's included
+                </Button>
+                {showInfo && (
+                  <div className="mt-4 pt-4 border-t border-emerald-200 space-y-3">
+                    {[
+                      "Ghana's premier platform for commissions & investments",
+                      "Promote projects and earn commissions",
+                      "Buy and sell at wholesale prices",
+                      "Invest and grow your earnings",
+                      "Affordable data bundles & airtime",
+                      "Your agent dashboard & wallet system",
+                      "24/7 support & training materials",
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-start gap-3 text-emerald-800 text-xs sm:text-sm">
+                        <svg
+                          className="h-4 w-4 mt-0.5 flex-shrink-0 text-emerald-600"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span>{item}</span>
                       </div>
-                      <span>Ghana's number one platform for commissions, investment, and wholesale trade</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
-                        <X className="h-4 w-4 text-emerald-600" />
-                      </div>
-                      <span>Promote projects and earn commissions</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
-                        <X className="h-4 w-4 text-emerald-600" />
-                      </div>
-                      <span>Buy and sell at wholesale prices</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
-                        <X className="h-4 w-4 text-emerald-600" />
-                      </div>
-                      <span>Invest and grow your earnings</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
-                        <X className="h-4 w-4 text-emerald-600" />
-                      </div>
-                      <span>Enjoy affordable data bundles & airtime</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
-                        <X className="h-4 w-4 text-emerald-600" />
-                      </div>
-                      <span>Access your agent dashboard & wallet system</span>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-full bg-emerald-100 flex-shrink-0">
-                        <X className="h-4 w-4 text-emerald-600" />
-                      </div>
-                      <span>24/7 support & training materials</span>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </CardContent>
           </Card>
 

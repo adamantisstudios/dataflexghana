@@ -17,9 +17,9 @@ import {
   Copy,
   Zap,
   Target,
-  DollarSign,
   X,
   MessageCircle,
+  AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -121,8 +121,8 @@ function AdminConfirmationPopup({ onClose }: { onClose: () => void }) {
 
 export default function PaymentReminderPage() {
   const [timeLeft, setTimeLeft] = useState({
-    hours: 1,
-    minutes: 0,
+    hours: 0,
+    minutes: 15,
     seconds: 0,
   })
   const [copied, setCopied] = useState(false)
@@ -130,9 +130,9 @@ export default function PaymentReminderPage() {
   const [hasShownPopup, setHasShownPopup] = useState(false)
 
   useEffect(() => {
-    // Start countdown from 1 hour
+    // Start countdown from 15 minutes
     const startTime = Date.now()
-    const endTime = startTime + 60 * 60 * 1000 // 1 hour in milliseconds
+    const endTime = startTime + 15 * 60 * 1000 // 15 minutes in milliseconds
 
     const timer = setInterval(() => {
       const now = Date.now()
@@ -157,7 +157,7 @@ export default function PaymentReminderPage() {
       const popupTimer = setTimeout(() => {
         setShowAdminPopup(true)
         setHasShownPopup(true)
-      }, 10000) // 10 seconds
+      }, 30000) // 30 seconds
 
       return () => clearTimeout(popupTimer)
     }
@@ -221,40 +221,52 @@ export default function PaymentReminderPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 px-2">
             {/* Left Column - Payment Info */}
             <div className="space-y-4 sm:space-y-6">
-              {/* Countdown Timer */}
-              <Card className="border-2 border-emerald-200 shadow-xl bg-white/80 backdrop-blur-sm">
-                <CardHeader className="text-center pb-3 sm:pb-4">
+              {/* Countdown Timer - Critical Urgency */}
+              <Card className="border-4 border-red-500 shadow-2xl bg-white/90 backdrop-blur-sm relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-50 to-orange-50 opacity-50"></div>
+                <CardHeader className="text-center pb-3 sm:pb-4 relative z-10">
                   <div className="flex items-center justify-center gap-2 mb-2">
-                    <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600 animate-pulse" />
-                    <CardTitle className="text-lg sm:text-xl lg:text-2xl text-emerald-800">Complete Payment</CardTitle>
+                    <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 animate-bounce" />
+                    <CardTitle className="text-lg sm:text-xl lg:text-2xl text-red-800">
+                      ⚡ Time-Limited Offer!
+                    </CardTitle>
                   </div>
-                  <CardDescription className="text-sm sm:text-base lg:text-lg">
-                    Time remaining to secure your spot
+                  <CardDescription className="text-sm sm:text-base lg:text-lg text-red-700 font-semibold">
+                    Complete payment within this timeframe
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="px-3 sm:px-6">
-                  <div className="bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl p-4 sm:p-6 text-white text-center">
+                <CardContent className="px-3 sm:px-6 relative z-10">
+                  <div className="bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-4 sm:p-6 text-white text-center">
                     <div className="text-3xl sm:text-4xl lg:text-5xl font-mono font-bold mb-2 tracking-wider">
-                      {String(timeLeft.hours).padStart(2, "0")}:{String(timeLeft.minutes).padStart(2, "0")}:
-                      {String(timeLeft.seconds).padStart(2, "0")}
+                      {String(timeLeft.minutes).padStart(2, "0")}:{String(timeLeft.seconds).padStart(2, "0")}
                     </div>
-                    <p className="text-emerald-100 font-medium text-sm sm:text-base lg:text-lg">
-                      Hours : Minutes : Seconds
-                    </p>
+                    <p className="text-red-100 font-medium text-sm sm:text-base lg:text-lg">Minutes : Seconds</p>
                   </div>
+                  <p className="text-xs sm:text-sm text-red-600 mt-3 font-semibold text-center animate-pulse">
+                    ⚠️ After time expires, your account will be automatically removed
+                  </p>
                 </CardContent>
               </Card>
 
-              {/* Payment Amount */}
-              <Card className="border-2 border-green-200 shadow-xl bg-white/80 backdrop-blur-sm">
+              {/* Price Anchor - Immediate Comparison */}
+              <Card className="border-2 border-green-200 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 backdrop-blur-sm">
                 <CardContent className="p-4 sm:p-6 lg:p-8 text-center">
+                  <div className="mb-4">
+                    <p className="text-gray-600 text-sm font-medium mb-2">Original Price:</p>
+                    <p className="text-2xl sm:text-3xl text-gray-400 line-through">₵100</p>
+                  </div>
                   <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                       <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                     </div>
-                    <span className="text-lg sm:text-xl lg:text-2xl font-bold text-green-800">Registration Fee</span>
+                    <span className="text-lg sm:text-xl lg:text-2xl font-bold text-green-800">Your Price Today</span>
                   </div>
-                  <div className="text-4xl sm:text-5xl lg:text-6xl font-bold text-green-600 mb-2 sm:mb-3">₵40</div>
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl px-4 py-3 mb-4">
+                    <div className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-1">₵40</div>
+                    <div className="text-green-100 text-sm sm:text-base font-semibold">
+                      60% OFF - Limited Time Only!
+                    </div>
+                  </div>
                   <p className="text-green-700 font-medium text-sm sm:text-base lg:text-lg">
                     Platform entry fee (non-refundable) - your gateway to unlimited earning potential
                   </p>
@@ -290,9 +302,12 @@ export default function PaymentReminderPage() {
                         ✓ Number copied to clipboard!
                       </p>
                     )}
-                    <div className="space-y-1 sm:space-y-2 text-blue-800 text-sm sm:text-base">
+                    <div className="space-y-1 sm:space-y-2 text-blue-800 text-sm sm:text-base border-t border-blue-200 pt-3">
                       <p>
                         <strong>Reference:</strong> Adamantis Solutions
+                      </p>
+                      <p>
+                        <strong>Alternative Name:</strong> Francis Ani-Johnson
                       </p>
                       <p>
                         <strong>Amount:</strong> ₵40
@@ -302,12 +317,44 @@ export default function PaymentReminderPage() {
                       </p>
                     </div>
                   </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4">
+                    <p className="text-xs sm:text-sm text-amber-900 leading-relaxed">
+                      <strong>⚠️ Security Note:</strong> The alternative SIM name has been provided to help you report to
+                      the police in case of any scam or fraudulent activity detected <em>before or after payment</em>,
+                      or if any money is lost after joining the platform.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Right Column - Benefits & Next Steps */}
             <div className="space-y-4 sm:space-y-6">
+              {/* Pending Registration Warning Image */}
+              <Card className="border-2 border-orange-300 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden">
+                <CardHeader className="pb-2 sm:pb-3 bg-gradient-to-r from-orange-100 to-red-100">
+                  <CardTitle className="flex items-center gap-2 text-orange-800 text-base sm:text-lg">
+                    <AlertCircle className="h-5 w-5" />
+                    Don't Let Your Account Expire!
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 sm:p-4 space-y-3">
+                  <img
+                    src="/pending.png"
+                    alt="Pending Registration Warning"
+                    className="w-full h-auto rounded-lg shadow-md object-cover"
+                  />
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 space-y-2">
+                    <p className="text-xs sm:text-sm font-semibold text-red-900">
+                      ⏰ Pending registrations are automatically removed within 1 hour of non-payment
+                    </p>
+                    <p className="text-xs text-red-800">
+                      If your payment expires, you'll need to restart the registration process from the beginning.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* What You Get */}
               <Card className="border-2 border-purple-200 shadow-xl bg-white/80 backdrop-blur-sm">
                 <CardHeader className="pb-3 sm:pb-4">
@@ -319,12 +366,18 @@ export default function PaymentReminderPage() {
                 <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
                   <div className="grid gap-2 sm:gap-3">
                     {[
-                      { icon: TrendingUp, text: "Instant access to earning opportunities", color: "text-green-600" },
-                      { icon: Users, text: "Join 10,000+ successful agents", color: "text-blue-600" },
-                      { icon: DollarSign, text: "Start earning ₵50-₵5000 monthly", color: "text-emerald-600" },
-                      { icon: Shield, text: "Verified platform with guaranteed payouts", color: "text-purple-600" },
-                      { icon: Target, text: "Access to investment tools & reports", color: "text-orange-600" },
-                      { icon: Zap, text: "24/7 support and training materials", color: "text-red-600" },
+                      {
+                        icon: Sparkles,
+                        text: "Free Sales Training Manual (PDF, Audio, Video)",
+                        color: "text-yellow-600",
+                      },
+                      { icon: Users, text: "Part of 10,000+ Active Agents Nationwide", color: "text-blue-600" },
+                      { icon: Shield, text: "Supportive & Friendly Admin Access 24/7", color: "text-purple-600" },
+                      { icon: Target, text: "Personal Support Assistant Access", color: "text-orange-600" },
+                      { icon: Zap, text: "Instant access to earning opportunities", color: "text-red-600" },
+                      { icon: TrendingUp, text: "Start earning within 24 hours", color: "text-green-600" },
+                      { icon: CreditCard, text: "Discounted Service Costs", color: "text-indigo-600" },
+                      { icon: TrendingUp, text: "Attract Extra Commissions", color: "text-pink-600" },
                     ].map((item, index) => (
                       <div
                         key={index}
@@ -334,6 +387,26 @@ export default function PaymentReminderPage() {
                         <span className="font-medium text-gray-800 text-sm sm:text-base">{item.text}</span>
                       </div>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Live Social Proof - Dynamic Updates */}
+              <Card className="border-2 border-green-200 shadow-xl bg-gradient-to-br from-green-50 to-emerald-50 backdrop-blur-sm">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <CardTitle className="flex items-center gap-2 text-green-800 text-base sm:text-lg">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Others Are Already Joining!
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6">
+                  <div className="bg-white rounded-lg p-3 sm:p-4 border border-green-200">
+                    <p className="text-xs sm:text-sm text-green-900 font-semibold animate-pulse">
+                      ✅ 14 agents completed payment in the last hour
+                    </p>
+                    <p className="text-xs text-green-700 mt-2">
+                      Don't miss out! Spots are filling up fast as more agents discover the earning potential.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -390,7 +463,7 @@ export default function PaymentReminderPage() {
             </div>
           </div>
 
-          {/* Success Stories */}
+          {/* Success Stories / Social Proof */}
           <Card className="mt-6 sm:mt-8 border-2 border-yellow-200 shadow-xl bg-gradient-to-r from-yellow-50 to-orange-50 mx-2">
             <CardContent className="p-4 sm:p-6 lg:p-8 text-center">
               <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-yellow-800 mb-3 sm:mb-4">
