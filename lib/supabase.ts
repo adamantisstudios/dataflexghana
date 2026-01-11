@@ -426,8 +426,8 @@ const validateCommissionRate = (
   }
   const rateString = numericRate.toString()
   const decimalPlaces = (rateString.split(".")[1] || "").length
-  if (decimalPlaces > 6) {
-    return { isValid: false, error: "Commission rate cannot have more than 6 decimal places" }
+  if (decimalPlaces > 8) {
+    return { isValid: false, error: "Commission rate cannot have more than 8 decimal places" }
   }
   return { isValid: true, numericValue: numericRate }
 }

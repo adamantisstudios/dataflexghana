@@ -241,7 +241,7 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
         price: Number.parseFloat(bundleForm.price),
         validity_months: Number.parseInt(bundleForm.validity_months),
         // CRITICAL FIX: Preserve exact decimal precision
-        commission_rate: Number.parseFloat(Number.parseFloat(bundleForm.commission_rate).toFixed(6)),
+        commission_rate: Number.parseFloat(bundleForm.commission_rate),
       }
 
       // CRITICAL FIX: Additional validation before API call
@@ -648,7 +648,7 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
             <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="commission_rate" className="text-right pt-2">
                 Commission Rate
-                <span className="text-xs text-gray-500 block">(as decimal)</span>
+                <span className="text-xs text-gray-500 block">(decimal)</span>
               </Label>
               <div className="col-span-3 space-y-2">
                 <Input
@@ -666,22 +666,32 @@ export default function DataTab({ getCachedData, setCachedData }: DataTabProps) 
                   step="0.000001"
                   min="0"
                   max="1"
-                  placeholder="e.g., 0.0087 for 0.87%"
+                  placeholder="e.g., 0.005 for 0.5%"
                   className={commissionRateError ? "border-red-500" : ""}
                   required
                 />
                 {commissionRateError && <p className="text-xs text-red-500">{commissionRateError}</p>}
-                <div className="text-xs text-gray-500 space-y-1">
-                  <p>Enter as decimal: 0.01 = 1%, 0.0087 = 0.87%, 0.05 = 5%</p>
-                  <p className="font-medium">
-                    Preview:{" "}
+                <div className="text-xs text-gray-500 space-y-1 bg-blue-50 p-2 rounded border border-blue-200">
+                  <p className="font-semibold text-blue-900">Commission Rate Guide:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li>0.01 = 1% (¢0.29 for ₵29 bundle)</li>
+                    <li>0.005 = 0.5% (¢0.145 for ₵29 bundle)</li>
+                    <li>0.0087 = 0.87% (¢0.252 for ₵29 bundle)</li>
+                    <li>0.05 = 5%</li>
+                  </ul>
+                </div>
+
+                <div className="bg-emerald-50 p-2 rounded border border-emerald-200 space-y-1">
+                  <p className="text-xs font-semibold text-emerald-900">Live Preview:</p>
+                  <p className="text-sm font-medium text-emerald-800">
+                    Rate:{" "}
                     {bundleForm.commission_rate
-                      ? `${(Number.parseFloat(bundleForm.commission_rate || "0") * 100).toFixed(4)}%`
+                      ? `${(Number.parseFloat(bundleForm.commission_rate || "0") * 100).toFixed(6)}%`
                       : "0%"}
                   </p>
                   {bundleForm.commission_rate && bundleForm.price && (
-                    <p className="text-emerald-600 font-medium">
-                      Commission Amount: ₵
+                    <p className="text-sm font-medium text-emerald-800">
+                      Amount: ₵
                       {(Number.parseFloat(bundleForm.price) * Number.parseFloat(bundleForm.commission_rate)).toFixed(4)}
                     </p>
                   )}

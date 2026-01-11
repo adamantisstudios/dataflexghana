@@ -47,6 +47,8 @@ import {
 } from "lucide-react"
 import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence"
 import { useDataOrderPersistence } from "@/hooks/use-data-order-persistence"
+import { checkForDuplicateOrder, addToOrderHistory, type DuplicateCheckResult } from "@/lib/order-history"
+import { DuplicateOrderNotification } from "@/components/duplicate-order-notification"
 
 export default function DataOrderPage() {
   // State declarations
@@ -78,6 +80,8 @@ export default function DataOrderPage() {
   const [showDataOrderNotice, setShowDataOrderNotice] = useState(false)
   const [noticeTimerStarted, setNoticeTimerStarted] = useState(false)
   const [persistedOrder, setPersistedOrder] = useState<DataOrderState | null>(null)
+  const [showDuplicateNotification, setShowDuplicateNotification] = useState(false)
+  const [duplicateCheckResult, setDuplicateCheckResult] = useState<DuplicateCheckResult | null>(null)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -287,10 +291,28 @@ export default function DataOrderPage() {
     }
     if (paymentMethod === "wallet" && walletBalance < selectedBundle.price) {
       setError(
-        `Insufficient wallet balance. You need GH₵ ${selectedBundle.price.toFixed(2)} but have GH₵ ${walletBalance.toFixed(2)}`,
+        `Insufficient wallet balance. You need GH₵ ${selectedBundle.price.toFixed(
+          2,
+        )} but have GH₵ ${walletBalance.toFixed(2)}`,
       )
       return false
     }
+
+    const cleanPhoneNumber = recipientPhone.replace(/\D/g, "").slice(-10)
+    const duplicateCheck = checkForDuplicateOrder(
+      selectedBundle.id,
+      cleanPhoneNumber,
+      paymentMethod,
+      selectedBundle.name,
+    )
+
+    if (duplicateCheck.isDuplicate) {
+      setDuplicateCheckResult(duplicateCheck)
+      setShowDuplicateNotification(true)
+      setError("") // Clear any previous errors
+      return false
+    }
+
     return true
   }
 
@@ -387,6 +409,9 @@ export default function DataOrderPage() {
 
       const { error: orderError } = await supabase.from("data_orders").insert([orderDetails])
       if (orderError) throw orderError
+
+      const cleanPhoneNumber = recipientPhone.replace(/\D/g, "").slice(0, 10)
+      addToOrderHistory(selectedBundle.id, cleanPhoneNumber, paymentMethod)
 
       const deliveryTime = "10-45 minutes"
       setSuccessNotificationData({
@@ -1160,6 +1185,18 @@ export default function DataOrderPage() {
               </div>
             </div>
           </div>
+        )}
+        {showDuplicateNotification && duplicateCheckResult && (
+          <DuplicateOrderNotification
+            bundleName={duplicateCheckResult.bundleName || selectedBundle?.name || "Data Bundle"}
+            recipientPhone={duplicateCheckResult.bundleName ? recipientPhone : recipientPhone}
+            minutesUntilAllowed={duplicateCheckResult.minutesUntilAllowed || 10}
+            onClose={() => setShowDuplicateNotification(false)}
+            onDismiss={() => {
+              setShowDuplicateNotification(false)
+              setDuplicateCheckResult(null)
+            }}
+          />
         )}
       </div>
     </div>

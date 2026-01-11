@@ -12,7 +12,6 @@ import {
   TrendingUp,
   Users,
   Award,
-  ArrowRight,
   Phone,
   Copy,
   Zap,
@@ -441,17 +440,6 @@ export default function PaymentReminderPage() {
 
               {/* Action Buttons */}
               <div className="space-y-3 sm:space-y-4">
-                <Button
-                  asChild
-                  className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-xl text-sm sm:text-base lg:text-lg py-4 sm:py-6 group"
-                >
-                  <a href="https://agentwelcome.netlify.app/" target="_blank" rel="noopener noreferrer">
-                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                    <span className="truncate">Learn How to Maximize Your Earnings</span>
-                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 ml-2 group-hover:translate-x-1 transition-transform flex-shrink-0" />
-                  </a>
-                </Button>
-
                 <Button
                   asChild
                   variant="outline"

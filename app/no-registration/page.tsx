@@ -11,9 +11,21 @@ import { AFAContextSection } from "@/components/no-registration/afa-context-sect
 import { AFARegistrationForm } from "@/components/no-registration/afa-registration-form"
 import { MTNSimForms } from "@/components/no-registration/mtn-sim-forms"
 import { BusinessRegistrationForm } from "@/components/no-registration/business-registration-form"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, Shield, ChevronRight, PiggyBank, TrendingUp } from "lucide-react"
+import { AgentBenefitsSlideup } from "@/components/no-registration/agent-benefits-slideup"
+import {
+  CheckCircle,
+  Shield,
+  ChevronRight,
+  PiggyBank,
+  TrendingUp,
+  Award,
+  Sparkles,
+  Users,
+  Zap,
+  CreditCard,
+} from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useState, useEffect } from "react"
@@ -44,6 +56,8 @@ export default function NoRegistrationPage() {
 
   return (
     <main className="min-h-screen">
+      <AgentBenefitsSlideup />
+
       <Header />
 
       <NoRegistrationSlider />
@@ -184,6 +198,69 @@ export default function NoRegistrationPage() {
             </p>
           </div>
           <AFARegistrationForm />
+        </div>
+      </section>
+
+      <section className="py-12 md:py-16 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-8 md:mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+                Ready To Earn More? Register As Agent
+              </h2>
+              <p className="text-lg text-gray-600 mb-6">
+                Unlock exclusive benefits and start earning commissions while enjoying discounted service costs
+              </p>
+            </div>
+
+            <Card className="border-purple-200 shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden mb-6">
+              <CardHeader className="pb-3 sm:pb-4 bg-gradient-to-r from-purple-100 to-pink-100">
+                <CardTitle className="flex items-center gap-2 text-purple-800 text-lg sm:text-xl">
+                  <Award className="h-5 w-5 sm:h-6 sm:w-6" />
+                  What You Get As An Agent
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 sm:space-y-5 px-4 sm:px-6 py-6">
+                <div className="grid gap-3 sm:gap-4">
+                  {[
+                    {
+                      icon: Sparkles,
+                      text: "Free Sales Training Manual (PDF, Audio, Video)",
+                      color: "text-yellow-600",
+                    },
+                    { icon: Users, text: "Part of 10,000+ Active Agents Nationwide", color: "text-blue-600" },
+                    { icon: Shield, text: "Supportive & Friendly Admin Access 24/7", color: "text-purple-600" },
+                    { icon: PiggyBank, text: "Personal Support Assistant Access", color: "text-orange-600" },
+                    { icon: Zap, text: "Instant access to earning opportunities", color: "text-red-600" },
+                    { icon: TrendingUp, text: "Start earning within 24 hours", color: "text-green-600" },
+                    { icon: CreditCard, text: "Discounted Service Costs", color: "text-indigo-600" },
+                    { icon: Award, text: "Attract Extra Commissions", color: "text-pink-600" },
+                  ].map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 sm:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <item.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${item.color} flex-shrink-0`} />
+                      <span className="font-medium text-gray-800 text-sm sm:text-base">{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-4 border-t border-gray-200">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold py-6"
+                  >
+                    <Link href="/agent/register" className="flex items-center justify-center gap-2">
+                      <span>Become an Agent Today</span>
+                      <ChevronRight className="w-5 h-5" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 
