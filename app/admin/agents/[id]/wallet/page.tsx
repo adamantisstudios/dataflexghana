@@ -37,6 +37,7 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
+import { calculateWalletBalance } from "@/lib/earnings-calculator"
 
 interface WalletTransaction {
   id: string
@@ -92,6 +93,15 @@ export default function AdminAgentWalletPage() {
   const [adjustmentType, setAdjustmentType] = useState<"credit" | "debit">("credit")
   const [reversalReason, setReversalReason] = useState("")
 
+  const getCurrentAdmin = () => {
+    // Get admin from localStorage or session
+    const adminData = localStorage.getItem("admin")
+    if (adminData) {
+      return JSON.parse(adminData)
+    }
+    return null
+  }
+
   useEffect(() => {
     const currentAdmin = getCurrentAdmin()
     if (!currentAdmin) {
@@ -116,8 +126,17 @@ export default function AdminAgentWalletPage() {
       if (agentError) throw agentError
       setAgent(agentData)
 
+      // CRITICAL FIX: Calculate the LIVE wallet balance, not the stored one
+      let liveWalletBalance = 0
+      try {
+        liveWalletBalance = await calculateWalletBalance(agentId)
+      } catch (error) {
+        console.warn("Error calculating live wallet balance, using fallback:", error)
+        liveWalletBalance = Number(agentData.wallet_balance) || 0
+      }
+
       let finalSummary: WalletSummary = {
-        walletBalance: Number(agentData.wallet_balance) || 0,
+        walletBalance: liveWalletBalance,
         totalTopups: 0,
         totalCommissions: 0,
         availableCommissions: 0,
@@ -130,7 +149,7 @@ export default function AdminAgentWalletPage() {
       try {
         const commissionSummary = await getAgentCommissionSummary(agentId)
         finalSummary = {
-          walletBalance: Number(agentData.wallet_balance) || 0,
+          walletBalance: liveWalletBalance,
           totalTopups: 0, // Not needed for display
           totalCommissions: commissionSummary.totalCommissions || 0,
           availableCommissions: commissionSummary.availableCommissions || 0,
@@ -163,7 +182,7 @@ export default function AdminAgentWalletPage() {
             const availableCommissions = Math.max(totalCommissions - totalPaidOut, 0)
 
             finalSummary = {
-              walletBalance: Number(agentData.wallet_balance) || 0,
+              walletBalance: liveWalletBalance,
               totalTopups: 0,
               totalCommissions: totalCommissions,
               availableCommissions: availableCommissions,
@@ -752,13 +771,4 @@ export default function AdminAgentWalletPage() {
       </Dialog>
     </div>
   )
-}
-
-function getCurrentAdmin() {
-  // Get admin from localStorage or session
-  const adminData = localStorage.getItem("admin")
-  if (adminData) {
-    return JSON.parse(adminData)
-  }
-  return null
 }

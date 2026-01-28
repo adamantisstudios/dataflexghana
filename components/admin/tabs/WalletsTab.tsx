@@ -154,6 +154,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     searchTerm: "",
     selectedAgentName: "",
   })
+  const [agentLiveBalances, setAgentLiveBalances] = useState<Map<string, number>>(new Map())
+  const [totalSystemWalletBalance, setTotalSystemWalletBalance] = useState(0)
   const itemsPerPage = 12
   const admin = getStoredAdmin()
   const [agentsLoaded, setAgentsLoaded] = useState(false) // Track if agents have been loaded
@@ -166,6 +168,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     try {
       setError(null)
       const offset = (page - 1) * itemsPerPage
+      const { batchCalculateAgentEarnings, calculateWalletBalance } = await import("@/lib/earnings-calculator")
 
       const {
         data,
@@ -174,7 +177,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       } = await supabase
         .from("wallet_transactions")
         .select(
-          `id, amount, transaction_type, description, status, created_at, reference_code, admin_notes, agent_id, agents!inner(id, full_name, phone_number, wallet_balance)`,
+          `id, amount, transaction_type, description, status, created_at, reference_code, admin_notes, agent_id, agents!inner(id, full_name, phone_number)`,
           { count: "exact" },
         )
         .order("created_at", { ascending: false })
@@ -182,9 +185,52 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
 
       if (queryError) throw queryError
 
-      setWalletTransactions(data || [])
+      // OPTIMIZATION: Use batch calculation for multiple agents on this page
+      const pageAgentIds = Array.from(new Set(data?.map((t: any) => t.agent_id) || []))
+      let calculatedPageBalances = new Map<string, number>()
+      
+      if (pageAgentIds.length > 0) {
+        try {
+          // Use optimized batch calculation
+          const earningsMap = await batchCalculateAgentEarnings(pageAgentIds)
+          pageAgentIds.forEach((agentId) => {
+            const earnings = earningsMap.get(agentId)
+            calculatedPageBalances.set(agentId, earnings?.walletBalance || 0)
+          })
+        } catch (batchError) {
+          console.warn("Batch calculation failed, falling back to parallel individual calculations:", batchError)
+          // Fallback: calculate individually in parallel
+          const balancePromises = pageAgentIds.map(async (agentId) => {
+            try {
+              const balance = await calculateWalletBalance(agentId)
+              return { agentId, balance }
+            } catch (error) {
+              console.warn(`Failed to calculate balance for agent ${agentId}:`, error)
+              return { agentId, balance: 0 }
+            }
+          })
+          const results = await Promise.all(balancePromises)
+          results.forEach(({ agentId, balance }) => {
+            calculatedPageBalances.set(agentId, balance)
+          })
+        }
+      }
+      
+      // CRITICAL: Merge new page balances with existing balances in state
+      setAgentLiveBalances((prevBalances) => new Map([...prevBalances, ...calculatedPageBalances]))
+      
+      // Enhance with live balances
+      const enhancedData = (data || []).map((transaction: any) => ({
+        ...transaction,
+        agents: {
+          ...transaction.agents,
+          wallet_balance: calculatedPageBalances.get(transaction.agent_id) || 0
+        }
+      }))
+
+      setWalletTransactions(enhancedData)
       setTotalWalletTransactions(count || 0)
-      setCachedData(data || [])
+      setCachedData(enhancedData)
     } catch (error) {
       console.error("Error loading wallet transactions page:", error)
       const errorMsg = error instanceof Error ? error.message : "Failed to load wallet transactions"
@@ -197,7 +243,29 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     try {
       const { data, error } = await supabase.from("agents").select("*").order("full_name", { ascending: true })
       if (error) throw error
-      setAgents(data || [])
+      
+      const agentsList = data || []
+      setAgents(agentsList)
+      
+      // CRITICAL FIX: Calculate live wallet balances for all agents in the topup dialog
+      const { batchCalculateAgentEarnings } = await import("@/lib/earnings-calculator")
+      
+      const agentIds = agentsList.map((a) => a.id)
+      if (agentIds.length > 0) {
+        try {
+          const earningsMap = await batchCalculateAgentEarnings(agentIds)
+          const liveBalances = new Map<string, number>()
+          agentIds.forEach((agentId) => {
+            const earnings = earningsMap.get(agentId)
+            liveBalances.set(agentId, earnings?.walletBalance || 0)
+          })
+          setAgentLiveBalances(liveBalances)
+        } catch (calcError) {
+          console.warn("Failed to calculate live balances:", calcError)
+          // Still proceed with the dialog even if live balance calculation fails
+        }
+      }
+      
       setAgentsLoaded(true)
     } catch (error) {
       console.error("Error loading agents:", error)
@@ -215,13 +283,14 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           return
         }
         try {
-          const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
+          const { calculateWalletBalance, batchCalculateAgentEarnings } = await import("@/lib/earnings-calculator")
 
+          // CRITICAL FIX: Calculate live wallet balances for each agent instead of using stored balance
           const [walletData, topupsData] = await Promise.all([
             supabase
               .from("wallet_transactions")
               .select(
-                `id, amount, transaction_type, description, status, created_at, reference_code, admin_notes, agent_id, agents!inner(id, full_name, phone_number, wallet_balance)`,
+                `id, amount, transaction_type, description, status, created_at, reference_code, admin_notes, agent_id, agents!inner(id, full_name, phone_number)`,
                 { count: "exact" },
               )
               .order("created_at", { ascending: false })
@@ -233,16 +302,58 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
               .range(0, 11),
           ])
 
+          // OPTIMIZATION: Use batch calculation for multiple agents instead of sequential calls
+          const walletAgentIds = Array.from(new Set(walletData.data?.map((t: any) => t.agent_id) || []))
+          
+          let calculatedAgentLiveBalances = new Map<string, number>()
+          
+          if (walletAgentIds.length > 0) {
+            try {
+              // Use optimized batch calculation
+              const earningsMap = await batchCalculateAgentEarnings(walletAgentIds)
+              walletAgentIds.forEach((agentId) => {
+                const earnings = earningsMap.get(agentId)
+                calculatedAgentLiveBalances.set(agentId, earnings?.walletBalance || 0)
+              })
+            } catch (batchError) {
+              console.warn("Batch calculation failed, falling back to individual calculations:", batchError)
+              // Fallback: calculate individually in parallel
+              const balancePromises = walletAgentIds.map(async (agentId) => {
+                try {
+                  const balance = await calculateWalletBalance(agentId)
+                  return { agentId, balance }
+                } catch (error) {
+                  console.warn(`Failed to calculate balance for agent ${agentId}:`, error)
+                  return { agentId, balance: 0 }
+                }
+              })
+              const results = await Promise.all(balancePromises)
+              results.forEach(({ agentId, balance }) => {
+                calculatedAgentLiveBalances.set(agentId, balance)
+              })
+            }
+          }
+          
+          // CRITICAL: Update component state with calculated live balances
+          setAgentLiveBalances(calculatedAgentLiveBalances)
+          
+          // Enhance transaction data with live balances
+          const enhancedWalletData = walletData.data?.map((transaction: any) => ({
+            ...transaction,
+            agents: {
+              ...transaction.agents,
+              wallet_balance: calculatedAgentLiveBalances.get(transaction.agent_id) || 0
+            }
+          })) || []
+
           if (walletData.error) throw walletData.error
           if (topupsData.error) throw topupsData.error
 
-          const transactionsData = walletData.data || []
-
           setTotalWalletTransactions(walletData.count || 0)
 
-          setWalletTransactions(transactionsData)
+          setWalletTransactions(enhancedWalletData)
           setWalletTopups(topupsData.data || [])
-          setCachedData(transactionsData)
+          setCachedData(enhancedWalletData)
         } catch (innerError) {
           console.error("Error loading wallet data:", innerError)
           const errorMsg = innerError instanceof Error ? innerError.message : "Failed to load wallet data"
@@ -288,9 +399,35 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     setFilteredWalletTransactions(memoizedStatusFiltered)
     setCurrentWalletsPage(1)
   }, [memoizedStatusFiltered])
+
+  // OPTIMIZATION: Removed total system wallet balance calculation to prevent database strain
+  // The totalSystemWalletBalance state is no longer updated/used - only page-level metrics are displayed
   const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp)
-    return date.toLocaleDateString() + " - " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    try {
+      const date = new Date(timestamp)
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      })
+    } catch {
+      return timestamp
+    }
+  }
+
+  // CRITICAL: Get live balance for a transaction - falls back to stored balance if agent not found
+  const getTransactionAgentLiveBalance = (transaction: any): number => {
+    // First try to get from agentLiveBalances state (for topup dialog)
+    const liveBalance = agentLiveBalances.get(transaction.agent_id)
+    if (liveBalance !== undefined) {
+      return liveBalance
+    }
+    // Fall back to the stored wallet_balance which was already enhanced with live balance during load
+    return transaction.agents?.wallet_balance || 0
   }
   const handleWalletTopup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -619,8 +756,17 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     }
   }
   const deleteWalletTopup = async (topupId: string) => {
-    if (!confirm("Are you sure you want to delete this wallet top-up request?")) return
     try {
+      const topup = walletTopups.find((t) => t.id === topupId)
+      
+      // CRITICAL: Prevent deletion of pending topups
+      if (topup && topup.status === "pending") {
+        alert("❌ Cannot delete pending wallet top-up requests. Please approve or reject the request first, then you can delete it if needed.")
+        return
+      }
+
+      if (!confirm("Are you sure you want to delete this wallet top-up request?")) return
+      
       const { error } = await supabase.from("wallet_topups").delete().eq("id", topupId)
       if (error) throw error
       const updatedTopups = walletTopups.filter((topup) => topup.id !== topupId)
@@ -911,10 +1057,10 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       transaction.description || "",
       transaction.reference_code || "",
       transaction.status || "",
-      getPaymentMethodLabel(transaction),
-      transaction.admin_notes || "",
-      transaction.agents?.wallet_balance?.toFixed(2) || "",
-      transaction.approved_at ? new Date(transaction.approved_at).toLocaleString() : "",
+    getPaymentMethodLabel(transaction),
+    transaction.admin_notes || "",
+    getTransactionAgentLiveBalance(transaction).toFixed(2),
+    transaction.approved_at ? new Date(transaction.approved_at).toLocaleString() : "",
       transaction.rejected_at ? new Date(transaction.rejected_at).toLocaleString() : "",
     ])
     const csvContent = [headers, ...csvData]
@@ -1169,7 +1315,14 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                           <Ban className="h-4 w-4 mr-1" />
                           Reject
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => deleteWalletTopup(topup.id)}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => deleteWalletTopup(topup.id)}
+                          disabled={topup.status === "pending"}
+                          title={topup.status === "pending" ? "Cannot delete pending requests" : "Delete request"}
+                          className={topup.status === "pending" ? "opacity-50 cursor-not-allowed" : ""}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -1241,8 +1394,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                           </span>
                         </p>
                         <p className="text-emerald-600">
-                          <span className="font-medium">Current Balance:</span> GH₵{" "}
-                          {(transaction.agents?.wallet_balance || 0).toFixed(2)}
+                          <span className="font-medium">Current Balance (Live):</span> GH₵{" "}
+                          {getTransactionAgentLiveBalance(transaction).toFixed(2)}
                         </p>
                         <p className="text-emerald-600">
                           <span className="font-medium">Reference:</span> {transaction.reference_code}
@@ -1355,7 +1508,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                               {agent.phone_number} • {agent.momo_number}
                             </div>
                             <div className="text-xs text-emerald-500">
-                              Balance: GH₵ {(agent.wallet_balance || 0).toFixed(2)} • Region: {agent.region}
+                              Current Balance: GH₵ {(agentLiveBalances.get(agent.id) ?? agent.wallet_balance ?? 0).toFixed(2)} • Region: {agent.region}
                             </div>
                           </button>
                         ))}
@@ -1373,13 +1526,13 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                   )}
                 </div>
                 {walletTopupForm.agentId && (
-                  <div className="mt-2 p-2 bg-emerald-50 rounded border border-emerald-200">
-                    <div className="text-sm text-emerald-700">
+                  <div className="mt-2 p-3 bg-emerald-50 rounded border border-emerald-200">
+                    <div className="text-sm text-emerald-700 font-medium">
                       <strong>Selected Agent:</strong> {agents.find((a) => a.id === walletTopupForm.agentId)?.full_name}
                     </div>
-                    <div className="text-xs text-emerald-600 mt-1">
-                      Current Balance: GH₵{" "}
-                      {(agents.find((a) => a.id === walletTopupForm.agentId)?.wallet_balance || 0).toFixed(2)}
+                    <div className="text-sm text-emerald-700 mt-2 font-semibold">
+                      Current Live Wallet Balance: GH₵{" "}
+                      {(agentLiveBalances.get(walletTopupForm.agentId) ?? agents.find((a) => a.id === walletTopupForm.agentId)?.wallet_balance ?? 0).toFixed(2)}
                     </div>
                   </div>
                 )}
