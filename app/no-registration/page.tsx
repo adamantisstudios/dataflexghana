@@ -65,6 +65,123 @@ export default function NoRegistrationPage() {
         </div>
       </section>
 
+      <section className="py-16 bg-gradient-to-br from-slate-50 to-gray-100">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Explore Our Services</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Discover more opportunities and connect with professionals in various fields
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
+              <CardContent className="p-0">
+                <div className="relative w-full h-40 overflow-hidden bg-gray-200">
+                  <Image
+                    src="/apple-device-repair-center.jpg"
+                    alt="Apple Service Center"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6 space-y-3">
+                  <h3 className="text-xl font-bold text-gray-900">Apple Service Center</h3>
+                  <p className="text-gray-600">Professional Apple device repair and support services. Get your devices fixed by certified technicians.</p>
+                  <Button
+                    asChild
+                    className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white"
+                  >
+                    <Link href="/appleservicecenter" className="flex items-center justify-center gap-2">
+                      <span>Visit Service Center</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
+              <CardContent className="p-0">
+                <div className="relative w-full h-40 overflow-hidden bg-gray-200">
+                  <Image
+                    src="/domestic-worker-profile.jpg"
+                    alt="Domestic Workers"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6 space-y-3">
+                  <h3 className="text-xl font-bold text-gray-900">Domestic Workers</h3>
+                  <p className="text-gray-600">Find trusted domestic workers including housekeepers, nannies, and cleaners for your home.</p>
+                  <Button
+                    asChild
+                    className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white"
+                  >
+                    <Link href="/domestic-workers" className="flex items-center justify-center gap-2">
+                      <span>Browse Workers</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
+              <CardContent className="p-0">
+                <div className="relative w-full h-40 overflow-hidden bg-gray-200">
+                  <Image
+                    src="/professional-workplace.jpg"
+                    alt="Job Board"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6 space-y-3">
+                  <h3 className="text-xl font-bold text-gray-900">Job Board</h3>
+                  <p className="text-gray-600">Explore employment opportunities and connect with verified employers. Find your next career opportunity.</p>
+                  <Button
+                    asChild
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                  >
+                    <Link href="/jobboard" className="flex items-center justify-center gap-2">
+                      <span>View Jobs</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
+              <CardContent className="p-0">
+                <div className="relative w-full h-40 overflow-hidden bg-gray-200">
+                  <Image
+                    src="/assets/slide2.jpg"
+                    alt="Custom Fashion Design Service"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6 space-y-3">
+                  <h3 className="text-xl font-bold text-gray-900">Fashion Design</h3>
+                  <p className="text-gray-600">Get custom fashion designs for every occasion. Professional styling services with remote consultations available.</p>
+                  <Button
+                    asChild
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white"
+                  >
+                    <Link href="https://fashionablyhired.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
+                      <span>Design Now</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       <NetworksSection />
       <DevicesSection />
 

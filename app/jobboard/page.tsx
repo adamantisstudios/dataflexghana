@@ -445,22 +445,22 @@ export default function JobBoard() {
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-between gap-2 mt-8">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 w-full overflow-x-auto">
                   <Button
                     onClick={handlePrevPage}
                     disabled={currentPage === 0}
                     variant="outline"
-                    className="flex-1 md:flex-none bg-transparent"
+                    className="bg-transparent w-full sm:w-auto"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
                   </Button>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-2 sm:pb-0">
                     {Array.from({ length: totalPages }).map((_, index) => (
                       <button
                         key={index}
                         onClick={() => setCurrentPage(index)}
-                        className={`h-8 w-8 md:h-10 md:w-10 rounded transition-colors ${
+                        className={`h-8 w-8 md:h-10 md:w-10 rounded transition-colors flex-shrink-0 text-xs sm:text-sm ${
                           currentPage === index
                             ? "bg-blue-600 text-white"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -473,7 +473,7 @@ export default function JobBoard() {
                   <Button
                     onClick={handleNextPage}
                     disabled={currentPage >= totalPages - 1}
-                    className="flex-1 md:flex-none"
+                    className="w-full sm:w-auto"
                   >
                     Next
                     <ChevronRight className="h-4 w-4 ml-1" />

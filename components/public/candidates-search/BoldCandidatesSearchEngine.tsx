@@ -63,8 +63,8 @@ export default function BoldCandidatesSearchEngine() {
     setSearchCountToday(Number.parseInt(storedCount))
   }, [])
 
-  // Search handler
-  const handleSearch = async () => {
+  // Search handler with retry
+  const handleSearch = async (retryCount = 0) => {
     try {
       if (!canPerformSearch()) {
         setSearchLimitExceeded(true)
@@ -76,14 +76,33 @@ export default function BoldCandidatesSearchEngine() {
       setShowLocationNotification(false)
       setShowSearchAd(false)
 
-      const response = await fetch(`/api/candidates/search?query=${encodeURIComponent(searchTerm)}`, {
+      console.log("[v0] Fetching candidates, attempt:", retryCount + 1)
+      const url = `/api/candidates/search?query=${encodeURIComponent(searchTerm)}`
+      console.log("[v0] Fetch URL:", url)
+
+      const response = await fetch(url, {
         method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || "Failed to load candidates")
+
+      console.log("[v0] Response received:", response.status, response.statusText)
+
+      let data
+      try {
+        data = await response.json()
+      } catch (jsonError) {
+        console.error("[v0] Failed to parse response as JSON:", jsonError)
+        console.log("[v0] Response text:", await response.text())
+        throw new Error("Invalid response from server")
       }
-      const data = await response.json()
+
+      if (!response.ok) {
+        console.error("[v0] Search API error:", response.status, response.statusText, data)
+        throw new Error(data?.message || "Failed to load candidates")
+      }
+
       const limitedCandidates = (data.candidates || []).slice(0, 36)
       setCandidates(limitedCandidates)
       setFilteredCandidates(limitedCandidates)
@@ -97,9 +116,6 @@ export default function BoldCandidatesSearchEngine() {
       if (isGhanaLocation) {
         setSearchedLocation(searchTerm.trim())
         setShowLocationNotification(true)
-      } else {
-        setSearchedLocation("")
-        setShowLocationNotification(false)
       }
 
       saveSearchCache(searchTerm, limitedCandidates, 1)
@@ -113,10 +129,18 @@ export default function BoldCandidatesSearchEngine() {
         setShowSearchAd(true)
       }
     } catch (error) {
-      console.error("[v0] Error loading candidates:", error)
+      console.error("[v0] Search error:", error instanceof Error ? error.message : error)
+      
+      // Retry once if it's a network error
+      if (retryCount < 1 && error instanceof TypeError && error.message.includes("fetch")) {
+        console.log("[v0] Retrying search...")
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        return handleSearch(retryCount + 1)
+      }
+      
+      setHasSearched(true)
       setCandidates([])
       setFilteredCandidates([])
-      setHasSearched(true)
     } finally {
       setLoading(false)
     }

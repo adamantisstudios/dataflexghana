@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState, useEffect, useMemo, memo } from "react"
+import { useState, useEffect, useMemo, memo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -41,6 +41,10 @@ import {
   RefreshCw,
   DollarSign,
 } from "lucide-react"
+import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton"
+import { connectionManager } from "@/lib/connection-manager"
+import { reverseWalletTopup } from "@/lib/wallet-reversal" // Declare the variable here
+
 interface WalletsTabProps {
   getCachedData: () => any[] | undefined
   setCachedData: (data: any[]) => void
@@ -62,8 +66,6 @@ const getTransactionTypeLabel = (transaction: any): string => {
       return "Commission Deposit"
     case "withdrawal_deduction":
       return "Withdrawal"
-    case "admin_reversal":
-      return "Admin Reversal"
     case "admin_adjustment":
       return "Admin Adjustment"
     default:
@@ -79,8 +81,6 @@ const getTransactionTypeLabel = (transaction: any): string => {
         return "Refund"
       } else if (description.includes("withdrawal")) {
         return "Withdrawal"
-      } else if (description.includes("reversal")) {
-        return "Reversal"
       }
       return "Transaction"
   }
@@ -101,8 +101,6 @@ const getTransactionTypeIcon = (transaction: any) => {
       return <DollarSign className="h-5 w-5 text-emerald-600" />
     case "withdrawal_deduction":
       return <TrendingUp className="h-5 w-5 text-red-600 rotate-180" />
-    case "admin_reversal":
-      return <RefreshCw className="h-5 w-5 text-orange-600" />
     case "admin_adjustment":
       return <TrendingUp className="h-5 w-5 text-gray-600" />
     default:
@@ -158,10 +156,11 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   })
   const itemsPerPage = 12
   const admin = getStoredAdmin()
-  const [showReversalDialog, setShowReversalDialog] = useState(false)
-  const [selectedTopupForReversal, setSelectedTopupForReversal] = useState<any>(null)
   const [agentsLoaded, setAgentsLoaded] = useState(false) // Track if agents have been loaded
   const [error, setError] = useState<string | null>(null)
+  const [showReversalDialog, setShowReversalDialog] = useState(false)
+  const [selectedTopupForReversal, setSelectedTopupForReversal] = useState<any>(null)
+
 
   const loadNextWalletsPage = async (page: number) => {
     try {
@@ -721,84 +720,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       alert(`Failed to ${newStatus} transaction. Please try again.`)
     }
   }
-  const reverseWalletTopup = async (transactionId: string) => {
-    try {
-      const transaction = walletTransactions.find((t) => t.id === transactionId)
-      if (!transaction || transaction.transaction_type !== "topup" || transaction.status !== "approved") {
-        alert("Only approved top-up transactions can be reversed")
-        return
-      }
-      // Check if agent has sufficient balance
-      const currentBalance = transaction.agents?.wallet_balance || 0
-      if (currentBalance < transaction.amount) {
-        alert(
-          `Cannot reverse: Agent's current balance (GH₵ ${currentBalance.toFixed(2)}) is less than the top-up amount (GH₵ ${transaction.amount.toFixed(2)})`,
-        )
-        return
-      }
-      // Deduct amount from agent's wallet
-      const newBalance = currentBalance - transaction.amount
-      const { error: balanceError } = await supabase
-        .from("agents")
-        .update({ wallet_balance: newBalance })
-        .eq("id", transaction.agent_id)
-      if (balanceError) throw balanceError
 
-      // CRITICAL FIX: Use the new reversal transaction utility to avoid constraint violation
-      const { createReversalTransaction } = await import("@/lib/wallet-transaction-types")
-
-      const reversalResult = createReversalTransaction(
-        transaction.agent_id,
-        transaction.id,
-        transaction.amount,
-        admin?.id || "system", // Use admin ID or fallback to 'system'
-        transaction.description,
-      )
-
-      if (!reversalResult.success) {
-        throw new Error(reversalResult.error || "Failed to create reversal transaction")
-      }
-
-      if (!reversalResult.transaction) {
-        throw new Error("Reversal transaction was not created")
-      }
-
-      console.log("Reversal transaction created:", reversalResult.transaction)
-
-      // Insert the reversal transaction
-      const { data: reversalData, error: reversalError } = await supabase
-        .from("wallet_transactions")
-        .insert([reversalResult.transaction])
-        .select()
-        .single()
-
-      if (reversalError) {
-        console.error("Error inserting reversal transaction:", reversalError)
-        throw reversalError
-      }
-
-      alert("Wallet top-up reversed successfully!")
-      setShowReversalDialog(false)
-      setSelectedTopupForReversal(null)
-      // Reload data
-      const [walletData, topupsData] = await Promise.all([
-        supabase
-          .from("wallet_transactions")
-          .select(`*, agents (full_name, phone_number, wallet_balance)`)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("wallet_topups")
-          .select(`*, agents (full_name, phone_number)`)
-          .order("created_at", { ascending: false }),
-      ])
-      setWalletTransactions(walletData.data || [])
-      setWalletTopups(topupsData.data || [])
-      setCachedData(walletData.data || [])
-    } catch (error) {
-      console.error("Error reversing wallet top-up:", error)
-      alert("Failed to reverse wallet top-up. Please try again.")
-    }
-  }
   const downloadComprehensiveWalletReport = async () => {
     try {
       setLoading(true)
@@ -946,7 +868,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         return "Refund"
       case "withdrawal_deduction":
         return "Mobile Money"
-      case "admin_reversal":
       case "admin_adjustment":
         return "Admin Action"
       default:
@@ -1027,6 +948,17 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     const endIndex = startIndex + itemsPerPage
     return data.slice(startIndex, endIndex)
   }
+
+  const handleCompleteRefresh = useCallback(async () => {
+    console.log("Performing complete refresh...")
+    try {
+      await connectionManager.forceReconnect()
+      await loadNextWalletsPage(currentWalletsPage)
+      console.log("Complete refresh successful")
+    } catch (error) {
+      console.error("Complete refresh failed:", error)
+    }
+  }, [currentWalletsPage])
 
   const PaginationControls = ({
     currentPage,
@@ -1352,20 +1284,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                         </Button>
                       </div>
                     )}
-                    {transaction.status === "approved" && transaction.transaction_type === "topup" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedTopupForReversal(transaction)
-                          setShowReversalDialog(true)
-                        }}
-                        className="w-full sm:w-auto border-red-200 text-red-700 hover:bg-red-50"
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Reverse Top-up
-                      </Button>
-                    )}
+
                   </div>
                 </CardContent>
               </Card>
@@ -1378,69 +1297,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         totalPages={getTotalPages(totalWalletTransactions)}
         onPageChange={setCurrentWalletsPage}
       />
-      {/* Wallet Top-up Reversal Dialog */}
-      <Dialog open={showReversalDialog} onOpenChange={setShowReversalDialog}>
-        <DialogContent className="sm:max-w-[425px] w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto mx-auto">
-          <DialogHeader>
-            <DialogTitle className="text-red-800">Reverse Wallet Top-up</DialogTitle>
-            <DialogDescription>
-              This action will deduct the credited amount from the agent's wallet and create a reversal record.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedTopupForReversal && (
-            <div className="space-y-4 py-4">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h4 className="font-medium text-red-800 mb-2">Transaction Details</h4>
-                <div className="space-y-1 text-sm">
-                  <p className="text-red-700">
-                    <span className="font-medium">Agent:</span> {selectedTopupForReversal.agents?.full_name}
-                  </p>
-                  <p className="text-red-700">
-                    <span className="font-medium">Amount:</span> GH₵ {selectedTopupForReversal.amount.toFixed(2)}
-                  </p>
-                  <p className="text-red-700">
-                    <span className="font-medium">Reference:</span> {selectedTopupForReversal.reference_code}
-                  </p>
-                  <p className="text-red-700">
-                    <span className="font-medium">Current Balance:</span> GH₵{" "}
-                    {(selectedTopupForReversal.agents?.wallet_balance || 0).toFixed(2)}
-                  </p>
-                  <p className="text-red-700">
-                    <span className="font-medium">Balance After Reversal:</span> GH₵{" "}
-                    {((selectedTopupForReversal.agents?.wallet_balance || 0) - selectedTopupForReversal.amount).toFixed(
-                      2,
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-amber-800 text-sm">
-                  <strong>Warning:</strong> This action cannot be undone. The reversal will be logged in the transaction
-                  history.
-                </p>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowReversalDialog(false)
-                setSelectedTopupForReversal(null)
-              }}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => selectedTopupForReversal && reverseWalletTopup(selectedTopupForReversal.id)}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Confirm Reversal
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />
+
       {/* Wallet Top-up Dialog */}
       <Dialog open={showWalletTopupDialog} onOpenChange={setShowWalletTopupDialog}>
         <DialogContent className="sm:max-w-[425px] w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto mx-auto">

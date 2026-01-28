@@ -22,6 +22,9 @@ import Link from "next/link"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
 import { calculateWalletBalance } from "@/lib/earnings-calculator"
 import { exportAgentsToCsv } from "@/lib/csv-export"
+import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton"
+import { connectionManager } from "@/lib/connection-manager"
+import { realtimeManager } from "@/lib/realtime-manager"
 import { toast } from "sonner"
 
 interface AgentWithWallet extends Agent {
@@ -484,6 +487,17 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
     }
   }
 
+  const handleCompleteRefresh = useCallback(async () => {
+    console.log("Performing complete refresh...")
+    try {
+      await connectionManager.forceReconnect()
+      await loadAgentsPage(currentAgentsPage, agentSearchTerm, agentsFilterAdmin)
+      console.log("Complete refresh successful")
+    } catch (error) {
+      console.error("Complete refresh failed:", error)
+    }
+  }, [currentAgentsPage, agentSearchTerm, agentsFilterAdmin, loadAgentsPage])
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -654,6 +668,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
         totalPages={getTotalPages(totalAgents)}
         onPageChange={handlePageChange}
       />
+      <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />
       <Dialog open={showAgentDialog} onOpenChange={setShowAgentDialog}>
         <DialogContent className="sm:max-w-[425px] w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto mx-auto">
           <DialogHeader>
