@@ -759,7 +759,7 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
           <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-emerald-800">Registration Cost:</span>
-              <span className="text-base sm:text-lg font-bold text-blue-600">1,414 GHS</span>
+              <span className="text-base sm:text-lg font-bold text-blue-600">1,444 GHS</span>
             </div>
             
             {/* COMMISSION SECTION ADDED HERE */}
@@ -788,7 +788,7 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
             <Button
               variant="outline"
               onClick={onCancel}
-              className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 text-xs py-2"
+              className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 text-xs py-2 bg-transparent"
             >
               Cancel
             </Button>

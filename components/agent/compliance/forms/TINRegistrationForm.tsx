@@ -202,7 +202,7 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
             <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-emerald-800">Cost:</span>
-                <span className="text-lg font-bold text-emerald-600">120 GHS</span>
+                <span className="text-lg font-bold text-emerald-600">150 GHS</span>
               </div>
               
               {/* COMMISSION SECTION ADDED HERE */}
@@ -223,7 +223,7 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
               </div>
             </div>
             <p className="text-xs text-gray-600">
-              TIN registration costs 120 GHS and is processed within 1 day. Your Tax Identification Number will be delivered via WhatsApp.
+              TIN registration costs 150 GHS and is processed within 1 day. Your Tax Identification Number will be delivered via WhatsApp.
             </p>
             <Button onClick={() => setShowCostPopup(false)} className="w-full bg-emerald-600 hover:bg-emerald-700">
               Continue

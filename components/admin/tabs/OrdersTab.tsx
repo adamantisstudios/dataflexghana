@@ -61,7 +61,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   const [filteredOrders, setFilteredOrders] = useState<DataOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [orderSearchTerm, setOrderSearchTerm] = useState("")
-  const [ordersFilterAdmin, setOrdersFilterAdmin] = useState("All Orders")
+  const [combinedOrderFilter, setCombinedOrderFilter] = useState("All Orders")
   const [currentOrdersPage, setCurrentOrdersPage] = useState(1)
   const [showMessageDialog, setShowMessageDialog] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<DataOrder | null>(null)
@@ -97,24 +97,28 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     ordersListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  const filterOrders = useCallback((orders: DataOrder[], searchTerm: string, statusFilter: string) => {
+  const filterOrders = useCallback((orders: DataOrder[], searchTerm: string, combinedFilter: string) => {
     let filtered = orders
-    if (statusFilter !== "All Orders") {
-      filtered = filtered.filter((order) => {
-        switch (statusFilter) {
-          case "Pending":
-            return order.status === "pending"
-          case "Processing":
-            return order.status === "processing"
-          case "Completed":
-            return order.status === "completed"
-          case "Canceled":
-            return order.status === "canceled"
-          default:
-            return true
-        }
-      })
+    
+    // Parse combined filter to get status and type
+    if (combinedFilter !== "All Orders") {
+      if (combinedFilter === "Manual Orders") {
+        filtered = filtered.filter((order) => order.payment_method === "manual")
+      } else if (combinedFilter === "Wallet Orders") {
+        filtered = filtered.filter((order) => order.payment_method === "wallet")
+      } else if (combinedFilter === "Pending" || combinedFilter === "Processing" || combinedFilter === "Completed" || combinedFilter === "Canceled") {
+        filtered = filtered.filter((order) => {
+          const statusMap: Record<string, string> = {
+            "Pending": "pending",
+            "Processing": "processing",
+            "Completed": "completed",
+            "Canceled": "canceled",
+          }
+          return order.status === statusMap[combinedFilter]
+        })
+      }
     }
+    
     if (searchTerm && searchTerm.trim()) {
       const lowerSearchTerm = searchTerm.toLowerCase().trim()
       filtered = filtered.filter((order) => {
@@ -134,8 +138,8 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   }, [])
 
   const memoizedFilteredOrders = useMemo(() => {
-    return filterOrders(dataOrders, orderSearchTerm, ordersFilterAdmin)
-  }, [dataOrders, orderSearchTerm, ordersFilterAdmin, filterOrders])
+    return filterOrders(dataOrders, orderSearchTerm, combinedOrderFilter)
+  }, [dataOrders, orderSearchTerm, combinedOrderFilter, filterOrders])
 
   useEffect(() => {
     setFilteredOrders(memoizedFilteredOrders)
@@ -783,8 +787,8 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             </Button>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-3">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
             <Input
               placeholder="Search orders..."
@@ -793,38 +797,42 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
               className="pl-10 w-full border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
             />
           </div>
-          <Select value={ordersFilterAdmin} onValueChange={setOrdersFilterAdmin}>
-            <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Filter Orders" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All Orders">All Orders</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Processing">Processing</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Canceled">Canceled</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+            <Select value={combinedOrderFilter} onValueChange={setCombinedOrderFilter}>
+              <SelectTrigger className="border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm w-full sm:w-64">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter Orders" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All Orders">All Orders</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Processing">Processing</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Canceled">Canceled</SelectItem>
+                <SelectItem value="Manual Orders">Manual Orders</SelectItem>
+                <SelectItem value="Wallet Orders">Wallet Orders</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         <div className="text-center py-16">
           <div className="mx-auto w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
             <Database className="h-12 w-12 text-emerald-600" />
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            {orderSearchTerm || ordersFilterAdmin !== "All Orders" ? "No matching orders found" : "No data orders yet"}
+            {orderSearchTerm || combinedOrderFilter !== "All Orders" ? "No matching orders found" : "No data orders yet"}
           </h3>
           <p className="text-gray-500 mb-6 max-w-md mx-auto">
-            {orderSearchTerm || ordersFilterAdmin !== "All Orders"
+            {orderSearchTerm || combinedOrderFilter !== "All Orders"
               ? "Try adjusting your search terms or filters to find what you're looking for."
               : "Data orders will appear here once agents start placing orders. The system is ready and waiting for new orders."}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {(orderSearchTerm || ordersFilterAdmin !== "All Orders") && (
+            {(orderSearchTerm || combinedOrderFilter !== "All Orders") && (
               <Button
                 onClick={() => {
                   setOrderSearchTerm("")
-                  setOrdersFilterAdmin("All Orders")
+                  setCombinedOrderFilter("All Orders")
                 }}
                 variant="outline"
                 className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
@@ -920,8 +928,8 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
               className="pl-10 w-full border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
             />
           </div>
-          <Select value={ordersFilterAdmin} onValueChange={setOrdersFilterAdmin}>
-            <SelectTrigger className="w-full sm:w-48 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
+          <Select value={combinedOrderFilter} onValueChange={setCombinedOrderFilter}>
+            <SelectTrigger className="w-full sm:w-56 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Filter Orders" />
             </SelectTrigger>
@@ -931,6 +939,8 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
               <SelectItem value="Processing">Processing</SelectItem>
               <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Canceled">Canceled</SelectItem>
+              <SelectItem value="Manual Orders">Manual Orders</SelectItem>
+              <SelectItem value="Wallet Orders">Wallet Orders</SelectItem>
             </SelectContent>
           </Select>
         </div>

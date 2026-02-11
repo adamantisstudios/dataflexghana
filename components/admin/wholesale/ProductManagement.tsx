@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { supabase } from "@/lib/supabase" // Declare the supabase variable here
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
@@ -50,6 +51,8 @@ export default function ProductManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All")
   const [statusFilter, setStatusFilter] = useState("All")
+  const [agentFilter, setAgentFilter] = useState("All")
+  const [agents, setAgents] = useState<Array<{ id: string; full_name: string }>>([])
   const [showProductDialog, setShowProductDialog] = useState(false)
   const [editingProduct, setEditingProduct] = useState<WholesaleProduct | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -129,12 +132,32 @@ export default function ProductManagement() {
 
   useEffect(() => {
     filterProducts()
-  }, [products, searchTerm, categoryFilter, statusFilter])
+  }, [products, searchTerm, categoryFilter, statusFilter, agentFilter])
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, categoryFilter, statusFilter])
+  }, [searchTerm, categoryFilter, statusFilter, agentFilter])
+
+  // Load agents who have publish permission
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("agents")
+          .select("id, full_name")
+          .eq("can_publish_products", true)
+          .order("full_name")
+
+        if (error) throw error
+        setAgents(data || [])
+      } catch (error) {
+        console.error("Error loading agents:", error)
+      }
+    }
+
+    loadAgents()
+  }, [])
 
   const loadProducts = async () => {
     try {
@@ -185,6 +208,11 @@ export default function ProductManagement() {
       // Apply status filter
       if (statusFilter !== "All") {
         filtered = filtered.filter((p) => (statusFilter === "Active" ? p.is_active : !p.is_active))
+      }
+
+      // Apply agent filter
+      if (agentFilter !== "All") {
+        filtered = filtered.filter((p) => p.created_by === agentFilter)
       }
 
       setFilteredProducts(filtered)
@@ -276,8 +304,8 @@ export default function ProductManagement() {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        const uploadedUrl = await uploadWholesaleProductImage(file, (progress) => {
-          setUploadProgress(Math.round(((i + progress.percentage / 100) / files.length) * 100))
+        const uploadedUrl = await uploadWholesaleProductImage(file, undefined, (progress) => {
+          setUploadProgress(Math.round(((i + progress / 100) / files.length) * 100))
         })
 
         // Add the uploaded URL to image_urls
@@ -565,7 +593,7 @@ export default function ProductManagement() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="border-emerald-200 focus:border-emerald-500">
                   <Filter className="h-4 w-4 mr-2" />
@@ -589,6 +617,20 @@ export default function ProductManagement() {
                   <SelectItem value="All">All Status</SelectItem>
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={agentFilter} onValueChange={setAgentFilter}>
+                <SelectTrigger className="border-emerald-200 focus:border-emerald-500">
+                  <SelectValue placeholder="Agent" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Agents</SelectItem>
+                  {agents.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {agent.full_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -664,7 +706,7 @@ export default function ProductManagement() {
                             <p className="text-xs text-emerald-600 mb-2 line-clamp-2" title={product.description}>
                               {product.description}
                             </p>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <Badge variant="outline" className="border-emerald-200 text-emerald-700 text-xs">
                                 {product.category}
                               </Badge>
@@ -677,6 +719,11 @@ export default function ProductManagement() {
                               >
                                 {product.is_active ? "Active" : "Inactive"}
                               </Badge>
+                              {product.created_by_name && (
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                                  {product.created_by_name}
+                                </Badge>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -760,6 +807,7 @@ export default function ProductManagement() {
                   <TableRow className="bg-emerald-50 hover:bg-emerald-50">
                     <TableHead className="text-emerald-800 font-semibold">Product</TableHead>
                     <TableHead className="text-emerald-800 font-semibold">Category</TableHead>
+                    <TableHead className="text-emerald-800 font-semibold">Agent</TableHead>
                     <TableHead className="text-emerald-800 font-semibold">Price</TableHead>
                     <TableHead className="text-emerald-800 font-semibold">Stock</TableHead>
                     <TableHead className="text-emerald-800 font-semibold">Commission</TableHead>
@@ -795,6 +843,15 @@ export default function ProductManagement() {
                         <Badge variant="outline" className="border-emerald-200 text-emerald-700">
                           {product.category}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {product.created_by_name ? (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            {product.created_by_name}
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-gray-500">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <span className="font-semibold text-emerald-800">GH₵ {product.price.toFixed(2)}</span>

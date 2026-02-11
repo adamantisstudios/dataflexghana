@@ -13,6 +13,7 @@ import {
   Building2,
   FileText,
   BookOpen,
+  Upload,
 } from "lucide-react";
 
 interface MenuCard {
@@ -159,6 +160,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       gradient: "linear-gradient(135deg, #43A047, #2E7D32)",
       buttonText: "SHOP BULK",
       onClick: () => handleMenuCardClick("wholesale"),
+    },
+    {
+      id: "publish-products",
+      title: "Publish Products",
+      description: "Upload products for wholesale",
+      icon: <Upload className="h-12 w-12" />,
+      image: "/images/publish-products.png",
+      gradient: "linear-gradient(135deg, #1976D2, #1565C0)",
+      buttonText: "PUBLISH NOW",
+      onClick: () => handleMenuCardClick("publish-products"),
     },
     {
       id: "profile",

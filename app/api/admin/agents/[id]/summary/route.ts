@@ -6,7 +6,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const agentId = params.id
+    // Handle awaitable params (Next.js 16 requirement)
+    const resolvedParams = await params
+    const agentId = resolvedParams.id
 
     if (!agentId) {
       return NextResponse.json(
@@ -15,10 +17,10 @@ export async function GET(
       )
     }
 
-    // Verify agent exists - handle commission column safely
+    // Verify agent exists - handle all necessary columns safely
     const { data: agent, error: agentError } = await supabase
       .from('agents')
-      .select('id, full_name, phone_number, wallet_balance, created_at')
+      .select('id, full_name, phone_number, wallet_balance, created_at, can_publish_products')
       .eq('id', agentId)
       .single()
 
@@ -196,7 +198,10 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching agent summary:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch agent summary' },
+      { 
+        error: 'Failed to fetch agent summary',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

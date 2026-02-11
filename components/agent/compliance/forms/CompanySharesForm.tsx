@@ -634,7 +634,7 @@ export function CompanySharesForm({ agentId, onComplete, onCancel }: CompanyShar
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-blue-800">Processing Cost:</span>
-                <span className="text-lg font-bold text-blue-600">1,900 GHS</span>
+                <span className="text-lg font-bold text-blue-600">1,930 GHS</span>
               </div>
               
               {/* COMMISSION SECTION ADDED HERE */}

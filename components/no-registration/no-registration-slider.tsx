@@ -26,20 +26,6 @@ interface SlideData {
 const slides: SlideData[] = [
   {
     id: 1,
-    title: "Affordable Data Bundles",
-    subtitle: "📱 No Registration Required",
-    description:
-      "Get the cheapest data bundles in Ghana from all networks. MTN, AirtelTigo, and Telecel at unbeatable prices with instant delivery.",
-    image: "/images/mtn-new.jpg",
-    gradient: "from-green-600 via-emerald-600 to-green-700",
-    primaryCTA: {
-      text: "Order Data Now",
-      href: "#networks",
-      color: "text-green-700",
-    },
-  },
-  {
-    id: 2,
     title: "ECG Prepaid Top-Up",
     subtitle: "⚡ Instant Service",
     description:
@@ -53,7 +39,7 @@ const slides: SlideData[] = [
     },
   },
   {
-    id: 3,
+    id: 2,
     title: "MiFi & Router Devices",
     subtitle: "📡 Quality Devices",
     description:
@@ -67,7 +53,7 @@ const slides: SlideData[] = [
     },
   },
   {
-    id: 4,
+    id: 3,
     title: "Software Installation",
     subtitle: "💻 Professional Service",
     description:
@@ -81,7 +67,7 @@ const slides: SlideData[] = [
     },
   },
   {
-    id: 5,
+    id: 4,
     title: "Business Registration Services",
     subtitle: "🏢 Legal & Compliance",
     description:
@@ -92,6 +78,20 @@ const slides: SlideData[] = [
       text: "Register Your Business",
       href: "#business-registration",
       color: "text-slate-700",
+    },
+  },
+  {
+    id: 5,
+    title: "Affordable Data Bundles",
+    subtitle: "📱 No Registration Required",
+    description:
+      "Get the cheapest data bundles in Ghana from all networks. MTN, AirtelTigo, and Telecel at unbeatable prices with instant delivery.",
+    image: "/images/mtn-new.jpg",
+    gradient: "from-green-600 via-emerald-600 to-green-700",
+    primaryCTA: {
+      text: "Order Data Now",
+      href: "#networks",
+      color: "text-green-700",
     },
   },
 ]

@@ -157,6 +157,32 @@ export default function NoRegistrationPage() {
               <CardContent className="p-0">
                 <div className="relative w-full h-40 overflow-hidden bg-gray-200">
                   <Image
+                    src="/candidates-slider-1.jpg"
+                    alt="Candidates Search Engine"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6 space-y-3">
+                  <h3 className="text-xl font-bold text-gray-900">Candidates Search Engine</h3>
+                  <p className="text-gray-600">Find and connect with qualified job seekers. Search for talented professionals ready to work and build your team.</p>
+                  <Button
+                    asChild
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white"
+                  >
+                    <Link href="/candidates-searchengine" className="flex items-center justify-center gap-2">
+                      <span>Search Candidates</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
+              <CardContent className="p-0">
+                <div className="relative w-full h-40 overflow-hidden bg-gray-200">
+                  <Image
                     src="/assets/slide2.jpg"
                     alt="Custom Fashion Design Service"
                     fill

@@ -412,7 +412,7 @@ export function PartnershipForm({ agentId, onComplete, onCancel }: PartnershipFo
             <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
-                <span className="text-lg font-bold text-emerald-600">1,410 GHS</span>
+                <span className="text-lg font-bold text-emerald-600">1,440 GHS</span>
               </div>
               
               {/* COMMISSION SECTION ADDED HERE */}

@@ -48,6 +48,8 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  Upload,
+  CheckCircle,
 } from "lucide-react"
 import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
@@ -1546,6 +1548,57 @@ DataFlex Ghana Agent 🇬🇭`
                       <Link href="/agent/wholesale">
                         <ShoppingBag className="h-4 w-4 mr-2" />
                         Browse Wholesale Products
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="publish-products" className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h2 className="text-2xl font-bold text-blue-800">Publish Products</h2>
+                  <Button
+                    asChild
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full sm:w-auto"
+                  >
+                    <Link href="/agent/publish-products">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Products
+                    </Link>
+                  </Button>
+                </div>
+                <Card className="w-full max-w-full border-blue-200 bg-white/90 backdrop-blur-sm">
+                  <CardContent className="pt-6 text-center py-12">
+                    <Upload className="h-16 w-16 mx-auto mb-4 text-blue-300" />
+                    <h3 className="text-xl font-semibold text-blue-800 mb-2">Upload Wholesale Products</h3>
+                    <p className="text-blue-600 mb-6">
+                      Share your products with the wholesale platform. Submit products for admin review and approval to make them available to other agents.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
+                      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <Upload className="h-8 w-8 mx-auto mb-1 text-blue-600" />
+                        <h4 className="font-semibold text-blue-800">Easy Submission</h4>
+                        <p className="text-sm text-blue-600">
+                          Submit products with images and details
+                        </p>
+                      </div>
+                      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <CheckCircle className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                        <h4 className="font-semibold text-blue-800">Quick Review</h4>
+                        <p className="text-sm text-blue-600">Admin reviews and approves your products</p>
+                      </div>
+                      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <TrendingUp className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                        <h4 className="font-semibold text-blue-800">Increase Visibility</h4>
+                        <p className="text-sm text-blue-600">Get your products seen by other agents</p>
+                      </div>
+                    </div>
+                    <Button
+                      asChild
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    >
+                      <Link href="/agent/publish-products">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Start Uploading
                       </Link>
                     </Button>
                   </CardContent>

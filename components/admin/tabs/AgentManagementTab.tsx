@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +31,7 @@ import {
   RefreshCw,
   FileText,
   Database,
+  Upload,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
@@ -49,6 +52,7 @@ interface Agent {
   is_approved: boolean
   region?: string
   commission_balance?: number
+  can_publish_products?: boolean
 }
 
 interface AgentTransactionSummary {
@@ -232,27 +236,46 @@ export default function AgentManagementTab() {
   const fetchAgentSummary = async (agentId: string) => {
     try {
       setOperationLoading(true)
+      
+      if (!agentId || agentId.trim() === "") {
+        console.error("[v0] No agent ID provided to fetchAgentSummary")
+        return
+      }
+      
       const response = await fetch(`/api/admin/agents/${agentId}/summary`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       })
-      if (!response.ok) {
-        throw new Error("Failed to fetch agent summary")
-      }
+      
       const responseText = await response.text()
+      
+      if (!response.ok) {
+        let errorMessage = "Failed to fetch agent summary"
+        try {
+          const errorData = JSON.parse(responseText)
+          errorMessage = errorData.error || errorMessage
+        } catch (e) {
+          // Continue with default error message
+        }
+        throw new Error(errorMessage)
+      }
+      
       try {
         const summary = JSON.parse(responseText)
         setAgentSummary(summary)
       } catch (parseError) {
         console.error("JSON parsing error:", parseError)
-        console.error("Response text:", responseText)
-        throw new Error("Invalid JSON response from server")
+        throw new Error("Invalid response format from server")
       }
     } catch (error) {
-      console.error("Error fetching agent summary:", error?.message || error)
-      toast.error("Failed to fetch agent transaction summary")
+      const errorMsg = error instanceof Error ? error.message : "Failed to fetch agent transaction summary"
+      console.error("[v0] Error fetching agent summary:", errorMsg)
+      // Only show toast for real errors, not for missing ID
+      if (errorMsg !== "Failed to fetch agent summary" && !errorMsg.includes("Agent ID")) {
+        toast.error(errorMsg)
+      }
     } finally {
       setOperationLoading(false)
     }
@@ -331,14 +354,103 @@ export default function AgentManagementTab() {
   }
 
   const handleViewDetails = async (agent: Agent) => {
-    setSelectedAgent(agent)
-    setShowDetailsDialog(true)
-    await fetchAgentSummary(agent.id)
+    try {
+      // Ensure agent has valid ID
+      if (!agent.id) {
+        console.error("Agent ID is missing")
+        toast.error("Failed to load agent details - Agent ID missing")
+        return
+      }
+
+      // Fetch fresh agent data including can_publish_products
+      const { data: freshAgent, error } = await supabase
+        .from("agents")
+        .select("id, full_name, phone_number, wallet_balance, created_at, can_publish_products, status, isapproved")
+        .eq("id", agent.id)
+        .single()
+
+      if (error || !freshAgent) {
+        console.error("Error fetching fresh agent data:", error)
+        setSelectedAgent(agent)
+      } else {
+        setSelectedAgent({
+          ...agent,
+          ...freshAgent,
+          can_publish_products: freshAgent.can_publish_products,
+          is_approved: freshAgent.isapproved,
+        })
+      }
+      
+      setShowDetailsDialog(true)
+      // Fetch summary with the verified agent ID
+      await fetchAgentSummary(agent.id)
+    } catch (error) {
+      console.error("Error in handleViewDetails:", error)
+      setShowDetailsDialog(true)
+    }
   }
 
   const handleClearRecords = (agent: Agent) => {
     setClearingAgent(agent)
     setShowClearDialog(true)
+  }
+
+  const togglePublishPermission = async (agent: Agent, newValue: boolean) => {
+    try {
+      setOperationLoading(true)
+      
+      // Guard: ensure agent has valid ID
+      if (!agent?.id) {
+        throw new Error("Agent ID is missing. Please close and reopen the agent details.")
+      }
+      
+      // Use API endpoint to update publish permission (avoids schema cache issues)
+      const response = await fetch(`/api/admin/agents/${agent.id}/publish-permission`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ can_publish_products: newValue }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update permission")
+      }
+
+      const result = await response.json()
+
+      // Update selected agent state immediately
+      if (selectedAgent && selectedAgent.id === agent.id) {
+        const updated = { ...selectedAgent, can_publish_products: newValue }
+        setSelectedAgent(updated)
+      }
+
+      // Update agents list
+      const updatedAgents = agents.map((a) => 
+        a.id === agent.id ? { ...a, can_publish_products: newValue } : a
+      )
+      setAgents(updatedAgents)
+      
+      // Update filtered agents list
+      const updatedFilteredAgents = filteredAgents.map((a) => 
+        a.id === agent.id ? { ...a, can_publish_products: newValue } : a
+      )
+      setFilteredAgents(updatedFilteredAgents)
+
+      toast.success(
+        `${newValue ? "Enabled" : "Disabled"} product publishing for ${agent.full_name}`
+      )
+    } catch (error) {
+      console.error("Error toggling publish permission:", error)
+      // Revert the UI state if DB update fails
+      if (selectedAgent && selectedAgent.id === agent.id) {
+        setSelectedAgent({ ...selectedAgent, can_publish_products: !newValue })
+      }
+      toast.error(error instanceof Error ? error.message : "Failed to update publishing permission")
+    } finally {
+      setOperationLoading(false)
+    }
   }
 
   if (loading) {
@@ -542,6 +654,17 @@ export default function AgentManagementTab() {
                       <Badge className="ml-2" variant={selectedAgent.is_approved ? "default" : "secondary"}>
                         {selectedAgent.is_approved ? "Approved" : "Pending"}
                       </Badge>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t">
+                      <div className="flex items-center gap-2">
+                        <Upload className="h-4 w-4 text-blue-600" />
+                        <strong>Can Publish Products:</strong>
+                      </div>
+                      <Switch
+                        checked={selectedAgent.can_publish_products || false}
+                        onCheckedChange={(checked) => togglePublishPermission(selectedAgent, checked)}
+                        disabled={operationLoading}
+                      />
                     </div>
                   </CardContent>
                 </Card>
