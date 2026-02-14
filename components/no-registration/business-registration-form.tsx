@@ -36,7 +36,7 @@ const NEW_BUSINESS_SERVICES: Service[] = [
     name: "Sole Proprietorship",
     category: "new",
     subcategory: "Sole Proprietorship",
-    price: 550,
+    price: 580,
     description: "Register a sole proprietorship business with all required documents and nationwide delivery",
     requiredDocs: [
       "Valid Ghana ID (Ghana Card)",
@@ -59,7 +59,7 @@ const NEW_BUSINESS_SERVICES: Service[] = [
     name: "Limited Liability Company (LLC)",
     category: "new",
     subcategory: "Limited Liability Company",
-    price: 1900,
+    price: 1930,
     description: "Incorporate a Limited Liability Company with full legal compliance (excludes stated capital)",
     requiredDocs: [
       "Ghana Card and TIN for at least two directors",
@@ -85,7 +85,7 @@ const NEW_BUSINESS_SERVICES: Service[] = [
     name: "Company Limited by Guarantee",
     category: "new",
     subcategory: "Company Limited by Guarantee",
-    price: 1414,
+    price: 1444,
     description: "Register a company with limited liability by guarantee structure",
     requiredDocs: [
       "Details of two subscribers or members",
@@ -110,7 +110,7 @@ const NEW_BUSINESS_SERVICES: Service[] = [
     name: "Subsidiary Company Registration",
     category: "new",
     subcategory: "Subsidiary Company",
-    price: 700,
+    price: 730,
     description: "Register a subsidiary company for an existing foreign parent company",
     requiredDocs: [
       "Certificate of incorporation of the foreign parent company",
@@ -132,7 +132,7 @@ const NEW_BUSINESS_SERVICES: Service[] = [
     name: "Partnership Registration",
     category: "new",
     subcategory: "Partnership",
-    price: 1410,
+    price: 1440,
     description: "Register a business partnership with multiple partners",
     requiredDocs: [
       "Partnership deed signed by all partners",
@@ -159,7 +159,7 @@ const RENEWAL_SERVICES: Service[] = [
     name: "Sole Proprietorship Renewal",
     category: "renewal",
     subcategory: "Sole Proprietorship",
-    price: 220,
+    price: 250,
     description: "Renew sole proprietorship registration for another year with compliance",
     requiredDocs: [
       "Current business registration certificate",
@@ -179,7 +179,7 @@ const RENEWAL_SERVICES: Service[] = [
     name: "Limited Liability Company Annual Return",
     category: "renewal",
     subcategory: "Limited Liability Company",
-    price: 700,
+    price: 730,
     description: "File annual returns and maintain LLC registration compliance",
     requiredDocs: [
       "Updated company details",
@@ -201,7 +201,7 @@ const RENEWAL_SERVICES: Service[] = [
     name: "Company Limited by Guarantee Annual Return",
     category: "renewal",
     subcategory: "Company Limited by Guarantee",
-    price: 700,
+    price: 730,
     description: "File annual returns for guarantee company compliance",
     requiredDocs: [
       "Annual report of activities",
@@ -222,7 +222,7 @@ const RENEWAL_SERVICES: Service[] = [
     name: "Subsidiary Company Annual Return",
     category: "renewal",
     subcategory: "Subsidiary Company",
-    price: 390,
+    price: 420,
     description: "File annual returns for subsidiary company compliance",
     requiredDocs: [
       "Authorization from parent company",
@@ -242,7 +242,7 @@ const RENEWAL_SERVICES: Service[] = [
     name: "Partnership Annual Return",
     category: "renewal",
     subcategory: "Partnership",
-    price: 370,
+    price: 400,
     description: "Renew partnership registration annually with updated information",
     requiredDocs: [
       "Updated partnership information",
@@ -266,7 +266,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Sole Proprietorship - Change of Name",
     category: "amendment",
     subcategory: "Sole Proprietorship",
-    price: 410,
+    price: 440,
     description: "Change business name for sole proprietorship with RGD registration",
     requiredDocs: [
       "Current business registration certificate",
@@ -286,7 +286,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Sole Proprietorship - Change of Business Nature",
     category: "amendment",
     subcategory: "Sole Proprietorship",
-    price: 410,
+    price: 440,
     description: "Update business nature or activities for sole proprietorship",
     requiredDocs: [
       "Current registration certificate",
@@ -305,7 +305,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Sole Proprietorship - Change of Contact Details",
     category: "amendment",
     subcategory: "Sole Proprietorship",
-    price: 410,
+    price: 440,
     description: "Update contact information or address for sole proprietorship",
     requiredDocs: ["Current registration certificate", "Proof of new address", "Completed Form 11"],
     deliverables: [
@@ -320,7 +320,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Sole Proprietorship - Change of Ownership",
     category: "amendment",
     subcategory: "Sole Proprietorship",
-    price: 510,
+    price: 540,
     description: "Transfer business ownership to another person",
     requiredDocs: [
       "Signed transfer agreement",
@@ -340,7 +340,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Change of Name",
     category: "amendment",
     subcategory: "Limited Liability Company",
-    price: 990,
+    price: 1020,
     description: "Change company name for LLC with shareholder approval",
     requiredDocs: [
       "Board resolution approving name change",
@@ -361,7 +361,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Change of Business Nature",
     category: "amendment",
     subcategory: "Limited Liability Company",
-    price: 590,
+    price: 620,
     description: "Amend company objectives and business scope",
     requiredDocs: [
       "Board resolution approving change",
@@ -381,7 +381,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Change of Contact Details",
     category: "amendment",
     subcategory: "Limited Liability Company",
-    price: 520,
+    price: 550,
     description: "Update registered office address or contact information",
     requiredDocs: [
       "Board resolution approving address change",
@@ -400,7 +400,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Change of Auditors",
     category: "amendment",
     subcategory: "Limited Liability Company",
-    price: 520,
+    price: 550,
     description: "Appoint new auditors for the company",
     requiredDocs: [
       "Board resolution appointing new auditors",
@@ -420,7 +420,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Change of Directors/Secretary",
     category: "amendment",
     subcategory: "Limited Liability Company",
-    price: 530,
+    price: 560,
     description: "Update directors or company secretary",
     requiredDocs: [
       "Board resolution for the change",
@@ -441,7 +441,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Increased Stated Capital",
     category: "amendment",
     subcategory: "Limited Liability Company",
-    price: 1430,
+    price: 1460,
     description: "Increase company stated capital (excludes stated capital amount)",
     requiredDocs: [
       "Special resolution approving capital increase",
@@ -462,7 +462,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Transfer of Shares",
     category: "amendment",
     subcategory: "Limited Liability Company",
-    price: 1740,
+    price: 1770,
     description: "Transfer shares between shareholders",
     requiredDocs: [
       "Share transfer forms signed by transferor and transferee",
@@ -483,7 +483,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Change of Name",
     category: "amendment",
     subcategory: "Company Limited by Guarantee",
-    price: 690,
+    price: 720,
     description: "Change company name for guarantee company",
     requiredDocs: [
       "Special resolution approving name change",
@@ -503,7 +503,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Change of Objectives",
     category: "amendment",
     subcategory: "Company Limited by Guarantee",
-    price: 100,
+    price: 130,
     description: "Amend company objectives and mission statement",
     requiredDocs: [
       "Special resolution changing objectives",
@@ -522,7 +522,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Change of Contact Details",
     category: "amendment",
     subcategory: "Company Limited by Guarantee",
-    price: 530,
+    price: 560,
     description: "Update registered office address or contact information",
     requiredDocs: ["Board resolution approving change", "Proof of new address", "Current registration documents"],
     deliverables: [
@@ -537,7 +537,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Change of Auditors",
     category: "amendment",
     subcategory: "Company Limited by Guarantee",
-    price: 520,
+    price: 550,
     description: "Appoint new auditors for the guarantee company",
     requiredDocs: [
       "Board resolution appointing new auditors",
@@ -556,7 +556,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Change of Directors/Secretary",
     category: "amendment",
     subcategory: "Company Limited by Guarantee",
-    price: 530,
+    price: 560,
     description: "Update directors or company secretary",
     requiredDocs: [
       "Board resolution for the change",
@@ -576,7 +576,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Change of Subscriber",
     category: "amendment",
     subcategory: "Company Limited by Guarantee",
-    price: 590,
+    price: 620,
     description: "Add or remove members/subscribers",
     requiredDocs: [
       "Board resolution approving change",
@@ -595,7 +595,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Subsidiary Company - Change of Name",
     category: "amendment",
     subcategory: "Subsidiary Company",
-    price: 490,
+    price: 520,
     description: "Change subsidiary company name with parent authorization",
     requiredDocs: [
       "Parent company resolution authorizing name change",
@@ -615,7 +615,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Subsidiary Company - Change of Business Nature",
     category: "amendment",
     subcategory: "Subsidiary Company",
-    price: 490,
+    price: 520,
     description: "Update subsidiary business activities",
     requiredDocs: [
       "Parent company authorization letter",
@@ -635,7 +635,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Subsidiary Company - Change of Contact Details",
     category: "amendment",
     subcategory: "Subsidiary Company",
-    price: 420,
+    price: 450,
     description: "Update subsidiary contact address or information",
     requiredDocs: ["Parent company resolution", "Proof of new address", "Current registration certificate"],
     deliverables: [
@@ -650,7 +650,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Partnership - Change of Name",
     category: "amendment",
     subcategory: "Partnership",
-    price: 630,
+    price: 660,
     description: "Change partnership business name",
     requiredDocs: [
       "Amended partnership agreement",
@@ -670,7 +670,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Partnership - Change of Business Nature",
     category: "amendment",
     subcategory: "Partnership",
-    price: 480,
+    price: 510,
     description: "Update partnership business activities",
     requiredDocs: [
       "Updated partnership deed",
@@ -689,7 +689,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Partnership - Change of Contact Details",
     category: "amendment",
     subcategory: "Partnership",
-    price: 480,
+    price: 510,
     description: "Update partnership address or contact information",
     requiredDocs: ["Partnership resolution", "Proof of new address", "Current registration documents"],
     deliverables: [
@@ -704,7 +704,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Partnership - Change of Partners",
     category: "amendment",
     subcategory: "Partnership",
-    price: 690,
+    price: 720,
     description: "Add or remove partners from the partnership",
     requiredDocs: [
       "New partnership deed including all partners",
@@ -726,7 +726,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Special Resolution - Change of Name",
     category: "amendment",
     subcategory: "Special Resolutions",
-    price: 680,
+    price: 710,
     description: "Apply special resolution for company name change",
     requiredDocs: [
       "Special resolution certificate",
@@ -746,7 +746,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Special Resolution - Update of Business Nature",
     category: "amendment",
     subcategory: "Special Resolutions",
-    price: 490,
+    price: 520,
     description: "Apply special resolution for business scope changes",
     requiredDocs: [
       "Special resolution document",
@@ -765,7 +765,7 @@ const AMENDMENT_SERVICES: Service[] = [
     name: "Special Resolution - Deed of Transfer",
     category: "amendment",
     subcategory: "Special Resolutions",
-    price: 1630,
+    price: 1660,
     description: "Apply special resolution for company ownership transfer",
     requiredDocs: [
       "Signed transfer deed",
@@ -789,7 +789,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Sole Proprietorship - Certificate of Registration Replacement",
     category: "replacement",
     subcategory: "Sole Proprietorship",
-    price: 390,
+    price: 420,
     description: "Replace lost or damaged Certificate of Registration",
     requiredDocs: [
       "Police extract for lost documents",
@@ -810,7 +810,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Sole Proprietorship - Form A Replacement",
     category: "replacement",
     subcategory: "Sole Proprietorship",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Form A",
     requiredDocs: [
       "Police extract for lost documents",
@@ -831,7 +831,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Certificate of Incorporation Replacement",
     category: "replacement",
     subcategory: "Limited Liability Company",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Certificate of Incorporation",
     requiredDocs: [
       "Police report for lost certificate",
@@ -853,7 +853,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Certificate of Commencement Replacement",
     category: "replacement",
     subcategory: "Limited Liability Company",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Certificate of Commencement",
     requiredDocs: [
       "Police report for lost certificate",
@@ -874,7 +874,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Regulations Replacement",
     category: "replacement",
     subcategory: "Limited Liability Company",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Company Regulations",
     requiredDocs: [
       "Police report for lost regulations",
@@ -895,7 +895,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Form 3 Replacement",
     category: "replacement",
     subcategory: "Limited Liability Company",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Form 3",
     requiredDocs: [
       "Police report for lost form",
@@ -916,7 +916,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Limited Liability Company - Form 4 Replacement",
     category: "replacement",
     subcategory: "Limited Liability Company",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Form 4",
     requiredDocs: [
       "Police report for lost form",
@@ -937,7 +937,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Certificate of Incorporation Replacement",
     category: "replacement",
     subcategory: "Company Limited by Guarantee",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Certificate of Incorporation",
     requiredDocs: [
       "Police report for lost certificate",
@@ -958,7 +958,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Certificate of Commencement Replacement",
     category: "replacement",
     subcategory: "Company Limited by Guarantee",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Certificate of Commencement",
     requiredDocs: [
       "Police report for lost certificate",
@@ -979,7 +979,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Regulations Replacement",
     category: "replacement",
     subcategory: "Company Limited by Guarantee",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Company Regulations",
     requiredDocs: [
       "Police report for lost regulations",
@@ -1000,7 +1000,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Company Limited by Guarantee - Form 3B Replacement",
     category: "replacement",
     subcategory: "Company Limited by Guarantee",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Form 3B",
     requiredDocs: [
       "Police report for lost form",
@@ -1021,7 +1021,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Subsidiary Company - Certificate of Registration Replacement",
     category: "replacement",
     subcategory: "Subsidiary Company",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Certificate of Registration",
     requiredDocs: [
       "Police report for lost certificate",
@@ -1042,7 +1042,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Subsidiary Company - Form C Replacement",
     category: "replacement",
     subcategory: "Subsidiary Company",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Form C",
     requiredDocs: [
       "Police report for lost form",
@@ -1063,7 +1063,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Partnership - Certificate of Registration Replacement",
     category: "replacement",
     subcategory: "Partnership",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Certificate of Registration",
     requiredDocs: [
       "Police report for lost certificate",
@@ -1084,7 +1084,7 @@ const REPLACEMENT_SERVICES: Service[] = [
     name: "Partnership - Form B Replacement",
     category: "replacement",
     subcategory: "Partnership",
-    price: 330,
+    price: 360,
     description: "Replace lost or damaged Form B",
     requiredDocs: [
       "Police report for lost form",
@@ -1205,7 +1205,6 @@ Please confirm receipt and let us know if you need any clarifications.`
                     </TabsTrigger>
                   ))}
                 </TabsList>
-
 
                 {CATEGORIES.map((cat) => (
                   <TabsContent key={cat.id} value={cat.id}>

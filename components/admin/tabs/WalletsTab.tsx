@@ -630,30 +630,34 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           retriesUsed: retryCount,
         })
 
-        // OPTIMIZATION: Update UI locally instead of fetching all data
-        // Update wallet topups state
-        setWalletTopups((prev) =>
-          prev.map((t) =>
-            t.id === topupId
-              ? { ...t, status: "approved", approved_at: new Date().toISOString(), approved_by: admin?.id }
-              : t,
-          ),
-        )
-
-        // Update wallet transactions state with new transaction
-        const newTransaction = insertedTransaction?.[0] || {
-          ...safeTransaction,
-          id: `new-${Date.now()}`,
-          created_at: new Date().toISOString(),
-          agents: topup.agents,
+        // Refresh data after successful balance sync
+        const fetchWalletTopups = async () => {
+          const { data } = await supabase
+            .from("wallet_topups")
+            .select(`*, agents (full_name, phone_number)`)
+            .order("created_at", { ascending: false })
+          setWalletTopups(data || [])
         }
-        setWalletTransactions((prev) => [newTransaction, ...prev])
 
-        // Update agent live balances map for this agent
-        setAgentLiveBalances((prev) => new Map(prev).set(topup.agent_id, correctBalance))
+        const fetchWalletTransactions = async () => {
+          const { data } = await supabase
+            .from("wallet_transactions")
+            .select(`*, agents (full_name, phone_number, wallet_balance)`)
+            .order("created_at", { ascending: false })
+          setWalletTransactions(data || [])
+          setCachedData(data || [])
+        }
 
-        // Update cached data
-        setCachedData((prev) => [newTransaction, ...prev])
+        const fetchAgents = async () => {
+          const { data } = await supabase.from("agents").select("*").order("full_name", { ascending: true })
+          setAgents(data || [])
+        }
+
+        await Promise.all([
+          fetchWalletTopups(),
+          fetchWalletTransactions(),
+          fetchAgents(), // This will show the updated balance in the UI
+        ])
 
         alert(`Wallet top-up approved successfully! New balance: GH₵${correctBalance.toFixed(2)}`)
       } catch (balanceError) {
@@ -733,22 +737,24 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     try {
       const { error } = await supabase
         .from("wallet_topups")
-        .update({ status: "rejected", rejected_at: new Date().toISOString() })
+        .update({
+          status: "rejected",
+          approved_by: admin?.id,
+        })
         .eq("id", topupId)
       if (error) throw error
-      // OPTIMIZATION: Update state locally instead of re-fetching
-      setWalletTopups((prev) =>
-        prev.map((t) =>
-          t.id === topupId ? { ...t, status: "rejected", rejected_at: new Date().toISOString() } : t,
-        ),
-      )
       alert("Wallet top-up rejected successfully!")
+      // Reload topups
+      const { data: topupsData } = await supabase
+        .from("wallet_topups")
+        .select(`*, agents (full_name, phone_number)`)
+        .order("created_at", { ascending: false })
+      setWalletTopups(topupsData || [])
     } catch (error) {
       console.error("Error rejecting wallet top-up:", error)
       alert("Failed to reject wallet top-up")
     }
   }
-
   const deleteWalletTopup = async (topupId: string) => {
     try {
       const topup = walletTopups.find((t) => t.id === topupId)
