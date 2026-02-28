@@ -1,7 +1,7 @@
 export const runtime = "nodejs"
 
 import { type NextRequest, NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 async function readFileBuffer(file: File): Promise<Buffer> {
   const arrayBuffer = await file.arrayBuffer()
