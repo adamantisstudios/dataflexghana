@@ -283,66 +283,76 @@ export function PassportForm({ agentId, onComplete, onCancel }: PassportFormProp
 
   return (
     <>
+      {/* Cost Selection Popup */}
       {showCostPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 sm:p-4">
-          <Card className="w-full max-w-2xl border-blue-300 bg-white shadow-2xl max-h-[95vh] overflow-y-auto">
-            <CardHeader className="pb-3 sticky top-0 bg-white border-b-2 border-blue-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+          <Card className="relative max-w-sm w-full border-blue-300 bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+            {/* Close button */}
+            <button
+              onClick={() => setShowCostPopup(false)}
+              className="absolute right-2 top-2 z-10 p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <CardHeader className="p-3 pb-1">
+              <div className="flex items-start gap-2">
+                <div className="bg-blue-100 rounded-lg p-1.5 flex-shrink-0">
                   <FileText className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg sm:text-xl text-blue-600">Passport Processing Options</CardTitle>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                    Select your preferred processing speed to continue
-                  </p>
+                  <CardTitle className="text-blue-600 text-base">Passport Processing</CardTitle>
+                  <p className="text-xs text-gray-600 mt-0.5">Select processing option</p>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4 p-3 sm:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+            <CardContent className="p-3 pt-0 space-y-3">
+              <div className="space-y-2">
+                <p className="text-xs text-gray-700 font-medium">Choose your speed:</p>
                 {PASSPORT_COST_TIERS.map((tier) => (
                   <div
                     key={tier.id}
                     onClick={() => setSelectedCostTier(tier)}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all flex flex-col ${
+                    className={`p-2 rounded border-2 cursor-pointer transition-all ${
                       selectedCostTier?.id === tier.id
-                        ? "border-blue-600 bg-blue-50 ring-2 ring-blue-300 shadow-md"
+                        ? "border-blue-600 bg-blue-50 ring-1 ring-blue-300"
                         : "border-blue-200 bg-white hover:border-blue-400 hover:bg-blue-50/50"
                     }`}
                   >
-                    <div className="flex-1">
-                      <h4 className="font-bold text-sm sm:text-base text-blue-800">{tier.description}</h4>
-                      <p className="text-xs sm:text-sm text-gray-600 font-medium mt-1">{tier.days}</p>
-                      <p className="text-xs text-gray-500 mt-2 line-clamp-2">{tier.delivery}</p>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-blue-200">
-                      <span className="text-2xl sm:text-3xl font-bold text-blue-600">₵{tier.cost}</span>
-                      <p className="text-xs text-gray-500 mt-1">+ ₵{COMMISSION_AMOUNT} commission</p>
-                    </div>
-                    {selectedCostTier?.id === tier.id && (
-                      <div className="mt-3 flex items-center justify-center gap-1 bg-blue-100 py-2 rounded-md">
-                        <span className="text-xs sm:text-sm font-semibold text-blue-700">✓ Selected</span>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-blue-800 text-sm truncate">{tier.description}</h4>
+                        <p className="text-xs text-gray-600">{tier.days}</p>
                       </div>
-                    )}
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-lg font-bold text-blue-600">₵{tier.cost}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-xs mt-1">
+                      <span className="text-gray-600 truncate">{tier.delivery}</span>
+                      {selectedCostTier?.id === tier.id && (
+                        <span className="text-blue-700 font-medium flex-shrink-0">✓ Selected</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">+ ₵{COMMISSION_AMOUNT} commission</p>
                   </div>
                 ))}
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mt-4">
-                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                  <span className="font-semibold text-blue-800">Fee includes:</span> Processing, registration with government authorities, and nationwide delivery to your preferred location.
-                </p>
-              </div>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Fee covers processing, registration, and nationwide delivery.
+              </p>
 
               <Button
                 onClick={() => setShowCostPopup(false)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 sm:py-3 mt-4 text-sm sm:text-base"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 h-auto"
                 disabled={!selectedCostTier}
               >
                 {selectedCostTier
-                  ? `Continue with ₵${selectedCostTier.cost}`
-                  : "Please Select an Option"}
+                  ? `Continue (₵${selectedCostTier.cost} + ₵${COMMISSION_AMOUNT})`
+                  : "Select an Option"}
               </Button>
             </CardContent>
           </Card>

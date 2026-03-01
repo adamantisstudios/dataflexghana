@@ -334,67 +334,71 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   return (
     <>
       {showCostPopup && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full border-emerald-300 bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Baby className="h-6 w-6 text-emerald-600" />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+          <Card className="relative max-w-sm w-full border-emerald-300 bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+            {/* Close button */}
+            <button
+              onClick={() => setShowCostPopup(false)}
+              className="absolute right-2 top-2 z-10 p-1 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <CardHeader className="p-3 pb-1">
+              <div className="flex items-start gap-2">
+                <Baby className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <CardTitle className="text-emerald-600">Birth Certificate Processing Options</CardTitle>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Select your preferred processing option to continue
-                  </p>
+                  <CardTitle className="text-emerald-600 text-base">Birth Certificate</CardTitle>
+                  <p className="text-xs text-gray-600 mt-0.5">Select processing option</p>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <p className="text-sm text-gray-700 font-semibold">
-                  Choose your processing speed and cost:
-                </p>
+            <CardContent className="p-3 pt-0 space-y-3">
+              <div className="space-y-2">
+                <p className="text-xs text-gray-700 font-medium">Choose your speed:</p>
                 {BIRTH_CERT_COST_TIERS.map((tier) => (
                   <div
                     key={tier.id}
                     onClick={() => setSelectedCostTier(tier)}
-                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`p-2 rounded border-2 cursor-pointer transition-all ${
                       selectedCostTier?.id === tier.id
-                        ? "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-300"
+                        ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-300"
                         : "border-emerald-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/50"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-emerald-800">{tier.description}</h4>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-emerald-800 text-sm truncate">{tier.description}</h4>
                         <p className="text-xs text-gray-600">{tier.days}</p>
                       </div>
-                      <div className="text-right ml-4">
-                        <span className="text-xl font-bold text-emerald-600">₵{tier.cost}</span>
-                        <p className="text-xs text-gray-500">+ ₵{COMMISSION_AMOUNT} commission</p>
+                      <div className="text-right flex-shrink-0">
+                        <span className="text-lg font-bold text-emerald-600">₵{tier.cost}</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600 mt-1">{tier.delivery}</p>
-                    {selectedCostTier?.id === tier.id && (
-                      <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center gap-1">
-                        <span className="text-xs font-semibold text-emerald-700">✓ Selected</span>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between text-xs mt-1">
+                      <span className="text-gray-600">{tier.delivery}</span>
+                      {selectedCostTier?.id === tier.id && (
+                        <span className="text-emerald-700 font-medium">✓ Selected</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">+ ₵{COMMISSION_AMOUNT} commission</p>
                   </div>
                 ))}
               </div>
 
-              <p className="text-xs text-gray-600 leading-relaxed mt-2">
-                This fee covers the processing and registration of your birth certificate application with government authorities.
-                Nationwide delivery is included for all options.
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Fee covers processing and registration. Delivery nationwide.
               </p>
 
               <Button
                 onClick={() => setShowCostPopup(false)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 mt-3"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-2 h-auto"
                 disabled={!selectedCostTier}
               >
                 {selectedCostTier
-                  ? `Continue with ₵${selectedCostTier.cost} Option`
-                  : "Please Select an Option Above"}
+                  ? `Continue (₵${selectedCostTier.cost} + ₵${COMMISSION_AMOUNT})`
+                  : "Select an Option"}
               </Button>
             </CardContent>
           </Card>

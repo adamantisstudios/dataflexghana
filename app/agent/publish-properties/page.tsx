@@ -188,7 +188,7 @@ export default function PublishPropertiesPage() {
             {permissions.canPublish && (
               <TabsTrigger value="publish" className="gap-2">
                 <Upload className="h-4 w-4" />
-                Publish New Properties
+                Publish Properties
               </TabsTrigger>
             )}
             {permissions.canUpdate && (

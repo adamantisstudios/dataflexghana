@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Edit, Trash2, Search, Filter, AlertCircle } from "lucide-react"
+import { Edit, Trash2, Search, AlertCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 
@@ -312,7 +312,7 @@ export default function AgentEditProperties({ agentId, canUpdateProperties = tru
             <div className="grid grid-cols-2 gap-3">
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="border-amber-200">
-                  <SelectValue />
+                  <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Categories</SelectItem>
@@ -326,7 +326,7 @@ export default function AgentEditProperties({ agentId, canUpdateProperties = tru
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="border-amber-200">
-                  <SelectValue />
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Status</SelectItem>
@@ -339,11 +339,11 @@ export default function AgentEditProperties({ agentId, canUpdateProperties = tru
         </CardContent>
       </Card>
 
-      {/* Properties Grid - Responsive Size */}
+      {/* Properties Grid */}
       <div className={`grid ${isReadOnly ? 'grid-cols-1 md:grid-cols-2 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}`}>
         {filteredProperties.map((property) => (
           <Card key={property.id} className={`border-amber-200 hover:border-amber-400 transition-all overflow-hidden ${isReadOnly ? 'shadow-sm' : ''}`}>
-            {/* Property Image - Smaller for read-only */}
+            {/* Property Image */}
             {property.image_urls && property.image_urls.length > 0 ? (
               <div className={`relative w-full ${isReadOnly ? 'h-32' : 'h-48'} bg-gray-100 overflow-hidden`}>
                 <img
@@ -355,7 +355,7 @@ export default function AgentEditProperties({ agentId, canUpdateProperties = tru
                   }}
                 />
                 {property.image_urls.length > 1 && (
-                  <div className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded text-xs">
+                  <div className="absolute top-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
                     +{property.image_urls.length - 1}
                   </div>
                 )}
@@ -381,7 +381,7 @@ export default function AgentEditProperties({ agentId, canUpdateProperties = tru
               </div>
             </CardHeader>
 
-            <CardContent className={`space-y-2 ${isReadOnly ? 'pb-2' : 'pb-0'}`}>
+            <CardContent className={`space-y-2 ${isReadOnly ? 'pb-2' : 'pb-3'}`}>  {/* Increased bottom padding for editable cards */}
               <div className={`grid grid-cols-2 gap-1.5 ${isReadOnly ? 'text-xs' : 'text-sm'}`}>
                 <div>
                   <p className="text-gray-500 text-xs">Price</p>
@@ -481,7 +481,7 @@ export default function AgentEditProperties({ agentId, canUpdateProperties = tru
               <Label htmlFor="category">Category *</Label>
               <Select value={formData.category} onValueChange={handleCategoryChange}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
                   {PROPERTY_CATEGORIES.map((cat) => (

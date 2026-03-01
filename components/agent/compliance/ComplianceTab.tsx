@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -184,12 +185,12 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Compliance</CardTitle>
+          <CardTitle className="text-base">Compliance</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <AlertCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
-            <p className="text-sm text-red-500">Please log in again</p>
+          <div className="text-center py-6">
+            <AlertCircle className="h-6 w-6 text-red-400 mx-auto mb-2" />
+            <p className="text-xs text-red-500">Please log in again</p>
           </div>
         </CardContent>
       </Card>
@@ -198,10 +199,10 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-40">
+      <div className="flex items-center justify-center h-32">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-sm text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-xs text-gray-600">Loading...</p>
         </div>
       </div>
     )
@@ -210,14 +211,14 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
   if (activeFormId) {
     const selectedForm = AVAILABLE_FORMS.find((f) => f.id === activeFormId)
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Button variant="outline" size="icon" onClick={handleFormCancel} className="shrink-0 bg-transparent h-8 w-8">
-            <ArrowLeft className="h-4 w-4" />
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={handleFormCancel} className="shrink-0 bg-transparent h-7 w-7">
+            <ArrowLeft className="h-3.5 w-3.5" />
           </Button>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">{selectedForm?.form_name}</h2>
-            <p className="text-sm text-gray-500">{selectedForm?.form_description}</p>
+            <h2 className="text-base font-bold text-gray-900">{selectedForm?.form_name}</h2>
+            <p className="text-xs text-gray-500">{selectedForm?.form_description}</p>
           </div>
         </div>
         {activeFormId === "birth-certificate" && (
@@ -249,75 +250,75 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Compliance</h2>
-          <p className="text-sm text-gray-500">Submit & track forms</p>
+          <h2 className="text-base font-bold text-gray-900">Compliance</h2>
+          <p className="text-xs text-gray-500">Submit & track forms</p>
         </div>
-        <Button onClick={() => setShowFormDialog(true)} size="sm" className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => setShowFormDialog(true)} size="sm" className="bg-blue-600 hover:bg-blue-700 h-8 px-3">
           <Plus className="h-3.5 w-3.5 mr-1" />
           New
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
         <Card className="p-2">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Pending</p>
-              <p className="text-lg font-bold text-yellow-600">{statusCounts.pending}</p>
+              <p className="text-base font-bold text-yellow-600">{statusCounts.pending}</p>
             </div>
-            <Clock className="h-6 w-6 text-yellow-600 opacity-20" />
+            <Clock className="h-5 w-5 text-yellow-600 opacity-20" />
           </div>
         </Card>
         <Card className="p-2">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Processing</p>
-              <p className="text-lg font-bold text-blue-600">{statusCounts.processing}</p>
+              <p className="text-base font-bold text-blue-600">{statusCounts.processing}</p>
             </div>
-            <AlertCircle className="h-6 w-6 text-blue-600 opacity-20" />
+            <AlertCircle className="h-5 w-5 text-blue-600 opacity-20" />
           </div>
         </Card>
         <Card className="p-2">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Completed</p>
-              <p className="text-lg font-bold text-green-600">{statusCounts.completed}</p>
+              <p className="text-base font-bold text-green-600">{statusCounts.completed}</p>
             </div>
-            <CheckCircle className="h-6 w-6 text-green-600 opacity-20" />
+            <CheckCircle className="h-5 w-5 text-green-600 opacity-20" />
           </div>
         </Card>
         <Card className="p-2">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Delivered</p>
-              <p className="text-lg font-bold text-purple-600">{statusCounts.delivered}</p>
+              <p className="text-base font-bold text-purple-600">{statusCounts.delivered}</p>
             </div>
-            <Truck className="h-6 w-6 text-purple-600 opacity-20" />
+            <Truck className="h-5 w-5 text-purple-600 opacity-20" />
           </div>
         </Card>
       </div>
 
       <Dialog open={showFormDialog} onOpenChange={setShowFormDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-sm p-4">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Select Form</DialogTitle>
+            <DialogTitle className="text-base font-bold">Select Form</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-3 mt-4">
+          <div className="grid grid-cols-1 gap-2 mt-2">
             {AVAILABLE_FORMS.map((form) => {
               const Icon = form.icon
               return (
                 <Card
                   key={form.id}
-                  className={`border-2 transition-all cursor-pointer p-3 ${form.color}`}
+                  className={`border-2 transition-all cursor-pointer p-2 ${form.color}`}
                   onClick={() => handleFormSelect(form.id)}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`h-8 w-8 ${form.iconColor}`} />
+                  <div className="flex items-center gap-2">
+                    <Icon className={`h-5 w-5 ${form.iconColor}`} />
                     <div>
-                      <h3 className="font-medium text-sm">{form.form_name}</h3>
+                      <h3 className="font-medium text-xs">{form.form_name}</h3>
                       <p className="text-xs text-gray-500">{form.form_description}</p>
                     </div>
                   </div>
@@ -329,7 +330,7 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
       </Dialog>
 
       <Card>
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 px-3 pt-3">
           <CardTitle className="text-sm">Your Submissions</CardTitle>
         </CardHeader>
         <CardContent className="p-2">

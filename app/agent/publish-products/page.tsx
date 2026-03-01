@@ -432,7 +432,7 @@ export default function PublishProductsPage() {
           <TabsList className="bg-emerald-100 border border-emerald-200">
             <TabsTrigger value="publish" className="gap-2">
               <Upload className="h-4 w-4" />
-              Publish New Products
+              Publish Products
             </TabsTrigger>
             <TabsTrigger value="edit" className="gap-2">
               <Edit className="h-4 w-4" />

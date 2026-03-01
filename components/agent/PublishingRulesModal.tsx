@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, CheckCircle } from "lucide-react"
 
@@ -76,7 +75,7 @@ const RULES = [
   },
 ]
 
-function PublishingRulesModal({ open, onOpenChange }: PublishingRulesModalProps) {
+export default function PublishingRulesModal({ open, onOpenChange }: PublishingRulesModalProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
 
   const nextSlide = () => {
@@ -97,47 +96,48 @@ function PublishingRulesModal({ open, onOpenChange }: PublishingRulesModalProps)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-md md:max-w-lg gap-0 p-0 overflow-hidden border-emerald-200"
+        className="max-w-[90vw] sm:max-w-md p-0 overflow-hidden border-emerald-200 [&>button]:text-white [&>button]:right-6"
         onKeyDown={handleKeyDown}
       >
-        <div className="bg-gradient-to-r from-emerald-600 to-green-600 p-6">
-          <DialogHeader className="space-y-2">
-            <DialogTitle className="text-white text-2xl">Publishing Rules</DialogTitle>
-            <DialogDescription className="text-emerald-100">
-              Follow these guidelines to ensure your products are approved quickly
+        {/* Header with extra right padding to avoid overlap with close button */}
+        <div className="bg-gradient-to-r from-emerald-600 to-green-600 px-6 py-3 pr-12">
+          <DialogHeader className="space-y-0.5">
+            <DialogTitle className="text-white text-base sm:text-lg">Publishing Rules</DialogTitle>
+            <DialogDescription className="text-emerald-100 text-xs">
+              Follow these guidelines to get products approved
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        {/* Slide Content */}
-        <div className="p-6">
-          <div className="text-center space-y-6">
-            {/* Rule Number */}
-            <div className="flex items-center justify-center gap-2">
-              <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 px-4 py-2 text-lg">
+        {/* Slide content – compact */}
+        <div className="p-4">
+          <div className="text-center space-y-3">
+            {/* Rule number badge */}
+            <div className="flex items-center justify-center">
+              <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 px-3 py-1 text-xs">
                 {currentSlide + 1} of {RULES.length}
               </Badge>
             </div>
 
-            {/* Icon and Title */}
-            <div className="space-y-3">
-              <div className="text-6xl">{currentRule.icon}</div>
-              <h3 className="text-xl font-bold text-gray-900">{currentRule.title}</h3>
+            {/* Icon and title */}
+            <div className="space-y-1">
+              <div className="text-4xl">{currentRule.icon}</div>
+              <h3 className="text-sm font-bold text-gray-900">{currentRule.title}</h3>
             </div>
 
             {/* Description */}
-            <p className="text-gray-600 text-sm leading-relaxed">{currentRule.description}</p>
+            <p className="text-gray-600 text-xs leading-relaxed">{currentRule.description}</p>
 
-            {/* Progress Dots */}
-            <div className="flex justify-center gap-2 pt-4">
+            {/* Progress dots */}
+            <div className="flex justify-center gap-1.5 pt-2">
               {RULES.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`h-2 rounded-full transition-all ${
+                  className={`h-1.5 rounded-full transition-all ${
                     index === currentSlide
-                      ? "bg-emerald-600 w-8"
-                      : "bg-emerald-200 w-2 hover:bg-emerald-300"
+                      ? "bg-emerald-600 w-6"
+                      : "bg-emerald-200 w-1.5 hover:bg-emerald-300"
                   }`}
                   aria-label={`Go to rule ${index + 1}`}
                 />
@@ -146,40 +146,38 @@ function PublishingRulesModal({ open, onOpenChange }: PublishingRulesModalProps)
           </div>
         </div>
 
-        {/* Navigation */}
-        <div className="bg-gray-50 border-t border-gray-200 p-4 flex items-center justify-between gap-3">
+        {/* Navigation – compact */}
+        <div className="bg-gray-50 border-t border-gray-200 px-4 py-3 flex items-center justify-between gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={prevSlide}
-            className="gap-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent"
+            className="gap-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent h-8 px-2 text-xs"
             disabled={currentSlide === 0}
           >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Prev
           </Button>
 
-          <div className="text-xs text-gray-500 font-medium">
-            Use arrow keys or buttons to navigate
-          </div>
+          <span className="text-xs text-gray-500 font-medium">Use arrow keys</span>
 
           {currentSlide === RULES.length - 1 ? (
             <Button
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="bg-emerald-600 hover:bg-emerald-700 gap-1 text-white"
+              className="bg-emerald-600 hover:bg-emerald-700 gap-1 text-white h-8 px-3 text-xs"
             >
-              <CheckCircle className="h-4 w-4" />
-              Got It!
+              <CheckCircle className="h-3.5 w-3.5" />
+              Done
             </Button>
           ) : (
             <Button
               size="sm"
               onClick={nextSlide}
-              className="bg-emerald-600 hover:bg-emerald-700 gap-1 text-white"
+              className="bg-emerald-600 hover:bg-emerald-700 gap-1 text-white h-8 px-3 text-xs"
             >
               Next
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           )}
         </div>
@@ -187,5 +185,3 @@ function PublishingRulesModal({ open, onOpenChange }: PublishingRulesModalProps)
     </Dialog>
   )
 }
-
-export default PublishingRulesModal
