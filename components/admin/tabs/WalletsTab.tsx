@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useEffect, useMemo, memo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
@@ -43,17 +42,16 @@ import {
 } from "lucide-react"
 import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton"
 import { connectionManager } from "@/lib/connection-manager"
-import { reverseWalletTopup } from "@/lib/wallet-reversal" // Declare the variable here
+import { reverseWalletTopup } from "@/lib/wallet-reversal"
 
 interface WalletsTabProps {
   getCachedData: () => any[] | undefined
   setCachedData: (data: any[]) => void
 }
 
-// CRITICAL FIX: Add proper transaction type labeling function
+// Transaction type labeling
 const getTransactionTypeLabel = (transaction: any): string => {
   const type = transaction.transaction_type?.toLowerCase()
-
   switch (type) {
     case "topup":
       return "Wallet Top-up"
@@ -69,26 +67,19 @@ const getTransactionTypeLabel = (transaction: any): string => {
     case "admin_adjustment":
       return "Admin Adjustment"
     default:
-      // Fallback: try to determine from description
       const description = transaction.description?.toLowerCase() || ""
-      if (description.includes("top-up") || description.includes("topup")) {
-        return "Wallet Top-up"
-      } else if (description.includes("wholesale") || description.includes("order")) {
-        return "Order Payment"
-      } else if (description.includes("commission")) {
-        return "Commission"
-      } else if (description.includes("refund")) {
-        return "Refund"
-      } else if (description.includes("withdrawal")) {
-        return "Withdrawal"
-      }
+      if (description.includes("top-up") || description.includes("topup")) return "Wallet Top-up"
+      if (description.includes("wholesale") || description.includes("order")) return "Order Payment"
+      if (description.includes("commission")) return "Commission"
+      if (description.includes("refund")) return "Refund"
+      if (description.includes("withdrawal")) return "Withdrawal"
       return "Transaction"
   }
 }
-// CRITICAL FIX: Add proper transaction type icon function
+
+// Transaction type icon
 const getTransactionTypeIcon = (transaction: any) => {
   const type = transaction.transaction_type?.toLowerCase()
-
   switch (type) {
     case "topup":
       return <Plus className="h-5 w-5 text-green-600" />
@@ -108,8 +99,8 @@ const getTransactionTypeIcon = (transaction: any) => {
   }
 }
 
-// Memoize the wallet transaction card component
-const WalletTransactionCard = memo(({ transaction, onApprove, onReject, onReverse }: any) => (
+// Memoized transaction card
+const WalletTransactionCard = memo(({ transaction }: any) => (
   <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
     <CardContent className="pt-6">
       <div className="space-y-4">
@@ -124,8 +115,8 @@ const WalletTransactionCard = memo(({ transaction, onApprove, onReject, onRevers
                 transaction.status === "pending"
                   ? "bg-amber-100 text-amber-800 border-amber-200"
                   : transaction.status === "approved"
-                    ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                    : "bg-red-100 text-red-800 border-red-200"
+                  ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                  : "bg-red-100 text-red-800 border-red-200"
               }
             >
               {transaction.status}
@@ -154,18 +145,53 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     searchTerm: "",
     selectedAgentName: "",
   })
+
+  // --- New states for live agent search ---
+  const [searchResults, setSearchResults] = useState<Agent[]>([])
+  const [searchingAgents, setSearchingAgents] = useState(false)
+
   const [agentLiveBalances, setAgentLiveBalances] = useState<Map<string, number>>(new Map())
-  const [totalSystemWalletBalance, setTotalSystemWalletBalance] = useState(0)
   const itemsPerPage = 12
   const admin = getStoredAdmin()
-  const [agentsLoaded, setAgentsLoaded] = useState(false) // Track if agents have been loaded
   const [error, setError] = useState<string | null>(null)
-  const [showReversalDialog, setShowReversalDialog] = useState(false)
-  const [selectedTopupForReversal, setSelectedTopupForReversal] = useState<any>(null)
   const [agentSearchTerm, setAgentSearchTerm] = useState("")
   const [searchedAgent, setSearchedAgent] = useState<Agent | null>(null)
   const [agentSearchLoading, setAgentSearchLoading] = useState(false)
 
+  // --- Live agent search effect for top-up dialog ---
+  useEffect(() => {
+    if (!walletTopupForm.searchTerm || walletTopupForm.searchTerm.length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchingAgents(true)
+      try {
+        const { data, error } = await supabase
+          .from("agents")
+          .select("id, full_name, phone_number, momo_number, region, wallet_balance")
+          .or(
+            `full_name.ilike.%${walletTopupForm.searchTerm}%,` +
+              `phone_number.ilike.%${walletTopupForm.searchTerm}%,` +
+              `momo_number.ilike.%${walletTopupForm.searchTerm}%`
+          )
+          .limit(10)
+
+        if (error) throw error
+        setSearchResults(data || [])
+      } catch (error) {
+        console.error("Error searching agents:", error)
+        setSearchResults([])
+      } finally {
+        setSearchingAgents(false)
+      }
+    }, 300) // debounce
+
+    return () => clearTimeout(timer)
+  }, [walletTopupForm.searchTerm])
+
+  // Search agent for report
   const searchAgentForReport = async () => {
     if (!agentSearchTerm.trim()) {
       setSearchedAgent(null)
@@ -182,7 +208,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         .single()
 
       if (error) throw error
-
       setSearchedAgent(data)
     } catch (error) {
       console.error("Error searching for agent:", error)
@@ -196,8 +221,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   const downloadAgentSpecificReport = async (agentId: string, agentName: string) => {
     try {
       setLoading(true)
-      console.log("Downloading report for agent:", agentName)
-
       const { data: transactions, error } = await supabase
         .from("wallet_transactions")
         .select("*")
@@ -206,16 +229,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
 
       if (error) throw error
 
-      const headers = [
-        "Date",
-        "Type",
-        "Amount (GH₵)",
-        "Description",
-        "Reference",
-        "Status",
-        "Notes",
-      ]
-
+      const headers = ["Date", "Type", "Amount (GH₵)", "Description", "Reference", "Status", "Notes"]
       const csvData = (transactions || []).map((t) => [
         new Date(t.created_at).toLocaleDateString(),
         t.transaction_type,
@@ -226,8 +240,9 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         t.admin_notes || "",
       ])
 
-      const csvContent =
-        [headers, ...csvData].map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n")
+      const csvContent = [headers, ...csvData]
+        .map((row) => row.map((cell) => `"${cell}"`).join(","))
+        .join("\n")
 
       const summaryInfo = [
         `# AGENT REPORT: ${agentName}`,
@@ -242,7 +257,10 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       const link = document.createElement("a")
       const url = URL.createObjectURL(blob)
       link.setAttribute("href", url)
-      link.setAttribute("download", `agent-report-${agentName}-${new Date().toISOString().split("T")[0]}.csv`)
+      link.setAttribute(
+        "download",
+        `agent-report-${agentName}-${new Date().toISOString().split("T")[0]}.csv`
+      )
       link.style.visibility = "hidden"
       document.body.appendChild(link)
       link.click()
@@ -261,7 +279,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     try {
       setError(null)
       const offset = (page - 1) * itemsPerPage
-      const { batchCalculateAgentEarnings, calculateWalletBalance } = await import("@/lib/earnings-calculator")
+      const { batchCalculateAgentEarnings } = await import("@/lib/earnings-calculator")
 
       const {
         data,
@@ -271,34 +289,31 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         .from("wallet_transactions")
         .select(
           `id, amount, transaction_type, description, status, created_at, reference_code, admin_notes, agent_id, agents!inner(id, full_name, phone_number)`,
-          { count: "exact" },
+          { count: "exact" }
         )
         .order("created_at", { ascending: false })
         .range(offset, offset + itemsPerPage - 1)
 
       if (queryError) throw queryError
 
-      // OPTIMIZATION: Use batch calculation for multiple agents on this page
       const pageAgentIds = Array.from(new Set(data?.map((t: any) => t.agent_id) || []))
       let calculatedPageBalances = new Map<string, number>()
-      
+
       if (pageAgentIds.length > 0) {
         try {
-          // Use optimized batch calculation
           const earningsMap = await batchCalculateAgentEarnings(pageAgentIds)
           pageAgentIds.forEach((agentId) => {
             const earnings = earningsMap.get(agentId)
             calculatedPageBalances.set(agentId, earnings?.walletBalance || 0)
           })
         } catch (batchError) {
-          console.warn("Batch calculation failed, falling back to parallel individual calculations:", batchError)
-          // Fallback: calculate individually in parallel
+          console.warn("Batch calculation failed, falling back to individual calculations:", batchError)
+          const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
           const balancePromises = pageAgentIds.map(async (agentId) => {
             try {
               const balance = await calculateWalletBalance(agentId)
               return { agentId, balance }
-            } catch (error) {
-              console.warn(`Failed to calculate balance for agent ${agentId}:`, error)
+            } catch {
               return { agentId, balance: 0 }
             }
           })
@@ -308,17 +323,15 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           })
         }
       }
-      
-      // CRITICAL: Merge new page balances with existing balances in state
+
       setAgentLiveBalances((prevBalances) => new Map([...prevBalances, ...calculatedPageBalances]))
-      
-      // Enhance with live balances
+
       const enhancedData = (data || []).map((transaction: any) => ({
         ...transaction,
         agents: {
           ...transaction.agents,
-          wallet_balance: calculatedPageBalances.get(transaction.agent_id) || 0
-        }
+          wallet_balance: calculatedPageBalances.get(transaction.agent_id) || 0,
+        },
       }))
 
       setWalletTransactions(enhancedData)
@@ -332,17 +345,14 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   }
 
   const loadAgentsForTopup = async () => {
-    if (agentsLoaded) return // Don't reload if already loaded
     try {
       const { data, error } = await supabase.from("agents").select("*").order("full_name", { ascending: true })
       if (error) throw error
-      
+
       const agentsList = data || []
       setAgents(agentsList)
-      
-      // CRITICAL FIX: Calculate live wallet balances for all agents in the topup dialog
+
       const { batchCalculateAgentEarnings } = await import("@/lib/earnings-calculator")
-      
       const agentIds = agentsList.map((a) => a.id)
       if (agentIds.length > 0) {
         try {
@@ -355,11 +365,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           setAgentLiveBalances(liveBalances)
         } catch (calcError) {
           console.warn("Failed to calculate live balances:", calcError)
-          // Still proceed with the dialog even if live balance calculation fails
         }
       }
-      
-      setAgentsLoaded(true)
     } catch (error) {
       console.error("Error loading agents:", error)
     }
@@ -376,15 +383,14 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           return
         }
         try {
-          const { calculateWalletBalance, batchCalculateAgentEarnings } = await import("@/lib/earnings-calculator")
+          const { batchCalculateAgentEarnings } = await import("@/lib/earnings-calculator")
 
-          // CRITICAL FIX: Calculate live wallet balances for each agent instead of using stored balance
           const [walletData, topupsData] = await Promise.all([
             supabase
               .from("wallet_transactions")
               .select(
                 `id, amount, transaction_type, description, status, created_at, reference_code, admin_notes, agent_id, agents!inner(id, full_name, phone_number)`,
-                { count: "exact" },
+                { count: "exact" }
               )
               .order("created_at", { ascending: false })
               .range(0, 11),
@@ -395,14 +401,11 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
               .range(0, 11),
           ])
 
-          // OPTIMIZATION: Use batch calculation for multiple agents instead of sequential calls
           const walletAgentIds = Array.from(new Set(walletData.data?.map((t: any) => t.agent_id) || []))
-          
           let calculatedAgentLiveBalances = new Map<string, number>()
-          
+
           if (walletAgentIds.length > 0) {
             try {
-              // Use optimized batch calculation
               const earningsMap = await batchCalculateAgentEarnings(walletAgentIds)
               walletAgentIds.forEach((agentId) => {
                 const earnings = earningsMap.get(agentId)
@@ -410,13 +413,12 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
               })
             } catch (batchError) {
               console.warn("Batch calculation failed, falling back to individual calculations:", batchError)
-              // Fallback: calculate individually in parallel
+              const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
               const balancePromises = walletAgentIds.map(async (agentId) => {
                 try {
                   const balance = await calculateWalletBalance(agentId)
                   return { agentId, balance }
-                } catch (error) {
-                  console.warn(`Failed to calculate balance for agent ${agentId}:`, error)
+                } catch {
                   return { agentId, balance: 0 }
                 }
               })
@@ -426,24 +428,22 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
               })
             }
           }
-          
-          // CRITICAL: Update component state with calculated live balances
+
           setAgentLiveBalances(calculatedAgentLiveBalances)
-          
-          // Enhance transaction data with live balances
-          const enhancedWalletData = walletData.data?.map((transaction: any) => ({
-            ...transaction,
-            agents: {
-              ...transaction.agents,
-              wallet_balance: calculatedAgentLiveBalances.get(transaction.agent_id) || 0
-            }
-          })) || []
+
+          const enhancedWalletData =
+            walletData.data?.map((transaction: any) => ({
+              ...transaction,
+              agents: {
+                ...transaction.agents,
+                wallet_balance: calculatedAgentLiveBalances.get(transaction.agent_id) || 0,
+              },
+            })) || []
 
           if (walletData.error) throw walletData.error
           if (topupsData.error) throw topupsData.error
 
           setTotalWalletTransactions(walletData.count || 0)
-
           setWalletTransactions(enhancedWalletData)
           setWalletTopups(topupsData.data || [])
           setCachedData(enhancedWalletData)
@@ -458,18 +458,18 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     }
     loadWalletData()
   }, [getCachedData, setCachedData])
+
   const memoizedFilteredTransactions = useMemo(() => {
     return walletTransactions.filter(
       (transaction) =>
         transaction.agents?.full_name?.toLowerCase().includes(walletSearchTerm.toLowerCase()) ||
         transaction.reference_code?.toLowerCase().includes(walletSearchTerm.toLowerCase()) ||
-        transaction.description?.toLowerCase().includes(walletSearchTerm.toLowerCase()),
+        transaction.description?.toLowerCase().includes(walletSearchTerm.toLowerCase())
     )
   }, [walletTransactions, walletSearchTerm])
 
   const memoizedStatusFiltered = useMemo(() => {
     if (walletFilterAdmin === "All Transactions") return memoizedFilteredTransactions
-
     return memoizedFilteredTransactions.filter((transaction) => {
       switch (walletFilterAdmin) {
         case "Pending":
@@ -493,8 +493,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     setCurrentWalletsPage(1)
   }, [memoizedStatusFiltered])
 
-  // OPTIMIZATION: Removed total system wallet balance calculation to prevent database strain
-  // The totalSystemWalletBalance state is no longer updated/used - only page-level metrics are displayed
   const formatTimestamp = (timestamp: string) => {
     try {
       const date = new Date(timestamp)
@@ -512,16 +510,12 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     }
   }
 
-  // CRITICAL: Get live balance for a transaction - falls back to stored balance if agent not found
   const getTransactionAgentLiveBalance = (transaction: any): number => {
-    // First try to get from agentLiveBalances state (for topup dialog)
     const liveBalance = agentLiveBalances.get(transaction.agent_id)
-    if (liveBalance !== undefined) {
-      return liveBalance
-    }
-    // Fall back to the stored wallet_balance which was already enhanced with live balance during load
+    if (liveBalance !== undefined) return liveBalance
     return transaction.agents?.wallet_balance || 0
   }
+
   const handleWalletTopup = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!walletTopupForm.agentId || !walletTopupForm.amount) {
@@ -541,7 +535,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         .eq("id", walletTopupForm.agentId)
         .single()
 
-      // Create wallet top-up request
       const { data: newTopup, error } = await supabase
         .from("wallet_topups")
         .insert([
@@ -576,22 +569,15 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       alert("Failed to create wallet top-up request")
     }
   }
+
   const approveWalletTopup = async (topupId: string) => {
     try {
       const topup = walletTopups.find((t) => t.id === topupId)
       if (!topup) {
-        console.error("Topup not found:", topupId)
         alert("Topup request not found. Please refresh the page.")
         return
       }
 
-      console.log("[v0] Starting wallet topup approval process", {
-        topupId,
-        agentId: topup.agent_id,
-        amount: topup.amount,
-      })
-
-      // Update topup status
       const { error: topupError } = await supabase
         .from("wallet_topups")
         .update({
@@ -601,15 +587,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         })
         .eq("id", topupId)
 
-      if (topupError) {
-        console.error("Error approving wallet top-up:", {
-          topupId,
-          error: topupError.message || topupError,
-          code: topupError.code,
-          details: topupError.details,
-        })
-        throw topupError
-      }
+      if (topupError) throw topupError
 
       const transactionData = {
         agent_id: topup.agent_id,
@@ -621,211 +599,52 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         admin_id: admin?.id,
       }
 
-      console.log("[v0] Creating wallet transaction with data:", transactionData)
+      const safeTransaction = createSafeWalletTransactionWithRef(transactionData)
 
-      // Validate the transaction data before insertion
-      let safeTransaction
-      try {
-        safeTransaction = createSafeWalletTransactionWithRef(transactionData)
-        console.log("[v0] Safe transaction created:", JSON.stringify(safeTransaction, null, 2))
-      } catch (validationError) {
-        console.error(
-          "[v0] Transaction validation failed:",
-          JSON.stringify(
-            {
-              error: validationError,
-              errorMessage: validationError instanceof Error ? validationError.message : String(validationError),
-              transactionData,
-              timestamp: new Date().toISOString(),
-            },
-            null,
-            2,
-          ),
-        )
-        throw new Error(
-          `Transaction validation failed: ${validationError instanceof Error ? validationError.message : validationError}`,
-        )
-      }
-
-      const { error: transactionError, data: insertedTransaction } = await supabase
+      const { error: transactionError } = await supabase
         .from("wallet_transactions")
         .insert([safeTransaction])
-        .select()
 
-      if (transactionError) {
-        // FIXED: Enhanced error logging with proper JSON serialization
-        const errorDetails = {
-          error: transactionError,
-          errorMessage: transactionError.message || "Unknown error",
-          code: transactionError.code,
-          details: transactionError.details,
-          safeTransaction,
-          timestamp: new Date().toISOString(),
-        }
+      if (transactionError) throw transactionError
 
-        console.error("[v0] Error inserting wallet transaction:", JSON.stringify(errorDetails, null, 2))
-        throw new Error(`Failed to create wallet transaction: ${transactionError.message}`)
-      }
+      const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
+      const correctBalance = await calculateWalletBalance(topup.agent_id)
 
-      try {
-        console.log("[v0] Starting balance synchronization...")
-
-        const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-
-        // Calculate the correct balance using the same method as agent side
-        const correctBalance = await calculateWalletBalance(topup.agent_id)
-
-        console.log("[v0] Calculated correct balance using agent-side method:", {
-          agentId: topup.agent_id,
-          calculatedBalance: correctBalance,
-          topupAmount: topup.amount,
+      const { error: balanceError } = await supabase
+        .from("agents")
+        .update({
+          wallet_balance: correctBalance,
+          updated_at: new Date().toISOString(),
         })
+        .eq("id", topup.agent_id)
 
-        // Update agent's wallet balance with retry logic
-        let retryCount = 0
-        const maxRetries = 3
-        let balanceUpdateSuccess = false
+      if (balanceError) throw balanceError
 
-        while (retryCount < maxRetries && !balanceUpdateSuccess) {
-          try {
-            const { error: balanceError } = await supabase
-              .from("agents")
-              .update({
-                wallet_balance: correctBalance,
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", topup.agent_id)
+      // Refresh data
+      const [walletData, topupsData, agentsData] = await Promise.all([
+        supabase
+          .from("wallet_transactions")
+          .select(`*, agents (full_name, phone_number, wallet_balance)`)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("wallet_topups")
+          .select(`*, agents (full_name, phone_number)`)
+          .order("created_at", { ascending: false }),
+        supabase.from("agents").select("*").order("full_name", { ascending: true }),
+      ])
 
-            if (balanceError) {
-              throw balanceError
-            }
+      setWalletTransactions(walletData.data || [])
+      setWalletTopups(topupsData.data || [])
+      setAgents(agentsData.data || [])
+      setCachedData(walletData.data || [])
 
-            balanceUpdateSuccess = true
-            console.log("[v0] Wallet balance updated successfully on attempt", retryCount + 1)
-          } catch (updateError) {
-            retryCount++
-            console.error(`[v0] Balance update attempt ${retryCount} failed:`, updateError)
-
-            if (retryCount >= maxRetries) {
-              throw updateError
-            }
-
-            // Wait before retry (exponential backoff)
-            await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000))
-          }
-        }
-
-        console.log("[v0] Wallet balance synchronized successfully:", {
-          agentId: topup.agent_id,
-          topupAmount: topup.amount,
-          newBalance: correctBalance,
-          transactionId: insertedTransaction?.[0]?.id,
-          retriesUsed: retryCount,
-        })
-
-        // Refresh data after successful balance sync
-        const fetchWalletTopups = async () => {
-          const { data } = await supabase
-            .from("wallet_topups")
-            .select(`*, agents (full_name, phone_number)`)
-            .order("created_at", { ascending: false })
-          setWalletTopups(data || [])
-        }
-
-        const fetchWalletTransactions = async () => {
-          const { data } = await supabase
-            .from("wallet_transactions")
-            .select(`*, agents (full_name, phone_number, wallet_balance)`)
-            .order("created_at", { ascending: false })
-          setWalletTransactions(data || [])
-          setCachedData(data || [])
-        }
-
-        const fetchAgents = async () => {
-          const { data } = await supabase.from("agents").select("*").order("full_name", { ascending: true })
-          setAgents(data || [])
-        }
-
-        await Promise.all([
-          fetchWalletTopups(),
-          fetchWalletTransactions(),
-          fetchAgents(), // This will show the updated balance in the UI
-        ])
-
-        alert(`Wallet top-up approved successfully! New balance: GH₵${correctBalance.toFixed(2)}`)
-      } catch (balanceError) {
-        console.error("[v0] Error synchronizing wallet balance:", balanceError)
-
-        const errorMessage = balanceError instanceof Error ? balanceError.message : String(balanceError)
-
-        if (errorMessage.includes("timeout") || errorMessage.includes("network")) {
-          alert(
-            "Topup approved successfully, but balance sync timed out. The balance will update automatically. Please refresh the page.",
-          )
-        } else if (errorMessage.includes("constraint") || errorMessage.includes("validation")) {
-          alert("Topup approved successfully, but balance validation failed. Please contact technical support.")
-        } else {
-          alert(
-            "Topup approved successfully, but balance sync encountered an issue. Please refresh the page to see the updated balance.",
-          )
-        }
-
-        // Still refresh the data even if balance sync failed
-        try {
-          const [walletData, topupsData, agentsData] = await Promise.all([
-            supabase
-              .from("wallet_transactions")
-              .select(`*, agents (full_name, phone_number, wallet_balance)`)
-              .order("created_at", { ascending: false }),
-            supabase
-              .from("wallet_topups")
-              .select(`*, agents (full_name, phone_number)`)
-              .order("created_at", { ascending: false }),
-            supabase.from("agents").select("*").order("full_name", { ascending: true }),
-          ])
-
-          setWalletTransactions(walletData.data || [])
-          setWalletTopups(topupsData.data || [])
-          setAgents(agentsData.data || [])
-          setCachedData(walletData.data || [])
-        } catch (refreshError) {
-          console.error("[v0] Error refreshing data after balance sync failure:", refreshError)
-        }
-      }
+      alert(`Wallet top-up approved successfully! New balance: GH₵${correctBalance.toFixed(2)}`)
     } catch (error) {
-      // FIXED: Enhanced error logging with proper JSON serialization
-      const errorDetails = {
-        topupId,
-        error: error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-        errorType: typeof error,
-        errorConstructor: error?.constructor?.name,
-        timestamp: new Date().toISOString(),
-      }
-
-      console.error("[v0] Full error in approveWalletTopup:", JSON.stringify(errorDetails, null, 2))
-
-      let userMessage = "Failed to approve wallet top-up"
-      if (error instanceof Error) {
-        if (error.message.includes("wallet_transactions_type_check")) {
-          userMessage = "Database validation error: Invalid transaction type. Please contact support."
-        } else if (error.message.includes("not-null constraint")) {
-          userMessage = "Missing required information. Please refresh and try again."
-        } else if (error.message.includes("foreign key")) {
-          userMessage = "Agent not found. Please refresh the page."
-        } else if (error.message.includes("constraint violation")) {
-          userMessage = "Transaction validation failed. Please verify all details and try again."
-        } else if (error.message.includes("duplicate")) {
-          userMessage = "Duplicate transaction detected. Please refresh and try again."
-        } else {
-          userMessage = `Failed to approve wallet top-up: ${error.message}`
-        }
-      }
-
-      alert(userMessage)
+      console.error("Error approving wallet top-up:", error)
+      alert("Failed to approve wallet top-up")
     }
   }
+
   const rejectWalletTopup = async (topupId: string) => {
     try {
       const { error } = await supabase
@@ -837,7 +656,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         .eq("id", topupId)
       if (error) throw error
       alert("Wallet top-up rejected successfully!")
-      // Reload topups
       const { data: topupsData } = await supabase
         .from("wallet_topups")
         .select(`*, agents (full_name, phone_number)`)
@@ -848,28 +666,29 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       alert("Failed to reject wallet top-up")
     }
   }
+
   const deleteWalletTopup = async (topupId: string) => {
     try {
       const topup = walletTopups.find((t) => t.id === topupId)
-      
-      // CRITICAL: Prevent deletion of pending topups
       if (topup && topup.status === "pending") {
-        alert("❌ Cannot delete pending wallet top-up requests. Please approve or reject the request first, then you can delete it if needed.")
+        alert(
+          "❌ Cannot delete pending wallet top-up requests. Please approve or reject the request first, then you can delete it if needed."
+        )
         return
       }
 
       if (!confirm("Are you sure you want to delete this wallet top-up request?")) return
-      
+
       const { error } = await supabase.from("wallet_topups").delete().eq("id", topupId)
       if (error) throw error
-      const updatedTopups = walletTopups.filter((topup) => topup.id !== topupId)
-      setWalletTopups(updatedTopups)
+      setWalletTopups(walletTopups.filter((topup) => topup.id !== topupId))
       alert("Wallet top-up request deleted successfully!")
     } catch (error) {
       console.error("Error deleting wallet top-up:", error)
       alert("Failed to delete wallet top-up request")
     }
   }
+
   const updateWalletTransactionStatus = async (transactionId: string, newStatus: string, adminNotes?: string) => {
     try {
       const transaction = walletTransactions.find((t) => t.id === transactionId)
@@ -878,60 +697,31 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         return
       }
 
-      console.log("[v0] Updating wallet transaction status:", {
-        transactionId,
-        newStatus,
-        agentId: transaction.agent_id,
-        amount: transaction.amount,
-        type: transaction.transaction_type,
-        adminNotes,
-      })
-
-      // Update transaction status
       const { error: updateError } = await supabase
         .from("wallet_transactions")
         .update({
           status: newStatus,
           processed_at: new Date().toISOString(),
           admin_id: admin?.id,
-          admin_notes: adminNotes || transaction.admin_notes, // Preserve existing notes if not provided
+          admin_notes: adminNotes || transaction.admin_notes,
         })
         .eq("id", transactionId)
 
-      if (updateError) {
-        console.error("Error updating transaction status:", updateError)
-        throw updateError
-      }
+      if (updateError) throw updateError
 
       if (newStatus === "approved") {
-        try {
-          const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-          const correctBalance = await calculateWalletBalance(transaction.agent_id)
+        const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
+        const correctBalance = await calculateWalletBalance(transaction.agent_id)
 
-          const { error: balanceError } = await supabase
-            .from("agents")
-            .update({
-              wallet_balance: correctBalance,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", transaction.agent_id)
-
-          if (balanceError) {
-            console.error("[v0] Error updating agent balance after transaction approval:", balanceError)
-            throw balanceError
-          }
-
-          console.log("[v0] Wallet balance synchronized using agent-side calculation:", {
-            agentId: transaction.agent_id,
-            transactionAmount: transaction.amount,
-            transactionType: transaction.transaction_type,
-            newBalance: correctBalance,
-            transactionId,
+        const { error: balanceError } = await supabase
+          .from("agents")
+          .update({
+            wallet_balance: correctBalance,
+            updated_at: new Date().toISOString(),
           })
-        } catch (balanceError) {
-          console.error("[v0] Error synchronizing wallet balance after approval:", balanceError)
-          // Continue with UI refresh even if balance sync failed
-        }
+          .eq("id", transaction.agent_id)
+
+        if (balanceError) throw balanceError
       }
 
       const fetchWalletTransactions = async () => {
@@ -948,11 +738,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         setAgents(data || [])
       }
 
-      await Promise.all([
-        fetchWalletTransactions(),
-        fetchAgents(), // This will show the updated balance
-      ])
-
+      await Promise.all([fetchWalletTransactions(), fetchAgents()])
       alert(`Transaction ${newStatus} successfully!`)
     } catch (error) {
       console.error("Error updating wallet transaction status:", error)
@@ -960,34 +746,15 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     }
   }
 
-
-
-  // CRITICAL FIX: Add proper payment method detection
   const getPaymentMethodLabel = (transaction: any): string => {
     const type = transaction.transaction_type?.toLowerCase()
     const paymentMethod = transaction.payment_method?.toLowerCase()
 
-    // For topups, usually mobile money
-    if (type === "topup") {
-      return "Mobile Money"
-    }
+    if (type === "topup") return "Mobile Money"
+    if (type === "deduction") return "Wallet"
+    if (paymentMethod === "manual") return "Manual Payment"
+    if (paymentMethod === "auto") return "Automatic"
 
-    // For deductions, usually wallet
-    if (type === "deduction") {
-      return "Wallet"
-    }
-
-    // For manual transactions
-    if (paymentMethod === "manual") {
-      return "Manual Payment"
-    }
-
-    // For auto transactions
-    if (paymentMethod === "auto") {
-      return "Automatic"
-    }
-
-    // Default based on transaction type
     switch (type) {
       case "commission":
       case "commission_deposit":
@@ -1002,6 +769,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         return paymentMethod || "Unknown"
     }
   }
+
   const downloadWalletTransactionsCSV = () => {
     if (filteredWalletTransactions.length === 0) {
       alert("No wallet transactions to download")
@@ -1039,10 +807,10 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       transaction.description || "",
       transaction.reference_code || "",
       transaction.status || "",
-    getPaymentMethodLabel(transaction),
-    transaction.admin_notes || "",
-    getTransactionAgentLiveBalance(transaction).toFixed(2),
-    transaction.approved_at ? new Date(transaction.approved_at).toLocaleString() : "",
+      getPaymentMethodLabel(transaction),
+      transaction.admin_notes || "",
+      getTransactionAgentLiveBalance(transaction).toFixed(2),
+      transaction.approved_at ? new Date(transaction.approved_at).toLocaleString() : "",
       transaction.rejected_at ? new Date(transaction.rejected_at).toLocaleString() : "",
     ])
     const csvContent = [headers, ...csvData]
@@ -1051,9 +819,9 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           .map((field) =>
             typeof field === "string" && (field.includes(",") || field.includes('"') || field.includes("\n"))
               ? `"${field.replace(/"/g, '""')}"`
-              : field,
+              : field
           )
-          .join(","),
+          .join(",")
       )
       .join("\n")
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
@@ -1067,9 +835,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     document.body.removeChild(link)
   }
 
-  const getTotalPages = (totalItems: number) => {
-    return Math.ceil(totalItems / itemsPerPage)
-  }
+  const getTotalPages = (totalItems: number) => Math.ceil(totalItems / itemsPerPage)
 
   const getPaginatedData = (data: any[], currentPage: number) => {
     const startIndex = (currentPage - 1) * itemsPerPage
@@ -1116,22 +882,18 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                 } h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
               />
             </PaginationItem>
-            {/* Display up to 5 page numbers, centered around the current page */}
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let pageNum = i + 1
-              // Adjust page number to center around current page if possible
               if (totalPages > 5) {
                 if (currentPage <= 3) {
-                  pageNum = i + 1 // Start from 1 for the first few pages
+                  pageNum = i + 1
                 } else if (currentPage > totalPages - 2) {
-                  pageNum = totalPages - 4 + i // End with the last few pages
+                  pageNum = totalPages - 4 + i
                 } else {
-                  pageNum = currentPage - 2 + i // Center around current page
+                  pageNum = currentPage - 2 + i
                 }
               }
-              // Ensure pageNum is within bounds
               pageNum = Math.max(1, Math.min(pageNum, totalPages))
-
               return (
                 <PaginationItem key={pageNum}>
                   <PaginationLink
@@ -1157,6 +919,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       </div>
     )
   }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -1177,6 +940,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       </div>
     )
   }
+
   return (
     <div className="space-y-4">
       {error && (
@@ -1265,7 +1029,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           </div>
           <Button
             onClick={() => {
-              loadAgentsForTopup() // Load agents only when dialog opens
+              loadAgentsForTopup()
               setShowWalletTopupDialog(true)
             }}
             className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 whitespace-nowrap"
@@ -1292,6 +1056,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           </div>
         </div>
       </div>
+
       {/* Wallet Top-up Requests Section */}
       {walletTopups.length > 0 && (
         <div className="space-y-4">
@@ -1336,9 +1101,9 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                           <Ban className="h-4 w-4 mr-1" />
                           Reject
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => deleteWalletTopup(topup.id)}
                           disabled={topup.status === "pending"}
                           title={topup.status === "pending" ? "Cannot delete pending requests" : "Delete request"}
@@ -1354,6 +1119,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           </div>
         </div>
       )}
+
+      {/* Wallet Transactions List */}
       <div className="space-y-4">
         {filteredWalletTransactions.length === 0 && !error ? (
           <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
@@ -1385,8 +1152,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                             transaction.status === "pending"
                               ? "bg-amber-100 text-amber-800 border-amber-200"
                               : transaction.status === "approved"
-                                ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                                : "bg-red-100 text-red-800 border-red-200"
+                              ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                              : "bg-red-100 text-red-800 border-red-200"
                           }
                         >
                           {transaction.status}
@@ -1458,7 +1225,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                         </Button>
                       </div>
                     )}
-
                   </div>
                 </CardContent>
               </Card>
@@ -1466,11 +1232,13 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           </div>
         )}
       </div>
+
       <PaginationControls
         currentPage={currentWalletsPage}
         totalPages={getTotalPages(totalWalletTransactions)}
         onPageChange={setCurrentWalletsPage}
       />
+
       <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />
 
       {/* Wallet Top-up Dialog */}
@@ -1502,15 +1270,11 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                   />
                   {walletTopupForm.searchTerm && walletTopupForm.searchTerm !== walletTopupForm.selectedAgentName && (
                     <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto bg-white border border-emerald-200 rounded-md shadow-lg">
-                      {agents
-                        .filter(
-                          (agent) =>
-                            agent.full_name?.toLowerCase().includes(walletTopupForm.searchTerm.toLowerCase()) ||
-                            agent.phone_number?.includes(walletTopupForm.searchTerm) ||
-                            agent.momo_number?.includes(walletTopupForm.searchTerm),
-                        )
-                        .slice(0, 10)
-                        .map((agent) => (
+                      {searchingAgents && (
+                        <div className="px-3 py-3 text-gray-500 text-sm text-center">Searching...</div>
+                      )}
+                      {!searchingAgents && searchResults.length > 0 ? (
+                        searchResults.map((agent) => (
                           <button
                             key={agent.id}
                             type="button"
@@ -1522,6 +1286,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                                 searchTerm: `${agent.full_name} - ${agent.phone_number}`,
                                 selectedAgentName: `${agent.full_name} - ${agent.phone_number}`,
                               })
+                              setSearchResults([]) // clear dropdown after selection
                             }}
                           >
                             <div className="font-medium text-emerald-800">{agent.full_name}</div>
@@ -1529,19 +1294,19 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                               {agent.phone_number} • {agent.momo_number}
                             </div>
                             <div className="text-xs text-emerald-500">
-                              Current Balance: GH₵ {(agentLiveBalances.get(agent.id) ?? agent.wallet_balance ?? 0).toFixed(2)} • Region: {agent.region}
+                              Current Balance: GH₵{" "}
+                              {(agentLiveBalances.get(agent.id) ?? agent.wallet_balance ?? 0).toFixed(2)} • Region:{" "}
+                              {agent.region}
                             </div>
                           </button>
-                        ))}
-                      {agents.filter(
-                        (agent) =>
-                          agent.full_name?.toLowerCase().includes(walletTopupForm.searchTerm.toLowerCase()) ||
-                          agent.phone_number?.includes(walletTopupForm.searchTerm) ||
-                          agent.momo_number?.includes(walletTopupForm.searchTerm),
-                      ).length === 0 && (
-                        <div className="px-3 py-3 text-gray-500 text-sm text-center">
-                          No agents found matching "{walletTopupForm.searchTerm}"
-                        </div>
+                        ))
+                      ) : (
+                        !searchingAgents &&
+                        walletTopupForm.searchTerm.length >= 2 && (
+                          <div className="px-3 py-3 text-gray-500 text-sm text-center">
+                            No agents found matching "{walletTopupForm.searchTerm}"
+                          </div>
+                        )
                       )}
                     </div>
                   )}
@@ -1553,7 +1318,11 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                     </div>
                     <div className="text-sm text-emerald-700 mt-2 font-semibold">
                       Current Live Wallet Balance: GH₵{" "}
-                      {(agentLiveBalances.get(walletTopupForm.agentId) ?? agents.find((a) => a.id === walletTopupForm.agentId)?.wallet_balance ?? 0).toFixed(2)}
+                      {(
+                        agentLiveBalances.get(walletTopupForm.agentId) ??
+                        agents.find((a) => a.id === walletTopupForm.agentId)?.wallet_balance ??
+                        0
+                      ).toFixed(2)}
                     </div>
                   </div>
                 )}
