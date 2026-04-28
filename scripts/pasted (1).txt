@@ -1,0 +1,212 @@
+but even if what you are saying is true, rounding up ¢0.1450 to ¢0.29 in my exampleis completely wrong even if you are rounding up 2 decemal places of ¢0.1450, it should be ¢0.15 not ¢0.29 so in my example the system is fucked up and is not helping at all. check and eensure that when i set the commmison rate, the commission amount in the preview applies everywhere and is used accurately without any discretancies when seling data etc
+
+whne i type into the commission rate section at the data tab of the admin say 0.005 and  i am trying to set the commisison rate  and type 0.005, i see a realtime calutation of the actual commission amount caulated for me but after committing it or saving it, when i go and check the actual commission amount as it shoudl reflect when i was setting the comission rate, it is different and no where near what i was setting. eg. if i am selling 5GB data for 29 cedis and set the commission rate to 0.005, the system shows me a realtime commission amount of ¢0.1450 in the live preview of teh dialog that i am working on, but when i save it or update bundle and chekc the actual commisison amount set, i see teh commission set at ¢0.29 instead of the value, the actaul value set whichis ¢0.145 which should or can be rounded to ¢0.15 but this is not what is happening. you get the point? so all this is tragically affecting my business. check and resoolve it
+
+but even if what you are saying is true, rounding up ¢0.1450 to ¢0.29 in my exampleis completely wrong even if you are rounding up 2 decemal places of ¢0.1450, it should be ¢0.15 not ¢0.29 so in my example the system is fucked up and is not helping at all. check and eensure that when i set the commmison rate, the commission amount in the preview applies everywhere and is used accurately without any discretancies when seling data etc
+
+this sithe info you need to know.  now get to work . this is the data_bundles table schema and actaul data in databse
+
+
+data bundle table with commisson
+
+create view public.data_bundles_with_commission_info as
+select
+  id,
+  name,
+  provider,
+  size_gb,
+  price,
+  validity_months,
+  commission_rate,
+  round(commission_rate * 100::numeric, 4) as commission_percentage,
+  round(price * commission_rate, 4) as commission_amount,
+  image_url,
+  is_active,
+  created_at,
+  COALESCE(updated_at, created_at) as updated_at
+from
+  data_bundles
+order by
+  provider,
+  size_gb;
+  
+  
+  
+  create table public.data_bundles_backup_exact (
+  id uuid null,
+  name character varying(50) null,
+  provider character varying(20) null,
+  size_gb integer null,
+  price numeric(10, 2) null,
+  validity_months integer null,
+  image_url text null,
+  is_active boolean null,
+  created_at timestamp with time zone null,
+  commission_rate numeric(5, 2) null,
+  updated_at timestamp with time zone null
+) TABLESPACE pg_default;
+
+data bndle table schema
+
+create table public.data_bundles (
+  id uuid not null default gen_random_uuid (),
+  name character varying(50) not null,
+  provider character varying(20) not null,
+  size_gb integer not null,
+  price numeric(10, 2) not null,
+  validity_months integer null default 3,
+  image_url text null,
+  is_active boolean null default true,
+  created_at timestamp with time zone null default now(),
+  commission_rate numeric(5, 2) null default 5.00,
+  updated_at timestamp with time zone null default now(),
+  created_by uuid null,
+  updated_by uuid null,
+  validity_days integer null default 30,
+  plan_name text null,
+  description text null,
+  constraint data_bundles_pkey primary key (id),
+  constraint data_bundles_created_by_fkey foreign KEY (created_by) references agents (id) on delete set null,
+  constraint data_bundles_updated_by_fkey foreign KEY (updated_by) references agents (id) on delete set null,
+  constraint chk_provider_not_empty check (
+    (
+      (provider is not null)
+      and (
+        length(
+          TRIM(
+            both
+            from
+              provider
+          )
+        ) > 0
+      )
+    )
+  ),
+  constraint chk_size_gb_positive check ((size_gb > 0)),
+  constraint chk_commission_rate_valid check (
+    (
+      (commission_rate >= (0)::numeric)
+      and (commission_rate <= (1)::numeric)
+    )
+  ),
+  constraint data_bundles_commission_rate_check check (
+    (
+      (commission_rate >= (0)::numeric)
+      and (commission_rate <= (1)::numeric)
+    )
+  ),
+  constraint data_bundles_provider_check check (
+    (
+      (provider)::text = any (
+        (
+          array[
+            'MTN'::character varying,
+            'AirtelTigo'::character varying,
+            'Telecel'::character varying
+          ]
+        )::text[]
+      )
+    )
+  ),
+  constraint chk_validity_days_positive check ((validity_days > 0)),
+  constraint chk_name_not_empty check (
+    (
+      (name is not null)
+      and (
+        length(
+          TRIM(
+            both
+            from
+              name
+          )
+        ) > 0
+      )
+    )
+  ),
+  constraint chk_price_positive check ((price > (0)::numeric))
+) TABLESPACE pg_default;
+
+create index IF not exists idx_data_bundles_provider on public.data_bundles using btree (provider) TABLESPACE pg_default;
+
+create index IF not exists idx_data_bundles_active on public.data_bundles using btree (is_active) TABLESPACE pg_default;
+
+create index IF not exists idx_data_bundles_size on public.data_bundles using btree (size_gb) TABLESPACE pg_default;
+
+create index IF not exists idx_data_bundles_is_active on public.data_bundles using btree (is_active) TABLESPACE pg_default;
+
+create index IF not exists idx_data_bundles_created_by on public.data_bundles using btree (created_by) TABLESPACE pg_default;
+
+create index IF not exists idx_data_bundles_price on public.data_bundles using btree (price) TABLESPACE pg_default;
+
+create index IF not exists idx_data_bundles_size_gb on public.data_bundles using btree (size_gb) TABLESPACE pg_default;
+
+create index IF not exists idx_data_bundles_validity_days on public.data_bundles using btree (validity_days) TABLESPACE pg_default;
+
+create trigger track_data_bundle_admin_changes_trigger BEFORE INSERT
+or
+update on data_bundles for EACH row
+execute FUNCTION track_data_bundle_admin_changes ();
+
+create trigger update_data_bundles_updated_at BEFORE
+update on data_bundles for EACH row
+execute FUNCTION update_updated_at_column ();
+
+create trigger validate_commission_rate_trigger BEFORE INSERT
+or
+update on data_bundles for EACH row
+execute FUNCTION validate_commission_rate ();
+
+create trigger validate_data_bundle_operation_trigger BEFORE INSERT
+or
+update on data_bundles for EACH row
+execute FUNCTION validate_data_bundle_operation ();
+
+
+
+actual way that the data is being stored. it is stored in 2 decemanl
+
+id,name,provider,size_gb,price,validity_months,image_url,is_active,created_at,commission_rate,updated_at,created_by,updated_by,validity_days,plan_name,description
+0410a3e8-4718-4c7e-b563-c18a939eb6ff,10GB AirtelTigo,AirtelTigo,10,36.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:09.815995+00,,,30,10GB AirtelTigo,
+139e8523-b156-4300-aa6e-8fd32707c9bf,AT BIG TIME Bundles,AirtelTigo,30,86.00,3,,true,2025-11-11 18:19:46.583928+00,0.01,2026-01-05 05:12:09.815995+00,,,30,,
+1a37aa09-5a01-483c-b186-2d319ceb41de,2GB AirtelTigo,AirtelTigo,2,8.00,3,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-05 05:12:09.815995+00,,,30,2GB AirtelTigo,
+1e865257-3ae1-4ef0-be84-e0ffa03f7798,6GB AirtelTigo,AirtelTigo,6,23.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:09.815995+00,,,30,6GB AirtelTigo,
+2043d01e-6dff-4d03-917c-b1dc2447183f,40GB AirtelTigo,AirtelTigo,40,109.00,3,,true,2026-01-01 13:28:03.395156+00,0.00,2026-01-05 05:12:09.815995+00,,,30,,
+29cd1f3f-9ff3-48cb-99cc-79800431faf9,50GB MTN,MTN,50,210.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,50GB MTN,
+35a264f2-3bc8-4421-a01b-e1ae65ef693f,4GB AirtelTigo,AirtelTigo,4,15.00,1,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:09.815995+00,,,30,4GB AirtelTigo,
+4340097c-f2da-4b55-ac6b-eda6c9d42255,1GB AirtelTigo,AirtelTigo,1,4.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:09.815995+00,,,30,1GB AirtelTigo,
+46c80879-bc7d-433a-8600-a3ec865f9842,20GB MTN,MTN,20,86.90,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,20GB MTN,
+54c313b2-bfc6-412f-b733-f1e49dcbf69f,8GB MTN,MTN,8,39.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,8GB MTN,
+56f05e78-1985-4d56-ab07-caf7452bf964,100GB Telecel,Telecel,100,399.00,1,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:28.625084+00,,,30,100GB Telecel,
+5aa5f514-3388-4abd-bbf4-fffb646db0cf,15GB AirtelTigo,AirtelTigo,15,58.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:09.815995+00,,,30,20GB AirtelTigo,
+5ef1c84f-a9c8-40cc-bf61-aec44ec71654,25GB MTN,MTN,25,104.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,25GB MTN,
+714b6c79-135f-4a11-aa6b-429963149e75,5GB AirtelTigo,AirtelTigo,5,20.00,3,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-05 05:12:09.815995+00,,,30,5GB AirtelTigo,
+74c68a7c-1ace-42aa-8760-ed25687b64a8,60GB AirtelTigo,AirtelTigo,60,132.00,3,,true,2026-01-01 13:29:07.632882+00,0.00,2026-01-05 05:12:09.815995+00,,,30,,
+7544a0e3-d387-4573-ba3b-9bc4a9a515cd,9GB AirtelTigo,AirtelTigo,9,45.00,1,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:09.815995+00,,,30,9GB AirtelTigo,
+79c6d159-259f-448c-993f-2e441476da7a,5GB Telecel,Telecel,5,28.00,1,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-05 05:12:28.625084+00,,,30,5GB Telecel,
+7c03e393-b5e0-4200-a5a3-08b55b4a8231,10GB Telecel,Telecel,10,49.00,1,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:28.625084+00,,,30,10GB Telecel,
+7c107c67-7e01-4513-8b6b-222f0a93b99f,7GB AirtelTigo,AirtelTigo,7,27.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:09.815995+00,,,30,7GB AirtelTigo,
+7d778c7d-7fe8-46e4-850d-edc99eec9ed7,25GB Telecel,Telecel,25,108.00,1,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:28.625084+00,,,30,25GB Telecel,
+7f977ab9-419d-41f9-bf13-17658e795c9d,4GB MTN,MTN,4,28.00,3,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-10 22:28:56.156591+00,,,30,4GB MTN,
+82440439-4ef6-4d31-bf05-513a7a6c567f,1GB MTN,MTN,1,4.30,3,,true,2025-08-26 21:46:58.921741+00,0.03,2026-01-10 22:27:17.758299+00,,,30,1GB MTN,
+829897a5-fd11-44bc-9669-cba55381a09e,15GB MTN,MTN,15,68.90,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,15GB MTN,
+83fb7c0c-6f9d-46de-8f90-7f9361e0b0ff,50GB Telecel,Telecel,50,207.00,1,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-05 05:12:28.625084+00,,,30,50GB Telecel,
+894d4570-90cc-4c50-ac8e-f7517b5a4b94,6GB MTN,MTN,6,38.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,6GB MTN,
+8a97f9e4-18a3-469c-9400-f08c47933074,12GB AirtelTigo,AirtelTigo,12,44.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:09.815995+00,,,30,15GB AirtelTigo,
+8e2af838-faef-4df0-8447-4079b15f32d4,100GB AirtelTigo,AirtelTigo,100,189.00,1,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-05 05:12:09.815995+00,,,30,100GB AirtelTigo,
+8f8bd647-ef54-4cbb-a960-720a687b595d,80GB AirtelTigo,AirtelTigo,80,661.00,3,,true,2026-01-01 13:29:37.909317+00,0.00,2026-01-05 05:12:09.815995+00,,,30,,
+95cc6464-ece2-4b15-bd92-569b8f62d9b0,3GB MTN,MTN,3,19.00,3,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-10 22:27:17.758299+00,,,30,3GB MTN,
+99f49527-c0b5-4984-ac00-a539d37ff7b0,100GB MTN,MTN,100,399.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,100GB MTN,
+a7b2b90e-16d8-4047-bf6f-304c8563a0fc,40GB Telecel,Telecel,40,165.00,1,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-05 05:12:28.625084+00,,,30,40GB Telecel,
+aaa37b05-23e6-4e1d-a98a-ef9e02e7d941,25GB AirtelTigo,AirtelTigo,25,81.00,3,,true,2026-01-01 13:25:58.464007+00,0.00,2026-01-05 05:12:09.815995+00,,,30,,
+b0449ac1-c5ea-42ee-b4e9-6d617742a3ad,15GB Telecel,Telecel,15,69.00,1,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-05 05:12:28.625084+00,,,30,15GB Telecel,
+b0d17884-167a-492d-ac46-aaf113478269,8GB AirtelTigo,AirtelTigo,8,32.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:09.815995+00,,,30,8GB AirtelTigo,
+b4ee51e1-d2af-4e45-988d-0e4b884d9e94,5GB MTN,MTN,5,29.00,3,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-10 23:09:53.111824+00,,,30,5GB MTN,
+ba10af55-d60e-49be-af68-ec554617d515,30GB MTN,MTN,30,128.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,30GB MTN,
+bd263a59-db29-4221-84ff-f4b2ebe3e5c2,10GB MTN,MTN,10,42.90,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,10GB MTN,
+c0b17b57-3e49-47ef-98ae-c89fc4dae059,20GB AirtelTigo,AirtelTigo,20,76.00,3,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-05 05:12:09.815995+00,,,30,25GB AirtelTigo,
+c2ba12aa-d581-4751-a776-cb75fd38247c,3GB AirtelTigo,AirtelTigo,3,16.00,1,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-05 05:12:09.815995+00,,,30,3GB AirtelTigo,
+d1b399d2-a0d4-43f7-93b5-2ae28ba6b721,2GB MTN,MTN,2,9.90,3,,true,2025-08-26 21:46:58.921741+00,0.01,2026-01-10 22:27:17.758299+00,,,30,2GB MTN,
+f43671c1-38e5-437a-882e-095163aca549,30GB Telecel,Telecel,30,128.00,1,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:28.625084+00,,,30,30GB Telecel,
+f940e434-c35b-4fcc-9e16-7455a0e51a96,40GB MTN,MTN,40,166.00,3,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-10 22:27:17.758299+00,,,30,40GB MTN,
+fc566a0a-4fb8-474d-9ccf-a6483555d911,50GB AirtelTigo,AirtelTigo,50,123.00,3,,true,2026-01-01 13:28:35.159382+00,0.00,2026-01-05 05:12:09.815995+00,,,30,,
+ffb60140-6955-408a-aaed-fec81c8a6343,20GB Telecel,Telecel,20,88.00,1,,true,2025-08-26 21:46:58.921741+00,0.00,2026-01-05 05:12:28.625084+00,,,30,20GB Telecel,

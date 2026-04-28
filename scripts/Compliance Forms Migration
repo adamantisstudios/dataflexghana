@@ -1,0 +1,195 @@
+-- Final Corrected Migration Script for Compliance Forms
+-- This matches the existing frontend code expectations
+
+-- Drop existing tables if they exist
+DROP TABLE IF EXISTS form_images CASCADE;
+DROP TABLE IF EXISTS form_submissions CASCADE;
+DROP TABLE IF EXISTS forms CASCADE;
+
+-- Create forms table for reference data (form definitions)
+CREATE TABLE forms (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  form_name TEXT NOT NULL UNIQUE,
+  form_description TEXT,
+  form_type TEXT NOT NULL UNIQUE,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create form_submissions table with form_id as TEXT (not foreign key)
+-- This matches what the frontend code expects
+CREATE TABLE form_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+  form_id TEXT NOT NULL,  -- TEXT field, not UUID foreign key
+  form_data JSONB NOT NULL DEFAULT '{}',
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'delivered')),
+  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create form_images table to store uploaded documents
+CREATE TABLE form_images (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  submission_id UUID NOT NULL REFERENCES form_submissions(id) ON DELETE CASCADE,
+  image_type TEXT NOT NULL,
+  image_url TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Insert default forms (for reference and display purposes)
+INSERT INTO forms (form_name, form_description, form_type) VALUES
+  ('Birth Certificate', 'Application for birth certificate registration', 'birth-certificate'),
+  ('Sole Proprietorship', 'Business registration form for sole proprietors', 'sole-proprietorship'),
+  ('TIN Registration', 'Tax Identification Number registration form', 'tin-registration');
+
+-- Create indexes for better query performance
+CREATE INDEX idx_forms_form_type ON forms(form_type);
+CREATE INDEX idx_forms_is_active ON forms(is_active);
+CREATE INDEX idx_form_submissions_agent_id ON form_submissions(agent_id);
+CREATE INDEX idx_form_submissions_form_id ON form_submissions(form_id);
+CREATE INDEX idx_form_submissions_status ON form_submissions(status);
+CREATE INDEX idx_form_submissions_submitted_at ON form_submissions(submitted_at);
+CREATE INDEX idx_form_submissions_created_at ON form_submissions(created_at);
+CREATE INDEX idx_form_images_submission_id ON form_images(submission_id);
+
+-- Add RLS policies for forms table
+ALTER TABLE forms ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Anyone authenticated can view active forms
+CREATE POLICY "Authenticated users can view active forms"
+  ON forms
+  FOR SELECT
+  USING (is_active = true AND auth.uid() IS NOT NULL);
+
+-- Policy: Admins can manage forms
+CREATE POLICY "Admins can manage forms"
+  ON forms
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM agents
+      WHERE agents.id = auth.uid()
+      AND agents.role = 'admin'
+    )
+  );
+
+-- Add RLS policies for form_submissions
+ALTER TABLE form_submissions ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Agents can view their own submissions
+CREATE POLICY "Agents can view own form submissions"
+  ON form_submissions
+  FOR SELECT
+  USING (agent_id = auth.uid());
+
+-- Policy: Agents can insert their own submissions
+CREATE POLICY "Agents can insert own form submissions"
+  ON form_submissions
+  FOR INSERT
+  WITH CHECK (agent_id = auth.uid());
+
+-- Policy: Agents can update their own pending submissions
+CREATE POLICY "Agents can update own pending form submissions"
+  ON form_submissions
+  FOR UPDATE
+  USING (agent_id = auth.uid() AND status = 'pending');
+
+-- Policy: Admins can view all submissions
+CREATE POLICY "Admins can view all form submissions"
+  ON form_submissions
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM agents
+      WHERE agents.id = auth.uid()
+      AND agents.role = 'admin'
+    )
+  );
+
+-- Policy: Admins can update all submissions
+CREATE POLICY "Admins can update all form submissions"
+  ON form_submissions
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM agents
+      WHERE agents.id = auth.uid()
+      AND agents.role = 'admin'
+    )
+  );
+
+-- Policy: Admins can delete submissions
+CREATE POLICY "Admins can delete form submissions"
+  ON form_submissions
+  FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM agents
+      WHERE agents.id = auth.uid()
+      AND agents.role = 'admin'
+    )
+  );
+
+-- Add RLS policies for form_images
+ALTER TABLE form_images ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Agents can view images for their own submissions
+CREATE POLICY "Agents can view own form images"
+  ON form_images
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM form_submissions
+      WHERE form_submissions.id = form_images.submission_id
+      AND form_submissions.agent_id = auth.uid()
+    )
+  );
+
+-- Policy: Agents can insert images for their own submissions
+CREATE POLICY "Agents can insert own form images"
+  ON form_images
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM form_submissions
+      WHERE form_submissions.id = form_images.submission_id
+      AND form_submissions.agent_id = auth.uid()
+    )
+  );
+
+-- Policy: Admins can view all form images
+CREATE POLICY "Admins can view all form images"
+  ON form_images
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM agents
+      WHERE agents.id = auth.uid()
+      AND agents.role = 'admin'
+    )
+  );
+
+-- Policy: Admins can delete form images
+CREATE POLICY "Admins can delete form images"
+  ON form_images
+  FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM agents
+      WHERE agents.id = auth.uid()
+      AND agents.role = 'admin'
+    )
+  );
+
+-- Add comments to tables
+COMMENT ON TABLE forms IS 'Reference table for available compliance form types';
+COMMENT ON TABLE form_submissions IS 'Stores all compliance form submissions from agents';
+COMMENT ON TABLE form_images IS 'Stores uploaded documents and images for form submissions';
+
+-- Add comments to important columns
+COMMENT ON COLUMN form_submissions.form_id IS 'Text identifier for form type (e.g., birth-certificate, sole-proprietorship)';
+COMMENT ON COLUMN form_submissions.submitted_at IS 'Timestamp when the form was submitted';
+COMMENT ON COLUMN form_submissions.status IS 'Current status: pending, processing, completed, or delivered';
