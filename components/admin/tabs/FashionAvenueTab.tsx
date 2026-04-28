@@ -851,7 +851,7 @@ export default function FashionAvenueTab() {
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{referral.referrer_name}</h3>
                         <p className="text-sm text-gray-600">{referral.product_name}</p>
-                        <p className="text-sm font-semibold text-gray-900 mt-2">₵{referral.commission_amount_locked.toFixed(2)}</p>
+                        <p className="text-sm font-semibold text-gray-900 mt-2">₵{(referral.commission_amount_locked ?? 0).toFixed(2)}</p>
                       </div>
                       <Badge variant={referral.status === 'pending' ? 'secondary' : 'default'}>
                         {referral.status}
