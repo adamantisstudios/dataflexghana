@@ -205,41 +205,7 @@ export default function AdminAgentDataOrdersPage() {
     toast.success("Orders refreshed")
   }, [agentId, fetchOrders])
 
-  // Add order status update functionality
-  const updateOrderStatus = async (orderId: string, status: string, message?: string) => {
-    try {
-      const response = await fetch(`/api/admin/data-orders/${orderId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status,
-          admin_message: message,
-        }),
-      })
 
-      const result = await response.json()
-
-      if (!result.success) {
-        throw new Error(result.error || "Failed to update order status")
-      }
-
-      // Update local state
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId
-            ? { ...order, status: status as "pending" | "confirmed" | "processing" | "completed" | "canceled", admin_message: message, updated_at: new Date().toISOString() }
-            : order,
-        ),
-      )
-
-      toast.success(`Order status updated to ${status}`)
-    } catch (error: any) {
-      console.error("Error updating order status:", error)
-      toast.error(error.message || "Failed to update order status")
-    }
-  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
