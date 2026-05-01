@@ -83,7 +83,6 @@ import { ImageModal } from "@/components/ui/image-modal"
 import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
 import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
 import AgentOnlineCoursesDisplay from "@/components/agent/online-courses/AgentOnlineCoursesDisplay"
-import AdminPortalAccess from "@/components/agent/AdminPortalAccess"
 
 interface SimpleAgent {
   name: string
