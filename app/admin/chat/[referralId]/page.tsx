@@ -161,8 +161,7 @@ export default function AdminProjectChatPage() {
     try {
       // Upload to Supabase Storage
       const fileName = `${referral.id}_${Date.now()}_${file.name}`
-      // Remove unused uploadData variable
-      const { error: uploadError } = await supabase.storage.from("proofs").upload(fileName, file)
+      const { data: uploadData, error: uploadError } = await supabase.storage.from("proofs").upload(fileName, file)
 
       if (uploadError) throw uploadError
 
@@ -274,8 +273,8 @@ export default function AdminProjectChatPage() {
                   </span>
                 </span>
                 {referral.status === "completed" && (
-                  <Badge variant={referral.commissionPaid ? "default" : "secondary"}>
-                    {referral.commissionPaid ? "Commission Paid" : "Payment Pending"}
+                  <Badge variant={referral.commission_paid ? "default" : "secondary"}>
+                    {referral.commission_paid ? "Commission Paid" : "Payment Pending"}
                   </Badge>
                 )}
               </div>
