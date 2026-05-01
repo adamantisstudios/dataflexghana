@@ -1,6 +1,5 @@
 "use client"
-import { lazy, Suspense, useState, useCallback, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { lazy, Suspense, useState, useCallback, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -103,22 +102,6 @@ const useTabLoader = () => {
   }, [])
   return { loadedTabs, activeTab, loadTab, setActiveTab }
 }
-// Custom hook for caching tab data
-const useTabCache = () => {
-  const cache = useRef<Map<string, any>>(new Map())
-  const getCachedData = (tabName: string) => cache.current.get(tabName)
-  const setCachedData = (tabName: string, data: any) => {
-    cache.current.set(tabName, data)
-  }
-  const clearCache = (tabName?: string) => {
-    if (tabName) {
-      cache.current.delete(tabName)
-    } else {
-      cache.current.clear()
-    }
-  }
-  return { getCachedData, setCachedData, clearCache }
-}
 // Loading skeleton component for tabs
 const TabLoadingSkeleton = () => (
   <div className="space-y-4">
@@ -181,7 +164,6 @@ const TAB_CONFIG = [
 export default function AdminDashboard() {
   const { loadedTabs, activeTab, loadTab } = useTabLoader()
 
-  const router = useRouter()
   const admin = getStoredAdmin()
   const [showNotification, setShowNotification] = useState(true)
   const [connectionHealth, setConnectionHealth] = useState(connectionManager.getHealthStatus())
@@ -291,7 +273,7 @@ export default function AdminDashboard() {
           totalRevenue: 0,
         }
 
-        if (wholesaleStatsResponse.ok) {
+        if (wholesaleStatsResponse.ok && wholesaleStatsResponse instanceof Response) {
           try {
             wholesaleStats = await wholesaleStatsResponse.json()
           } catch (error) {
@@ -317,7 +299,7 @@ export default function AdminDashboard() {
           pendingOnlineCourses: 0,
         }
 
-        if (alertsResponse.ok) {
+        if (alertsResponse.ok && alertsResponse instanceof Response) {
           try {
             const parsedAlerts = await alertsResponse.json()
             if (parsedAlerts && typeof parsedAlerts === 'object') {
@@ -326,7 +308,7 @@ export default function AdminDashboard() {
           } catch (error) {
             console.error("[v0] Error parsing alerts data:", error)
           }
-        } else {
+        } else if (alertsResponse instanceof Response) {
           console.warn("[v0] Alerts API returned:", alertsResponse.status)
         }
 

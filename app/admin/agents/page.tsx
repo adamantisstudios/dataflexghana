@@ -33,6 +33,8 @@ import { LazyActivityTracker } from "@/components/admin/agents/lazy-activity-tra
 import { DataOrdersList } from "@/components/admin/data-orders-list"
 import { fetchAllDashboardData } from "@/lib/agent-query-optimizer"
 
+// AutomationStats interface removed - it was unused
+
 interface AgentAtRisk {
   agent_id: string
   agent_name: string
@@ -141,7 +143,7 @@ export default function AdminAgentsPage() {
           (Date.now() - new Date(agent.last_activity_at).getTime()) / (1000 * 60 * 60 * 24)
         )
         const orders7d = agent.data_orders_count_7d ?? 0
-        // orders30d is not needed for filtering, only for risk calculation later
+        // Custom risk logic: inactive >7 days OR zero orders in last 7 days
         return daysSinceActivity > 7 || orders7d === 0
       })
       .map((agent) => {
