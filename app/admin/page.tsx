@@ -46,6 +46,7 @@ import {
   Music,
   Mail,
   Shirt,
+  Sparkles,
 } from "lucide-react"
 import { logoutAdmin, getAdminToken, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -91,6 +92,7 @@ const SMSNotificationsTab = lazy(() => import("@/components/admin/tabs/SMSNotifi
 const FashionAvenueTab = lazy(() => import("@/components/admin/tabs/FashionAvenueTab"))
 const FashionProjectRequestsTab = lazy(() => import("@/components/admin/tabs/FashionProjectRequestsTab"))
 const FashionReferralsTab = lazy(() => import("@/components/admin/tabs/FashionReferralsTab"))
+const SalonTab = lazy(() => import("@/components/admin/tabs/SalonTab"))
 
 
 // Custom hook for managing tab loading state
@@ -175,6 +177,7 @@ const TAB_CONFIG = [
   { id: "fashion-avenue", label: "Fashion Avenue", icon: Shirt, component: FashionAvenueTab },
   { id: "fashion-project-requests", label: "Fashion Requests", icon: MessageCircle, component: FashionProjectRequestsTab },
   { id: "fashion-referrals", label: "Fashion Referrals", icon: UserPlus, component: FashionReferralsTab },
+  { id: "salon", label: "Salon & Beauty", icon: Sparkles, component: SalonTab },
 ]
 
 export default function AdminDashboard() {

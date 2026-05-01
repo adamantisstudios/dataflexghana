@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircle, Mail, Phone, MapPin, Calendar, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { MessageCircle, Phone, MapPin, Calendar, CheckCircle2, AlertCircle, Clock, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -101,6 +101,24 @@ export default function FashionProjectRequestsTab() {
     }
   };
 
+  const handleDeleteRequest = async (requestId: number) => {
+    if (!window.confirm('Are you sure you want to delete this request?')) return;
+    try {
+      const response = await fetch(`/api/admin/fashion/project-requests/${requestId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setRequests((prev) => prev.filter((r) => r.id !== requestId));
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete request');
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      alert('Failed to delete request');
+    }
+  };
+
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
       request.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -190,7 +208,7 @@ export default function FashionProjectRequestsTab() {
               <CardContent className="pt-6">
                 <div className="space-y-4">
                   {/* Header Row */}
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold text-lg">{request.client_name}</h3>
@@ -200,18 +218,23 @@ export default function FashionProjectRequestsTab() {
                       </div>
                       <p className="text-sm text-muted-foreground">{request.product_code} - {request.client_location}</p>
                     </div>
-                    <Select value={request.status} onValueChange={(newStatus) => handleStatusChange(request.id, newStatus)}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="contacted">Contacted</SelectItem>
-                        <SelectItem value="in-progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <Select value={request.status} onValueChange={(newStatus) => handleStatusChange(request.id, newStatus)}>
+                        <SelectTrigger className="w-full sm:w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="contacted">Contacted</SelectItem>
+                          <SelectItem value="in-progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" variant="destructive" onClick={() => handleDeleteRequest(request.id)} className="shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Contact Details */}
@@ -255,35 +278,36 @@ export default function FashionProjectRequestsTab() {
                     </div>
                   )}
 
-                  {/* Admin Notes */}
-                  <Dialog open={showDetailsModal && selectedRequest?.id === request.id} onOpenChange={setShowDetailsModal}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedRequest(request);
-                          setAdminNotes(request.admin_notes || '');
-                        }}
-                      >
-                        {request.admin_notes ? 'Edit Notes' : 'Add Notes'}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Admin Notes for {request.client_name}</DialogTitle>
-                      </DialogHeader>
-                      <Textarea
-                        placeholder="Add internal notes for tracking and follow-up..."
-                        value={adminNotes}
-                        onChange={(e) => setAdminNotes(e.target.value)}
-                        className="min-h-32"
-                      />
-                      <Button onClick={() => handleSaveNotes(request.id)} className="w-full">
-                        Save Notes
-                      </Button>
-                    </DialogContent>
-                  </Dialog>
+                  <div className="flex items-center gap-2">
+                    <Dialog open={showDetailsModal && selectedRequest?.id === request.id} onOpenChange={setShowDetailsModal}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedRequest(request);
+                            setAdminNotes(request.admin_notes || '');
+                          }}
+                        >
+                          {request.admin_notes ? 'Edit Notes' : 'Add Notes'}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Admin Notes for {request.client_name}</DialogTitle>
+                        </DialogHeader>
+                        <Textarea
+                          placeholder="Add internal notes for tracking and follow-up..."
+                          value={adminNotes}
+                          onChange={(e) => setAdminNotes(e.target.value)}
+                          className="min-h-32"
+                        />
+                        <Button onClick={() => handleSaveNotes(request.id)} className="w-full">
+                          Save Notes
+                        </Button>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>

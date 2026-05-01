@@ -25,6 +25,7 @@ interface Product {
   base_price: number;
   fabric_cost_included: boolean;
   completion_time: string;
+  estimated_timeline_days?: number;
   express_charge: number;
   commission_amount: number;
   status: string;
@@ -722,6 +723,7 @@ export default function FashionAvenueTab() {
                   .map((product) => (
                     <ProductCard
                       key={product.id}
+                      product={product}
                       id={product.id}
                       product_name={product.product_name}
                       product_code={product.product_code}

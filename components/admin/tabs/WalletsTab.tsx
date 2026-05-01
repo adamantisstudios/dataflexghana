@@ -372,6 +372,17 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     }
   }
 
+  const loadPendingWalletTopups = async () => {
+    const { data, error } = await supabase
+      .from("wallet_topups")
+      .select(`*, agents!inner(id, full_name, phone_number)`)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+
+    if (error) throw error
+    setWalletTopups(data || [])
+  }
+
   useEffect(() => {
     const loadWalletData = async () => {
       try {
@@ -379,6 +390,11 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         const cachedData = getCachedData()
         if (cachedData) {
           setWalletTransactions(cachedData)
+          try {
+            await loadPendingWalletTopups()
+          } catch (topupError) {
+            console.error("Error loading pending wallet topups:", topupError)
+          }
           setLoading(false)
           return
         }
@@ -397,8 +413,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
             supabase
               .from("wallet_topups")
               .select(`*, agents!inner(id, full_name, phone_number)`)
+              .eq("status", "pending")
               .order("created_at", { ascending: false })
-              .range(0, 11),
           ])
 
           const walletAgentIds = Array.from(new Set(walletData.data?.map((t: any) => t.agent_id) || []))
@@ -621,20 +637,16 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       if (balanceError) throw balanceError
 
       // Refresh data
-      const [walletData, topupsData, agentsData] = await Promise.all([
+      const [walletData, agentsData] = await Promise.all([
         supabase
           .from("wallet_transactions")
           .select(`*, agents (full_name, phone_number, wallet_balance)`)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("wallet_topups")
-          .select(`*, agents (full_name, phone_number)`)
           .order("created_at", { ascending: false }),
         supabase.from("agents").select("*").order("full_name", { ascending: true }),
       ])
 
       setWalletTransactions(walletData.data || [])
-      setWalletTopups(topupsData.data || [])
+      await loadPendingWalletTopups()
       setAgents(agentsData.data || [])
       setCachedData(walletData.data || [])
 
@@ -656,11 +668,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         .eq("id", topupId)
       if (error) throw error
       alert("Wallet top-up rejected successfully!")
-      const { data: topupsData } = await supabase
-        .from("wallet_topups")
-        .select(`*, agents (full_name, phone_number)`)
-        .order("created_at", { ascending: false })
-      setWalletTopups(topupsData || [])
+      await loadPendingWalletTopups()
     } catch (error) {
       console.error("Error rejecting wallet top-up:", error)
       alert("Failed to reject wallet top-up")
@@ -847,7 +855,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     console.log("Performing complete refresh...")
     try {
       await connectionManager.forceReconnect()
-      await loadNextWalletsPage(currentWalletsPage)
+      await Promise.all([loadNextWalletsPage(currentWalletsPage), loadPendingWalletTopups()])
       console.log("Complete refresh successful")
     } catch (error) {
       console.error("Complete refresh failed:", error)

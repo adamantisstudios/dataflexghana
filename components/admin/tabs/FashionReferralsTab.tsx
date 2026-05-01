@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Gift, TrendingUp, User, Calendar } from 'lucide-react';
+import { MessageCircle, Gift, TrendingUp, User, Calendar, Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -95,6 +95,24 @@ export default function FashionReferralsTab() {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleDeleteReferral = async (referralId: number) => {
+    if (!window.confirm('Are you sure you want to delete this referral?')) return;
+    try {
+      const response = await fetch(`/api/admin/fashion/referrals-list/${referralId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setReferrals((prev) => prev.filter((r) => r.id !== referralId));
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete referral');
+      }
+    } catch (error) {
+      console.error('Error deleting referral:', error);
+      alert('Failed to delete referral');
     }
   };
 
@@ -201,7 +219,7 @@ export default function FashionReferralsTab() {
               <CardContent className="pt-6">
                 <div className="space-y-4">
                   {/* Header Row */}
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <User className="w-5 h-5 text-muted-foreground" />
@@ -212,18 +230,23 @@ export default function FashionReferralsTab() {
                       </div>
                       <p className="text-sm text-muted-foreground">{referral.product_name} ({referral.product_code})</p>
                     </div>
-                    <Select value={referral.status} onValueChange={(newStatus) => handleStatusChange(referral.id, newStatus)}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="contacted">Contacted</SelectItem>
-                        <SelectItem value="earned">Earned</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <Select value={referral.status} onValueChange={(newStatus) => handleStatusChange(referral.id, newStatus)}>
+                        <SelectTrigger className="w-full sm:w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="contacted">Contacted</SelectItem>
+                          <SelectItem value="earned">Earned</SelectItem>
+                          <SelectItem value="paid">Paid</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" variant="destructive" onClick={() => handleDeleteReferral(referral.id)} className="shrink-0">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Details */}

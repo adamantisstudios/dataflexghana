@@ -204,37 +204,11 @@ export default function NoRegistrationPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
-              <CardContent className="p-0">
-                <div className="relative w-full h-40 overflow-hidden bg-gray-200">
-                  <Image
-                    src="/assets/slide2.jpg"
-                    alt="Custom Fashion Design Service"
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-300"
-                  />
-                </div>
-                <div className="p-6 space-y-3">
-                  <h3 className="text-xl font-bold text-gray-900">Fashion Design</h3>
-                  <p className="text-gray-600">Get custom fashion designs for every occasion. Professional styling services with remote consultations available.</p>
-                  <Button
-                    asChild
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white"
-                  >
-                    <Link href="https://fashionablyhired.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
-                      <span>Design Now</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
             <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group lg:col-span-1">
               <CardContent className="p-0">
                 <div className="relative w-full h-40 overflow-hidden bg-gray-200">
                   <Image
-                    src="/fashion-avenue-hero.jpg"
+                    src="/assets/slide2.jpg"
                     alt="Fashion Avenue Shopping"
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-300"
@@ -249,6 +223,32 @@ export default function NoRegistrationPage() {
                   >
                     <Link href="/fashion-avenue" className="flex items-center justify-center gap-2">
                       <span>Refer Or Shop Now</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group lg:col-span-1">
+              <CardContent className="p-0">
+                <div className="relative w-full h-40 overflow-hidden bg-gray-200">
+                  <Image
+                    src="/salon-hero.jpg"
+                    alt="Salon & Beauty Services"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-6 space-y-3">
+                  <h3 className="text-xl font-bold text-gray-900">Salon & Beauty</h3>
+                  <p className="text-gray-600">Professional hair braiding, styling, makeup, and spa services. Book beauty treatments with experienced professionals across Accra.</p>
+                  <Button
+                    asChild
+                    className="w-full bg-gradient-to-r from-rose-600 to-pink-700 hover:from-rose-700 hover:to-pink-800 text-white"
+                  >
+                    <Link href="/salon" className="flex items-center justify-center gap-2">
+                      <span>Browse Services</span>
                       <ChevronRight className="w-4 h-4" />
                     </Link>
                   </Button>

@@ -68,3 +68,39 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const requestId = parseInt(id, 10);
+
+    if (!requestId) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid request ID' },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase
+      .from('fashion_project_requests')
+      .delete()
+      .eq('id', requestId);
+
+    if (error) {
+      return NextResponse.json(
+        { success: false, error: error.message || 'Failed to delete request' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to delete request' },
+      { status: 500 }
+    );
+  }
+}

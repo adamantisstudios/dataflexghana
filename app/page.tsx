@@ -386,9 +386,6 @@ export default function HomePage() {
               <a href="#services" className="text-gray-700 hover:text-emerald-600 transition-colors font-medium">
                 Services
               </a>
-              <a href="#bundles" className="text-gray-700 hover:text-emerald-600 transition-colors font-medium">
-                Data Bundles
-              </a>
               <Link
                 href="/domestic-workers"
                 className="text-gray-700 hover:text-emerald-600 transition-colors font-medium"
@@ -441,12 +438,6 @@ export default function HomePage() {
                 >
                   Services
                 </a>
-                <a
-                  href="#bundles"
-                  className="text-gray-700 hover:text-emerald-600 transition-colors font-medium px-2 py-1"
-                >
-                  Data Bundles
-                </a>
                 <Link
                   href="/domestic-workers"
                   className="text-gray-700 hover:text-emerald-600 transition-colors font-medium px-2 py-1"
@@ -489,44 +480,16 @@ export default function HomePage() {
       {/* Hero Section with 4 Sliders */}
       <HeroSlider />
 
-      {/* CHANGE: Added prominent No-Registration CTA section */}
-      <section className="relative py-12 sm:py-16 md:py-20 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 overflow-hidden">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="relative z-10 container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-block mb-4 sm:mb-6">
-              <span className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 text-sm font-semibold text-white border border-white/30 shadow-lg">
-                Quick & Easy
-              </span>
-            </div>
-
-            {/* Main Heading */}
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 text-balance drop-shadow-lg">
-              Buy Data in <span className="underline decoration-white decoration-4 underline-offset-4">Seconds</span>
+      <section id="features" className="py-14 bg-gradient-to-br from-emerald-50 to-green-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-4xl mx-auto">
+            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 mb-4">Why Choose Dataflex Ghana</Badge>
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+              Dataflex Ghana — The Data You Need to Start <span className="text-emerald-600">Earning Online</span>
             </h2>
-
-            {/* Description */}
-            <p className="text-lg sm:text-xl text-white/95 mb-8 sm:mb-10 leading-relaxed max-w-xl mx-auto drop-shadow-md">
-              No registration needed. Get instant data bundles for MTN, AirtelTigo, and Telecel with just a few clicks.
+            <p className="text-xl text-gray-600">
+              We provide all the tools, support, and opportunities you need to access quality services and start your earning journey
             </p>
-
-            {/* CTA Button */}
-            <Button
-              size="lg"
-              asChild
-              className="bg-white text-emerald-700 hover:bg-gray-100 text-lg px-8 sm:px-10 py-6 sm:py-7 shadow-2xl transform hover:scale-105 transition-all duration-300 font-semibold rounded-full"
-            >
-              <Link href="/no-registration" className="flex items-center justify-center gap-2">
-                Buy Data Now
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </Button>
           </div>
         </div>
       </section>
@@ -1278,18 +1241,17 @@ export default function HomePage() {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-2xl font-bold text-blue-800">Educational Products & Services</h3>
-                      <p className="text-blue-600 font-medium">Results Checker Cards, School Forms & Subscriptions</p>
+                      <h3 className="text-2xl font-bold text-blue-800">Fashion Avenue</h3>
+                      <p className="text-blue-600 font-medium">Elegant Styles, Custom Designs & Referral Earnings</p>
                     </div>
                   </div>
                   <p className="text-lg text-gray-700 leading-relaxed">
-                    Get instant access to BECE, WASSCE, ABCE results checker cards, university application forms, and
-                    subscription services.
-                    <span className="font-semibold text-blue-600"> Delivered via email or WhatsApp!</span>
+                    Discover elegant fashion collections, custom tailoring options, and premium designs for every occasion.
+                    <span className="font-semibold text-blue-600"> Shop directly or refer friends and earn through Fashion Avenue.</span>
                   </p>
                   {/* Features */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {["GES Certified Books", "Quality Stationery", "School Uniforms", "Educational Materials"].map(
+                    {["Custom Fashion Designs", "Ready-to-Order Styles", "Express Tailoring", "Referral Earnings"].map(
                       (item, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <CheckCircle className="h-5 w-5 text-green-600" />
@@ -1307,7 +1269,7 @@ export default function HomePage() {
                       <span className="font-semibold text-blue-800">No Registration Required</span>
                     </div>
                     <p className="text-sm text-blue-700">
-                      Order educational products without any registration. Simple, fast, and convenient!
+                      Explore Fashion Avenue products without registration. Quick, easy, and convenient.
                     </p>
                   </div>
                 </div>
@@ -1317,8 +1279,8 @@ export default function HomePage() {
                   asChild
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl text-lg px-8 py-6"
                 >
-                  <Link href="/voucher">
-                    Shop Educational Products
+                  <Link href="/fashion-avenue">
+                    Visit Fashion Avenue
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
@@ -1327,8 +1289,8 @@ export default function HomePage() {
               <div className="relative order-first lg:order-last">
                 <div className="relative rounded-xl overflow-hidden shadow-lg">
                   <img
-                    src="/images/happy-ghanaian-children-with-school-books-and-unif.jpg"
-                    alt="Happy Ghanaian children with school books"
+                    src="/assets/slide2.jpg"
+                    alt="Fashion Avenue showcase"
                     className="w-full h-72 sm:h-80 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-blue-900/30 to-transparent"></div>
@@ -1346,8 +1308,8 @@ export default function HomePage() {
                           </svg>
                         </div>
                         <div>
-                          <div className="text-sm font-semibold text-gray-900">GES Approved</div>
-                          <div className="text-xs text-gray-600">Quality Guaranteed</div>
+                          <div className="text-sm font-semibold text-gray-900">Fashion Avenue</div>
+                          <div className="text-xs text-gray-600">Style Meets Opportunity</div>
                         </div>
                       </div>
                     </div>
@@ -1616,197 +1578,6 @@ export default function HomePage() {
       {/* Wholesale Product Slider */}
       <WholesaleProductSlider />
       <PropertiesShowcase />
-
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-gradient-to-br from-emerald-50 to-green-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 mb-4">Why Choose Dataflex Ghana</Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Dataflex Ghana — The Data You Need to Start <span className="text-emerald-600">Earning Online</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We provide all the tools, support, and opportunities you need to access quality services and start your earning journey
-            </p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card
-                key={index}
-                className="border-emerald-100 hover:border-emerald-200 transition-all duration-300 hover:shadow-lg bg-white"
-              >
-                <CardHeader>
-                  <div className="w-16 h-16 bg-emerald-50 rounded-xl flex items-center justify-center mb-4">
-                    {feature.icon}
-                  </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Data Bundles Section */}
-      <section id="bundles" className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 mb-4">Data Bundles</Badge>
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              All Networks <span className="text-emerald-600">Available</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Purchase affordable data bundles for personal use from all major networks in Ghana with competitive rates
-              and instant delivery
-            </p>
-          </div>
-          {/* Buy Affordable Data Button */}
-          <div className="text-center mb-8">
-            <Button
-              onClick={handleShowDataBundles}
-              size="lg"
-              className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-xl text-lg px-8 py-6"
-            >
-              <Smartphone className="mr-2 h-5 w-5" />
-              Buy Affordable Data
-              {showDataBundles ? <ChevronUp className="ml-2 h-5 w-5" /> : <ChevronDown className="ml-2 h-5 w-5" />}
-            </Button>
-          </div>
-          {/* Collapsible Data Bundles Content */}
-          {showDataBundles && (
-            <div className="space-y-8 animate-in slide-in-from-top-4 duration-500">
-              {/* Network Showcase */}
-              <div className="grid md:grid-cols-3 gap-8 mb-12">
-                {providers.map((provider, index) => (
-                  <Card key={index} className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={provider.logo || "/placeholder.svg"}
-                        alt={`${provider.name} Network`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className={`absolute inset-0 bg-gradient-to-t ${provider.color} opacity-80`}></div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center text-white">
-                          <div className="w-20 h-20 bg-white rounded-xl p-3 mx-auto mb-4">
-                            <img
-                              src={provider.logoAlt || provider.logo}
-                              alt={`${provider.name} Logo`}
-                              className="w-full h-full object-contain"
-                            />
-                          </div>
-                          <h3 className="text-2xl font-bold">{provider.name}</h3>
-                        </div>
-                      </div>
-                    </div>
-                    <CardContent className="p-6">
-                      <p className="text-gray-600 mb-4">{provider.description}</p>
-                      <div className="text-center">
-                        <p className="text-sm text-gray-500 mb-2">Available Bundles</p>
-                        <p className="text-2xl font-bold text-emerald-600">{provider.bundles.length}+</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              {dataBundlesLoaded && (
-                <Tabs defaultValue="MTN" className="space-y-8">
-                  <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto bg-emerald-50 border border-emerald-200">
-                    <TabsTrigger
-                      value="MTN"
-                      className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white flex items-center gap-2"
-                    >
-                      <img src="/images/mtn-logo-new.jpg" alt="MTN logo" className="w-5 h-5 rounded object-cover" />
-                      <span className="hidden sm:inline">MTN</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="AirtelTigo"
-                      className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white flex items-center gap-2"
-                    >
-                      <img
-                        src="/images/airteltigo-logo-new.jpg"
-                        alt="AirtelTigo logo"
-                        className="w-5 h-5 rounded object-cover"
-                      />
-                      <span className="hidden sm:inline">AirtelTigo</span>
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="Telecel"
-                      className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white flex items-center gap-2"
-                    >
-                      <img
-                        src="/images/telecel-logo-new.jpg"
-                        alt="Telecel logo"
-                        className="w-5 h-5 rounded object-cover"
-                      />
-                      <span className="hidden sm:inline">Telecel</span>
-                    </TabsTrigger>
-                  </TabsList>
-                  {providers.map((provider) => (
-                    <TabsContent key={provider.name} value={provider.name} className="space-y-8">
-                      <div className="text-center">
-                        <div className="w-24 h-24 mx-auto mb-4 rounded-xl overflow-hidden border border-emerald-100">
-                          <img
-                            src={provider.logoAlt || provider.logo || "/placeholder.svg"}
-                            alt={`${provider.name} Logo`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <h3 className="text-2xl font-bold mb-2">{provider.name}</h3>
-                        <p className="text-gray-600">{provider.description}</p>
-                      </div>
-                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {provider.bundles.map((bundle) => (
-                          <Card
-                            key={bundle.id}
-                            className="border-emerald-100 hover:border-emerald-200 transition-all duration-300 hover:shadow-lg"
-                          >
-                            <CardHeader className="text-center">
-                              <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Smartphone className="h-8 w-8 text-white" />
-                              </div>
-                              <CardTitle className="text-2xl">{bundle.size_gb}GB</CardTitle>
-                              <CardDescription>{provider.name} Data Bundle</CardDescription>
-                            </CardHeader>
-                            <CardContent className="text-center space-y-4">
-                              <div>
-                                <p className="text-3xl font-bold text-emerald-600">GH₵ {bundle.price?.toFixed(2)}</p>
-                                <p className="text-sm text-gray-600">Valid for {bundle.validity_months} months</p>
-                              </div>
-                              <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-                                <p className="text-sm text-gray-600">Personal Use</p>
-                                <p className="text-lg font-bold text-emerald-600">Affordable Rates</p>
-                              </div>
-                              <Button className="w-full bg-emerald-600 hover:bg-emerald-700" asChild>
-                                <Link href="/agent/register">Purchase Now</Link>
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                      {provider.bundles.length === 0 && (
-                        <div className="text-center py-12">
-                          <Smartphone className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-600">More {provider.name} bundles coming soon!</p>
-                        </div>
-                      )}
-                    </TabsContent>
-                  ))}
-                </Tabs>
-              )}
-              {!dataBundlesLoaded && showDataBundles && (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading data bundles...</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
 
       {/* Additional Services Section */}
       <section className="py-20 bg-white">

@@ -52,3 +52,39 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const referralId = parseInt(id, 10);
+
+    if (!referralId) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid referral ID' },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase
+      .from('fashion_referrals')
+      .delete()
+      .eq('id', referralId);
+
+    if (error) {
+      return NextResponse.json(
+        { success: false, error: error.message || 'Failed to delete referral' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to delete referral' },
+      { status: 500 }
+    );
+  }
+}

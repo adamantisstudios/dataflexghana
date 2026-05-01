@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { ChevronLeft, ChevronRight, Search, MessageCircle, UserPlus, Sparkles, Zap, Clock, ChevronDown } from 'lucide-react';
 import { ImageModal } from '@/components/ui/image-modal';
+import AgentRegistrationNotification from '@/components/AgentRegistrationNotification';
 
 interface Product {
   id: number;
@@ -48,6 +49,7 @@ export default function FashionAvenuePage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
   const [selectedImageProduct, setSelectedImageProduct] = useState<Product | null>(null);
@@ -442,7 +444,6 @@ export default function FashionAvenuePage() {
                       <div className="flex-1">
                         <h3 className="text-xl font-bold text-foreground mb-1">{product.product_name}</h3>
                         <p className="text-xs text-muted-foreground font-mono bg-muted px-2 py-1 rounded w-fit">{product.product_code}</p>
-                        <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{product.description}</p>
                       </div>
                     </div>
 
@@ -496,6 +497,33 @@ export default function FashionAvenuePage() {
 
                     {/* Action Buttons */}
                     <div className="space-y-3 pt-4">
+                      <Dialog open={showDetailsModal && selectedProduct?.id === product.id} onOpenChange={setShowDetailsModal}>
+                        <DialogTrigger asChild>
+                          <Button
+                            onClick={() => setSelectedProduct(product)}
+                            variant="secondary"
+                            className="w-full"
+                          >
+                            View Details
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-lg">
+                          <DialogHeader>
+                            <DialogTitle>{product.product_name}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-3">
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{product.description}</p>
+                            <div className="text-sm space-y-1">
+                              <p><strong>Category:</strong> {product.category_name}</p>
+                              <p><strong>Base Price:</strong> GHS {product.base_price.toFixed(2)}</p>
+                              <p><strong>Express Charge:</strong> GHS {product.express_charge.toFixed(2)}</p>
+                              <p><strong>Timeline:</strong> {product.completion_time}</p>
+                              <p><strong>Fabric Included:</strong> {product.fabric_cost_included ? 'Yes' : 'No'}</p>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+
                       <Dialog open={showRequestModal && selectedProduct?.id === product.id} onOpenChange={setShowRequestModal}>
                         <DialogTrigger asChild>
                           <Button
@@ -688,6 +716,9 @@ export default function FashionAvenuePage() {
       )}
 
       <Footer />
+
+      {/* Agent Registration Notification */}
+      <AgentRegistrationNotification />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface ProductCardProps {
+  product: any;
   id: number;
   product_name: string;
   product_code: string;
@@ -22,6 +23,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({
+  product,
   id,
   product_name,
   product_code,
@@ -109,19 +111,7 @@ export default function ProductCard({
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              onEdit({
-                id,
-                product_name,
-                product_code,
-                description,
-                base_price,
-                category_id: 1, // Will be filled from parent
-                commission_amount,
-                fabric_cost_included,
-                image_urls,
-              })
-            }
+            onClick={() => onEdit(product)}
             className="flex-1"
           >
             <Edit2 className="w-4 h-4 mr-1" />
