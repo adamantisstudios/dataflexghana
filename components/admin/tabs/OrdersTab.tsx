@@ -52,11 +52,11 @@ import { getBundleDisplayName } from "@/lib/bundle-data-handler"
 import { toast } from "sonner"
 
 interface OrdersTabProps {
-  getCachedData: () => DataOrder[] | undefined
-  setCachedData: (data: DataOrder[]) => void
+  getCachedData?: () => DataOrder[] | undefined
+  setCachedData?: (data: DataOrder[]) => void
 }
 
-export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabProps) {
+export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabProps = {}) {
   const [dataOrders, setDataOrders] = useState<DataOrder[]>([])
   const [filteredOrders, setFilteredOrders] = useState<DataOrder[]>([])
   const [loading, setLoading] = useState(true)
@@ -73,6 +73,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   const [showCleanupDialog, setShowCleanupDialog] = useState(false)
   const [copiedPhoneNumbers, setCopiedPhoneNumbers] = useState<Set<string>>(new Set())
   const [copiedReferenceCodes, setCopiedReferenceCodes] = useState<Set<string>>(new Set())
+  const [localCachedData, setLocalCachedData] = useState<DataOrder[]>([])
 
   useEffect(() => {
     const stored = localStorage.getItem("copiedOrderReferences")
@@ -153,21 +154,33 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         const newOrder = payload.new as DataOrder
         setDataOrders((prev) => {
           const updated = [newOrder, ...prev]
-          setCachedData(updated)
+          if (setCachedData) {
+            setCachedData(updated)
+          } else {
+            setLocalCachedData(updated)
+          }
           return updated
         })
       } else if (payload.eventType === "UPDATE") {
         const updatedOrder = payload.new as DataOrder
         setDataOrders((prev) => {
           const updated = prev.map((order) => (order.id === updatedOrder.id ? { ...order, ...updatedOrder } : order))
-          setCachedData(updated)
+          if (setCachedData) {
+            setCachedData(updated)
+          } else {
+            setLocalCachedData(updated)
+          }
           return updated
         })
       } else if (payload.eventType === "DELETE") {
         const deletedOrder = payload.old as DataOrder
         setDataOrders((prev) => {
           const updated = prev.filter((order) => order.id !== deletedOrder.id)
-          setCachedData(updated)
+          if (setCachedData) {
+            setCachedData(updated)
+          } else {
+            setLocalCachedData(updated)
+          }
           return updated
         })
       }
@@ -201,7 +214,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       setLoading(true)
       try {
         if (!forceRefresh) {
-          const cachedData = getCachedData()
+          const cachedData = getCachedData ? getCachedData() : localCachedData
           if (cachedData && cachedData.length > 0) {
             setDataOrders(cachedData)
             setLoading(false)
@@ -269,7 +282,11 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
               : 0),
         }))
         setDataOrders(processedOrders)
-        setCachedData(processedOrders)
+        if (setCachedData) {
+          setCachedData(processedOrders)
+        } else {
+          setLocalCachedData(processedOrders)
+        }
         setLastRefresh(new Date())
         setConnectionError(null)
       } catch (error: any) {
@@ -287,13 +304,17 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         console.error("Error loading data orders:", JSON.stringify(errorDetails, null, 2))
         setConnectionError(`Failed to load orders: ${errorMessage}`)
         setDataOrders([])
-        setCachedData([])
+        if (setCachedData) {
+          setCachedData([])
+        } else {
+          setLocalCachedData([])
+        }
       } finally {
         setLoading(false)
         loadingRef.current = false
       }
     },
-    [getCachedData, setCachedData],
+    [getCachedData, setCachedData, localCachedData],
   )
 
   useEffect(() => {

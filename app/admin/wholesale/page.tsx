@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Package, ShoppingCart, TrendingUp, Clock, ArrowLeft } from "lucide-react"
 import ProductManagement from "@/components/admin/wholesale/ProductManagement"
