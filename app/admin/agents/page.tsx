@@ -63,10 +63,7 @@ export default function AdminAgentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [activityFilter, setActivityFilter] = useState("all")
-  const [automationStats, setAutomationStats] = useState<AutomationStats | null>(null)
-  const [agentsAtRisk, setAgentsAtRisk] = useState<AgentAtRisk[]>([])
   const [runningAutomation, setRunningAutomation] = useState(false)
-  const [agentEarnings, setAgentEarnings] = useState<Map<string, EarningsData>>(new Map())
   const { invalidateCache } = useAgentsCache()
 
   const fetchAgents = async () => {
@@ -75,13 +72,10 @@ export default function AdminAgentsPage() {
       const dashboardData = await fetchAllDashboardData(100, 0)
 
       setAgents(dashboardData.agents || [])
-      setAutomationStats(dashboardData.stats)
-      setAgentsAtRisk(dashboardData.atRisk)
 
       if (dashboardData.agents && dashboardData.agents.length > 0) {
         const agentIds = dashboardData.agents.map((agent) => agent.id)
         const earningsMap = await batchCalculateAgentEarnings(agentIds)
-        setAgentEarnings(earningsMap)
 
         const agentsWithUnifiedEarnings = dashboardData.agents.map((agent) => {
           const earnings = earningsMap.get(agent.id)
@@ -149,42 +143,7 @@ export default function AdminAgentsPage() {
     fetchAgents()
   }, [])
 
-  const toggleAgentApproval = async (agentId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase.from("agents").update({ isapproved: !currentStatus }).eq("id", agentId)
 
-      if (error) throw error
-
-      setAgents(agents.map((agent) => (agent.id === agentId ? { ...agent, isapproved: !currentStatus } : agent)))
-      invalidateCache()
-      toast.success(`Agent ${!currentStatus ? "approved" : "suspended"} successfully`)
-    } catch (error) {
-      console.error("Error updating agent:", error)
-      toast.error("Failed to update agent status")
-    }
-  }
-
-  const reactivateAgent = async (agentId: string, agentName: string) => {
-    try {
-      const { data, error } = await supabase.rpc("reactivate_agent", {
-        p_agent_id: agentId,
-        p_admin_notes: `Manually reactivated by admin on ${new Date().toISOString()}`,
-      })
-
-      if (error) throw error
-
-      if (data) {
-        toast.success(`Agent ${agentName} has been reactivated successfully`)
-        invalidateCache()
-        fetchAgents()
-      } else {
-        toast.error("Agent could not be reactivated")
-      }
-    } catch (error) {
-      console.error("Error reactivating agent:", error)
-      toast.error("Failed to reactivate agent")
-    }
-  }
 
   const runAutomationManually = async () => {
     try {

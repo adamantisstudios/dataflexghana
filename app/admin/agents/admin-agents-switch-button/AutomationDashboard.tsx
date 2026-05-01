@@ -11,7 +11,6 @@ import {
   Clock,
   Play,
   RotateCcw,
-  TrendingDown,
   TrendingUp,
   Users,
 } from 'lucide-react'

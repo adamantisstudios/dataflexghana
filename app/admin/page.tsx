@@ -58,9 +58,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { PendingAlertsCard } from "@/components/admin/pending-alerts-card"
 
-import SubAdminManagementTab from "@/components/admin/tabs/SubAdminManagementTab" // Added import for SubAdminManagementTab
-import { isRestrictedSubAdmin } from "@/lib/sub-admin-utils" // Added import for isRestrictedSubAdmin
-import { filterTabsForSubAdmin } from "@/lib/sub-admin-utils" // Added import for filterTabsForSubAdmin
+
 
 // Lazy load tab components
 const AgentsTab = lazy(() => import("@/components/admin/tabs/AgentsTab"))
