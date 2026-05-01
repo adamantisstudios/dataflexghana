@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import useSWR from "swr"
 import { VideoCard } from "./video-card"
 import { Spinner } from "@/components/ui/spinner"
 

@@ -2,10 +2,7 @@
 import { useState, lazy, Suspense } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import Link from "next/link"
 import { ShoppingBag, Package, ShoppingCart } from 'lucide-react'
 
 // Lazy load wholesale sub-components for better performance

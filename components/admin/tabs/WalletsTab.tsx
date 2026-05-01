@@ -42,7 +42,6 @@ import {
 } from "lucide-react"
 import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton"
 import { connectionManager } from "@/lib/connection-manager"
-import { reverseWalletTopup } from "@/lib/wallet-reversal"
 
 interface WalletsTabProps {
   getCachedData: () => any[] | undefined

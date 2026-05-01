@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState, useRef } from "react"
 import { Upload, X } from "lucide-react"
-import Image from "next/image"
 
 interface SelectedImage {
   file: File

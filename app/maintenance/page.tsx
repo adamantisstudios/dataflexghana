@@ -1,5 +1,4 @@
 import { checkMaintenanceMode } from '@/lib/maintenance-mode'
-import MaintenancePage from '@/components/maintenance-page'
 import { redirect } from 'next/navigation'
 
 export default async function Maintenance() {

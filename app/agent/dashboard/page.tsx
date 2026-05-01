@@ -73,7 +73,6 @@ import { ProductSlider } from "@/components/agent/ProductSlider"
 import AgentPropertiesShowcase from "@/components/agent/dashboard/AgentPropertiesShowcase"
 import { ComplianceTab } from "@/components/agent/compliance/ComplianceTab"
 import { ProfessionalWritingTab } from "@/components/agent/professional-writing/ProfessionalWritingTab"
-import TeachingPlatformPage from "@/app/agent/teaching/page"
 import { useAgentDashboardCache } from "@/hooks/use-agent-dashboard-cache"
 import { loadAgentDashboardData, loadTabData } from "@/lib/agent-dashboard-loader"
 import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
@@ -88,14 +87,6 @@ interface SimpleAgent {
   name: string
   activity: number
   rank: number
-}
-
-interface RankingData {
-  agents: SimpleAgent[]
-  timeframe: string
-  total_count: number
-  last_updated: string
-  fallback?: boolean
 }
 
 const safeCommissionDisplay = (value: number | null | undefined): number => {

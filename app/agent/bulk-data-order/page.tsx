@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowLeft, Upload, CheckCircle } from "lucide-react"
 import BulkOrdersUploader from "@/components/agent/mtn-afa/BulkOrdersUploader"
-import BulkStatusTracker from "@/components/agent/bulk-status-tracker"
 
 export default function BulkDataOrderPage() {
   const [activeTab, setActiveTab] = useState("place-order")

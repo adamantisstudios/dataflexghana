@@ -1,7 +1,6 @@
 "use client"
 import { useState, useCallback } from "react"
 import { enhancedSupabase } from "@/lib/supabase-enhanced"
-import { calculateFinalCommission } from "@/lib/commission-calculator"
 
 export interface OptimisticUpdateOptions {
   maxRetries?: number

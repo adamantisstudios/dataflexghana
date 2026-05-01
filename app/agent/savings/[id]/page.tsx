@@ -24,7 +24,6 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { getStoredAgent, type Agent } from '@/lib/unified-auth-system'
-import { savingsApi } from '@/lib/api-client-enhanced'
 import { BackToTop } from '@/components/back-to-top'
 
 interface SavingsAccount {

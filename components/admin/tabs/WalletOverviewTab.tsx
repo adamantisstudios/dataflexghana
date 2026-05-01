@@ -18,7 +18,6 @@ import {
 import { supabase } from "@/lib/supabase"
 import { calculateWalletBalance } from "@/lib/earnings-calculator"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
-import { batchCalculateEarnings } from "@/lib/batch-calculator"
 
 interface WalletStats {
   totalBalance: number

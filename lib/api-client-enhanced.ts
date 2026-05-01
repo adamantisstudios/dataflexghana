@@ -3,8 +3,6 @@
 
 import { getStoredAgent } from './agent-auth'
 import { supabase } from './supabase'
-import { sessionManager } from './session-manager'
-import { verifyAdminSession, getAdminToken } from './auth'
 import { getStoredAdmin } from './auth'
 
 interface ApiOptions {

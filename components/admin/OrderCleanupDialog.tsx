@@ -19,8 +19,6 @@ import {
 } from "@/components/ui/alert"
 import { Calendar, Trash2, AlertTriangle, CheckCircle2, XCircle } from "lucide-react"
 import { enhancedSupabase } from "@/lib/supabase-enhanced"
-import { sessionManager } from "@/lib/session-manager"
-import { type DataOrder } from "@/lib/supabase"
 
 interface OrderCleanupDialogProps {
   open: boolean

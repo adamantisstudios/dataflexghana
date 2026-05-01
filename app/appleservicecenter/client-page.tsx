@@ -1,12 +1,5 @@
 "use client"
-import Script from "next/script"
 import { useState } from "react"
-import HeroSlider from "@/components/appleservicecenter/hero-slider"
-import ServiceRequestForm from "@/components/appleservicecenter/service-request-form"
-import ProductsSection from "@/components/appleservicecenter/products-section"
-import TestimonialsSection from "@/components/appleservicecenter/testimonials-section"
-import ServiceSection from "@/components/appleservicecenter/service-section"
-import Footer from "@/components/appleservicecenter/footer"
 import { appleServiceCenterSchema } from "./metadata"
 
 export default function ClientAppleServiceCenterPage() {

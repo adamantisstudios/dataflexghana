@@ -21,7 +21,6 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
-import Image from "next/image"
 
 // Constants
 const REGISTRATION_FEE = 50 // Paystack payment amount

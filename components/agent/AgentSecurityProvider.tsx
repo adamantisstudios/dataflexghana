@@ -1,7 +1,5 @@
 'use client'
 
-import React from "react"
-
 import { useState, useCallback, useEffect } from 'react'
 import { useInactivityLogout } from '@/hooks/use-inactivity-logout'
 import { useSuspiciousActivityDetector } from '@/hooks/use-suspicious-activity-detector'

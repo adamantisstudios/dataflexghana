@@ -6,7 +6,11 @@
     "build": "next build",
     "dev": "next dev --webpack",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "next start",
+    "check:unused": "node scripts/check-unused-code.js",
+    "check:real-unused": "node scripts/check-real-unused-code.js",
+    "check:build": "bash scripts/check-build-errors.sh",
+    "check:all": "npm run check:real-unused && npm run check:build"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

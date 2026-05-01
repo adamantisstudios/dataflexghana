@@ -27,7 +27,6 @@ import { getStoredAgent } from "@/lib/agent-auth"
 import { supabase } from "@/lib/supabase"
 import { WHOLESALE_CATEGORIES, createWholesaleProduct } from "@/lib/wholesale"
 import { uploadWholesaleProductImage } from "@/lib/wholesale-image-upload"
-import { calculateCompressionSavings, getFileSizeDisplay } from "@/lib/image-compression"
 import PublishingRulesModal from "@/components/agent/PublishingRulesModal"
 import AgentEditProducts from "@/components/agent/AgentEditProducts"
 import { toast } from "sonner"
@@ -197,7 +196,6 @@ export default function PublishProductsPage() {
         const file = files[i]
         try {
           const originalSize = file.size
-
 
           const progressCallback = (progress: number) => {
             setUploadProgress(Math.round(((i + progress / 100) / files.length) * 100))

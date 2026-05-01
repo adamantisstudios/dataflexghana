@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
