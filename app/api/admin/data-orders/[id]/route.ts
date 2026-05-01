@@ -4,7 +4,7 @@ import { authenticateAdmin } from "@/lib/api-auth"
 import { cleanOrdersData, canUpdateOrderStatus } from "@/lib/bundle-data-handler"
 
 // GET - Fetch single data order with bundle data
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authenticateAdmin(request)
     if (!authResult.success) {
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PATCH - Update order status
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authenticateAdmin(request)
     if (!authResult.success) {
@@ -165,7 +165,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // DELETE - Delete order (admin only)
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authenticateAdmin(request)
     if (!authResult.success) {

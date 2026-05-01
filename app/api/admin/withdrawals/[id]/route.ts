@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase"
 import { completeWithdrawal, cancelWithdrawal } from "@/lib/commission-earnings"
 import { authenticateAdmin } from "@/lib/api-auth"
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     console.log("[v0] Starting withdrawal status update process")
 
@@ -182,7 +182,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authResult = await authenticateAdmin(request)
     if (!authResult.success) {

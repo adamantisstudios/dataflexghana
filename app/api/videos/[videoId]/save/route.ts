@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function POST(request: NextRequest, { params }: { params: { videoId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ videoId: string }> }) {
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: { videoId
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { videoId: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ videoId: string }> }) {
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {

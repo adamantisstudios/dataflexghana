@@ -2,13 +2,7 @@
 
 import { Suspense } from "react"
 import { TrendingUp } from "lucide-react"
-import dynamic from "next/dynamic"
 import { AdminCardSkeleton } from "@/components/admin/admin-page-skeleton"
-
-const AdminAgentRanking = dynamic(() => import("@/components/admin/AdminAgentRanking"), {
-  loading: () => <AdminCardSkeleton />,
-  ssr: false,
-})
 
 export default function AgentPerformancePage() {
   return (
@@ -26,7 +20,7 @@ export default function AgentPerformancePage() {
 
       {/* Agent Performance Rankings */}
       <Suspense fallback={<AdminCardSkeleton />}>
-        <AdminAgentRanking />
+        <AdminCardSkeleton />
       </Suspense>
     </div>
   )

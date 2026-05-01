@@ -63,10 +63,8 @@ export default function AdminAgentDataOrdersPage() {
   const [isDownloading, setIsDownloading] = useState(false)
 
   // Order status update state
-  const [editingOrderId, setEditingOrderId] = useState<string | null>(null)
   const [newStatus, setNewStatus] = useState("")
   const [adminMessage, setAdminMessage] = useState("")
-  const [isUpdating, setIsUpdating] = useState(false)
   const [showStatusDialog, setShowStatusDialog] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<CleanedOrder | null>(null)
 
@@ -218,7 +216,6 @@ export default function AdminAgentDataOrdersPage() {
 
   // Add order status update functionality
   const updateOrderStatus = async (orderId: string, status: string, message?: string) => {
-    setIsUpdating(true)
     try {
       const response = await fetch(`/api/admin/data-orders/${orderId}`, {
         method: "PATCH",
@@ -247,7 +244,6 @@ export default function AdminAgentDataOrdersPage() {
       )
 
       toast.success(`Order status updated to ${status}`)
-      setEditingOrderId(null)
       setShowStatusDialog(false)
       setSelectedOrder(null)
       setNewStatus("")
@@ -255,8 +251,6 @@ export default function AdminAgentDataOrdersPage() {
     } catch (error: any) {
       console.error("Error updating order status:", error)
       toast.error(error.message || "Failed to update order status")
-    } finally {
-      setIsUpdating(false)
     }
   }
 
