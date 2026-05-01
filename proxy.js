@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request) {
   const { pathname } = request.nextUrl
 
   // Skip maintenance check for admin routes, agent login, registration pages, API routes, and static assets
