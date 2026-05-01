@@ -62,9 +62,6 @@ export default function AdminAgentDataOrdersPage() {
   const [isDownloading, setIsDownloading] = useState(false)
 
   // Order status update state
-  const [newStatus, setNewStatus] = useState("")
-  const [adminMessage, setAdminMessage] = useState("")
-  const [selectedOrder, setSelectedOrder] = useState<CleanedOrder | null>(null)
 
   // Memoized filtered and paginated data
   const filteredOrders = useMemo(() => {
@@ -238,19 +235,10 @@ export default function AdminAgentDataOrdersPage() {
       )
 
       toast.success(`Order status updated to ${status}`)
-      setSelectedOrder(null)
-      setNewStatus("")
-      setAdminMessage("")
     } catch (error: any) {
       console.error("Error updating order status:", error)
       toast.error(error.message || "Failed to update order status")
     }
-  }
-
-  const openStatusDialog = (order: CleanedOrder) => {
-    setSelectedOrder(order)
-    setNewStatus(order.status)
-    setAdminMessage(order.admin_message || "")
   }
 
   const getStatusIcon = (status: string) => {
