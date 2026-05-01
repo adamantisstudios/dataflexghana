@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import { supabase, type Agent } from "@/lib/supabase"
 import {
   cleanOrdersData,
@@ -60,8 +62,11 @@ export default function AdminAgentDataOrdersPage() {
   const [providerFilter, setProviderFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [isDownloading, setIsDownloading] = useState(false)
-
-  // Order status update state
+  const [selectedOrder, setSelectedOrder] = useState<CleanedOrder | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [newStatus, setNewStatus] = useState("")
+  const [statusMessage, setStatusMessage] = useState("")
+  const [isUpdating, setIsUpdating] = useState(false)
 
   // Memoized filtered and paginated data
   const filteredOrders = useMemo(() => {
@@ -204,6 +209,54 @@ export default function AdminAgentDataOrdersPage() {
     await fetchOrders()
     toast.success("Orders refreshed")
   }, [agentId, fetchOrders])
+
+  const openStatusDialog = (order: CleanedOrder) => {
+    setSelectedOrder(order)
+    setNewStatus(order.status)
+    setStatusMessage(order.admin_message || "")
+    setIsDialogOpen(true)
+  }
+
+  const handleUpdateStatus = async () => {
+    if (!selectedOrder) return
+
+    setIsUpdating(true)
+    try {
+      const response = await fetch(`/api/admin/data-orders/${selectedOrder.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          admin_message: statusMessage,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update order status")
+      }
+
+      // Update local state
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === selectedOrder.id
+            ? { ...order, status: newStatus as any, admin_message: statusMessage, updated_at: new Date().toISOString() }
+            : order,
+        ),
+      )
+
+      toast.success("Order status updated successfully")
+      setIsDialogOpen(false)
+    } catch (error: any) {
+      console.error("Error updating order status:", error)
+      toast.error(error.message || "Failed to update order status")
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
 
 
@@ -609,6 +662,60 @@ export default function AdminAgentDataOrdersPage() {
             </>
           )}
         </div>
+
+        {/* Status Update Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Update Order Status</DialogTitle>
+              <DialogDescription>
+                Order ID: {selectedOrder?.id}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Status</label>
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="canceled">Canceled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Admin Message (Optional)</label>
+                <Textarea
+                  placeholder="Add a note about this order..."
+                  value={statusMessage}
+                  onChange={(e) => setStatusMessage(e.target.value)}
+                  className="mt-1 resize-none"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdateStatus}
+                  disabled={isUpdating}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isUpdating ? "Updating..." : "Update"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
