@@ -1,3 +1,4 @@
+import imageCompression from "browser-image-compression"
 
 /**
  * Detect if device is mobile

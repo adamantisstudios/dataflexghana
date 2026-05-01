@@ -5,6 +5,7 @@
  * All code should use: import { supabase } from './supabase' OR from './supabase-base'
  */
 
+import { type SupabaseClient } from "@supabase/supabase-js"
 import { supabase as browserSingleton, getAdminClient } from "./supabase-base"
 
 /**

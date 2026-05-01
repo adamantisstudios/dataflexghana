@@ -7,6 +7,8 @@
  */
 
 import { supabase } from './supabase'
+import { validateAgentMoneyFlowIntegrity } from './withdrawal-security-fix'
+import { validateAgentWalletIntegrity } from './wallet-balance-sync'
 import { validateCommissionIntegrity } from './commission-reversal-system'
 
 export interface SystemIntegrityReport {

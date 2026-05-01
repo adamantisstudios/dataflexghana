@@ -1,3 +1,4 @@
+import { type SupabaseClient, type PostgrestResponse } from "@supabase/supabase-js"
 import { sessionManager } from './session-manager'
 import { supabase as browserClient } from './supabase-base'
 
