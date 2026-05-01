@@ -47,7 +47,7 @@ import {
   Shirt,
   Sparkles,
 } from "lucide-react"
-import { logoutAdmin, getAdminToken, clearAdminSession, getStoredAdmin } from "@/lib/auth"
+import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth" // removed unused getAdminToken
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
 import { BackToTop } from "@/components/back-to-top"
 import { UnreadNotification } from "@/components/unread-notification"
@@ -56,8 +56,6 @@ import { connectionManager } from "@/lib/connection-manager"
 import { toast } from "sonner"
 import Link from "next/link"
 import { PendingAlertsCard } from "@/components/admin/pending-alerts-card"
-
-
 
 // Lazy load tab components
 const AgentsTab = lazy(() => import("@/components/admin/tabs/AgentsTab"))
@@ -91,7 +89,6 @@ const FashionProjectRequestsTab = lazy(() => import("@/components/admin/tabs/Fas
 const FashionReferralsTab = lazy(() => import("@/components/admin/tabs/FashionReferralsTab"))
 const SalonTab = lazy(() => import("@/components/admin/tabs/SalonTab"))
 
-
 // Custom hook for managing tab loading state
 const useTabLoader = () => {
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(["dashboard"]))
@@ -102,6 +99,7 @@ const useTabLoader = () => {
   }, [])
   return { loadedTabs, activeTab, loadTab, setActiveTab }
 }
+
 // Loading skeleton component for tabs
 const TabLoadingSkeleton = () => (
   <div className="space-y-4">
@@ -122,6 +120,7 @@ const TabLoadingSkeleton = () => (
     </div>
   </div>
 )
+
 // Tab configuration - unified system
 const TAB_CONFIG = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, component: null },
@@ -183,7 +182,6 @@ export default function AdminDashboard() {
     revenue: 45200,
     todayOrders: 892,
     pendingAlerts: 3,
-    // Add wholesale stats
     wholesaleProducts: 0,
     activeWholesaleProducts: 0,
     wholesaleOrders: 0,
@@ -232,10 +230,8 @@ export default function AdminDashboard() {
     let isMounted = true
     const loadStats = async () => {
       try {
-        // Get current date for daily orders
         const today = new Date().toISOString().split("T")[0]
 
-        // Load real stats from database
         const [
           agentsData,
           referralsData,
@@ -251,19 +247,15 @@ export default function AdminDashboard() {
           supabase.from("data_orders").select("id, status", { count: "exact" }),
           supabase.from("withdrawals").select("id, status", { count: "exact" }),
           supabase.from("jobs").select("id, is_active", { count: "exact" }),
-          // Get today's orders only
           supabase
             .from("data_orders")
             .select("id")
             .gte("created_at", `${today}T00:00:00.000Z`)
             .lt("created_at", `${today}T23:59:59.999Z`),
-          // Fetch wholesale stats from API
           fetch("/api/admin/wholesale/stats").catch(() => ({ ok: false })),
-          // Fetch pending alerts
           fetch("/api/admin/dashboard/pending-alerts").catch(() => ({ ok: false })),
         ])
 
-        // Parse wholesale stats
         let wholesaleStats = {
           totalProducts: 0,
           activeProducts: 0,
@@ -308,8 +300,6 @@ export default function AdminDashboard() {
           } catch (error) {
             console.error("[v0] Error parsing alerts data:", error)
           }
-        } else if (alertsResponse instanceof Response) {
-          console.warn("[v0] Alerts API returned:", alertsResponse.status)
         }
 
         if (isMounted) {
@@ -322,14 +312,11 @@ export default function AdminDashboard() {
             totalDataOrders: ordersData.count || 0,
             completedDataOrders: ordersData.data?.filter((o) => o.status === "completed").length || 0,
             totalWithdrawals: withdrawalsData.count || 0,
-            pendingWithdrawals:
-              withdrawalsData.data?.filter((w) => w.status === "pending" || w.status === "requested").length || 0,
+            pendingWithdrawals: withdrawalsData.data?.filter((w) => w.status === "pending" || w.status === "requested").length || 0,
             totalJobs: jobsData.count || 0,
             activeJobs: jobsData.data?.filter((j) => j.is_active).length || 0,
             todayOrders: dailyOrdersData.data?.length || 0,
-            pendingAlerts:
-              withdrawalsData.data?.filter((w) => w.status === "pending" || w.status === "requested").length || 0,
-            // Update wholesale stats
+            pendingAlerts: withdrawalsData.data?.filter((w) => w.status === "pending" || w.status === "requested").length || 0,
             wholesaleProducts: wholesaleStats.totalProducts || 0,
             activeWholesaleProducts: wholesaleStats.activeProducts || 0,
             wholesaleOrders: wholesaleStats.totalOrders || 0,
@@ -360,7 +347,6 @@ export default function AdminDashboard() {
 
     loadStats()
 
-    // Monitor connection health
     const connectionUnsubscribe = connectionManager.addConnectionListener(() => {
       setConnectionHealth(connectionManager.getHealthStatus())
     })
@@ -375,7 +361,6 @@ export default function AdminDashboard() {
     try {
       await logoutAdmin()
       clearAdminSession()
-      clearCache()
       await supabase.auth.signOut()
       window.location.href = "/admin/login"
     } catch (error) {
@@ -407,7 +392,6 @@ export default function AdminDashboard() {
     }
     setUpdatingPassword(true)
     try {
-      // Simulate password update API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
       toast.success("Password updated successfully")
       setSettingsOpen(false)
@@ -947,13 +931,11 @@ export default function AdminDashboard() {
               <TabsContent key={id} value={id} className="space-y-4">
                 {loadedTabs.has(id) ? (
                   <Suspense fallback={<TabLoadingSkeleton />}>
-                    {/* Add condition to pass specific props to BulkOrderManagementTab */}
                     {id === "bulk-orders" ? (
                       <Component />
                     ) : (
+                      // Removed undefined getCachedData/setCachedData props; pass only used ones.
                       <Component
-                        getCachedData={() => getCachedData(id)}
-                        setCachedData={(data: any) => setCachedData(id, data)}
                         adminUnreadCount={adminUnreadCount}
                         adminGetUnreadCount={adminGetUnreadCount}
                         adminMarkAsRead={adminMarkAsRead}
