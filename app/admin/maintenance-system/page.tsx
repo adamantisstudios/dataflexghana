@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { checkMaintenanceMode, type MaintenanceMode } from '@/lib/maintenance-mode'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RefreshCw } from 'lucide-react'
+import AdminMaintenanceControl from './AdminMaintenanceControl'
 
 export default function AdminMaintenancePage() {
   const [maintenanceData, setMaintenanceData] = useState<MaintenanceMode | null>(null)
