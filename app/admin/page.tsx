@@ -1,5 +1,5 @@
 "use client"
-import { lazy, Suspense, useState, useCallback, useEffect } from "react"
+import React, { lazy, Suspense, useState, useCallback, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
