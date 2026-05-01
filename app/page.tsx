@@ -18,6 +18,7 @@ import { WhatsAppWidget } from "@/components/whatsapp-widget"
 import { BackToTop } from "@/components/back-to-top"
 import { HeroSlider } from "@/components/hero-slider"
 import WholesaleProductSlider from "@/components/WholesaleProductSlider"
+import AppleServiceFeature from "@/components/homepage/apple-service-feature"
 import {
   Users,
   Shield,
