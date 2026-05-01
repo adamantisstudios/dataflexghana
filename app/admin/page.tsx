@@ -942,9 +942,9 @@ export default function AdminDashboard() {
                     <Suspense fallback={<TabLoadingSkeleton />}>
                       {id === "bulk-orders" ? (
                         // No props needed for bulk-orders
-                        React.createElement(Component)
+                        React.createElement(Component as React.ComponentType<any>)
                       ) : (
-                        React.createElement(Component, {
+                        React.createElement(Component as React.ComponentType<any>, {
                           adminUnreadCount,
                           adminGetUnreadCount,
                           adminMarkAsRead,
