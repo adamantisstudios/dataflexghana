@@ -11,7 +11,6 @@ import { supabase, type Agent } from "@/lib/supabase"
 import {
   cleanOrdersData,
   getBundleDisplayName,
-  canUpdateOrderStatus,
   type CleanedOrder,
 } from "@/lib/bundle-data-handler"
 import {
@@ -65,7 +64,6 @@ export default function AdminAgentDataOrdersPage() {
   // Order status update state
   const [newStatus, setNewStatus] = useState("")
   const [adminMessage, setAdminMessage] = useState("")
-  const [showStatusDialog, setShowStatusDialog] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<CleanedOrder | null>(null)
 
   // Memoized filtered and paginated data
@@ -98,10 +96,6 @@ export default function AdminAgentDataOrdersPage() {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
     return filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE)
   }, [filteredOrders, currentPage])
-
-  const totalPages = useMemo(() => {
-    return Math.ceil(filteredOrders.length / ITEMS_PER_PAGE)
-  }, [filteredOrders.length])
 
   // Stats calculations
   const stats = useMemo(() => {
@@ -238,13 +232,12 @@ export default function AdminAgentDataOrdersPage() {
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order.id === orderId
-            ? { ...order, status, admin_message: message, updated_at: new Date().toISOString() }
+            ? { ...order, status: status as "pending" | "confirmed" | "processing" | "completed" | "canceled", admin_message: message, updated_at: new Date().toISOString() }
             : order,
         ),
       )
 
       toast.success(`Order status updated to ${status}`)
-      setShowStatusDialog(false)
       setSelectedOrder(null)
       setNewStatus("")
       setAdminMessage("")
@@ -258,20 +251,6 @@ export default function AdminAgentDataOrdersPage() {
     setSelectedOrder(order)
     setNewStatus(order.status)
     setAdminMessage(order.admin_message || "")
-    setShowStatusDialog(true)
-  }
-
-  const handleStatusUpdate = () => {
-    if (!selectedOrder || !newStatus) return
-
-    // Check if status update is allowed
-    const updateValidation = canUpdateOrderStatus(selectedOrder, newStatus)
-    if (!updateValidation.canUpdate) {
-      toast.error(updateValidation.reason)
-      return
-    }
-
-    updateOrderStatus(selectedOrder.id, newStatus, adminMessage)
   }
 
   const getStatusIcon = (status: string) => {
