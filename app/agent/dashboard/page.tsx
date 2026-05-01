@@ -979,7 +979,7 @@ DataFlex Ghana Agent 🇬🇭`
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       <InactivityNotificationManager agentId={agent?.id} />
-      <DashboardLoginNotification />
+      {agent?.id && <DashboardLoginNotification agentId={agent.id} />}
       <AgentDashboardNotification />
       {showDashboardAudioPlayer && (
         <FloatingAudioPlayer
