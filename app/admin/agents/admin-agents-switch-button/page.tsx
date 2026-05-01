@@ -24,7 +24,7 @@ export default function AdminAgentsSwitchButtonPage() {
   const [error, setError] = useState<string | null>(null)
 
   // Add the useAgentAutomation hook with error handling
-  const { runAutomation, reactivateAgent, error: automationError } = useAgentAutomation()
+  const { error: automationError } = useAgentAutomation()
 
 
 
