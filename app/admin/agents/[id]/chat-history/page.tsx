@@ -20,7 +20,6 @@ import {
   User,
   Calendar,
   ExternalLink,
-  ImageIcon,
   Search,
 } from "lucide-react"
 import { format } from "date-fns"
