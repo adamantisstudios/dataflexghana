@@ -373,10 +373,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     try {
-      const token = getAdminToken()
-      if (token) {
-        await logoutAdmin(token)
-      }
+      await logoutAdmin()
       clearAdminSession()
       clearCache()
       await supabase.auth.signOut()
