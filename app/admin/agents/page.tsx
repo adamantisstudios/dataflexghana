@@ -33,16 +33,7 @@ import { LazyActivityTracker } from "@/components/admin/agents/lazy-activity-tra
 import { DataOrdersList } from "@/components/admin/data-orders-list"
 import { fetchAllDashboardData } from "@/lib/agent-query-optimizer"
 
-interface AutomationStats {
-  total_runs: number
-  successful_runs: number
-  failed_runs: number
-  total_agents_processed: number
-  total_agents_deactivated: number
-  avg_execution_time_ms: number
-  last_run_at: string | null
-  next_recommended_run: string | null
-}
+// AutomationStats interface removed - it was unused
 
 interface AgentAtRisk {
   agent_id: string
