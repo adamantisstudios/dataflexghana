@@ -25,7 +25,7 @@ import { supabase } from "@/lib/supabase"
 import type { Agent } from "@/lib/supabase"
 import Link from "next/link"
 import { toast } from "sonner"
-import { batchCalculateAgentEarnings, type EarningsData } from "@/lib/earnings-calculator"
+import { batchCalculateAgentEarnings } from "@/lib/earnings-calculator"
 import { useAgentsCache } from "@/hooks/use-agents-cache"
 import { AgentDashboardSkeleton } from "@/components/admin/agents/agent-dashboard-skeleton"
 import { LazyAutomationDashboard } from "@/components/admin/agents/lazy-automation-dashboard"
@@ -143,7 +143,57 @@ export default function AdminAgentsPage() {
     fetchAgents()
   }, [])
 
+  // Compute agents at risk based on activity and orders
+  const agentsAtRisk = useMemo((): AgentAtRisk[] => {
+    return agents
+      .filter((agent) => {
+        if (!agent.last_activity_at) return false
+        const daysSinceActivity = Math.floor(
+          (Date.now() - new Date(agent.last_activity_at).getTime()) / (1000 * 60 * 60 * 24)
+        )
+        const orders7d = agent.data_orders_count_7d ?? 0
+        const orders30d = agent.data_orders_count_30d ?? 0
+        // Custom risk logic: inactive >7 days OR zero orders in last 7 days
+        return daysSinceActivity > 7 || orders7d === 0
+      })
+      .map((agent) => {
+        const daysSinceActivity = Math.floor(
+          (Date.now() - new Date(agent.last_activity_at!).getTime()) / (1000 * 60 * 60 * 24)
+        )
+        const orders7d = agent.data_orders_count_7d ?? 0
+        const orders30d = agent.data_orders_count_30d ?? 0
 
+        let riskLevel = "LOW"
+        let riskReason = ""
+        if (daysSinceActivity > 30) {
+          riskLevel = "HIGH"
+          riskReason = `No activity for ${daysSinceActivity} days`
+        } else if (daysSinceActivity > 7) {
+          riskLevel = "MEDIUM"
+          riskReason = `Inactive for ${daysSinceActivity} days`
+        } else if (orders7d === 0 && orders30d === 0) {
+          riskLevel = "MEDIUM"
+          riskReason = "No orders in last 30 days"
+        } else if (orders7d === 0) {
+          riskLevel = "LOW"
+          riskReason = "No orders in last 7 days"
+        } else {
+          riskReason = "Low activity"
+        }
+
+        return {
+          agent_id: agent.id,
+          agent_name: agent.full_name,
+          phone_number: agent.phone_number,
+          last_activity_at: agent.last_activity_at!,
+          days_since_activity: daysSinceActivity,
+          orders_7d: orders7d,
+          orders_30d: orders30d,
+          risk_level: riskLevel,
+          risk_reason: riskReason,
+        }
+      })
+  }, [agents])
 
   const runAutomationManually = async () => {
     try {
@@ -548,8 +598,4 @@ export default function AdminAgentsPage() {
       </div>
     </div>
   )
-}
-
-function getCurrentAdmin() {
-  return { id: "admin123" }
 }
