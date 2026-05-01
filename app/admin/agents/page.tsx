@@ -25,7 +25,7 @@ import { supabase } from "@/lib/supabase"
 import type { Agent } from "@/lib/supabase"
 import Link from "next/link"
 import { toast } from "sonner"
-import { batchCalculateAgentEarnings } from "@/lib/earnings-calculator"
+import { batchCalculateAgentEarnings, type EarningsData } from "@/lib/earnings-calculator"
 import { useAgentsCache } from "@/hooks/use-agents-cache"
 import { AgentDashboardSkeleton } from "@/components/admin/agents/agent-dashboard-skeleton"
 import { LazyAutomationDashboard } from "@/components/admin/agents/lazy-automation-dashboard"
@@ -33,7 +33,16 @@ import { LazyActivityTracker } from "@/components/admin/agents/lazy-activity-tra
 import { DataOrdersList } from "@/components/admin/data-orders-list"
 import { fetchAllDashboardData } from "@/lib/agent-query-optimizer"
 
-// AutomationStats interface removed - it was unused
+interface AutomationStats {
+  total_runs: number
+  successful_runs: number
+  failed_runs: number
+  total_agents_processed: number
+  total_agents_deactivated: number
+  avg_execution_time_ms: number
+  last_run_at: string | null
+  next_recommended_run: string | null
+}
 
 interface AgentAtRisk {
   agent_id: string
@@ -54,7 +63,10 @@ export default function AdminAgentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [activityFilter, setActivityFilter] = useState("all")
+  const [automationStats, setAutomationStats] = useState<AutomationStats | null>(null)
+  const [agentsAtRisk, setAgentsAtRisk] = useState<AgentAtRisk[]>([])
   const [runningAutomation, setRunningAutomation] = useState(false)
+  const [agentEarnings, setAgentEarnings] = useState<Map<string, EarningsData>>(new Map())
   const { invalidateCache } = useAgentsCache()
 
   const fetchAgents = async () => {
@@ -63,10 +75,13 @@ export default function AdminAgentsPage() {
       const dashboardData = await fetchAllDashboardData(100, 0)
 
       setAgents(dashboardData.agents || [])
+      setAutomationStats(dashboardData.stats)
+      setAgentsAtRisk(dashboardData.atRisk)
 
       if (dashboardData.agents && dashboardData.agents.length > 0) {
         const agentIds = dashboardData.agents.map((agent) => agent.id)
         const earningsMap = await batchCalculateAgentEarnings(agentIds)
+        setAgentEarnings(earningsMap)
 
         const agentsWithUnifiedEarnings = dashboardData.agents.map((agent) => {
           const earnings = earningsMap.get(agent.id)
@@ -134,56 +149,42 @@ export default function AdminAgentsPage() {
     fetchAgents()
   }, [])
 
-  // Compute agents at risk based on activity and orders
-  const agentsAtRisk = useMemo((): AgentAtRisk[] => {
-    return agents
-      .filter((agent) => {
-        if (!agent.last_activity_at) return false
-        const daysSinceActivity = Math.floor(
-          (Date.now() - new Date(agent.last_activity_at).getTime()) / (1000 * 60 * 60 * 24)
-        )
-        const orders7d = agent.data_orders_count_7d ?? 0
-        // Custom risk logic: inactive >7 days OR zero orders in last 7 days
-        return daysSinceActivity > 7 || orders7d === 0
-      })
-      .map((agent) => {
-        const daysSinceActivity = Math.floor(
-          (Date.now() - new Date(agent.last_activity_at!).getTime()) / (1000 * 60 * 60 * 24)
-        )
-        const orders7d = agent.data_orders_count_7d ?? 0
-        const orders30d = agent.data_orders_count_30d ?? 0
+  const toggleAgentApproval = async (agentId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase.from("agents").update({ isapproved: !currentStatus }).eq("id", agentId)
 
-        let riskLevel = "LOW"
-        let riskReason = ""
-        if (daysSinceActivity > 30) {
-          riskLevel = "HIGH"
-          riskReason = `No activity for ${daysSinceActivity} days`
-        } else if (daysSinceActivity > 7) {
-          riskLevel = "MEDIUM"
-          riskReason = `Inactive for ${daysSinceActivity} days`
-        } else if (orders7d === 0 && orders30d === 0) {
-          riskLevel = "MEDIUM"
-          riskReason = "No orders in last 30 days"
-        } else if (orders7d === 0) {
-          riskLevel = "LOW"
-          riskReason = "No orders in last 7 days"
-        } else {
-          riskReason = "Low activity"
-        }
+      if (error) throw error
 
-        return {
-          agent_id: agent.id,
-          agent_name: agent.full_name,
-          phone_number: agent.phone_number,
-          last_activity_at: agent.last_activity_at!,
-          days_since_activity: daysSinceActivity,
-          orders_7d: orders7d,
-          orders_30d: orders30d,
-          risk_level: riskLevel,
-          risk_reason: riskReason,
-        }
+      setAgents(agents.map((agent) => (agent.id === agentId ? { ...agent, isapproved: !currentStatus } : agent)))
+      invalidateCache()
+      toast.success(`Agent ${!currentStatus ? "approved" : "suspended"} successfully`)
+    } catch (error) {
+      console.error("Error updating agent:", error)
+      toast.error("Failed to update agent status")
+    }
+  }
+
+  const reactivateAgent = async (agentId: string, agentName: string) => {
+    try {
+      const { data, error } = await supabase.rpc("reactivate_agent", {
+        p_agent_id: agentId,
+        p_admin_notes: `Manually reactivated by admin on ${new Date().toISOString()}`,
       })
-  }, [agents])
+
+      if (error) throw error
+
+      if (data) {
+        toast.success(`Agent ${agentName} has been reactivated successfully`)
+        invalidateCache()
+        fetchAgents()
+      } else {
+        toast.error("Agent could not be reactivated")
+      }
+    } catch (error) {
+      console.error("Error reactivating agent:", error)
+      toast.error("Failed to reactivate agent")
+    }
+  }
 
   const runAutomationManually = async () => {
     try {
@@ -588,4 +589,8 @@ export default function AdminAgentsPage() {
       </div>
     </div>
   )
+}
+
+function getCurrentAdmin() {
+  return { id: "admin123" }
 }

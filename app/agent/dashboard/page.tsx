@@ -73,6 +73,7 @@ import { ProductSlider } from "@/components/agent/ProductSlider"
 import AgentPropertiesShowcase from "@/components/agent/dashboard/AgentPropertiesShowcase"
 import { ComplianceTab } from "@/components/agent/compliance/ComplianceTab"
 import { ProfessionalWritingTab } from "@/components/agent/professional-writing/ProfessionalWritingTab"
+import TeachingPlatformPage from "@/app/agent/teaching/page"
 import { useAgentDashboardCache } from "@/hooks/use-agent-dashboard-cache"
 import { loadAgentDashboardData, loadTabData } from "@/lib/agent-dashboard-loader"
 import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
@@ -82,11 +83,20 @@ import { ImageModal } from "@/components/ui/image-modal"
 import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
 import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
 import AgentOnlineCoursesDisplay from "@/components/agent/online-courses/AgentOnlineCoursesDisplay"
+import AdminPortalAccess from "@/components/agent/AdminPortalAccess"
 
 interface SimpleAgent {
   name: string
   activity: number
   rank: number
+}
+
+interface RankingData {
+  agents: SimpleAgent[]
+  timeframe: string
+  total_count: number
+  last_updated: string
+  fallback?: boolean
 }
 
 const safeCommissionDisplay = (value: number | null | undefined): number => {
@@ -979,7 +989,7 @@ DataFlex Ghana Agent 🇬🇭`
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       <InactivityNotificationManager agentId={agent?.id} />
-      {agent?.id && <DashboardLoginNotification agentId={agent.id} />}
+      <DashboardLoginNotification />
       <AgentDashboardNotification />
       {showDashboardAudioPlayer && (
         <FloatingAudioPlayer

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { RichTextRenderer } from "@/components/ui/rich-text-renderer"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { supabase, type Service, type DataBundle, type Job } from "@/lib/supabase"
 import {
@@ -18,7 +19,6 @@ import { WhatsAppWidget } from "@/components/whatsapp-widget"
 import { BackToTop } from "@/components/back-to-top"
 import { HeroSlider } from "@/components/hero-slider"
 import WholesaleProductSlider from "@/components/WholesaleProductSlider"
-import AppleServiceFeature from "@/components/homepage/apple-service-feature"
 import {
   Users,
   Shield,
@@ -159,6 +159,8 @@ const ViewChannelsSection = () => {
     </section>
   )
 }
+
+import AppleServiceFeature from "@/components/homepage/apple-service-feature"
 
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([])

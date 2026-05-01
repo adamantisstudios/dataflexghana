@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { checkMaintenanceMode, type MaintenanceMode } from '@/lib/maintenance-mode'
+import AdminMaintenanceControl from '@/components/admin-maintenance-control'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RefreshCw } from 'lucide-react'
 

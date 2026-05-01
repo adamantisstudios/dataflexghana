@@ -2,18 +2,42 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase"
 // CRITICAL FIX: Import unified auth system instead of direct Supabase auth
 import { getCurrentAdmin, isAdminLoggedIn } from "@/lib/unified-auth-system"
+import type { User } from "@supabase/supabase-js"
 import { AutomationDashboard } from "@/components/admin/automation/AutomationDashboard"
 import { ActivityTracker } from "@/components/admin/automation/ActivityTracker"
 import { useAgentAutomation } from "@/hooks/useAgentAutomation"
 import { ArrowLeft, LogOut, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
+
+interface AutomationStats {
+  total_runs: number
+  successful_runs: number
+  failed_runs: number
+  total_agents_processed: number
+  total_agents_deactivated: number
+  avg_execution_time_ms: number
+  last_run_at: string | null
+  next_recommended_run: string | null
+}
+
+interface AgentAtRisk {
+  agent_id: string
+  agent_name: string
+  phone_number: string
+  last_activity_at: string
+  days_since_activity: number
+  orders_7d: number
+  orders_30d: number
+  risk_level: string
+  risk_reason: string
+}
 
 export default function AdminAgentsSwitchButtonPage() {
   const router = useRouter()
@@ -24,9 +48,46 @@ export default function AdminAgentsSwitchButtonPage() {
   const [error, setError] = useState<string | null>(null)
 
   // Add the useAgentAutomation hook with error handling
-  const { error: automationError } = useAgentAutomation()
+  const { runAutomation, reactivateAgent, error: automationError } = useAgentAutomation()
 
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return 'bg-green-100 text-green-800'
+      case 'inactive':
+        return 'bg-red-100 text-red-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'suspended':
+        return 'bg-orange-100 text-orange-800'
+      case 'processing':
+        return 'bg-blue-100 text-blue-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
 
+  const handleRunAutomation = async () => {
+    try {
+      setError(null)
+      await runAutomation()
+    } catch (error) {
+      console.error("Automation run failed:", error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setError(`Automation failed: ${errorMessage}`)
+    }
+  }
+
+  const handleReactivateAgent = async (agentId: string, agentName: string) => {
+    try {
+      setError(null)
+      await reactivateAgent(agentId, `Manually reactivated ${agentName} by admin`)
+    } catch (error) {
+      console.error("Agent reactivation failed:", error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setError(`Agent reactivation failed: ${errorMessage}`)
+    }
+  }
 
   useEffect(() => {
     const checkAuth = async () => {

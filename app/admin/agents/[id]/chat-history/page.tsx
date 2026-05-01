@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase, type Agent, type ProjectChat } from "@/lib/supabase"
+import { supabase, type Agent, type Referral, type ProjectChat } from "@/lib/supabase"
 import {
   ArrowLeft,
   MessageCircle,
@@ -20,19 +20,16 @@ import {
   User,
   Calendar,
   ExternalLink,
+  ImageIcon,
   Search,
 } from "lucide-react"
+import { format } from "date-fns"
 import { toast } from "sonner"
 
-interface ReferralWithChats {
-  id: string
-  [key: string]: any
+interface ReferralWithChats extends Referral {
   services?: {
     title: string
     commission_amount: number
-    id?: string
-    description?: string
-    created_at?: string
   }
   project_chats?: ProjectChat[]
   chat_count?: number
