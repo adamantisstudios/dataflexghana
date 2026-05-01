@@ -47,7 +47,7 @@ import {
   Shirt,
   Sparkles,
 } from "lucide-react"
-import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth" // removed unused getAdminToken
+import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
 import { BackToTop } from "@/components/back-to-top"
 import { UnreadNotification } from "@/components/unread-notification"
@@ -89,6 +89,14 @@ const FashionProjectRequestsTab = lazy(() => import("@/components/admin/tabs/Fas
 const FashionReferralsTab = lazy(() => import("@/components/admin/tabs/FashionReferralsTab"))
 const SalonTab = lazy(() => import("@/components/admin/tabs/SalonTab"))
 
+// Type definition for tab configuration
+interface TabConfigItem {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  component: React.ComponentType<any> | null
+}
+
 // Custom hook for managing tab loading state
 const useTabLoader = () => {
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set(["dashboard"]))
@@ -122,7 +130,7 @@ const TabLoadingSkeleton = () => (
 )
 
 // Tab configuration - unified system
-const TAB_CONFIG = [
+const TAB_CONFIG: TabConfigItem[] = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, component: null },
   { id: "agents", label: "Agents", icon: Users, component: AgentsTab },
   { id: "agent-management", label: "Agent Management", icon: Shield, component: AgentManagementTab },
@@ -166,7 +174,7 @@ export default function AdminDashboard() {
   const admin = getStoredAdmin()
   const [showNotification, setShowNotification] = useState(true)
   const [connectionHealth, setConnectionHealth] = useState(connectionManager.getHealthStatus())
-  const [visibleTabs, setVisibleTabs] = useState<typeof TAB_CONFIG>([])
+  const [visibleTabs, setVisibleTabs] = useState<TabConfigItem[]>([])
   const [isTabsLoaded, setIsTabsLoaded] = useState(false)
   const [stats, setStats] = useState({
     totalAgents: 1247,
@@ -926,35 +934,37 @@ export default function AdminDashboard() {
           </TabsContent>
           {/* Dynamic Tab Content for Components */}
           {visibleTabs
-            .filter((tab) => tab.component)
-            .map(({ id, label, component: Component }) => (
-              <TabsContent key={id} value={id} className="space-y-4">
-                {loadedTabs.has(id) ? (
-                  <Suspense fallback={<TabLoadingSkeleton />}>
-                    {id === "bulk-orders" ? (
-                      <Component />
-                    ) : (
-                      // Removed undefined getCachedData/setCachedData props; pass only used ones.
-                      <Component
-                        adminUnreadCount={adminUnreadCount}
-                        adminGetUnreadCount={adminGetUnreadCount}
-                        adminMarkAsRead={adminMarkAsRead}
-                      />
-                    )}
-                  </Suspense>
-                ) : (
-                  <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <div className="text-center">
-                      <div className="text-gray-400 mb-2">
-                        <Package className="h-12 w-12 mx-auto" />
+            .filter((tab) => tab.component !== null)
+            .map(({ id, label, component: Component }) => {
+              return (
+                <TabsContent key={id} value={id} className="space-y-4">
+                  {loadedTabs.has(id) ? (
+                    <Suspense fallback={<TabLoadingSkeleton />}>
+                      {id === "bulk-orders" ? (
+                        // No props needed for bulk-orders
+                        React.createElement(Component)
+                      ) : (
+                        React.createElement(Component, {
+                          adminUnreadCount,
+                          adminGetUnreadCount,
+                          adminMarkAsRead,
+                        })
+                      )}
+                    </Suspense>
+                  ) : (
+                    <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                      <div className="text-center">
+                        <div className="text-gray-400 mb-2">
+                          <Package className="h-12 w-12 mx-auto" />
+                        </div>
+                        <p className="text-gray-600 font-medium">Click this tab to load {label.toLowerCase()} data</p>
+                        <p className="text-gray-500 text-sm mt-1">Data will be loaded on demand for better performance</p>
                       </div>
-                      <p className="text-gray-600 font-medium">Click this tab to load {label.toLowerCase()} data</p>
-                      <p className="text-gray-500 text-sm mt-1">Data will be loaded on demand for better performance</p>
                     </div>
-                  </div>
-                )}
-              </TabsContent>
-            ))}
+                  )}
+                </TabsContent>
+              )
+            })}
         </Tabs>
       </div>
       <BackToTop />
