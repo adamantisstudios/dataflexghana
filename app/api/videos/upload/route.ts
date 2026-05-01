@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       setTimeout(() => reject(new Error("Upload timeout - please try again")), uploadTimeoutMs),
     )
 
-    const { data: uploadData, error: uploadError } = (await Promise.race([uploadPromise, timeoutPromise])) as any
+    const { error: uploadError } = (await Promise.race([uploadPromise, timeoutPromise])) as any
 
     if (uploadError) {
       console.error("[v0] Storage upload error:", uploadError)

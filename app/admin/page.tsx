@@ -179,8 +179,8 @@ const TAB_CONFIG = [
 ]
 
 export default function AdminDashboard() {
-  const { loadedTabs, activeTab, loadTab, setActiveTab } = useTabLoader()
-  const { getCachedData, setCachedData, clearCache } = useTabCache()
+  const { loadedTabs, activeTab, loadTab } = useTabLoader()
+
   const router = useRouter()
   const admin = getStoredAdmin()
   const [showNotification, setShowNotification] = useState(true)
