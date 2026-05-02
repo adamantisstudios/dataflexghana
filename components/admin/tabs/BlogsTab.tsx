@@ -33,12 +33,8 @@ import {
   Heading3,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 import { toast } from "sonner"
-
-interface BlogsTabProps {
-  getCachedData?: (key: string) => any
-  setCachedData?: (key: string, data: any) => void
-}
 
 interface Blog {
   id: string
@@ -72,7 +68,8 @@ interface BlogCategory {
   color: string
 }
 
-export default function BlogsTab({ getCachedData, setCachedData }: BlogsTabProps) {
+export default function BlogsTab() {
+  const { getCachedData, setCachedData } = useAdminTabCache()
   const [activeTab, setActiveTab] = useState("posts")
   const [blogs, setBlogs] = useState<Blog[]>([])
   const [categories, setCategories] = useState<BlogCategory[]>([])

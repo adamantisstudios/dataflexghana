@@ -14,6 +14,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { supabase } from "@/lib/supabase"
+import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 import { Search, Filter, Phone, Mail, Clock, CheckCircle, XCircle, User, Home } from "lucide-react"
 
 interface CallRequest {
@@ -31,12 +32,8 @@ interface CallRequest {
   updated_at: string
 }
 
-interface CallRequestsTabProps {
-  getCachedData: () => CallRequest[] | undefined
-  setCachedData: (data: CallRequest[]) => void
-}
-
-export default function CallRequestsTab({ getCachedData, setCachedData }: CallRequestsTabProps) {
+export default function CallRequestsTab() {
+  const { getCachedData, setCachedData } = useAdminTabCache()
   const [callRequests, setCallRequests] = useState<CallRequest[]>([])
   const [filteredRequests, setFilteredRequests] = useState<CallRequest[]>([])
   const [loading, setLoading] = useState(true)

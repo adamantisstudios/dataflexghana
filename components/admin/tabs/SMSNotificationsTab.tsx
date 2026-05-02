@@ -13,6 +13,7 @@ import { AgentSelector } from "@/components/admin/sms/AgentSelector"
 import { MessageComposer } from "@/components/admin/sms/MessageComposer"
 import { SmsHistoryViewer } from "@/components/admin/sms/SmsHistoryViewer"
 import { sendBulkSms, type SendSmsParams } from "@/lib/sms-service"
+import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface SelectedAgentWithPhone extends Agent {
@@ -20,15 +21,8 @@ interface SelectedAgentWithPhone extends Agent {
   selectedPhoneType?: "phone" | "momo"
 }
 
-interface SMSNotificationsTabProps {
-  getCachedData?: () => any
-  setCachedData?: (data: any) => void
-}
-
-const SMSNotificationsTab = memo(function SMSNotificationsTab({
-  getCachedData,
-  setCachedData,
-}: SMSNotificationsTabProps) {
+const SMSNotificationsTab = memo(function SMSNotificationsTab() {
+  const { getCachedData, setCachedData } = useAdminTabCache()
   const [selectedAgents, setSelectedAgents] = useState<SelectedAgentWithPhone[]>([])
   const [message, setMessage] = useState("")
   const [campaignName, setCampaignName] = useState("")

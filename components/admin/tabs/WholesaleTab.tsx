@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ShoppingBag, Package, ShoppingCart } from 'lucide-react'
+import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 
 // Lazy load wholesale sub-components for better performance
 const OrderManagement = lazy(() => import("@/components/admin/wholesale/OrderManagement"))
@@ -32,12 +33,8 @@ const WholesaleLoadingSkeleton = () => (
   </div>
 )
 
-interface WholesaleTabProps {
-  getCachedData: () => any
-  setCachedData: (data: any) => void
-}
-
-export default function WholesaleTab({ getCachedData, setCachedData }: WholesaleTabProps) {
+export default function WholesaleTab() {
+  const { getCachedData, setCachedData } = useAdminTabCache()
   const [activeSubTab, setActiveSubTab] = useState("orders")
   const [loadedSubTabs, setLoadedSubTabs] = useState<Set<string>>(new Set(["orders"]))
 

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Check, Phone, Calendar, User, Loader2, RefreshCw, Download, Clock, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getCurrentAdmin } from "@/lib/auth"
+import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 
 interface Invitation {
   id: string
@@ -23,12 +24,8 @@ interface Invitation {
   credited_at?: string
 }
 
-interface InvitationManagementTabProps {
-  getCachedData: () => Invitation[] | undefined
-  setCachedData: (data: Invitation[]) => void
-}
-
-export default function InvitationManagementTab({ getCachedData, setCachedData }: InvitationManagementTabProps) {
+export default function InvitationManagementTab() {
+  const { getCachedData, setCachedData } = useAdminTabCache()
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -56,6 +56,9 @@ export default function FashionAvenuePage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showImageModal, setShowImageModal] = useState(false);
 
+  // Ref for scrolling to top of product grid
+  const productGridRef = useRef<HTMLDivElement>(null);
+
   const [requestForm, setRequestForm] = useState({
     client_name: '',
     client_location: '',
@@ -97,7 +100,7 @@ export default function FashionAvenuePage() {
       try {
         setLoading(true);
         const [productsRes, categoriesRes] = await Promise.all([
-          fetch('/api/fashion/products'),
+          fetch('/api/fashion/products?limit=1000'),
           fetch('/api/fashion/categories'),
         ]);
 
@@ -200,10 +203,8 @@ export default function FashionAvenuePage() {
       console.log('[v0] Referral response:', data);
 
       if (data.success && data.data?.whatsappUrl) {
-        // Open message to friend
         window.open(data.data.whatsappUrl, '_blank');
         
-        // Send admin notification after a short delay
         setTimeout(() => {
           if (data.data?.adminNotificationUrl) {
             window.open(data.data.adminNotificationUrl, '_blank');
@@ -273,7 +274,6 @@ export default function FashionAvenuePage() {
 
       {/* Enhanced Hero Carousel */}
       <section className="relative h-96 md:h-[600px] overflow-hidden mt-16 bg-gray-900">
-        {/* Background image */}
         {slide.image && (
           <Image
             src={slide.image}
@@ -301,7 +301,6 @@ export default function FashionAvenuePage() {
           </div>
         </div>
 
-        {/* Carousel Controls */}
         <button
           onClick={() => setCurrentSlide((prev) => (prev - 1 + displayHeroSlides.length) % displayHeroSlides.length)}
           className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/15 hover:bg-white/30 backdrop-blur-sm text-white p-3 rounded-full transition-all duration-300"
@@ -315,7 +314,6 @@ export default function FashionAvenuePage() {
           <ChevronRight className="w-6 h-6" />
         </button>
 
-        {/* Indicators */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-10">
           {displayHeroSlides.map((_, index) => (
             <button
@@ -369,7 +367,7 @@ export default function FashionAvenuePage() {
           </p>
         </div>
 
-        {/* Products Grid */}
+        {/* Products Grid – wrapped in a ref for scroll target */}
         {loading ? (
           <div className="text-center py-20">
             <div className="inline-block">
@@ -378,7 +376,7 @@ export default function FashionAvenuePage() {
             </div>
           </div>
         ) : filteredProducts.length > 0 ? (
-          <>
+          <div ref={productGridRef}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
               {filteredProducts
                 .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
@@ -403,7 +401,6 @@ export default function FashionAvenuePage() {
                           className="object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        {/* Click to view overlay */}
                         <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/20 transition-colors flex items-center justify-center">
                           <span className="text-white opacity-0 group-hover/image:opacity-100 transition-opacity text-sm font-medium">Click to view</span>
                         </div>
@@ -448,7 +445,6 @@ export default function FashionAvenuePage() {
                     </div>
 
                     <div className="space-y-3 pt-4 border-t border-border/50">
-                      {/* Commission Badge - Prominent Display */}
                       {product.commission_amount > 0 && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                           <p className="text-xs text-green-700 font-medium mb-1">Earn Commission</p>
@@ -456,7 +452,6 @@ export default function FashionAvenuePage() {
                         </div>
                       )}
 
-                      {/* Pricing Section */}
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-foreground text-sm">Base Price</span>
                         <span className="text-2xl font-bold text-primary">GHS {product.base_price.toFixed(2)}</span>
@@ -468,7 +463,6 @@ export default function FashionAvenuePage() {
                         </div>
                       )}
 
-                      {/* Details Grid */}
                       <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-border/30">
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="w-4 h-4 text-muted-foreground" />
@@ -663,7 +657,7 @@ export default function FashionAvenuePage() {
             ))}
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination Controls with scroll-to-top */}
             {Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) > 1 && (
               <div className="flex items-center justify-between mt-12 pt-8 border-t border-border/30">
                 <div className="text-sm text-muted-foreground">
@@ -674,7 +668,11 @@ export default function FashionAvenuePage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    onClick={() => {
+                      const newPage = Math.max(1, currentPage - 1);
+                      setCurrentPage(newPage);
+                      productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
                     disabled={currentPage === 1}
                     className="gap-2"
                   >
@@ -684,7 +682,11 @@ export default function FashionAvenuePage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(Math.min(Math.ceil(filteredProducts.length / ITEMS_PER_PAGE), currentPage + 1))}
+                    onClick={() => {
+                      const newPage = Math.min(Math.ceil(filteredProducts.length / ITEMS_PER_PAGE), currentPage + 1);
+                      setCurrentPage(newPage);
+                      productGridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
                     disabled={currentPage === Math.ceil(filteredProducts.length / ITEMS_PER_PAGE)}
                     className="gap-2"
                   >
@@ -694,7 +696,7 @@ export default function FashionAvenuePage() {
                 </div>
               </div>
             )}
-          </>
+          </div>
         ) : (
           <div className="text-center py-16">
             <p className="text-lg text-muted-foreground">No products found matching your criteria.</p>

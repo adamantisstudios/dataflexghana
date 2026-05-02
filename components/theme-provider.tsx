@@ -10,10 +10,10 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     setMounted(true)
   }, [])
 
-  if (!mounted) {
-    // Return a div with suppressHydrationWarning to prevent hydration mismatches
-    return <div suppressHydrationWarning>{children}</div>
-  }
-
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+  // Always render NextThemesProvider, but use suppressHydrationWarning during initial render
+  return (
+    <NextThemesProvider {...props} suppressHydrationWarning>
+      {mounted ? children : <div suppressHydrationWarning>{children}</div>}
+    </NextThemesProvider>
+  )
 }

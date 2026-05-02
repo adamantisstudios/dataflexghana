@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { supabase, type DataBundle } from "@/lib/supabase"
+import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 import { Database, Plus, Edit, Trash2, AlertCircle } from "lucide-react"
 
 interface BundleGridProps {
@@ -110,12 +111,8 @@ const BundleGrid: React.FC<BundleGridProps> = ({ provider, bundles, editBundle, 
   )
 }
 
-interface DataTabProps {
-  getCachedData: () => DataBundle[] | undefined
-  setCachedData: (data: DataBundle[]) => void
-}
-
-export default function DataTab({ getCachedData, setCachedData }: DataTabProps) {
+export default function DataTab() {
+  const { getCachedData, setCachedData } = useAdminTabCache()
   const [dataBundles, setDataBundles] = useState<DataBundle[]>([])
   const [loading, setLoading] = useState(true)
   const [showBundleDialog, setShowBundleDialog] = useState(false)

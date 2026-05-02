@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image";
 import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -44,16 +43,12 @@ export default function CandidatesHeroSlider() {
           className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
             index === currentSlide ? "opacity-100 z-20 scale-100" : "opacity-0 z-0 scale-105"
           }`}
+          style={{
+            backgroundImage: `url(${slide.image})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
         >
-          <Image
-            src={slide.image}
-            alt={slide.imageAlt}
-            fill
-            className="object-cover object-center rounded-xl"
-            priority={index === 0}
-            sizes="100vw"
-          />
-
           {/* Soft dark overlay */}
           <div className="absolute inset-0 bg-black/40 rounded-xl" />
 

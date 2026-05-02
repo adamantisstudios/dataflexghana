@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/pagination";
 import { supabase, hashPassword, type Agent } from "@/lib/supabase";
 import { getCurrentAdmin } from "@/lib/auth";
+import { useAdminTabCache } from "@/lib/admin-tabs-cache";
 import {
   Check,
   Trash2,
@@ -45,12 +46,8 @@ interface AgentWithWallet extends Agent {
   commission_balance?: number;
 }
 
-interface AgentsTabProps {
-  getCachedData: () => AgentWithWallet[] | undefined;
-  setCachedData: (data: AgentWithWallet[]) => void;
-}
-
-const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: AgentsTabProps) {
+const AgentsTab = memo(function AgentsTab() {
+  const { getCachedData, setCachedData } = useAdminTabCache();
   const [agents, setAgents] = useState<AgentWithWallet[]>([]);
   const [totalAgents, setTotalAgents] = useState(0);
   const [loading, setLoading] = useState(true);
