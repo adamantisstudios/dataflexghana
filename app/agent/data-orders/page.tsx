@@ -91,6 +91,7 @@ export default function DataOrdersPage() {
   const [isSavingsNotificationVisible, setIsSavingsNotificationVisible] = useState(false)
 
   const router = useRouter()
+  const channelsRef = useRef<any[]>([])
 
   useEffect(() => {
     const currentAgent = getCurrentAgent()
@@ -110,7 +111,14 @@ export default function DataOrdersPage() {
       setIsSavingsNotificationVisible(true)
     }, 2000)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+      // Cleanup all channels on unmount
+      channelsRef.current.forEach((channel) => {
+        supabase.removeChannel(channel)
+      })
+      channelsRef.current = []
+    }
   }, [router])
 
   const loadWalletBalance = async (agentId: string) => {
@@ -157,61 +165,79 @@ export default function DataOrdersPage() {
   }, [filteredOrders, currentPage])
 
   const setupRealTimeUpdates = (agentId: string) => {
-    const orderChannel = supabase
-      .channel("data-order-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "data_orders",
-          filter: `agent_id=eq.${agentId}`,
-        },
-        () => {
-          loadOrders(agentId)
-          loadUnifiedCommissionData(agentId)
-        },
-      )
-      .subscribe()
+    // Clean up any existing channels first
+    channelsRef.current.forEach((channel) => {
+      supabase.removeChannel(channel)
+    })
+    channelsRef.current = []
 
-    const walletChannel = supabase
-      .channel("wallet-balance-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "wallet_transactions",
-          filter: `agent_id=eq.${agentId}`,
-        },
-        (payload) => {
-          console.log("Wallet transaction changed, refreshing balance:", payload)
-          loadWalletBalance(agentId)
-        },
-      )
-      .subscribe()
+    try {
+      const orderChannel = supabase
+        .channel(`data-order-changes-${agentId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "data_orders",
+            filter: `agent_id=eq.${agentId}`,
+          },
+          () => {
+            loadOrders(agentId)
+            loadUnifiedCommissionData(agentId)
+          },
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log("[v0] Order changes listener subscribed successfully")
+          }
+        })
 
-    const commissionChannel = supabase
-      .channel("commission-updates")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "commissions",
-          filter: `agent_id=eq.${agentId}`,
-        },
-        (payload) => {
-          console.log("Commission changed, refreshing commission data:", payload)
-          loadUnifiedCommissionData(agentId)
-        },
-      )
-      .subscribe()
+      const walletChannel = supabase
+        .channel(`wallet-balance-updates-${agentId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "wallet_transactions",
+            filter: `agent_id=eq.${agentId}`,
+          },
+          (payload) => {
+            console.log("Wallet transaction changed, refreshing balance:", payload)
+            loadWalletBalance(agentId)
+          },
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log("[v0] Wallet balance updates listener subscribed successfully")
+          }
+        })
 
-    return () => {
-      supabase.removeChannel(orderChannel)
-      supabase.removeChannel(walletChannel)
-      supabase.removeChannel(commissionChannel)
+      const commissionChannel = supabase
+        .channel(`commission-updates-${agentId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "commissions",
+            filter: `agent_id=eq.${agentId}`,
+          },
+          (payload) => {
+            console.log("Commission changed, refreshing commission data:", payload)
+            loadUnifiedCommissionData(agentId)
+          },
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log("[v0] Commission updates listener subscribed successfully")
+          }
+        })
+
+      channelsRef.current.push(orderChannel, walletChannel, commissionChannel)
+    } catch (error) {
+      console.error("[v0] Error setting up realtime updates:", error)
     }
   }
 

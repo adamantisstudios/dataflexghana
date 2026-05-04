@@ -86,6 +86,7 @@ export default function DataOrderPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const paymentSectionRef = useRef<HTMLDivElement>(null)
+  const channelsRef = useRef<any[]>([])
 
   // Initialize persistence hook
   const { saveOrderState, restoreOrderState, clearOrderState } = useDataOrderPersistence()
@@ -100,6 +101,14 @@ export default function DataOrderPage() {
     setAgent(currentAgent)
     loadData(currentAgent.id)
     setupWalletBalanceListener(currentAgent.id)
+
+    return () => {
+      // Cleanup all channels on unmount
+      channelsRef.current.forEach((channel) => {
+        supabase.removeChannel(channel)
+      })
+      channelsRef.current = []
+    }
   }, [router])
 
   // Show data order notice after delay
@@ -163,41 +172,56 @@ export default function DataOrderPage() {
 
   // Set up wallet balance listener
   const setupWalletBalanceListener = (agentId: string) => {
-    const channel = supabase
-      .channel("wallet-balance-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "agents",
-          filter: `id=eq.${agentId}`,
-        },
-        (payload) => {
-          if (payload.new && payload.new.wallet_balance !== undefined) {
-            setWalletBalance(payload.new.wallet_balance)
-          }
-        },
-      )
-      .subscribe()
-
-    const transactionChannel = supabase
-      .channel("wallet-transactions")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "wallet_transactions",
-          filter: `agent_id=eq.${agentId}`,
-        },
-        () => refreshWalletBalance(agentId),
-      )
-      .subscribe()
-
-    return () => {
+    // Clean up any existing channels first
+    channelsRef.current.forEach((channel) => {
       supabase.removeChannel(channel)
-      supabase.removeChannel(transactionChannel)
+    })
+    channelsRef.current = []
+
+    try {
+      const channel = supabase
+        .channel(`wallet-balance-changes-${agentId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "agents",
+            filter: `id=eq.${agentId}`,
+          },
+          (payload) => {
+            if (payload.new && payload.new.wallet_balance !== undefined) {
+              setWalletBalance(payload.new.wallet_balance)
+            }
+          },
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log("[v0] Wallet balance listener subscribed successfully")
+          }
+        })
+
+      const transactionChannel = supabase
+        .channel(`wallet-transactions-${agentId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "wallet_transactions",
+            filter: `agent_id=eq.${agentId}`,
+          },
+          () => refreshWalletBalance(agentId),
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log("[v0] Wallet transactions listener subscribed successfully")
+          }
+        })
+
+      channelsRef.current.push(channel, transactionChannel)
+    } catch (error) {
+      console.error("[v0] Error setting up wallet balance listener:", error)
     }
   }
 

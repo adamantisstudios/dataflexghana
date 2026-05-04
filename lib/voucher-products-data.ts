@@ -17,7 +17,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     title: "Buy ABCE Results Checker Card- WAEC PINs",
     description: "Buy ABCE Results Checker Card for checking ABCE May/June or Nov/Dec results online.",
     image_url: "https://i.ibb.co/4RrJp7pr/Buy-ABCE-Results-Checker-Cards-Shortcode-png.png",
-    price: 35,
+    price: 44,
     quantity: 60,
     status: "published",
   },
@@ -27,7 +27,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps on our platform, you can quickly purchase the Kumasi Technical University Post Graduate Admission Voucher",
     image_url: "https://i.ibb.co/Q3x7ZBXt/Kumasi-Technical-University.jpg",
-    price: 320,
+    price: 340,
     quantity: 100,
     status: "published",
   },
@@ -37,7 +37,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple, you can quickly purchase the Accra Technical University (ATU) Online Application Evoucher using your mobile money",
     image_url: "https://i.ibb.co/hF97GnS5/Accra-Technical-University.jpg",
-    price: 290,
+    price: 310,
     quantity: 100,
     status: "published",
   },
@@ -47,7 +47,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps, you can quickly purchase the Cape Coast Technical University Admission Voucher for Masters",
     image_url: "https://i.ibb.co/G40Z2njd/Cape-Coast-Technical-University.jpg",
-    price: 270,
+    price: 290,
     quantity: 100,
     status: "published",
   },
@@ -57,7 +57,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps on our Self-Service platform, you can quickly purchase University of Cape Coast Post Graduate Forms",
     image_url: "https://i.ibb.co/NnNzbw2W/University-of-Cape-Coast.jpg",
-    price: 400,
+    price: 420,
     quantity: 100,
     status: "published",
   },
@@ -67,7 +67,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps, you can quickly purchase the Sunyani Technical University Admission Voucher for Post Graduate using your mobile money",
     image_url: "https://i.ibb.co/m5j2Fbjw/Sunyani-Technical-University.png",
-    price: 320,
+    price: 340,
     quantity: 150,
     status: "published",
   },
@@ -77,7 +77,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "Buy CTVET Results Checker now to check both Core and Electives subjects of your Technical Examination Results for CTVET (Council for Technical and Vocational Education and Training) and National Board for Professional and Technician Examinations (NABPTEX).",
     image_url: "https://i.ibb.co/KzjrMVQv/CTVET-01.jpg",
-    price: 90,
+    price: 99,
     quantity: 100,
     status: "published",
   },
@@ -87,7 +87,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps on our Self-Service platform, you can quickly purchase the University of Development Studies – UDS",
     image_url: "https://i.ibb.co/Q3wRksK0/University-for-Development-Studies.jpg",
-    price: 330,
+    price: 350,
     quantity: 100,
     status: "published",
   },
@@ -97,7 +97,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "Buy GBCE Results Checker Card for checking GBCE May/June or Nov/Dec results online. Buy WAEC- GBCE Checker PINs using mobile money (ALL NETWORKS)",
     image_url: "https://i.ibb.co/qYyrDrdR/GBCE-01.jpg",
-    price: 30,
+    price: 39,
     quantity: 166,
     status: "published",
   },
@@ -107,7 +107,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps on our Self-Service platform, you can quickly purchase the Kumasi Technical University Admission Voucher Online for Undergrate",
     image_url: "https://i.ibb.co/Q3x7ZBXt/Kumasi-Technical-University.jpg",
-    price: 300,
+    price: 320,
     quantity: 100,
     status: "published",
   },
@@ -117,7 +117,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "Buy WASSCE Results Checker Cards effortlessly and gain immediate access to your WASSCE MAYJUNE or NOVDEC results online. Requirement. You must order above 20 pieces",
     image_url: "https://i.ibb.co/zT2ZyfRk/WASSE-01.jpg",
-    price: 19,
+    price: 28,
     quantity: 100,
     status: "published",
   },
@@ -127,7 +127,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps on our Self-Service platform, you can quickly purchase University of Cape Coast Admission Voucher Online for Undergrate",
     image_url: "https://i.ibb.co/NnNzbw2W/University-of-Cape-Coast.jpg",
-    price: 330,
+    price: 350,
     quantity: 200,
     status: "published",
   },
@@ -137,7 +137,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps on our Self-Service platform, you can quickly purchase the Kwame Nkrumah University of Science and Technology (KNUST) Online Application Evoucher using your mobile money wallet",
     image_url: "https://i.ibb.co/p66RsnV0/KNUST.jpg",
-    price: 330,
+    price: 350,
     quantity: 100,
     status: "published",
   },
@@ -147,7 +147,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps on our Self-Service platform, you can quickly purchase the College of Education Voucher Online using your mobile money",
     image_url: "https://i.ibb.co/4w3Y93nL/College-of-Education-Voucher.jpg",
-    price: 430,
+    price: 450,
     quantity: 100,
     status: "published",
   },
@@ -156,7 +156,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     title: "Buy NVTI Results Checker Card – PINs",
     description: "Buy NVTI Results Checker Card for checking NVTI May/June or Nov/Dec results online.",
     image_url: "https://i.ibb.co/7NjTD7c4/NVTI-01.jpg",
-    price: 75,
+    price: 84,
     quantity: 100,
     status: "published",
   },
@@ -166,7 +166,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps, you can quickly purchase the Ho Technical University for Post Graduates",
     image_url: "https://i.ibb.co/20kn3yz3/Ho-tech.jpg",
-    price: 320,
+    price: 340,
     quantity: 100,
     status: "published",
   },
@@ -176,7 +176,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps, you can quickly purchase the Cape Coast Technical University Admission Voucher for Undergrate",
     image_url: "https://i.ibb.co/G40Z2njd/Cape-Coast-Technical-University.jpg",
-    price: 270,
+    price: 290,
     quantity: 100,
     status: "published",
   },
@@ -186,7 +186,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps on our Self-Service platform, you can purchase Nursing Forms Voucher online using your mobile money",
     image_url: "https://i.ibb.co/BKcN4VFF/NURSING-TRAINING-FORMS-01.jpg",
-    price: 245,
+    price: 265,
     quantity: 100,
     status: "published",
   },
@@ -196,7 +196,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps, you can quickly purchase the Ho Technical University Admission Voucher Undergrates",
     image_url: "https://i.ibb.co/20kn3yz3/Ho-tech.jpg",
-    price: 250,
+    price: 270,
     quantity: 100,
     status: "published",
   },
@@ -206,7 +206,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps on our Self-Service platform, you can quickly purchase the University of Education, Winneba Admission Voucher Online using your mobile money",
     image_url: "https://i.ibb.co/cz8kzRb/University-of-Education-Winneba.jpg",
-    price: 350,
+    price: 370,
     quantity: 100,
     status: "published",
   },
@@ -216,7 +216,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "By following a few simple steps, you can quickly purchase the Sunyani Technical University Admission Voucher for Undergrate and Post Graduate using your mobile money",
     image_url: "https://i.ibb.co/m5j2Fbjw/Sunyani-Technical-University.png",
-    price: 240,
+    price: 260,
     quantity: 100,
     status: "published",
   },

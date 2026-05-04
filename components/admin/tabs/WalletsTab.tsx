@@ -157,6 +157,16 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   const [searchedAgent, setSearchedAgent] = useState<Agent | null>(null)
   const [agentSearchLoading, setAgentSearchLoading] = useState(false)
 
+  // --- Helper to safely call setCachedData (prevents TypeError) ---
+  const safeSetCachedData = useCallback(
+    (data: any[]) => {
+      if (typeof setCachedData === 'function') {
+        setCachedData(data)
+      }
+    },
+    [setCachedData]
+  )
+
   // --- Live agent search effect for top-up dialog ---
   useEffect(() => {
     if (!walletTopupForm.searchTerm || walletTopupForm.searchTerm.length < 2) {
@@ -278,7 +288,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     try {
       setError(null)
       const offset = (page - 1) * itemsPerPage
-      const { batchCalculateAgentEarnings } = await import("@/lib/earnings-calculator")
 
       const {
         data,
@@ -300,26 +309,40 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
 
       if (pageAgentIds.length > 0) {
         try {
-          const earningsMap = await batchCalculateAgentEarnings(pageAgentIds)
-          pageAgentIds.forEach((agentId) => {
-            const earnings = earningsMap.get(agentId)
-            calculatedPageBalances.set(agentId, earnings?.walletBalance || 0)
-          })
+          const { batchCalculateAgentEarnings: batchCalcEarnings } = await import("@/lib/earnings-calculator")
+          if (typeof batchCalcEarnings === "function") {
+            const earningsMap = await batchCalcEarnings(pageAgentIds)
+            pageAgentIds.forEach((agentId) => {
+              const earnings = earningsMap.get(agentId)
+              calculatedPageBalances.set(agentId, earnings?.walletBalance || 0)
+            })
+          } else {
+            throw new Error("batchCalculateAgentEarnings is not a function")
+          }
         } catch (batchError) {
           console.warn("Batch calculation failed, falling back to individual calculations:", batchError)
-          const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-          const balancePromises = pageAgentIds.map(async (agentId) => {
-            try {
-              const balance = await calculateWalletBalance(agentId)
-              return { agentId, balance }
-            } catch {
-              return { agentId, balance: 0 }
+          try {
+            const { calculateWalletBalance: calcBalance } = await import("@/lib/earnings-calculator")
+            if (typeof calcBalance === "function") {
+              const balancePromises = pageAgentIds.map(async (agentId) => {
+                try {
+                  const balance = await calcBalance(agentId)
+                  return { agentId, balance }
+                } catch {
+                  return { agentId, balance: 0 }
+                }
+              })
+              const results = await Promise.all(balancePromises)
+              results.forEach(({ agentId, balance }) => {
+                calculatedPageBalances.set(agentId, balance)
+              })
             }
-          })
-          const results = await Promise.all(balancePromises)
-          results.forEach(({ agentId, balance }) => {
-            calculatedPageBalances.set(agentId, balance)
-          })
+          } catch (fallbackError) {
+            console.warn("Individual calculation also failed:", fallbackError)
+            pageAgentIds.forEach((agentId) => {
+              calculatedPageBalances.set(agentId, 0)
+            })
+          }
         }
       }
 
@@ -335,7 +358,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
 
       setWalletTransactions(enhancedData)
       setTotalWalletTransactions(count || 0)
-      setCachedData(enhancedData)
+      safeSetCachedData(enhancedData)   // ✅ safe call
     } catch (error) {
       console.error("Error loading wallet transactions page:", error)
       const errorMsg = error instanceof Error ? error.message : "Failed to load wallet transactions"
@@ -351,17 +374,19 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       const agentsList = data || []
       setAgents(agentsList)
 
-      const { batchCalculateAgentEarnings } = await import("@/lib/earnings-calculator")
       const agentIds = agentsList.map((a) => a.id)
       if (agentIds.length > 0) {
         try {
-          const earningsMap = await batchCalculateAgentEarnings(agentIds)
-          const liveBalances = new Map<string, number>()
-          agentIds.forEach((agentId) => {
-            const earnings = earningsMap.get(agentId)
-            liveBalances.set(agentId, earnings?.walletBalance || 0)
-          })
-          setAgentLiveBalances(liveBalances)
+          const { batchCalculateAgentEarnings: batchCalcEarnings } = await import("@/lib/earnings-calculator")
+          if (typeof batchCalcEarnings === "function") {
+            const earningsMap = await batchCalcEarnings(agentIds)
+            const liveBalances = new Map<string, number>()
+            agentIds.forEach((agentId) => {
+              const earnings = earningsMap.get(agentId)
+              liveBalances.set(agentId, earnings?.walletBalance || 0)
+            })
+            setAgentLiveBalances(liveBalances)
+          }
         } catch (calcError) {
           console.warn("Failed to calculate live balances:", calcError)
         }
@@ -386,8 +411,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     const loadWalletData = async () => {
       try {
         setError(null)
-        const cachedData = getCachedData()
-        if (cachedData) {
+        const cachedData = getCachedData?.()
+        if (cachedData && cachedData.length > 0) {
           setWalletTransactions(cachedData)
           try {
             await loadPendingWalletTopups()
@@ -398,8 +423,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           return
         }
         try {
-          const { batchCalculateAgentEarnings } = await import("@/lib/earnings-calculator")
-
           const [walletData, topupsData] = await Promise.all([
             supabase
               .from("wallet_transactions")
@@ -421,26 +444,38 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
 
           if (walletAgentIds.length > 0) {
             try {
-              const earningsMap = await batchCalculateAgentEarnings(walletAgentIds)
-              walletAgentIds.forEach((agentId) => {
-                const earnings = earningsMap.get(agentId)
-                calculatedAgentLiveBalances.set(agentId, earnings?.walletBalance || 0)
-              })
+              const { batchCalculateAgentEarnings: batchCalcEarnings } = await import("@/lib/earnings-calculator")
+              if (typeof batchCalcEarnings === "function") {
+                const earningsMap = await batchCalcEarnings(walletAgentIds)
+                walletAgentIds.forEach((agentId) => {
+                  const earnings = earningsMap.get(agentId)
+                  calculatedAgentLiveBalances.set(agentId, earnings?.walletBalance || 0)
+                })
+              }
             } catch (batchError) {
               console.warn("Batch calculation failed, falling back to individual calculations:", batchError)
-              const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-              const balancePromises = walletAgentIds.map(async (agentId) => {
-                try {
-                  const balance = await calculateWalletBalance(agentId)
-                  return { agentId, balance }
-                } catch {
-                  return { agentId, balance: 0 }
+              try {
+                const { calculateWalletBalance: calcBalance } = await import("@/lib/earnings-calculator")
+                if (typeof calcBalance === "function") {
+                  const balancePromises = walletAgentIds.map(async (agentId) => {
+                    try {
+                      const balance = await calcBalance(agentId)
+                      return { agentId, balance }
+                    } catch {
+                      return { agentId, balance: 0 }
+                    }
+                  })
+                  const results = await Promise.all(balancePromises)
+                  results.forEach(({ agentId, balance }) => {
+                    calculatedAgentLiveBalances.set(agentId, balance)
+                  })
                 }
-              })
-              const results = await Promise.all(balancePromises)
-              results.forEach(({ agentId, balance }) => {
-                calculatedAgentLiveBalances.set(agentId, balance)
-              })
+              } catch (fallbackError) {
+                console.warn("Individual calculation also failed:", fallbackError)
+                walletAgentIds.forEach((agentId) => {
+                  calculatedAgentLiveBalances.set(agentId, 0)
+                })
+              }
             }
           }
 
@@ -461,7 +496,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           setTotalWalletTransactions(walletData.count || 0)
           setWalletTransactions(enhancedWalletData)
           setWalletTopups(topupsData.data || [])
-          setCachedData(enhancedWalletData)
+          safeSetCachedData(enhancedWalletData)   // ✅ safe call
         } catch (innerError) {
           console.error("Error loading wallet data:", innerError)
           const errorMsg = innerError instanceof Error ? innerError.message : "Failed to load wallet data"
@@ -472,7 +507,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       }
     }
     loadWalletData()
-  }, [getCachedData, setCachedData])
+  }, [])
 
   const memoizedFilteredTransactions = useMemo(() => {
     return walletTransactions.filter(
@@ -647,7 +682,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       setWalletTransactions(walletData.data || [])
       await loadPendingWalletTopups()
       setAgents(agentsData.data || [])
-      setCachedData(walletData.data || [])
+      safeSetCachedData(walletData.data || [])   // ✅ safe call
 
       alert(`Wallet top-up approved successfully! New balance: GH₵${correctBalance.toFixed(2)}`)
     } catch (error) {
@@ -737,7 +772,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           .select(`*, agents (full_name, phone_number, wallet_balance)`)
           .order("created_at", { ascending: false })
         setWalletTransactions(data || [])
-        setCachedData(data || [])
+        safeSetCachedData(data || [])   // ✅ safe call
       }
 
       const fetchAgents = async () => {
