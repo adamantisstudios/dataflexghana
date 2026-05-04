@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { ProtectedLink } from "@/components/protected-link"
 import { NoRegistrationSlider } from "@/components/no-registration/no-registration-slider"
 import { DevicesSection } from "@/components/no-registration/devices-section"
 import { ECGTopUpForm } from "@/components/no-registration/ecg-topup-form"
@@ -221,10 +222,10 @@ export default function NoRegistrationPage() {
                     asChild
                     className="w-full bg-gradient-to-r from-pink-600 to-purple-700 hover:from-pink-700 hover:to-purple-800 text-white"
                   >
-                    <Link href="/fashion-avenue" className="flex items-center justify-center gap-2">
+                    <ProtectedLink href="/fashion-avenue" requiresPayment={true} className="flex items-center justify-center gap-2">
                       <span>Refer Or Shop Now</span>
                       <ChevronRight className="w-4 h-4" />
-                    </Link>
+                    </ProtectedLink>
                   </Button>
                 </div>
               </CardContent>
@@ -436,11 +437,11 @@ export default function NoRegistrationPage() {
                     size="lg"
                     className="w-full bg-white text-orange-600 hover:bg-orange-50 font-bold text-base md:text-lg py-6"
                   >
-                    <Link href="/agent/register" className="flex items-center justify-center gap-2">
+                    <ProtectedLink href="/agent/register" className="flex items-center justify-center gap-2">
                       <Zap className="w-5 h-5" />
                       <span>Register as Agent Now</span>
                       <ChevronRight className="w-5 h-5" />
-                    </Link>
+                    </ProtectedLink>
                   </Button>
                   <p className="text-xs text-orange-100 text-center">
                     Already registered? <Link href="/agent/wholesale" className="underline font-semibold hover:text-white">Go to Wholesale</Link>
@@ -523,10 +524,10 @@ export default function NoRegistrationPage() {
                     size="lg"
                     className="w-full bg-white text-emerald-600 hover:bg-emerald-50 font-bold text-base py-6"
                   >
-                    <Link href="/agent/register" className="flex items-center justify-center gap-2">
+                    <ProtectedLink href="/agent/register" className="flex items-center justify-center gap-2">
                       <span>Sign Up Now</span>
                       <ChevronRight className="w-5 h-5" />
-                    </Link>
+                    </ProtectedLink>
                   </Button>
                 </div>
               </div>
@@ -624,10 +625,10 @@ export default function NoRegistrationPage() {
                     size="lg"
                     className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold py-6"
                   >
-                    <Link href="/agent/register" className="flex items-center justify-center gap-2">
+                    <ProtectedLink href="/agent/register" className="flex items-center justify-center gap-2">
                       <span>Become an Agent Today</span>
                       <ChevronRight className="w-5 h-5" />
-                    </Link>
+                    </ProtectedLink>
                   </Button>
                 </div>
               </CardContent>

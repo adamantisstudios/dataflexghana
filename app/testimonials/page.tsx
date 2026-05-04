@@ -5,6 +5,7 @@ import { Play, X, ArrowRight, Quote, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
+import { ProtectedLink } from "@/components/protected-link"
 import Image from "next/image"
 
 interface VideoTestimonial {
@@ -121,7 +122,7 @@ export default function TestimonialsPage() {
               asChild
               className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
             >
-              <Link href="/agent/register">Join Now</Link>
+              <ProtectedLink href="/agent/register">Join Now</ProtectedLink>
             </Button>
           </div>
         </div>
@@ -170,9 +171,9 @@ export default function TestimonialsPage() {
               size="lg"
               className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-base sm:text-lg px-8"
             >
-              <Link href="/agent/register">
+              <ProtectedLink href="/agent/register">
                 Start Your Journey Today <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
+              </ProtectedLink>
             </Button>
             <p className="text-sm text-gray-500">Join 10,000+ successful agents</p>
           </div>
@@ -243,7 +244,7 @@ export default function TestimonialsPage() {
 
                   <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
                     <Button asChild size="lg" className="bg-white text-emerald-600 hover:bg-emerald-50 font-bold">
-                      <Link href="/agent/register">Start Here - Register Now</Link>
+                      <ProtectedLink href="/agent/register">Start Here - Register Now</ProtectedLink>
                     </Button>
                     <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/20 font-bold">
                       <Link href="/agent/register?step=payment">Skip to Payment</Link>

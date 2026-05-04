@@ -54,7 +54,6 @@ interface PaystackResponse {
 export default function RegistrationPaymentPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [agentId, setAgentId] = useState("")
   const [agentName, setAgentName] = useState("New Agent")
   const [agentEmail, setAgentEmail] = useState("")
   const [emailError, setEmailError] = useState("")
@@ -72,32 +71,21 @@ export default function RegistrationPaymentPage() {
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
   useEffect(() => {
-    const id = searchParams.get("agentId")
     const name = searchParams.get("name")
     const mailParam = searchParams.get("email")
-    if (id) setAgentId(id)
+    console.log("[v0] Registration payment page loaded. URL params - name:", name, "email:", mailParam)
     if (name) setAgentName(decodeURIComponent(name))
     if (mailParam) setAgentEmail(decodeURIComponent(mailParam))
   }, [searchParams])
 
   useEffect(() => {
     const reference = searchParams.get("reference")
-    console.log("[v0] Checking for Paystack callback. Reference:", reference, "AgentId:", agentId)
-    if (reference && agentId) {
-      console.log("[v0] Verifying Paystack payment with agentId:", agentId)
+    console.log("[v0] Checking for Paystack callback. Reference:", reference)
+    if (reference) {
+      console.log("[v0] Verifying Paystack payment")
       verifyPaystackPayment(reference)
-    } else if (reference && !agentId) {
-      console.log("[v0] Reference found but no agentId. This might be a fresh callback.")
-      // Try to get agentId from URL params if available
-      const id = searchParams.get("agentId")
-      if (id) {
-        setAgentId(id)
-        verifyPaystackPayment(reference)
-      } else {
-        console.error("[v0] No agentId available for payment verification")
-      }
     }
-  }, [searchParams, agentId])
+  }, [searchParams])
 
   const openVideoModal = (video: typeof featuredTestimonies[0]) => {
     setCurrentVideo(video)
@@ -111,50 +99,58 @@ export default function RegistrationPaymentPage() {
 
   // Manual payment
   const handleManualStart = async () => {
-    if (!agentId) return setError("Agent ID missing. Please register again.")
-    if (!agentEmail.trim() || !validateEmail(agentEmail)) {
-      setEmailError("Valid email required")
-      return
-    }
-    try {
-      await supabase.from("agents").update({ email: agentEmail }).eq("id", agentId)
-    } catch (err) {
-      console.warn("Email update failed", err)
-    }
+    console.log("[v0] Manual payment started")
     setManualCode(generateCode())
     setShowManualDialog(true)
   }
 
   const handleManualComplete = async () => {
-    if (!agentId || !manualCode) return
+    if (!manualCode) return
     setManualProcessing(true)
     try {
       const timestamp = new Date().toLocaleString()
-      const message = `✅ *MANUAL PAYMENT RECEIVED*
+      const message = `✅ *NEW AGENT REGISTRATION - MANUAL PAYMENT RECEIVED*
 
 Hello Admin,
 
-I've completed manual payment for agent registration.
+A new agent has completed manual payment and is ready to be registered on the platform.
 
-• Name: ${agentName}
-• Agent ID: ${agentId}
-• Email: ${agentEmail}
-• Reference: ${manualCode}
-• Amount: ₵${REGISTRATION_FEE_MANUAL}
-• Date: ${timestamp}
+📋 *PAYMENT INFORMATION:*
+• Amount Received: ₵${REGISTRATION_FEE_MANUAL}
+• Reference Code: ${manualCode}
+• Payment Method: Manual (Mobile Money)
+• Transaction Date: ${timestamp}
 
-Please activate my account.`
+✅ *REQUIRED ACTION:*
+1. Register this new agent in the admin dashboard
+2. Credit their account with ₵${WALLET_TOPUP} wallet credit for platform testing
+3. Mark their account as APPROVED and ACTIVE
+
+📱 *WHAT THE AGENT WILL DO NEXT:*
+The agent will immediately complete their full registration form with:
+- Full Name
+- Phone Number
+- Region/Location
+- Password
+
+⏱️ *PRIORITY:* Please process this registration within the next 30 minutes so the agent can access their dashboard.
+
+Reference Code: *${manualCode}*
+
+Thank you!`
 
       window.open(`https://wa.me/233242799990?text=${encodeURIComponent(message)}`, "_blank")
       setShowManualDialog(false)
-      toast.success("WhatsApp opened – send the message to finish registration!")
+      toast.success("✅ WhatsApp opened! Admin will register your account. Check back soon to login.")
       
-      // Redirect to registration complete page after a short delay
+      // Store payment reference in localStorage
+      localStorage.setItem("payment_reference", manualCode)
+      localStorage.setItem("payment_method", "manual")
+      
+      // Redirect to login page after 2 seconds
       setTimeout(() => {
-        router.push(
-          `/agent/registration-complete?agentName=${encodeURIComponent(agentName)}&agentId=${agentId}`
-        )
-      }, 1500)
+        router.push(`/agent/login`)
+      }, 2000)
     } catch (err) {
       toast.error("Something went wrong")
     } finally {
@@ -164,20 +160,20 @@ Please activate my account.`
 
   // Paystack
   const handlePaystack = async () => {
-    if (!agentId) return setError("Agent ID missing.")
+    console.log("[v0] Paystack payment starting")
+    // Email is required for Paystack
     if (!agentEmail.trim() || !validateEmail(agentEmail)) {
-      setEmailError("Valid email required")
+      setEmailError("Valid email required for Paystack payment")
       return
     }
     setIsProcessing(true)
     setError("")
+    setEmailError("")
     try {
-      await supabase.from("agents").update({ email: agentEmail }).eq("id", agentId)
       const res = await fetch("/api/paystack/register/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          agent_id: agentId,
           agent_name: agentName,
           amount: REGISTRATION_FEE * 100,
           email: agentEmail,
@@ -185,6 +181,9 @@ Please activate my account.`
       })
       if (!res.ok) throw new Error("Payment initialization failed")
       const data: PaystackResponse = await res.json()
+      // Store email for use after payment
+      localStorage.setItem("paystack_email", agentEmail)
+      localStorage.setItem("paystack_name", agentName)
       window.location.href = data.authorization_url
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment error")
@@ -199,7 +198,7 @@ Please activate my account.`
       const res = await fetch("/api/paystack/register/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reference, agent_id: agentId }),
+        body: JSON.stringify({ reference }),
       })
       clearTimeout(timeout)
       if (res.ok) {
@@ -214,11 +213,15 @@ Please activate my account.`
   }
 
   const handlePaymentSuccess = (reference: string) => {
-    localStorage.removeItem(`paystack_ref_${agentId}`)
+    // Store payment verification in localStorage
+    localStorage.setItem("payment_verified", "true")
+    localStorage.setItem("payment_reference", reference)
+    localStorage.setItem("paystack_email", agentEmail)
+    localStorage.setItem("paystack_name", agentName)
+    localStorage.setItem("payment_method", "paystack")
+    // Redirect to registration form for Paystack users to complete registration
     router.push(
-      `/agent/payment-success?agentName=${encodeURIComponent(agentName)}&agentId=${agentId}&email=${encodeURIComponent(
-        agentEmail
-      )}&reference=${reference}`
+      `/agent/register?name=${encodeURIComponent(agentName)}&email=${encodeURIComponent(agentEmail)}&reference=${reference}`
     )
   }
 
@@ -247,9 +250,9 @@ Please activate my account.`
             <div className="inline-flex h-14 w-14 bg-emerald-600 rounded-xl items-center justify-center mb-4 shadow-md">
               <CreditCard className="h-7 w-7 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900">Complete your registration</h1>
+            <h1 className="text-3xl font-bold text-slate-900">Complete Payment to Register</h1>
             <p className="text-slate-600 mt-2 max-w-md mx-auto">
-              Choose your preferred payment method. Both options include <span className="font-medium text-emerald-600">₵{WALLET_TOPUP} free wallet credit</span>.
+              Pay now to unlock your agent registration. After payment, you'll complete your registration form and access your dashboard. Both options include <span className="font-medium text-emerald-600">₵{WALLET_TOPUP} free wallet credit</span>.
             </p>
           </div>
 
@@ -335,27 +338,29 @@ Please activate my account.`
                 </div>
               </div>
 
-              {/* Email input */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Email address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={agentEmail}
-                  onChange={(e) => {
-                    setAgentEmail(e.target.value)
-                    setEmailError("")
-                  }}
-                  placeholder="you@example.com"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                {emailError && (
-                  <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" /> {emailError}
-                  </p>
-                )}
-              </div>
+              {/* Email input - only show for Paystack */}
+              {selectedMethod === "paystack" && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Email address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={agentEmail}
+                    onChange={(e) => {
+                      setAgentEmail(e.target.value)
+                      setEmailError("")
+                    }}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  {emailError && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> {emailError}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Error message */}
               {error && (
@@ -368,7 +373,12 @@ Please activate my account.`
               {/* Single Continue button */}
               <Button
                 onClick={handleContinue}
-                disabled={!selectedMethod || isProcessing || manualProcessing || !agentEmail}
+                disabled={
+                  !selectedMethod || 
+                  isProcessing || 
+                  manualProcessing || 
+                  (selectedMethod === "paystack" && (!agentEmail || !validateEmail(agentEmail)))
+                }
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-12 text-base"
               >
                 {isProcessing || manualProcessing ? (
@@ -376,7 +386,7 @@ Please activate my account.`
                 ) : (
                   <Zap className="h-5 w-5 mr-2" />
                 )}
-                Pay with {selectedMethod === "manual" ? "Manual" : selectedMethod === "paystack" ? "Paystack" : "selected"} payment
+                {selectedMethod === "manual" ? "Continue with Manual Payment" : selectedMethod === "paystack" ? "Continue with Paystack" : "Select a payment method"}
               </Button> 
 
               {/* Savings note */}
@@ -453,12 +463,12 @@ Please activate my account.`
                     onClick={() => openVideoModal(testimony)}
                     className="group cursor-pointer rounded-xl overflow-hidden bg-slate-900 hover:shadow-lg transition-all"
                   >
-                    <div className="relative aspect-[9/16] w-full">
-                      <Image
+                    <div className="relative aspect-[9/16] w-full overflow-hidden">
+                      <img
                         src={testimony.thumbnail}
                         alt={testimony.agentName}
-                        fill
-                        className="object-cover group-hover:brightness-75 transition"
+                        className="w-full h-full object-cover group-hover:brightness-75 transition"
+                        crossOrigin="anonymous"
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="bg-white/90 group-hover:bg-white rounded-full p-3 transform group-hover:scale-110 transition">
@@ -580,85 +590,89 @@ Please activate my account.`
         </div>
       )}
 
-      {/* Manual payment dialog */}
-      {showManualDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <Card className="w-full max-w-md shadow-xl">
-            <CardHeader className="bg-emerald-600 text-white py-4 px-5 rounded-t-lg">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CreditCard className="h-5 w-5" />
-                Manual payment
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 space-y-4">
-              <div className="bg-emerald-50 rounded-xl p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-emerald-700">Amount to pay:</span>
-                  <span className="text-2xl font-bold text-emerald-900">₵{REGISTRATION_FEE_MANUAL}</span>
-                </div>
-                <div className="border-t border-emerald-200 pt-3">
-                  <p className="text-sm font-medium text-emerald-700 mb-2">Your reference code:</p>
-                  <div className="bg-white border-2 border-emerald-300 rounded-lg p-3 text-center">
-                    <p className="text-xl font-mono font-bold text-emerald-900 tracking-wider">
-                      {manualCode}
-                    </p>
-                  </div>
-                  <p className="text-xs text-emerald-600 mt-2 text-center">Use this code when you transfer</p>
-                </div>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <h3 className="font-semibold text-amber-900 text-sm mb-2">Mobile Money details</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-amber-700">Phone:</span>
-                    <span className="font-mono font-bold text-amber-900">+233 557 943 392</span>
-                  </div>
-                  <div className="flex justify-between border-t border-amber-200 pt-2">
-                    <span className="text-amber-700">Receiver:</span>
-                    <span className="font-bold text-amber-900">Adamantis Solutions</span>
-                  </div>
-                  <div className="flex justify-between border-t border-amber-200 pt-2">
-                    <span className="text-amber-700">Alternative:</span>
-                    <span className="text-amber-900">Ani-Johnson Francis K.</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-blue-50 p-3 rounded-xl">
-                  <p className="font-semibold text-blue-900 text-xs mb-2">📝 Steps</p>
-                  <ol className="text-xs text-blue-900 space-y-1 list-decimal list-inside">
-                    <li>Send exact amount</li>
-                    <li>Use reference code</li>
-                    <li>Click "Completed"</li>
-                  </ol>
-                </div>
-                <div className="bg-green-50 p-3 rounded-xl flex flex-col items-center justify-center">
-                  <span className="text-xl mb-1">💚</span>
-                  <p className="text-xs text-green-900 font-bold text-center">Save ₵14</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button variant="outline" onClick={() => setShowManualDialog(false)} className="flex-1 h-11">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleManualComplete}
-                  disabled={manualProcessing}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-11"
-                >
-                  {manualProcessing ? <Loader className="h-4 w-4 animate-spin mr-2" /> : "✓ Completed payment"}
-                </Button>
-              </div>
-              <p className="text-xs text-slate-500 text-center">
-                You'll be redirected to WhatsApp to notify admin
+      {/* Manual payment dialog - balanced redesign */}
+{showManualDialog && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <Card className="w-full max-w-md shadow-xl rounded-lg">
+      <CardHeader className="bg-emerald-600 text-white py-3 px-5 rounded-t-lg">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CreditCard className="h-5 w-5" />
+          Manual Payment Details
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="p-5 space-y-4">
+        {/* Amount and Reference - cleaner, readable */}
+        <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-sm font-medium text-emerald-700">Amount to Pay:</p>
+            <p className="text-2xl font-bold text-emerald-900">₵{REGISTRATION_FEE_MANUAL}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-emerald-700 mb-1.5">Your Reference Code:</p>
+            <div className="bg-white border-2 border-emerald-400 rounded-lg py-2 px-3 text-center">
+              <p className="text-lg font-mono font-bold text-emerald-900 tracking-wider">
+                {manualCode}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+            <p className="text-xs text-emerald-600 mt-1.5 text-center">Include this code in your payment note</p>
+          </div>
         </div>
-      )}
+
+        {/* Payment Details - readable */}
+        <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+          <p className="text-sm font-bold text-amber-900 mb-2">📱 Send Payment To:</p>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center bg-white p-2.5 rounded-lg">
+              <span className="text-sm font-medium text-amber-700">Phone:</span>
+              <span className="font-mono font-bold text-base text-amber-900">+233 557 943 392</span>
+            </div>
+            <div className="flex justify-between items-center bg-white p-2.5 rounded-lg">
+              <span className="text-sm font-medium text-amber-700">Receiver:</span>
+              <span className="font-semibold text-amber-900">Adamantis Solutions</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Instructions - clear but shorter */}
+        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <p className="text-sm font-bold text-blue-900 mb-2">📋 What to do:</p>
+          <ul className="space-y-1.5 text-sm text-blue-900 pl-1">
+            <li>1. Send ₵{REGISTRATION_FEE_MANUAL} via Mobile Money to above number</li>
+            <li>2. Include reference code: <strong>{manualCode}</strong></li>
+            <li>3. Click "Payment Sent" below</li>
+            <li>4. Notify admin via WhatsApp to complete registration</li>
+          </ul>
+        </div>
+
+        {/* Buttons - comfortable height */}
+        <div className="flex gap-3 pt-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowManualDialog(false)} 
+            className="flex-1 h-10 text-sm"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleManualComplete}
+            disabled={manualProcessing}
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-10 font-medium text-sm"
+          >
+            {manualProcessing ? (
+              <>
+                <Loader className="h-4 w-4 animate-spin mr-2" />
+                Processing...
+              </>
+            ) : (
+              "✓ Payment Sent"
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+)}
 
       {/* Video modal */}
       {showVideo && currentVideo && (

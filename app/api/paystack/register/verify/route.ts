@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { setPaymentVerified } from "@/lib/payment-gate"
 
 interface PaystackVerifyResponse {
   status: boolean
@@ -30,17 +31,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { reference, agent_id } = await request.json()
+    const { reference } = await request.json()
 
-    if (!reference || !agent_id) {
-      console.error("[v0] Missing reference or agent_id for verification")
+    if (!reference) {
+      console.error("[v0] Missing reference for verification")
       return NextResponse.json(
         { error: "Missing verification information", success: false },
         { status: 400 }
       )
     }
 
-    console.log(`[v0] Verifying registration payment. Reference: ${reference}, Agent: ${agent_id}`)
+    console.log(`[v0] Verifying registration payment. Reference: ${reference}`)
 
     // Verify with Paystack
     const paystackResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
@@ -78,29 +79,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { agent_id: metadataAgentId } = paystackData.data.metadata
-
-    // Verify agent_id matches
-    if (metadataAgentId !== agent_id) {
-      console.error("[v0] Agent ID mismatch in payment verification")
-      return NextResponse.json(
-        { error: "Agent ID mismatch", success: false },
-        { status: 400 }
-      )
-    }
-
-    console.log(`[v0] Payment verified successfully for agent: ${agent_id}`)
+    console.log(`[v0] Payment verified successfully`)
     console.log(`[v0] Payment amount: ${paystackData.data.amount}, Reference: ${reference}`)
 
     // Payment verification successful - no database updates required
     // Agent will see payment-success page and can contact admin via WhatsApp
     return NextResponse.json({
       success: true,
-      message: "Payment verified successfully. Please contact admin via WhatsApp to complete setup.",
+      message: "Payment verified successfully. Please register and contact admin via WhatsApp to complete setup.",
       data: {
         reference: paystackData.data.reference,
         amount: paystackData.data.amount,
-        agent_id,
         agent_name: paystackData.data.metadata.agent_name,
       },
     })

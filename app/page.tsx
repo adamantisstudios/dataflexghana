@@ -19,6 +19,7 @@ import { WhatsAppWidget } from "@/components/whatsapp-widget"
 import { BackToTop } from "@/components/back-to-top"
 import { HeroSlider } from "@/components/hero-slider"
 import WholesaleProductSlider from "@/components/WholesaleProductSlider"
+import { ProtectedLink } from "@/components/protected-link"
 import {
   Users,
   Shield,
@@ -144,10 +145,10 @@ const ViewChannelsSection = () => {
                       className="flex-1 text-xs h-8 border-blue-200 text-blue-600 hover:bg-blue-50 bg-transparent"
                       asChild
                     >
-                      <Link href="/agent/register">View</Link>
+                      <ProtectedLink href="/agent/registration-payment">View</ProtectedLink>
                     </Button>
                     <Button size="sm" className="flex-1 text-xs h-8 bg-blue-600 hover:bg-blue-700 text-white" asChild>
-                      <Link href="/agent/register">Join</Link>
+                      <ProtectedLink href="/agent/registration-payment">Join</ProtectedLink>
                     </Button>
                   </div>
                 </div>
@@ -411,7 +412,7 @@ export default function HomePage() {
                 asChild
                 className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-lg"
               >
-                <Link href="/agent/register">Join as Agent</Link>
+                <ProtectedLink href="/agent/registration-payment">Join as Agent</ProtectedLink>
               </Button>
             </div>
             {/* Mobile menu button */}
@@ -468,7 +469,7 @@ export default function HomePage() {
                     asChild
                     className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
                   >
-                    <Link href="/agent/register">Join as Agent</Link>
+                    <ProtectedLink href="/agent/registration-payment">Join as Agent</ProtectedLink>
                   </Button>
                 </div>
               </div>
@@ -644,12 +645,12 @@ export default function HomePage() {
                       </div>
 
                       {/* FORCE REGISTRATION ON VIEW DETAILS */}
-                      <Link href="/agent/register" className="block">
+                      <ProtectedLink href="/agent/registration-payment" className="block">
                         <Button className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700">
                           View Details
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
-                      </Link>
+                      </ProtectedLink>
                     </CardContent>
                   </Card>
                 ))}
@@ -1563,10 +1564,10 @@ export default function HomePage() {
                     className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
                     asChild
                   >
-                    <Link href="/agent/register">
+                    <ProtectedLink href="/agent/registration-payment">
                       Get Started
                       <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
+                    </ProtectedLink>
                   </Button>
                 </CardContent>
               </Card>
@@ -1642,10 +1643,10 @@ export default function HomePage() {
                           </p>
                         </div>
                         <Button asChild className="bg-purple-600 hover:bg-purple-700">
-                          <Link href="/agent/register">
+                          <ProtectedLink href="/agent/registration-payment">
                             Get Started
                             <ArrowRight className="ml-2 h-4 w-4" />
-                          </Link>
+                          </ProtectedLink>
                         </Button>
                       </div>
                     </CardContent>
@@ -1732,10 +1733,10 @@ export default function HomePage() {
                 asChild
                 className="bg-white text-emerald-600 hover:bg-gray-100 text-lg px-8 py-6"
               >
-                <Link href="/agent/register">
+                <ProtectedLink href="/agent/registration-payment">
                   Become an Agent
                   <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
+                </ProtectedLink>
               </Button>
               <Button
                 size="lg"

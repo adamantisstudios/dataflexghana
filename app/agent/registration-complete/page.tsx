@@ -28,18 +28,18 @@ export default function RegistrationCompletePage() {
   const [whatsappSent, setWhatsappSent] = useState(false)
 
   useEffect(() => {
-    const id = searchParams.get("agentId")
     const name = searchParams.get("name")
+    const id = searchParams.get("agentId")
 
-    if (id) {
-      setAgentId(id)
-    }
     if (name) {
       setAgentName(decodeURIComponent(name))
     }
+    if (id) {
+      setAgentId(id)
+    }
 
     // Don't auto-send WhatsApp - let user click the button
-    // This is after manual payment so they're already in control
+    // This is after registration so they're already in control
   }, [searchParams])
 
   const handleSendWhatsApp = () => {
@@ -53,55 +53,42 @@ export default function RegistrationCompletePage() {
       hour12: false
     })
     
-    const message = `✅ *REGISTRATION PAYMENT CONFIRMED*
+    const message = `✅ *AGENT REGISTRATION COMPLETED*
 
-Hello ${agentName},
+Hello Admin,
 
-I have completed my manual agent registration payment and would like to request account activation.
+A new agent has completed registration and is ready to access the platform.
 
-*Payment Confirmation Details:*
-Agent Name: ${agentName}
-Agent ID: ${agentId}
-Amount Paid: ₵${REGISTRATION_FEE_MANUAL}.00
-Payment Date: ${timestamp}
+📋 *AGENT DETAILS:*
+• Full Name: ${agentName}
+• Registration Date: ${timestamp}
 
-*What's Next:*
-Please review my registration and activate my account so I can start:
-• Access my agent dashboard
-• View available opportunities
-• Start publishing properties
-• Begin earning commissions
-• Track my earnings in real-time
+✅ *STATUS:*
+• Payment: ✅ Confirmed
+• Registration Form: ✅ Completed
+• Account Ready: ✅ Yes
 
-*Benefits Expected:*
-🎁 Free ₵5 wallet topup
-💰 Commission on every sale
-📈 Real-time earnings tracking
-🤝 Premium agent features
+🎯 *NEXT STEPS:*
+Please approve this agent account so they can:
+✓ Access their agent dashboard
+✓ View available opportunities
+✓ Start publishing properties
+✓ Begin earning commissions
 
-Looking forward to joining the Dataflex Ghana family! 🎉
+The agent is waiting to log in and start working immediately.
 
-Thank you for your attention.
-
-Best regards,
-${agentName}`
+Thank you!`
 
     const whatsappUrl = generateWhatsAppLink(message)
     window.open(whatsappUrl, "_blank")
     setWhatsappSent(true)
-    toast.success("Opening WhatsApp with your payment confirmation...")
+    toast.success("Opening WhatsApp with your registration confirmation...")
   }
 
-  const handleGoToDashboard = () => {
-    // Ensure WhatsApp message was sent before allowing dashboard access
-    if (!whatsappSent) {
-      toast.error("Please send the WhatsApp confirmation first")
-      handleSendWhatsApp()
-      return
-    }
+  const handleGoToLogin = () => {
     setIsRedirecting(true)
-    // Redirect to agent dashboard
-    router.push("/agent/dashboard")
+    // Redirect to agent login
+    router.push("/agent/login")
   }
 
   const agentBenefits = [
@@ -237,11 +224,20 @@ ${agentName}`
                   className="w-full h-14 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold text-lg rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   <MessageCircle className="h-5 w-5" />
-                  Send Confirmation on WhatsApp
+                  {whatsappSent ? "✓ Message Sent to Admin" : "Notify Admin on WhatsApp"}
+                </Button>
+
+                <Button
+                  onClick={handleGoToLogin}
+                  disabled={isRedirecting}
+                  className="w-full h-14 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                  {isRedirecting ? "Redirecting..." : "Go to Login"}
                 </Button>
 
                 <p className="text-xs text-center bg-emerald-50 text-emerald-800 py-2 px-3 rounded-lg border border-emerald-200">
-                  ✓ Click above to send your payment confirmation to admin for account activation
+                  ✓ Notify admin and then log in to access your dashboard
                 </p>
               </div>
 

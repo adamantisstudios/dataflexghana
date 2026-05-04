@@ -13,6 +13,7 @@ import { setStoredAgent } from "@/lib/agent-auth"
 import { getPlatformName } from "@/lib/config"
 import { ArrowLeft, LogIn, Eye, EyeOff, Phone, Lock, AlertTriangle, UserCheck } from "lucide-react"
 import Link from "next/link"
+import { ProtectedLink } from "@/components/protected-link"
 
 export default function AgentLoginPage() {
   const [formData, setFormData] = useState({
@@ -216,9 +217,9 @@ export default function AgentLoginPage() {
           <div className="text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}
-              <Link href="/agent/register" className="text-blue-600 hover:underline font-medium">
+              <ProtectedLink href="/agent/register" className="text-blue-600 hover:underline font-medium">
                 Register here
-              </Link>
+              </ProtectedLink>
             </p>
           </div>
         </div>

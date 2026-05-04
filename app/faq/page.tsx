@@ -5,6 +5,7 @@ import { ChevronDown, MessageCircle, Mail, ArrowUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
+import { ProtectedLink } from "@/components/protected-link"
 
 interface FAQItem {
   id: string
@@ -449,7 +450,7 @@ export default function FAQPage() {
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild variant="default" className="bg-green-600 hover:bg-green-700">
-              <Link href="/agent/register">Get Started as Agent</Link>
+              <ProtectedLink href="/agent/register">Get Started as Agent</ProtectedLink>
             </Button>
             <Button
               asChild
@@ -551,7 +552,7 @@ export default function FAQPage() {
                   up.
                 </p>
                 <Button asChild className="bg-green-600 hover:bg-green-700 text-white w-full md:w-auto">
-                  <Link href="/agent/register">Register as Agent Now</Link>
+                  <ProtectedLink href="/agent/register">Register as Agent Now</ProtectedLink>
                 </Button>
               </div>
             </div>

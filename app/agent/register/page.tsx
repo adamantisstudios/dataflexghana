@@ -14,7 +14,7 @@ import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { 
   X, Play, ArrowRight, Award, Sparkles, Users, Shield, Target, 
   Zap, TrendingUp, CreditCard, Clock, CheckCircle, Lock, ShoppingBag, 
-  Package, Smartphone, FileText 
+  Package, Smartphone, FileText, AlertCircle, Loader
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -59,6 +59,7 @@ export default function RegisterPage() {
   const [showIntroMessage, setShowIntroMessage] = useState(false)
   const [referralCode, setReferralCode] = useState<string>("")
   const [showBeyondDataModal, setShowBeyondDataModal] = useState(false)
+  const [paymentVerified, setPaymentVerified] = useState<boolean | null>(null)
   const router = useRouter()
 
   // Auto-show warning popup after 30 seconds
@@ -88,6 +89,25 @@ export default function RegisterPage() {
     }, 1000)
     return () => clearInterval(timer)
   }, [showWarningPopup])
+
+  // Check if payment was verified (via localStorage set by payment handler)
+  useEffect(() => {
+    const checkPaymentVerification = () => {
+      const paymentVerified = localStorage.getItem("payment_verified")
+      if (paymentVerified === "true") {
+        console.log("[v0] Payment verified from localStorage")
+        setPaymentVerified(true)
+      } else {
+        console.log("[v0] Payment not verified - redirecting to payment page")
+        setPaymentVerified(false)
+        setTimeout(() => {
+          router.push("/agent/registration-payment")
+        }, 1500)
+      }
+    }
+    
+    checkPaymentVerification()
+  }, [router])
 
   // Track referral code from URL
   useEffect(() => {
@@ -190,11 +210,27 @@ export default function RegisterPage() {
           }),
         )
 
+        // Clear payment verification flag after successful registration
+        try {
+          localStorage.removeItem("payment_verified")
+          localStorage.removeItem("payment_reference")
+        } catch (err) {
+          console.warn("[v0] Failed to clear payment flag, but registration succeeded:", err)
+        }
+
         if (referralCode) {
           // ... (referral processing code unchanged)
         }
 
-        router.push(`/agent/registration-payment?agentId=${newAgent.id}&name=${encodeURIComponent(agentName)}`)
+        // Clear payment verification and redirect to login for Paystack users
+        // Manual payment users were already redirected to login after WhatsApp
+        const paymentMethod = localStorage.getItem("payment_method")
+        localStorage.removeItem("payment_verified")
+        localStorage.removeItem("payment_reference")
+        localStorage.removeItem("payment_method")
+        
+        // Redirect to login
+        router.push(`/agent/login`)
       }
     } catch (error) {
       console.error("Registration error:", error)
@@ -211,6 +247,51 @@ export default function RegisterPage() {
   const handlePaymentLineInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "").slice(0, 10)
     setFormData({ ...formData, paymentLine: value })
+  }
+
+
+
+  // Show loading state while checking payment verification
+  if (paymentVerified === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardContent className="pt-12 pb-12 text-center">
+            <Loader className="h-8 w-8 animate-spin text-emerald-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold">Verifying payment…</h3>
+            <p className="text-sm text-slate-600 mt-2">Please wait while we confirm your payment.</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Show payment blocked message if payment not verified
+  if (paymentVerified === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg border-red-200">
+          <CardContent className="pt-12 pb-12 text-center">
+            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-6 w-6 text-red-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-red-900">Payment Required</h3>
+            <p className="text-sm text-slate-600 mt-4 mb-6">
+              You must complete payment before you can register. Please complete your payment first.
+            </p>
+            <Button
+              onClick={() => router.push("/agent/registration-payment")}
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+            >
+              Complete Payment
+            </Button>
+            <p className="text-xs text-slate-500 mt-4">
+              Your payment verification will expire in 24 hours.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -255,7 +336,7 @@ export default function RegisterPage() {
                     wallet to start buying data bundles and testing the system immediately.
                   </p>
                   <p className="text-sm font-semibold text-red-900">
-                    ⚠️ Unpaid accounts will remain <span className="uppercase">pending</span> permanently.
+                    ���️ Unpaid accounts will remain <span className="uppercase">pending</span> permanently.
                   </p>
                 </div>
                 <div className="flex items-center justify-between pt-2">

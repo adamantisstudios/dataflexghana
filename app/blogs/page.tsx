@@ -8,6 +8,7 @@ import { generateBlogListStructuredData, generateWebsiteStructuredData } from "@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { ProtectedLink } from "@/components/protected-link"
 
 const siteUrl = "https://dataflexghana.com"
 
@@ -137,7 +138,7 @@ export default async function BlogsPage() {
                   size="lg"
                   className="bg-white text-emerald-600 hover:bg-gray-100 font-semibold px-6 sm:px-8 py-3"
                 >
-                  <Link href="/agent/register">Register As An Agent</Link>
+                  <ProtectedLink href="/agent/register">Register As An Agent</ProtectedLink>
                 </Button>
                 <Button
                   asChild
@@ -175,9 +176,9 @@ export default async function BlogsPage() {
                   <h4 className="text-lg font-semibold">Quick Links</h4>
                   <ul className="space-y-2 text-sm">
                     <li>
-                      <Link href="/agent/register" className="text-gray-400 hover:text-white transition-colors">
+                      <ProtectedLink href="/agent/register" className="text-gray-400 hover:text-white transition-colors">
                         Become an Agent
-                      </Link>
+                      </ProtectedLink>
                     </li>
                     <li>
                       <Link href="/agent/login" className="text-gray-400 hover:text-white transition-colors">
