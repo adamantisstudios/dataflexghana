@@ -18,11 +18,11 @@ import { supabase, type Referral } from "@/lib/supabase"
 import { MessageCircle, Search, Filter, Trash2 } from "lucide-react"
 
 interface ReferralsTabProps {
-  getCachedData: () => Referral[] | undefined
-  setCachedData: (data: Referral[]) => void
-  adminUnreadCount: number
-  adminGetUnreadCount: (referralId: string) => number
-  adminMarkAsRead: (referralId: string) => void
+  getCachedData?: () => Referral[] | undefined
+  setCachedData?: (data: Referral[]) => void
+  adminUnreadCount?: number
+  adminGetUnreadCount?: (referralId: string) => number
+  adminMarkAsRead?: (referralId: string) => void
 }
 
 export default function ReferralsTab({
@@ -42,11 +42,14 @@ export default function ReferralsTab({
 
   useEffect(() => {
     const loadReferrals = async () => {
-      const cachedData = getCachedData()
-      if (cachedData) {
-        setReferrals(cachedData)
-        setLoading(false)
-        return
+      // Check cache only if getCachedData exists and is a function
+      if (typeof getCachedData === "function") {
+        const cachedData = getCachedData()
+        if (cachedData && cachedData.length > 0) {
+          setReferrals(cachedData)
+          setLoading(false)
+          return
+        }
       }
 
       try {
@@ -58,7 +61,9 @@ export default function ReferralsTab({
         if (error) throw error
         const referralsData = data || []
         setReferrals(referralsData)
-        setCachedData(referralsData)
+        if (typeof setCachedData === "function") {
+          setCachedData(referralsData)
+        }
       } catch (error) {
         console.error("Error loading referrals:", error)
         alert("Failed to load referrals data.")
@@ -155,7 +160,7 @@ export default function ReferralsTab({
         referral.id === referralId ? { ...referral, ...updatePayload } : referral,
       )
       setReferrals(updatedReferrals)
-      setCachedData(updatedReferrals)
+      if (typeof setCachedData === "function") setCachedData(updatedReferrals)
     } catch (error) {
       console.error("Error updating referral status:", error)
       alert("Failed to update referral status")
@@ -170,7 +175,7 @@ export default function ReferralsTab({
 
       const updatedReferrals = referrals.filter((referral) => referral.id !== referralId)
       setReferrals(updatedReferrals)
-      setCachedData(updatedReferrals)
+      if (typeof setCachedData === "function") setCachedData(updatedReferrals)
       alert("Referral deleted successfully!")
     } catch (error) {
       console.error("Error deleting referral:", error)
@@ -345,11 +350,18 @@ export default function ReferralsTab({
                     asChild
                     className="border-emerald-300 text-emerald-600 hover:bg-emerald-50 relative w-full sm:w-auto bg-transparent"
                   >
-                    <Link href={`/admin/chat/${referral.id}`} onClick={() => adminMarkAsRead(referral.id)}>
+                    <Link
+                      href={`/admin/chat/${referral.id}`}
+                      onClick={() => {
+                        if (typeof adminMarkAsRead === "function") {
+                          adminMarkAsRead(referral.id)
+                        }
+                      }}
+                    >
                       <div className="relative flex items-center">
                         <MessageCircle className="h-4 w-4 mr-2" />
                         Chat
-                        {adminGetUnreadCount(referral.id) > 0 && (
+                        {typeof adminGetUnreadCount === "function" && adminGetUnreadCount(referral.id) > 0 && (
                           <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center animate-pulse font-bold">
                             {adminGetUnreadCount(referral.id) > 9 ? "9+" : adminGetUnreadCount(referral.id)}
                           </span>

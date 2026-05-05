@@ -38,8 +38,8 @@ interface DataOrderLog {
 }
 
 interface DataBundleOrdersLogTabProps {
-  getCachedData: () => DataOrderLog[] | undefined
-  setCachedData: (data: DataOrderLog[]) => void
+  getCachedData?: () => DataOrderLog[] | undefined
+  setCachedData?: (data: DataOrderLog[]) => void
 }
 
 export default function DataBundleOrdersLogTab({
@@ -66,7 +66,9 @@ export default function DataBundleOrdersLogTab({
       if (response.ok && result.success) {
         const updated = orders.filter((o) => o.id !== orderId)
         setOrders(updated)
-        setCachedData(updated)
+        if (typeof setCachedData === "function") {
+          setCachedData(updated)
+        }
         toast.success("Order deleted successfully")
       } else {
         toast.error(result.message || "Failed to delete order")
@@ -86,13 +88,15 @@ export default function DataBundleOrdersLogTab({
   const loadOrders = useCallback(async () => {
     try {
       setLoading(true)
-      const cachedData = getCachedData()
-      
-      if (cachedData && cachedData.length > 0) {
-        setOrders(cachedData)
-        setFilteredOrders(cachedData)
-        setLoading(false)
-        return
+      // Only use cache if getCachedData exists and is a function
+      if (typeof getCachedData === "function") {
+        const cachedData = getCachedData()
+        if (cachedData && cachedData.length > 0) {
+          setOrders(cachedData)
+          setFilteredOrders(cachedData)
+          setLoading(false)
+          return
+        }
       }
 
       const response = await fetch("/api/admin/data-orders/log-list")
@@ -103,7 +107,9 @@ export default function DataBundleOrdersLogTab({
       const data = await response.json()
       if (data.success && data.data) {
         setOrders(data.data)
-        setCachedData(data.data)
+        if (typeof setCachedData === "function") {
+          setCachedData(data.data)
+        }
         setFilteredOrders(data.data)
       }
     } catch (error) {

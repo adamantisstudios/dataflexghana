@@ -21,7 +21,7 @@ import { Plus, Edit, Trash2, Search, Filter, Upload, X } from "lucide-react"
 import { ImageModal } from "@/components/ui/image-modal"
 import { Badge } from "@/components/ui/badge"
 
-// Rich text editor component
+// Rich text editor component (unchanged, but included for completeness)
 interface RichTextEditorProps {
   value: string
   onChange: (value: string) => void
@@ -69,10 +69,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
         endLine = i
         break
       }
-      charCount += lines[i].length + 1 // +1 for newline
+      charCount += lines[i].length + 1
     }
 
-    // Format selected lines
     for (let i = startLine; i <= endLine; i++) {
       if (lines[i].trim()) {
         if (type === "bullet") {
@@ -89,22 +88,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   return (
     <div className={className}>
       <div className="flex flex-wrap gap-1 mb-2 p-2 bg-gray-50 rounded-t-md border border-b-0">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => insertFormat("**", "**")}
-          className="h-7 text-xs"
-        >
+        <Button type="button" size="sm" variant="outline" onClick={() => insertFormat("**", "**")} className="h-7 text-xs">
           <strong>B</strong>
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => insertFormat("*", "*")}
-          className="h-7 text-xs italic"
-        >
+        <Button type="button" size="sm" variant="outline" onClick={() => insertFormat("*", "*")} className="h-7 text-xs italic">
           I
         </Button>
         <Button type="button" size="sm" variant="outline" onClick={() => insertList("bullet")} className="h-7 text-xs">
@@ -129,7 +116,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, placeh
   )
 }
 
-// Rich text renderer component
+// Rich text renderer component (unchanged)
 interface RichTextRendererProps {
   content: string
   className?: string
@@ -139,38 +126,26 @@ const RichTextRenderer: React.FC<RichTextRendererProps> = ({ content, className 
   const formatText = (text: string) => {
     if (!text) return ""
 
-    // Convert markdown-style formatting to HTML
     let formatted = text
-      // Bold text
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      // Italic text
       .replace(/\*(.*?)\*/g, "<em>$1</em>")
-      // Line breaks (convert single \n to <br>, double \n\n to paragraph breaks)
       .replace(/\n\n/g, "</p><p>")
       .replace(/\n/g, "<br>")
-      // Bullet points
       .replace(/^• (.+)$/gm, '<li class="list-disc ml-4">$1</li>')
-      // Numbered lists
       .replace(/^\d+\. (.+)$/gm, '<li class="list-decimal ml-4">$1</li>')
 
-    // Wrap in paragraph tags if there's content
     if (formatted && !formatted.startsWith("<")) {
       formatted = "<p>" + formatted + "</p>"
     }
 
-    // Wrap consecutive <li> elements in <ul>
     formatted = formatted.replace(
       /(<li class="list-disc[^>]*>.*?<\/li>)(?:\s*<br>\s*<li class="list-disc[^>]*>.*?<\/li>)*/gs,
-      (match) => {
-        return '<ul class="my-2">' + match.replace(/<br>\s*/g, "") + "</ul>"
-      },
+      (match) => '<ul class="my-2">' + match.replace(/<br>\s*/g, "") + "</ul>",
     )
 
     formatted = formatted.replace(
       /(<li class="list-decimal[^>]*>.*?<\/li>)(?:\s*<br>\s*<li class="list-decimal[^>]*>.*?<\/li>)*/gs,
-      (match) => {
-        return '<ol class="my-2">' + match.replace(/<br>\s*/g, "") + "</ol>"
-      },
+      (match) => '<ol class="my-2">' + match.replace(/<br>\s*/g, "") + "</ol>",
     )
 
     return formatted
@@ -180,16 +155,15 @@ const RichTextRenderer: React.FC<RichTextRendererProps> = ({ content, className 
     <div
       className={`prose prose-sm max-w-none ${className}`}
       dangerouslySetInnerHTML={{ __html: formatText(content) }}
-      style={{
-        lineHeight: "1.6",
-      }}
+      style={{ lineHeight: "1.6" }}
     />
   )
 }
 
+// Updated props interface – cache functions are optional
 interface ServicesTabProps {
-  getCachedData: () => Service[] | undefined
-  setCachedData: (data: Service[]) => void
+  getCachedData?: () => Service[] | undefined
+  setCachedData?: (data: Service[]) => void
 }
 
 export default function ServicesTab({ getCachedData, setCachedData }: ServicesTabProps) {
@@ -209,7 +183,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
     materials_link: "",
     image_url: "",
     image_urls: [] as string[],
-    // Company details (admin-only)
     company_name: "",
     contact_person_name: "",
     contact_number: "",
@@ -222,8 +195,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
   const [selectedServiceDetails, setSelectedServiceDetails] = useState<Service | null>(null)
   const itemsPerPage = 12
   const [expandedServiceIds, setExpandedServiceIds] = useState<Set<string>>(new Set())
-
-  // Added Image Modal state
   const [showImageModal, setShowImageModal] = useState(false)
   const [modalImages, setModalImages] = useState<string[]>([])
   const [modalImageIndex, setModalImageIndex] = useState(0)
@@ -249,22 +220,27 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
     })
   }
 
+  // Load services with defensive cache check
   useEffect(() => {
     const loadServices = async () => {
-      const cachedData = getCachedData()
-      if (cachedData) {
-        setServices(cachedData)
-        setLoading(false)
-        return
+      // Only use cache if getCachedData exists and is a function
+      if (typeof getCachedData === "function") {
+        const cachedData = getCachedData()
+        if (cachedData && cachedData.length > 0) {
+          setServices(cachedData)
+          setLoading(false)
+          return
+        }
       }
 
       try {
         const { data, error } = await supabase.from("services").select("*").order("created_at", { ascending: false })
-
         if (error) throw error
         const servicesData = data || []
         setServices(servicesData)
-        setCachedData(servicesData)
+        if (typeof setCachedData === "function") {
+          setCachedData(servicesData)
+        }
       } catch (error) {
         console.error("Error loading services:", error)
         alert("Failed to load services data.")
@@ -275,6 +251,7 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
     loadServices()
   }, [getCachedData, setCachedData])
 
+  // Filtering logic
   useEffect(() => {
     const filtered = services.filter(
       (service) =>
@@ -309,7 +286,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
         commission_amount: Number.parseFloat(serviceForm.commission_amount),
         product_cost: serviceForm.product_cost ? Number.parseFloat(serviceForm.product_cost) : 0,
         service_type: "referral" as const,
-        // Ensure image_url is the first image in the array for backward compatibility
         image_url: serviceForm.image_urls[0] || "",
       }
 
@@ -327,7 +303,7 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
       }
 
       setServices(updatedServices)
-      setCachedData(updatedServices)
+      if (typeof setCachedData === "function") setCachedData(updatedServices)
       setShowServiceDialog(false)
       setEditingService(null)
       setServiceForm({
@@ -364,7 +340,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
       image_urls: service.image_urls && service.image_urls.length > 0 
         ? service.image_urls 
         : service.image_url ? [service.image_url] : [],
-      // Populate company details
       company_name: service.company_name || "",
       contact_person_name: service.contact_person_name || "",
       contact_number: service.contact_number || "",
@@ -376,7 +351,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
     setShowServiceDialog(true)
   }
 
-  // Added image management functions
   const addImageUrl = () => {
     if (newImageUrl.trim() && !serviceForm.image_urls.includes(newImageUrl.trim())) {
       setServiceForm((prev) => ({
@@ -399,10 +373,9 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
     try {
       const { error } = await supabase.from("services").delete().eq("id", serviceId)
       if (error) throw error
-
       const updatedServices = services.filter((service) => service.id !== serviceId)
       setServices(updatedServices)
-      setCachedData(updatedServices)
+      if (typeof setCachedData === "function") setCachedData(updatedServices)
       alert("Service deleted successfully!")
     } catch (error) {
       console.error("Error deleting service:", error)
@@ -430,7 +403,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
     onPageChange: (page: number) => void
   }) => {
     if (totalPages <= 1) return null
-
     return (
       <div className="flex justify-center mt-4 sm:mt-6">
         <Pagination>
@@ -523,11 +495,9 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {getPaginatedData(filteredServicesAdmin, currentServicesPage).map((service) => {
-          // Extract images for display
           const displayImages = service.image_urls && service.image_urls.length > 0
             ? service.image_urls
             : service.image_url ? [service.image_url] : []
-          
           return (
             <Card
               key={service.id}
@@ -544,7 +514,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                       alt={service.title}
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     />
-                    {/* Show image count badge like wholesale */}
                     {displayImages.length > 1 && (
                       <Badge className="absolute top-2 right-2 bg-emerald-600">
                         +{displayImages.length - 1}
@@ -642,7 +611,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
         onPageChange={setCurrentServicesPage}
       />
 
-      {/* Added Image Modal for full screen viewing */}
       <ImageModal
         isOpen={showImageModal}
         onClose={() => setShowImageModal(false)}
@@ -695,7 +663,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                     required
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="product_cost">Product Cost (GH₵)</Label>
                   <Input
@@ -718,13 +685,12 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                 />
               </div>
 
-              {/* Replaced single image URL input with multi-image gallery management */}
+              {/* Multi-image gallery management */}
               <div className="space-y-4 pt-2 border-t border-emerald-100">
                 <Label className="text-emerald-800 font-semibold flex items-center gap-2">
                   Service Gallery
                   <Badge variant="outline" className="text-[10px] uppercase">{serviceForm.image_urls.length} Images</Badge>
                 </Label>
-                
                 <div className="flex gap-2">
                   <Input
                     placeholder="Paste image URL..."
@@ -732,15 +698,10 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                     onChange={(e) => setNewImageUrl(e.target.value)}
                     className="border-emerald-200 focus:border-emerald-500 flex-1"
                   />
-                  <Button 
-                    type="button" 
-                    onClick={addImageUrl}
-                    className="bg-emerald-600 hover:bg-emerald-700 h-10 w-10 p-0"
-                  >
+                  <Button type="button" onClick={addImageUrl} className="bg-emerald-600 hover:bg-emerald-700 h-10 w-10 p-0">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
-
                 {serviceForm.image_urls.length > 0 && (
                   <div className="grid grid-cols-4 gap-2">
                     {serviceForm.image_urls.map((url, index) => (
@@ -759,17 +720,15 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                 )}
               </div>
 
-              {/* ADMIN-ONLY COMPANY DETAILS SECTION */}
+              {/* Admin-only company details */}
               <div className="space-y-4 pt-4 border-t-2 border-amber-200 bg-amber-50 p-4 rounded-lg">
                 <div className="flex items-center gap-2 mb-3">
                   <Badge className="bg-amber-600">Admin Only</Badge>
                   <Label className="text-amber-900 font-bold">Company Information</Label>
                 </div>
-
                 <div>
                   <Label htmlFor="company_name" className="text-amber-900">Company Name</Label>
                   <Input
-                    type="text"
                     id="company_name"
                     value={serviceForm.company_name}
                     onChange={(e) => setServiceForm({ ...serviceForm, company_name: e.target.value })}
@@ -777,12 +736,10 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                     className="w-full mt-1 border-amber-200 focus:border-amber-500"
                   />
                 </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="contact_person_name" className="text-amber-900">Contact Person Name</Label>
                     <Input
-                      type="text"
                       id="contact_person_name"
                       value={serviceForm.contact_person_name}
                       onChange={(e) => setServiceForm({ ...serviceForm, contact_person_name: e.target.value })}
@@ -790,11 +747,9 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                       className="w-full mt-1 border-amber-200 focus:border-amber-500"
                     />
                   </div>
-
                   <div>
                     <Label htmlFor="contact_number" className="text-amber-900">Primary Contact Number</Label>
                     <Input
-                      type="tel"
                       id="contact_number"
                       value={serviceForm.contact_number}
                       onChange={(e) => setServiceForm({ ...serviceForm, contact_number: e.target.value })}
@@ -803,12 +758,10 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                     />
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="alternative_number" className="text-amber-900">Alternative Number</Label>
                     <Input
-                      type="tel"
                       id="alternative_number"
                       value={serviceForm.alternative_number}
                       onChange={(e) => setServiceForm({ ...serviceForm, alternative_number: e.target.value })}
@@ -816,11 +769,9 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                       className="w-full mt-1 border-amber-200 focus:border-amber-500"
                     />
                   </div>
-
                   <div>
                     <Label htmlFor="email_address" className="text-amber-900">Email Address</Label>
                     <Input
-                      type="email"
                       id="email_address"
                       value={serviceForm.email_address}
                       onChange={(e) => setServiceForm({ ...serviceForm, email_address: e.target.value })}
@@ -829,11 +780,9 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                     />
                   </div>
                 </div>
-
                 <div>
                   <Label htmlFor="main_business_location" className="text-amber-900">Main Business Location</Label>
                   <Input
-                    type="text"
                     id="main_business_location"
                     value={serviceForm.main_business_location}
                     onChange={(e) => setServiceForm({ ...serviceForm, main_business_location: e.target.value })}
@@ -841,11 +790,9 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                     className="w-full mt-1 border-amber-200 focus:border-amber-500"
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="website" className="text-amber-900">Website (Optional)</Label>
                   <Input
-                    type="url"
                     id="website"
                     value={serviceForm.website}
                     onChange={(e) => setServiceForm({ ...serviceForm, website: e.target.value })}
@@ -855,7 +802,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                 </div>
               </div>
             </div>
-
             <DialogFooter className="pt-4 flex-col sm:flex-row gap-2">
               <Button type="submit" className="w-full sm:w-auto">
                 {editingService ? "Update Service" : "Create Service"}
@@ -865,26 +811,22 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
         </DialogContent>
       </Dialog>
 
-      {/* Service Details Dialog (Admin Only - Company Information) */}
+      {/* Service Details Dialog */}
       <Dialog open={showServiceDetailsDialog} onOpenChange={setShowServiceDetailsDialog}>
         <DialogContent className="sm:max-w-[500px] w-[95vw] mx-auto">
           <DialogHeader>
             <DialogTitle className="text-blue-800">{selectedServiceDetails?.title} - Company Details</DialogTitle>
           </DialogHeader>
-          
           {selectedServiceDetails && (
             <div className="space-y-4 py-4">
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-3">
                   <Badge className="bg-amber-600">Admin Information Only</Badge>
                 </div>
-
-                {/* Service Basic Info */}
                 <div>
                   <Label className="text-sm font-semibold text-gray-700">Service Title</Label>
                   <p className="text-gray-900 mt-1">{selectedServiceDetails.title}</p>
                 </div>
-
                 <div className="border-t border-amber-200 pt-3 space-y-3">
                   <div>
                     <Label className="text-sm font-semibold text-amber-900">Company Name</Label>
@@ -892,14 +834,12 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                       {selectedServiceDetails.company_name || <span className="text-gray-400">Not provided</span>}
                     </p>
                   </div>
-
                   <div>
                     <Label className="text-sm font-semibold text-amber-900">Contact Person Name</Label>
                     <p className="text-gray-900 mt-1">
                       {selectedServiceDetails.contact_person_name || <span className="text-gray-400">Not provided</span>}
                     </p>
                   </div>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-semibold text-amber-900">Primary Contact</Label>
@@ -913,7 +853,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                         )}
                       </p>
                     </div>
-
                     <div>
                       <Label className="text-sm font-semibold text-amber-900">Alternative Contact</Label>
                       <p className="text-gray-900 mt-1">
@@ -927,14 +866,12 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                       </p>
                     </div>
                   </div>
-
                   <div>
                     <Label className="text-sm font-semibold text-amber-900">Business Location</Label>
                     <p className="text-gray-900 mt-1">
                       {selectedServiceDetails.main_business_location || <span className="text-gray-400">Not provided</span>}
                     </p>
                   </div>
-
                   <div>
                     <Label className="text-sm font-semibold text-amber-900">Email Address</Label>
                     <p className="text-gray-900 mt-1">
@@ -947,7 +884,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                       )}
                     </p>
                   </div>
-
                   {selectedServiceDetails.website && (
                     <div>
                       <Label className="text-sm font-semibold text-amber-900">Website</Label>
@@ -958,7 +894,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
                       </p>
                     </div>
                   )}
-
                   <div className="border-t border-amber-200 pt-3">
                     <Label className="text-sm font-semibold text-gray-700">Commission Amount</Label>
                     <p className="text-gray-900 mt-1 font-semibold">GH₵{selectedServiceDetails.commission_amount.toFixed(2)}</p>
@@ -967,7 +902,6 @@ export default function ServicesTab({ getCachedData, setCachedData }: ServicesTa
               </div>
             </div>
           )}
-
           <DialogFooter>
             <Button onClick={() => {
               setShowServiceDetailsDialog(false)

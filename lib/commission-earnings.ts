@@ -39,8 +39,12 @@ export interface CommissionSummary {
   totalTransactions: number
 }
 
+// Request deduplication cache for getAgentCommissionSummary
+const pendingCommissionRequests = new Map<string, Promise<any>>();
+
 /**
  * Get agent's complete commission summary from centralized commissions table
+ * With request deduplication to prevent "AbortError: Lock broken" from parallel calls.
  */
 export async function getAgentCommissionSummary(agentId: string): Promise<{
   availableForWithdrawal: number
@@ -56,22 +60,21 @@ export async function getAgentCommissionSummary(agentId: string): Promise<{
   dataOrderCommissions: number
   wholesaleCommissions: number
 }> {
-  try {
-    console.log(`🔄 Getting commission summary for agent: ${agentId}`)
+  // Return pending promise if one already exists for this agentId
+  if (pendingCommissionRequests.has(agentId)) {
+    return pendingCommissionRequests.get(agentId)!;
+  }
 
-    // Add timeout protection to prevent abort errors
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-
+  const promise = (async () => {
     try {
+      console.log(`🔄 Getting commission summary for agent: ${agentId}`)
+
       // Get commissions that are NOT withdrawn (exclude withdrawn status)
       const { data: commissions, error: commissionsError } = await supabase
         .from("commissions")
         .select("*")
         .eq("agent_id", agentId)
         .neq("status", "withdrawn") // Exclude withdrawn commissions from breakdown
-
-      clearTimeout(timeoutId)
 
       if (commissionsError) {
         const errorMessage = commissionsError?.message || JSON.stringify(commissionsError) || 'Unknown error'
@@ -177,24 +180,15 @@ export async function getAgentCommissionSummary(agentId: string): Promise<{
         wholesaleCommissions: 0,
       }
     }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
-    console.error(`[v0] Error getting commission summary for agent ${agentId}:`, errorMessage)
-    return {
-      availableForWithdrawal: 0,
-      breakdown: "referral: 0, data_order: 0, wholesale_order: 0",
-      totalEarned: 0,
-      totalWithdrawn: 0,
-      pendingWithdrawal: 0,
-      totalCommissions: 0,
-      availableCommissions: 0,
-      totalPaidOut: 0,
-      pendingPayout: 0,
-      referralCommissions: 0,
-      dataOrderCommissions: 0,
-      wholesaleCommissions: 0,
-    }
-  }
+  })();
+
+  // Store the promise and remove it when done (success or failure)
+  pendingCommissionRequests.set(agentId, promise);
+  promise.finally(() => {
+    pendingCommissionRequests.delete(agentId);
+  });
+
+  return promise;
 }
 
 /**

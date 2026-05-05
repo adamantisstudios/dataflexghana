@@ -45,7 +45,7 @@ import { uploadPropertyImage } from "@/lib/property-image-upload"
 interface Property {
   id: string
   title: string
-  image_urls?: string[] // Updated to support multiple images
+  image_urls?: string[]
   price: number
   currency: string
   commission?: number
@@ -89,8 +89,8 @@ interface CallRequest {
 }
 
 interface PropertiesTabProps {
-  getCachedData: () => Property[] | undefined
-  setCachedData: (data: Property[]) => void
+  getCachedData?: () => Property[] | undefined
+  setCachedData?: (data: Property[]) => void
 }
 
 const propertyCategories = [
@@ -152,7 +152,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
   // Form state
   const [formData, setFormData] = useState({
     title: "",
-    image_urls: [] as string[], // Updated to support multiple images
+    image_urls: [] as string[],
     price: "",
     currency: "GHS",
     commission: "",
@@ -269,13 +269,17 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
     setModalImageIndex(newIndex)
   }
 
+  // Load properties with defensive caching
   useEffect(() => {
     const loadProperties = async () => {
-      const cachedData = getCachedData()
-      if (cachedData) {
-        setProperties(cachedData)
-        setLoading(false)
-        return
+      // Only use cache if getCachedData exists and is a function
+      if (typeof getCachedData === "function") {
+        const cachedData = getCachedData()
+        if (cachedData && cachedData.length > 0) {
+          setProperties(cachedData)
+          setLoading(false)
+          return
+        }
       }
 
       try {
@@ -286,8 +290,13 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
 
         if (propertiesError) throw propertiesError
 
-        setProperties(propertiesData || [])
-        setCachedData(propertiesData || [])
+        const data = propertiesData || []
+        setProperties(data)
+
+        // Only cache if setCachedData exists and is a function
+        if (typeof setCachedData === "function") {
+          setCachedData(data)
+        }
       } catch (error) {
         console.error("Error loading properties:", error)
         alert("Failed to load properties data.")
@@ -297,7 +306,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
     }
 
     loadProperties()
-  }, [getCachedData, setCachedData])
+  }, [getCachedData, setCachedData]) // Dependencies include the props
 
   // Load agents who can publish properties
   useEffect(() => {
@@ -328,10 +337,12 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
 
       const matchesCategory = categoryFilter === "All Categories" || property.category === categoryFilter
       const matchesCurrency = currencyFilter === "All Currencies" || property.currency === currencyFilter
-      
+
       // Only apply status filter when agent filter is "All", otherwise show all statuses for the selected agent
-      const matchesStatus = statusFilter === "All Status" && agentFilter === "All" ? true : 
-                           statusFilter === "All Status" || property.status === statusFilter
+      const matchesStatus =
+        statusFilter === "All Status" && agentFilter === "All"
+          ? true
+          : statusFilter === "All Status" || property.status === statusFilter
 
       // Apply agent filter - shows ALL properties (all statuses) for the selected agent
       const matchesAgent = agentFilter === "All" || property.published_by_agent_id === agentFilter
@@ -359,7 +370,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
       setIsEditing(true)
       setFormData({
         title: property.title || "",
-        image_urls: property.image_urls || [], // Updated to use image_urls array
+        image_urls: property.image_urls || [],
         price: property.price?.toString() || "",
         currency: property.currency || "GHS",
         commission: property.commission?.toString() || "",
@@ -381,7 +392,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
       setIsEditing(false)
       setFormData({
         title: "",
-        image_urls: [], // Updated to use image_urls array
+        image_urls: [],
         price: "",
         currency: "GHS",
         commission: "",
@@ -411,7 +422,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
     try {
       const propertyData = {
         title: formData.title,
-        image_urls: formData.image_urls.length > 0 ? formData.image_urls : ["/placeholder.svg"], // Updated to use image_urls array
+        image_urls: formData.image_urls.length > 0 ? formData.image_urls : ["/placeholder.svg"],
         price: Number.parseFloat(formData.price),
         currency: formData.currency,
         commission: formData.commission ? Number.parseFloat(formData.commission) : 0,
@@ -442,7 +453,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
           property.id === selectedProperty.id ? { ...property, ...propertyData } : property,
         )
         setProperties(updatedProperties)
-        setCachedData(updatedProperties)
+        if (typeof setCachedData === "function") setCachedData(updatedProperties)
       } else {
         const { data, error } = await supabase.from("properties").insert([propertyData]).select()
 
@@ -450,7 +461,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
 
         const updatedProperties = [data[0], ...properties]
         setProperties(updatedProperties)
-        setCachedData(updatedProperties)
+        if (typeof setCachedData === "function") setCachedData(updatedProperties)
       }
 
       setShowPropertyDialog(false)
@@ -469,7 +480,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
 
       const updatedProperties = properties.filter((property) => property.id !== propertyId)
       setProperties(updatedProperties)
-      setCachedData(updatedProperties)
+      if (typeof setCachedData === "function") setCachedData(updatedProperties)
     } catch (error) {
       console.error("Error deleting property:", error)
       alert("Failed to delete property")
@@ -488,7 +499,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
         property.id === propertyId ? { ...property, status: newStatus } : property,
       )
       setProperties(updatedProperties)
-      setCachedData(updatedProperties)
+      if (typeof setCachedData === "function") setCachedData(updatedProperties)
     } catch (error) {
       console.error("Error updating property status:", error)
       alert("Failed to update property status")
@@ -507,7 +518,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
         property.id === propertyId ? { ...property, status: newStatus } : property,
       )
       setProperties(updatedProperties)
-      setCachedData(updatedProperties)
+      if (typeof setCachedData === "function") setCachedData(updatedProperties)
     } catch (error) {
       console.error("Error updating featured status:", error)
       alert("Failed to update featured status")

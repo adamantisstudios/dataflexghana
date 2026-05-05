@@ -136,8 +136,8 @@ interface OnlineCourse {
 }
 
 interface OnlineCoursesTabProps {
-  getCachedData: (key: string) => any
-  setCachedData: (key: string, data: any) => void
+  getCachedData?: (key: string) => any
+  setCachedData?: (key: string, data: any) => void
 }
 
 export default function OnlineCoursesTab({ getCachedData, setCachedData }: OnlineCoursesTabProps) {
@@ -170,13 +170,13 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
   // Load courses
   useEffect(() => {
     fetchCourses()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Filter and search
   useEffect(() => {
     let filtered = courses
 
-    // Apply search
     if (searchTerm) {
       filtered = filtered.filter(
         (course) =>
@@ -185,7 +185,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
       )
     }
 
-    // Apply status filter
     if (filterStatus === "Published") {
       filtered = filtered.filter((course) => course.is_published)
     } else if (filterStatus === "Draft") {
@@ -199,6 +198,17 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
   const fetchCourses = async () => {
     try {
       setLoading(true)
+
+      // Check cache if getCachedData exists
+      if (typeof getCachedData === "function") {
+        const cached = getCachedData("online_courses")
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          setCourses(cached)
+          setLoading(false)
+          return
+        }
+      }
+
       const { data, error } = await supabase
         .from("online_courses")
         .select("*")
@@ -206,7 +216,11 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
 
       if (error) throw error
       setCourses(data || [])
-      setCachedData("online_courses", data || [])
+
+      // Update cache if setCachedData exists
+      if (typeof setCachedData === "function") {
+        setCachedData("online_courses", data || [])
+      }
     } catch (error) {
       console.error("Error fetching courses:", error)
       alert("Failed to load courses")
@@ -238,7 +252,9 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
       }
 
       setCourses(updatedCourses)
-      setCachedData("online_courses", updatedCourses)
+      if (typeof setCachedData === "function") {
+        setCachedData("online_courses", updatedCourses)
+      }
       setShowCourseDialog(false)
       setEditingCourse(null)
       resetForm()
@@ -276,7 +292,9 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
 
       const updatedCourses = courses.filter((course) => course.id !== courseId)
       setCourses(updatedCourses)
-      setCachedData("online_courses", updatedCourses)
+      if (typeof setCachedData === "function") {
+        setCachedData("online_courses", updatedCourses)
+      }
       alert("Course deleted successfully!")
     } catch (error) {
       console.error("Error deleting course:", error)
@@ -371,7 +389,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
         </div>
       </div>
 
-      {/* Courses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {getPaginatedData(filteredCourses).map((course) => (
           <Card
@@ -407,7 +424,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
               <div className="space-y-3 flex-1">
-                {/* Description */}
                 <div>
                   {expandedDescriptions.has(course.id) ? (
                     <RichTextRenderer content={course.description} className="text-sm text-blue-700" />
@@ -440,7 +456,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
                   )}
                 </div>
 
-                {/* Course Details */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-blue-50 rounded p-2">
                     <p className="text-blue-600">Modules</p>
@@ -457,7 +472,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-2 mt-4 pt-3 border-t border-blue-100">
                 <Button
                   size="sm"
@@ -478,7 +492,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
         ))}
       </div>
 
-      {/* Empty State */}
       {filteredCourses.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">No courses found</p>
@@ -495,7 +508,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
         </div>
       )}
 
-      {/* Course Dialog */}
       <Dialog open={showCourseDialog} onOpenChange={setShowCourseDialog}>
         <DialogContent className="sm:max-w-[550px] w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
