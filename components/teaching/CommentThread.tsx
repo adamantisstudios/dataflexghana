@@ -60,7 +60,6 @@ export function CommentThread({
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
 
-  // Load comments on mount
   useEffect(() => {
     loadComments()
   }, [postId])
@@ -68,8 +67,7 @@ export function CommentThread({
   const loadComments = async () => {
     try {
       setLoading(true)
-      const client = supabaseAdmin || supabase
-      const { data, error } = await client
+      const { data, error } = await supabase
         .from("post_comments")
         .select("*")
         .eq("post_id", postId)
@@ -77,36 +75,46 @@ export function CommentThread({
         .eq("is_deleted", false)
         .order("created_at", { ascending: false })
 
-      if (error) {
-        console.error("[v0] Error loading comments:", error.message, error.details)
-        throw error
-      }
+      if (error) throw error
 
       // Load replies for each comment
       const commentsWithReplies = await Promise.all(
         (data || []).map(async (comment) => {
-          const { data: replies, error: repliesError } = await client
+          const { data: replies, error: repliesError } = await supabase
             .from("post_comments")
             .select("*")
             .eq("parent_comment_id", comment.id)
             .eq("is_deleted", false)
             .order("created_at", { ascending: true })
 
-          if (repliesError) {
-            console.error("[v0] Error loading replies:", repliesError.message)
-          }
+          if (repliesError) console.error("Error loading replies:", repliesError.message)
+
+          // Load reaction count for this comment (optional)
+          const { count: reactionCount } = await supabase
+            .from("comment_reactions")
+            .select("*", { count: "exact", head: true })
+            .eq("comment_id", comment.id)
+
+          // Check if current user has reacted
+          const { data: userReaction } = await supabase
+            .from("comment_reactions")
+            .select("reaction_type")
+            .eq("comment_id", comment.id)
+            .eq("user_id", currentUserId)
+            .maybeSingle()
 
           return {
             ...comment,
             replies: replies || [],
+            reaction_count: reactionCount || 0,
+            user_reaction: userReaction?.reaction_type || null,
           }
-        }),
+        })
       )
 
       setComments(commentsWithReplies)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      console.error("[v0] Error loading comments:", errorMessage)
+      console.error("Error loading comments:", error)
       toast.error("Failed to load comments")
     } finally {
       setLoading(false)
@@ -118,37 +126,29 @@ export function CommentThread({
       toast.error("Comment cannot be empty")
       return
     }
-
     if (channelId && !isMember) {
       toast.error("You must be a member of this channel to comment")
       return
     }
 
     try {
-      const client = supabaseAdmin || supabase
-      const { error } = await client.from("post_comments").insert([
-        {
-          post_id: postId,
-          author_id: currentUserId,
-          author_name: currentUserName,
-          content: newComment,
-          is_edited: false,
-          is_deleted: false,
-          created_at: new Date().toISOString(),
-        },
-      ])
+      const { error } = await supabase.from("post_comments").insert({
+        post_id: postId,
+        author_id: currentUserId,
+        author_name: currentUserName,
+        content: newComment,
+        is_edited: false,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+      })
 
-      if (error) {
-        console.error("[v0] Error posting comment:", error.message, error.details, error.code)
-        throw error
-      }
+      if (error) throw error
 
       toast.success("Comment posted!")
       setNewComment("")
       loadComments()
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      console.error("[v0] Error posting comment:", errorMessage)
+      console.error("Error posting comment:", error)
       toast.error("Failed to post comment")
     }
   }
@@ -158,39 +158,31 @@ export function CommentThread({
       toast.error("Reply cannot be empty")
       return
     }
-
     if (channelId && !isMember) {
       toast.error("You must be a member of this channel to reply")
       return
     }
 
     try {
-      const client = supabaseAdmin || supabase
-      const { error } = await client.from("post_comments").insert([
-        {
-          post_id: postId,
-          author_id: currentUserId,
-          author_name: currentUserName,
-          content: replyText,
-          parent_comment_id: parentCommentId,
-          is_edited: false,
-          is_deleted: false,
-          created_at: new Date().toISOString(),
-        },
-      ])
+      const { error } = await supabase.from("post_comments").insert({
+        post_id: postId,
+        author_id: currentUserId,
+        author_name: currentUserName,
+        content: replyText,
+        parent_comment_id: parentCommentId,
+        is_edited: false,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+      })
 
-      if (error) {
-        console.error("[v0] Error posting reply:", error.message, error.details)
-        throw error
-      }
+      if (error) throw error
 
       toast.success("Reply posted!")
       setReplyText("")
       setReplyingTo(null)
       loadComments()
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      console.error("[v0] Error posting reply:", errorMessage)
+      console.error("Error posting reply:", error)
       toast.error("Failed to post reply")
     }
   }
@@ -201,8 +193,10 @@ export function CommentThread({
 
   const confirmDelete = async (commentId: string) => {
     try {
-      const client = supabaseAdmin || supabase
-      const { error } = await client.from("post_comments").update({ is_deleted: true }).eq("id", commentId)
+      const { error } = await supabase
+        .from("post_comments")
+        .update({ is_deleted: true })
+        .eq("id", commentId)
 
       if (error) throw error
 
@@ -210,7 +204,7 @@ export function CommentThread({
       setShowDeleteConfirm(null)
       loadComments()
     } catch (error) {
-      console.error("[v0] Error deleting comment:", error)
+      console.error("Error deleting comment:", error)
       toast.error("Failed to delete comment")
       setShowDeleteConfirm(null)
     }
@@ -223,8 +217,7 @@ export function CommentThread({
     }
 
     try {
-      const client = supabaseAdmin || supabase
-      const { error } = await client
+      const { error } = await supabase
         .from("post_comments")
         .update({
           content: editText,
@@ -240,31 +233,56 @@ export function CommentThread({
       setEditText("")
       loadComments()
     } catch (error) {
-      console.error("[v0] Error editing comment:", error)
+      console.error("Error editing comment:", error)
       toast.error("Failed to edit comment")
     }
   }
 
   const handleAddReaction = async (commentId: string, reactionType: string) => {
     if (channelId && !isMember) {
-      toast.error("You must be a member of this channel to react to comments")
+      toast.error("You must be a member of this channel to react")
       return
     }
 
     try {
-      const client = supabaseAdmin || supabase
-      const { error } = await client.from("comment_reactions").insert([
-        {
+      // Check if user already reacted
+      const { data: existing } = await supabase
+        .from("comment_reactions")
+        .select("id, reaction_type")
+        .eq("comment_id", commentId)
+        .eq("user_id", currentUserId)
+        .maybeSingle()
+
+      if (existing) {
+        if (existing.reaction_type === reactionType) {
+          // Remove reaction (toggle off)
+          const { error } = await supabase
+            .from("comment_reactions")
+            .delete()
+            .eq("id", existing.id)
+          if (error) throw error
+        } else {
+          // Update to new reaction
+          const { error } = await supabase
+            .from("comment_reactions")
+            .update({ reaction_type: reactionType })
+            .eq("id", existing.id)
+          if (error) throw error
+        }
+      } else {
+        // Insert new reaction
+        const { error } = await supabase.from("comment_reactions").insert({
           comment_id: commentId,
           user_id: currentUserId,
           reaction_type: reactionType,
-        },
-      ])
+        })
+        if (error) throw error
+      }
 
-      if (error) throw error
-      loadComments()
+      loadComments() // refresh counts and user reaction status
     } catch (error) {
-      console.error("[v0] Error adding reaction:", error)
+      console.error("Error updating reaction:", error)
+      toast.error("Failed to update reaction")
     }
   }
 
@@ -296,7 +314,6 @@ export function CommentThread({
 
   return (
     <div className="space-y-4">
-      {/* Access Denied Message */}
       {channelId && !isMember && (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="pt-4">
@@ -313,7 +330,6 @@ export function CommentThread({
         </Card>
       )}
 
-      {/* New Comment Input */}
       <Card className="border-blue-200 bg-white/90">
         <CardContent className="pt-4">
           <div className="space-y-2">
@@ -337,14 +353,12 @@ export function CommentThread({
         </CardContent>
       </Card>
 
-      {/* Comments List */}
       <div className="space-y-3">
         {comments.length === 0 ? (
           <p className="text-center text-gray-600 py-4">No comments yet. Be the first to comment!</p>
         ) : (
           comments.map((comment) => (
             <div key={comment.id} className="space-y-2">
-              {/* Main Comment */}
               <Card className="border-gray-200 bg-white/80">
                 <CardContent className="pt-4">
                   <div className="space-y-2">
@@ -391,11 +405,7 @@ export function CommentThread({
                           className="border-blue-200"
                         />
                         <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleEditComment(comment.id)}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
+                          <Button size="sm" onClick={() => handleEditComment(comment.id)} className="bg-blue-600">
                             Save
                           </Button>
                           <Button
@@ -414,24 +424,23 @@ export function CommentThread({
                       <p className="text-gray-700">{comment.content}</p>
                     )}
 
-                    {/* Reactions and Reply */}
                     <div className="flex gap-2 pt-2 border-t border-gray-200">
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => handleAddReaction(comment.id, "like")}
                         disabled={channelId && !isMember}
-                        className="text-xs text-gray-600 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-xs text-gray-600 hover:text-red-600 disabled:opacity-50"
                       >
                         <Heart className="h-3 w-3 mr-1" />
-                        Like
+                        Like {comment.reaction_count ? `(${comment.reaction_count})` : ""}
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                         disabled={channelId && !isMember}
-                        className="text-xs text-gray-600 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-xs text-gray-600 hover:text-blue-600 disabled:opacity-50"
                       >
                         <Reply className="h-3 w-3 mr-1" />
                         Reply
@@ -441,7 +450,6 @@ export function CommentThread({
                 </CardContent>
               </Card>
 
-              {/* Reply Input */}
               {replyingTo === comment.id && (
                 <Card className="border-blue-200 bg-blue-50 ml-4">
                   <CardContent className="pt-4">
@@ -451,12 +459,12 @@ export function CommentThread({
                         onChange={(e) => setReplyText(e.target.value)}
                         placeholder="Write a reply..."
                         disabled={channelId && !isMember}
-                        className="border-blue-200 focus:border-blue-500"
+                        className="border-blue-200"
                       />
                       <Button
                         onClick={() => handleAddReply(comment.id)}
                         disabled={!replyText.trim() || (channelId && !isMember)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="bg-blue-600"
                       >
                         Reply
                       </Button>
@@ -465,7 +473,6 @@ export function CommentThread({
                 </Card>
               )}
 
-              {/* Replies */}
               {comment.replies && comment.replies.length > 0 && (
                 <div className="ml-4 space-y-2">
                   <Button
@@ -473,11 +480,8 @@ export function CommentThread({
                     variant="ghost"
                     onClick={() => {
                       const newExpanded = new Set(expandedReplies)
-                      if (newExpanded.has(comment.id)) {
-                        newExpanded.delete(comment.id)
-                      } else {
-                        newExpanded.add(comment.id)
-                      }
+                      if (newExpanded.has(comment.id)) newExpanded.delete(comment.id)
+                      else newExpanded.add(comment.id)
                       setExpandedReplies(newExpanded)
                     }}
                     className="text-xs text-blue-600"
@@ -510,7 +514,7 @@ export function CommentThread({
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleDeleteComment(reply.id)}
-                                  className="h-5 w-5 p-0 text-red-600 hover:text-red-700"
+                                  className="h-5 w-5 p-0 text-red-600"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
@@ -528,18 +532,19 @@ export function CommentThread({
         )}
       </div>
 
-      {/* Custom Delete Confirmation Dialog */}
       <AlertDialog open={!!showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(null)}>
         <AlertDialogContent className="w-[95vw] max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-700">Delete Comment</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone. The comment will be permanently deleted.</AlertDialogDescription>
+            <AlertDialogDescription>
+              This action cannot be undone. The comment will be permanently deleted.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex gap-2">
             <AlertDialogCancel className="flex-1">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => showDeleteConfirm && confirmDelete(showDeleteConfirm)}
-              className="flex-1 bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              className="flex-1 bg-red-600 hover:bg-red-700"
             >
               Delete
             </AlertDialogAction>
