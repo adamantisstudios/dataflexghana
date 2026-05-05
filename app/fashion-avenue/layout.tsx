@@ -8,7 +8,21 @@ export const metadata: Metadata = {
     title: 'Fashion Avenue',
     description: 'Professional fashion design services tailored to your unique style and vision',
     type: 'website',
-    url: '/fashion-avenue',
+    url: 'https://dataflexghana.com/fashion-avenue',
+    images: [
+      {
+        url: '/ad1-placeholder.jpg',
+        width: 1080,
+        height: 1080,
+        alt: 'Fashion Avenue - Professional Fashion Design Services',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Fashion Avenue',
+    description: 'Professional fashion design services tailored to your unique style and vision',
+    images: ['/ad1-placeholder.jpg'],
   },
 };
 
