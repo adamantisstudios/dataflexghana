@@ -400,7 +400,30 @@ export default function AdminDashboard() {
     }
     setUpdatingPassword(true)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Call the API to update the admin password
+      const response = await fetch("/api/admin/update-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          admin_id: admin.id,
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || "Failed to update password")
+      }
+
+      const data = await response.json()
+      
+      // Update localStorage with the new admin data
+      localStorage.setItem("admin", JSON.stringify(data.admin))
+      setAdmin(data.admin)
+
       toast.success("Password updated successfully")
       setSettingsOpen(false)
       setCurrentPassword("")
@@ -408,7 +431,8 @@ export default function AdminDashboard() {
       setConfirmPassword("")
     } catch (error) {
       console.error("Password update error:", error)
-      toast.error("An error occurred while updating password")
+      const errorMessage = error instanceof Error ? error.message : "An error occurred while updating password"
+      toast.error(errorMessage)
     } finally {
       setUpdatingPassword(false)
     }

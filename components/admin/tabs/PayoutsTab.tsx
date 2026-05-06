@@ -18,12 +18,7 @@ import { getCurrentAdmin } from "@/lib/auth"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
 import { Banknote, Filter, Trash2, Eye, AlertCircle } from "lucide-react"
 
-interface PayoutsTabProps {
-  getCachedData?: () => Withdrawal[] | undefined
-  setCachedData?: (data: Withdrawal[]) => void
-}
-
-export default function PayoutsTab({ getCachedData, setCachedData }: PayoutsTabProps) {
+export default function PayoutsTab() {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
   const [loading, setLoading] = useState(true)
   const [payoutsFilterAdmin, setPayoutsFilterAdmin] = useState("All Payouts")
@@ -185,16 +180,6 @@ export default function PayoutsTab({ getCachedData, setCachedData }: PayoutsTabP
 
   useEffect(() => {
     const loadWithdrawals = async () => {
-      // Only use cache if getCachedData exists and is a function
-      if (typeof getCachedData === "function") {
-        const cachedData = getCachedData()
-        if (cachedData && cachedData.length > 0) {
-          setWithdrawals(cachedData)
-          setLoading(false)
-          return
-        }
-      }
-
       try {
         const { data, error } = await supabase
           .from("withdrawals")
@@ -206,9 +191,6 @@ export default function PayoutsTab({ getCachedData, setCachedData }: PayoutsTabP
         // Enrich withdrawals with detailed commission data
         const enrichedWithdrawals = await enrichWithdrawalsWithCommissionDetails(data || [])
         setWithdrawals(enrichedWithdrawals)
-        if (typeof setCachedData === "function") {
-          setCachedData(enrichedWithdrawals)
-        }
       } catch (error) {
         console.error("Error loading withdrawals:", error)
         alert("Failed to load withdrawals data.")
@@ -217,7 +199,7 @@ export default function PayoutsTab({ getCachedData, setCachedData }: PayoutsTabP
       }
     }
     loadWithdrawals()
-  }, [getCachedData, setCachedData])
+  }, [])
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp)
@@ -243,7 +225,6 @@ export default function PayoutsTab({ getCachedData, setCachedData }: PayoutsTabP
           withdrawal.id === withdrawalId ? { ...withdrawal, ...updateData } : withdrawal,
         )
         setWithdrawals(updatedWithdrawals)
-        if (typeof setCachedData === "function") setCachedData(updatedWithdrawals)
 
         // Update the withdrawal in the database directly
         const { error } = await supabase.from("withdrawals").update(updateData).eq("id", withdrawalId)
@@ -347,7 +328,6 @@ export default function PayoutsTab({ getCachedData, setCachedData }: PayoutsTabP
         withdrawal.id === withdrawalId ? { ...withdrawal, ...updateData } : withdrawal,
       )
       setWithdrawals(updatedWithdrawals)
-      if (typeof setCachedData === "function") setCachedData(updatedWithdrawals)
 
       const withdrawal = withdrawals.find((w) => w.id === withdrawalId)
       if (withdrawal) {
@@ -373,7 +353,6 @@ export default function PayoutsTab({ getCachedData, setCachedData }: PayoutsTabP
 
       const updatedWithdrawals = withdrawals.filter((withdrawal) => withdrawal.id !== withdrawalId)
       setWithdrawals(updatedWithdrawals)
-      if (typeof setCachedData === "function") setCachedData(updatedWithdrawals)
       alert("Withdrawal deleted successfully!")
     } catch (error) {
       console.error("Error deleting withdrawal:", error)

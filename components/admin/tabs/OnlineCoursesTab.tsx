@@ -135,12 +135,7 @@ interface OnlineCourse {
   created_at: string
 }
 
-interface OnlineCoursesTabProps {
-  getCachedData?: (key: string) => any
-  setCachedData?: (key: string, data: any) => void
-}
-
-export default function OnlineCoursesTab({ getCachedData, setCachedData }: OnlineCoursesTabProps) {
+export default function OnlineCoursesTab() {
   const [courses, setCourses] = useState<OnlineCourse[]>([])
   const [filteredCourses, setFilteredCourses] = useState<OnlineCourse[]>([])
   const [loading, setLoading] = useState(true)
@@ -199,16 +194,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
     try {
       setLoading(true)
 
-      // Check cache if getCachedData exists
-      if (typeof getCachedData === "function") {
-        const cached = getCachedData("online_courses")
-        if (cached && Array.isArray(cached) && cached.length > 0) {
-          setCourses(cached)
-          setLoading(false)
-          return
-        }
-      }
-
       const { data, error } = await supabase
         .from("online_courses")
         .select("*")
@@ -216,11 +201,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
 
       if (error) throw error
       setCourses(data || [])
-
-      // Update cache if setCachedData exists
-      if (typeof setCachedData === "function") {
-        setCachedData("online_courses", data || [])
-      }
     } catch (error) {
       console.error("Error fetching courses:", error)
       alert("Failed to load courses")
@@ -252,9 +232,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
       }
 
       setCourses(updatedCourses)
-      if (typeof setCachedData === "function") {
-        setCachedData("online_courses", updatedCourses)
-      }
       setShowCourseDialog(false)
       setEditingCourse(null)
       resetForm()
@@ -292,9 +269,6 @@ export default function OnlineCoursesTab({ getCachedData, setCachedData }: Onlin
 
       const updatedCourses = courses.filter((course) => course.id !== courseId)
       setCourses(updatedCourses)
-      if (typeof setCachedData === "function") {
-        setCachedData("online_courses", updatedCourses)
-      }
       alert("Course deleted successfully!")
     } catch (error) {
       console.error("Error deleting course:", error)

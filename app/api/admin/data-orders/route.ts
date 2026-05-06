@@ -39,11 +39,13 @@ export async function GET(request: NextRequest) {
     const agentId = searchParams.get("agent_id")
     const status = searchParams.get("status")
     const provider = searchParams.get("provider")
-    const limit = Number.parseInt(searchParams.get("limit") || "50")
+    const limit = Number.parseInt(searchParams.get("limit") || "10")
     const offset = Number.parseInt(searchParams.get("offset") || "0")
 
-    // Build query with proper bundle joins
-    let query = supabase
+    // Build query with proper bundle joins - request one extra to check if more exist
+    let countQuery = supabase.from("data_orders").select("*", { count: "exact", head: true })
+
+    let dataQuery = supabase
       .from("data_orders")
       .select(`
         *,
@@ -67,15 +69,17 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1)
 
-    // Apply filters
+    // Apply filters to both queries
     if (agentId) {
-      query = query.eq("agent_id", agentId)
+      countQuery = countQuery.eq("agent_id", agentId)
+      dataQuery = dataQuery.eq("agent_id", agentId)
     }
     if (status && status !== "all") {
-      query = query.eq("status", status)
+      countQuery = countQuery.eq("status", status)
+      dataQuery = dataQuery.eq("status", status)
     }
 
-    const { data: orders, error } = await query
+    const [{ count: totalCount }, { data: orders, error }] = await Promise.all([countQuery, dataQuery])
 
     if (error) {
       console.error("Error fetching admin data orders:", error)
@@ -98,9 +102,10 @@ export async function GET(request: NextRequest) {
       success: true,
       data: filteredOrders,
       meta: {
-        total: filteredOrders.length,
+        total: totalCount || 0,
         offset,
         limit,
+        hasMore: (totalCount || 0) > offset + filteredOrders.length,
       },
     })
   } catch (error) {

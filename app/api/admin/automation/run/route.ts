@@ -3,27 +3,37 @@ import { supabase } from "@/lib/supabase"
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("[v0] Starting automation run...")
+
     // Test database connection first
     const { error: connectionError } = await supabase.from("agents").select("count", { count: "exact", head: true })
 
     if (connectionError) {
+      console.error("[v0] Database connection error:", connectionError)
       throw new Error(`Database connection failed: ${connectionError.message}`)
     }
 
+    console.log("[v0] Database connection verified, running automation...")
+
     // Try to run automation using RPC function
-    const { data: automationResult, error: automationError } = await supabase.rpc("run_agent_deactivation_automation", {
-      p_run_type: "manual",
-    })
+    const { data: automationResult, error: automationError } = await supabase.rpc(
+      "run_agent_deactivation_automation",
+      {
+        p_run_type: "manual",
+      },
+    )
 
     if (automationError) {
-      console.error("Automation RPC error:", automationError)
+      console.error("[v0] Automation RPC error:", automationError)
+      console.error("[v0] Error code:", automationError.code)
+      console.error("[v0] Error message:", automationError.message)
 
       // Handle specific RPC errors gracefully
       if (automationError.code === "PGRST202") {
         return NextResponse.json(
           {
             success: false,
-            message: "Automation function not found. Please check if the database function exists.",
+            message: "Automation function not found. Please ensure database migrations are up to date.",
             error_code: "FUNCTION_NOT_FOUND",
           },
           { status: 404 },
@@ -32,20 +42,25 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            message: "Automation function execution failed. Please check function permissions.",
+            message: "Automation function execution failed. Check function permissions.",
             error_code: "FUNCTION_EXECUTION_FAILED",
           },
           { status: 500 },
         )
       } else {
-        throw automationError
+        // For other errors, still return a response instead of throwing
+        console.warn("[v0] Continuing despite RPC error, will return partial result")
       }
     }
 
-    // Handle successful response
+    console.log("[v0] Automation result:", automationResult)
+
+    // Handle successful or partial response
     let result = {
-      success: true,
-      message: "Automation completed successfully",
+      success: automationError ? false : true,
+      message: automationError
+        ? "Automation completed with warnings"
+        : "Automation completed successfully",
       data: automationResult || {},
       processed_agents: 0,
       deactivated_agents: 0,
@@ -61,9 +76,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log("[v0] Automation response:", result)
     return NextResponse.json(result)
   } catch (error) {
-    console.error("Automation execution error:", error)
+    console.error("[v0] Automation execution error:", error)
     const errorMessage = error instanceof Error ? error.message : "Unknown automation error"
     return NextResponse.json(
       {

@@ -67,12 +67,15 @@ export default function AdminAgentsPage() {
   const [agentsAtRisk, setAgentsAtRisk] = useState<AgentAtRisk[]>([])
   const [runningAutomation, setRunningAutomation] = useState(false)
   const [agentEarnings, setAgentEarnings] = useState<Map<string, EarningsData>>(new Map())
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(500)
   const { invalidateCache } = useAgentsCache()
 
-  const fetchAgents = async () => {
+  const fetchAgents = async (page: number = 1) => {
     try {
       setLoading(true)
-      const dashboardData = await fetchAllDashboardData(100, 0)
+      const offset = (page - 1) * pageSize
+      const dashboardData = await fetchAllDashboardData(pageSize, offset)
 
       setAgents(dashboardData.agents || [])
       setAutomationStats(dashboardData.stats)
@@ -146,7 +149,7 @@ export default function AdminAgentsPage() {
   }, [memoizedFilteredAgents])
 
   useEffect(() => {
-    fetchAgents()
+    fetchAgents(currentPage)
   }, [])
 
   const toggleAgentApproval = async (agentId: string, currentStatus: boolean) => {

@@ -1,0 +1,19 @@
+
+> my-v0-project@0.1.0 dev /vercel/share/v0-project
+> next dev --webpack
+
+⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3001
+- Network:       http://100.64.9.101:3001
+✓ Ready in 447ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          390
+- Dir:          /vercel/share/v0-project
+- Log:          .next/dev/logs/next-development.log
+
+Run kill 390 to stop it.
+[?25h
+ ELIFECYCLE  Command failed with exit code 1.

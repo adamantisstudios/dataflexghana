@@ -3,6 +3,7 @@
 import { Suspense } from "react"
 import { TrendingUp } from "lucide-react"
 import { AdminCardSkeleton } from "@/components/admin/admin-page-skeleton"
+import { AdminAgentRanking } from "@/components/admin/AdminAgentRanking"
 
 export default function AgentPerformancePage() {
   return (
@@ -20,7 +21,7 @@ export default function AgentPerformancePage() {
 
       {/* Agent Performance Rankings */}
       <Suspense fallback={<AdminCardSkeleton />}>
-        <AdminCardSkeleton />
+        <AdminAgentRanking />
       </Suspense>
     </div>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -70,6 +70,8 @@ interface Agent {
   wallet_balance: number
 }
 
+const ITEMS_PER_PAGE = 10
+
 export default function AdminAgentWalletPage() {
   const router = useRouter()
   const params = useParams()
@@ -81,6 +83,13 @@ export default function AdminAgentWalletPage() {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalTransactions, setTotalTransactions] = useState(0)
+  const [loadingMorePages, setLoadingMorePages] = useState(false)
+  const [hasMoreTransactions, setHasMoreTransactions] = useState(false)
+
+  // Track if initial load has completed to prevent refetches
+  const initialLoadRef = useRef(false)
 
   // Dialog states
   const [showReverseTransactionDialog, setShowReverseTransactionDialog] = useState(false)
@@ -102,19 +111,30 @@ export default function AdminAgentWalletPage() {
     return null
   }
 
+  // Reset ref when agentId changes
   useEffect(() => {
-    const currentAdmin = getCurrentAdmin()
-    if (!currentAdmin) {
-      router.push("/admin/login")
-      return
+    initialLoadRef.current = false
+  }, [agentId])
+
+  // Initial load
+  useEffect(() => {
+    if (!initialLoadRef.current) {
+      initialLoadRef.current = true
+      const currentAdmin = getCurrentAdmin()
+      if (!currentAdmin) {
+        router.push("/admin/login")
+        return
+      }
+      setAdmin(currentAdmin)
+      loadWalletData()
     }
-    setAdmin(currentAdmin)
-    loadWalletData()
   }, [agentId, router])
 
-  const loadWalletData = async () => {
+  // Load first 3 pages of transactions with smart pagination
+  const loadWalletData = async (page: number = 1) => {
     try {
-      setLoading(true)
+      if (page === 1) setLoading(true)
+      else setLoadingMorePages(true)
 
       // Get agent details
       const { data: agentData, error: agentError } = await supabase
@@ -124,7 +144,7 @@ export default function AdminAgentWalletPage() {
         .single()
 
       if (agentError) throw agentError
-      setAgent(agentData)
+      if (page === 1) setAgent(agentData)
 
       // CRITICAL FIX: Calculate the LIVE wallet balance, not the stored one
       let liveWalletBalance = 0
@@ -150,11 +170,11 @@ export default function AdminAgentWalletPage() {
         const commissionSummary = await getAgentCommissionSummary(agentId)
         finalSummary = {
           walletBalance: liveWalletBalance,
-          totalTopups: 0, // Not needed for display
+          totalTopups: 0,
           totalCommissions: commissionSummary.totalCommissions || 0,
           availableCommissions: commissionSummary.availableCommissions || 0,
           totalWithdrawals: commissionSummary.totalPaidOut || 0,
-          totalDeductions: 0, // Not needed for display
+          totalDeductions: 0,
           pendingTransactions: commissionSummary.pendingPayout || 0,
           lastTransactionDate: null,
         }
@@ -163,12 +183,9 @@ export default function AdminAgentWalletPage() {
           agentId,
           totalCommissions: finalSummary.totalCommissions,
           availableCommissions: finalSummary.availableCommissions,
-          totalWithdrawals: finalSummary.totalWithdrawals,
-          pendingTransactions: finalSummary.pendingTransactions,
         })
       } catch (commissionError) {
         console.error("Error with unified commission system, using fallback:", commissionError)
-        // Try fallback method using stored agent data
         try {
           const { data: agentData, error: agentError } = await supabase
             .from("agents")
@@ -191,41 +208,56 @@ export default function AdminAgentWalletPage() {
               pendingTransactions: 0,
               lastTransactionDate: null,
             }
-
-            console.log("⚠️ Admin wallet using legacy fallback:", {
-              agentId,
-              totalCommissions,
-              totalPaidOut,
-              availableCommissions,
-            })
           }
         } catch (fallbackError) {
           console.error("Fallback method also failed:", fallbackError)
         }
       }
 
-      setWalletSummary(finalSummary)
+      if (page === 1) setWalletSummary(finalSummary)
 
-      // Get wallet transactions
-      try {
-        const { data: transactionsData, error: transactionsError } = await supabase
+      // Smart load: Load pages 1-3 on initial load, or specific page on demand
+      const pagesToLoad = page === 1 ? [1, 2, 3] : [page]
+      let allTransactions: WalletTransaction[] = page === 1 ? [] : transactions
+
+      for (const pageNum of pagesToLoad) {
+        const offset = (pageNum - 1) * ITEMS_PER_PAGE
+
+        const { data: transactionsData, error: transactionsError, count } = await supabase
           .from("wallet_transactions")
-          .select("*")
+          .select("*", { count: "exact" })
           .eq("agent_id", agentId)
           .order("created_at", { ascending: false })
-          .limit(20)
+          .range(offset, offset + ITEMS_PER_PAGE - 1)
 
         if (!transactionsError) {
-          setTransactions(transactionsData || [])
+          allTransactions = [...allTransactions, ...(transactionsData || [])]
+
+          if (pageNum === 1) {
+            setTotalTransactions(count || 0)
+            setHasMoreTransactions((count || 0) > ITEMS_PER_PAGE * 3)
+            console.log("📊 Total transactions:", count, "Loading pages 1-3 initially")
+          }
         }
-      } catch (transactionError) {
-        console.error("Error loading transactions:", transactionError)
-        setTransactions([])
       }
+
+      setTransactions(allTransactions)
     } catch (error) {
       console.error("Error loading wallet data:", error)
     } finally {
       setLoading(false)
+      setLoadingMorePages(false)
+    }
+  }
+
+  // Load more pages on demand
+  const loadMoreTransactions = async (targetPage: number) => {
+    const itemsNeeded = targetPage * ITEMS_PER_PAGE
+    const itemsLoaded = transactions.length
+    if (itemsLoaded < itemsNeeded && !loadingMorePages) {
+      console.log(`📄 Loading page ${targetPage} on demand...`)
+      const nextPageToLoad = Math.ceil(itemsLoaded / ITEMS_PER_PAGE) + 1
+      await loadWalletData(nextPageToLoad)
     }
   }
 
@@ -416,7 +448,7 @@ export default function AdminAgentWalletPage() {
               </p>
             </div>
           </div>
-          <Button onClick={loadWalletData} variant="outline" className="w-full sm:w-auto bg-transparent">
+          <Button onClick={() => loadWalletData(1)} variant="outline" className="w-full sm:w-auto bg-transparent">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Data
           </Button>
@@ -521,6 +553,37 @@ export default function AdminAgentWalletPage() {
             </CardTitle>
             <CardDescription>Latest wallet transactions for this agent</CardDescription>
           </CardHeader>
+          {totalTransactions > ITEMS_PER_PAGE && (
+            <div className="px-6 py-3 border-b border-gray-200 bg-blue-50 flex items-center justify-between flex-wrap gap-2">
+              <span className="text-sm text-blue-700 font-medium">
+                Showing {Math.min(currentPage * ITEMS_PER_PAGE, transactions.length)} of {totalTransactions} transactions
+                {hasMoreTransactions && " (more available)"}
+              </span>
+              <div className="flex gap-1 flex-wrap">
+                {Array.from({ length: Math.min(Math.ceil(transactions.length / ITEMS_PER_PAGE), 5) }, (_, i) => {
+                  const pageNum = i + 1
+                  return (
+                    <Button
+                      key={pageNum}
+                      onClick={() => {
+                        setCurrentPage(pageNum)
+                        loadMoreTransactions(pageNum)
+                      }}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      className={`text-xs px-2 py-1 h-auto ${
+                        currentPage === pageNum
+                          ? "bg-blue-600 text-white"
+                          : "border-blue-200 text-blue-700 hover:bg-blue-50"
+                      }`}
+                    >
+                      {pageNum}
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <CardContent>
             {transactions.length === 0 ? (
               <div className="text-center py-8">
@@ -542,7 +605,9 @@ export default function AdminAgentWalletPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {transactions.map((transaction) => (
+                    {transactions
+                      .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                      .map((transaction) => (
                       <TableRow key={transaction.id}>
                         <TableCell>
                           <div className="text-sm">{new Date(transaction.created_at).toLocaleDateString()}</div>
