@@ -1,242 +1,183 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { createSupabaseAdmin } from "@/lib/supabase-query"
+"use client"
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
-export const revalidate = 300 // ISR: cache API response for 5 minutes to reduce Supabase calls
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Trophy, TrendingUp, AlertCircle } from "lucide-react"
 
-// Timeout for the entire request
-const REQUEST_TIMEOUT = 25000 // 25 seconds (Vercel max is 30s)
-
-async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  const timeoutPromise = new Promise<T>((_, reject) =>
-    setTimeout(() => reject(new Error(`Timeout: ${label} exceeded ${ms}ms`)), ms),
-  )
-  return Promise.race([promise, timeoutPromise])
+interface RankingAgent {
+  name: string
+  activity: number
+  rank: number
 }
 
-export async function GET(request: NextRequest) {
-  const startTime = Date.now()
+interface RankingResponse {
+  success: boolean
+  data?: {
+    agents: RankingAgent[]
+    timeframe: string
+    total_count: number
+    last_updated: string
+    calculation_time_ms: number
+  }
+  error?: string
+  details?: string
+}
 
-  try {
-    const { searchParams } = new URL(request.url)
-    const timeframe = searchParams.get("timeframe") || "30d"
-    const limit = Number.parseInt(searchParams.get("limit") || "10")
+export function AdminAgentRanking() {
+  const [rankings, setRankings] = useState<RankingAgent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [timeframe, setTimeframe] = useState<"7d" | "30d">("30d")
+  const [lastUpdated, setLastUpdated] = useState<string>("")
+  const [calculationTime, setCalculationTime] = useState<number>(0)
 
-    console.log("[v0] Starting ranking calculation", { timeframe, limit })
-
-    // Validate timeframe
-    if (!["7d", "30d"].includes(timeframe)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid timeframe. Use "7d" or "30d"',
-        },
-        { status: 400 },
-      )
-    }
-
-    // Calculate date range
-    const endDate = new Date()
-    const startDate = new Date()
-    if (timeframe === "7d") {
-      startDate.setDate(endDate.getDate() - 7)
-    } else {
-      startDate.setDate(endDate.getDate() - 30)
-    }
-
-    console.log("[v0] Date range:", {
-      start: startDate.toISOString(),
-      end: endDate.toISOString(),
-      timeframe,
-    })
-
-    const supabase = createSupabaseAdmin()
-
-    console.log("[v0] Fetching approved agents...")
-    const { data: agents, error: agentsError } = await withTimeout(
-      supabase.from("agents").select("id, full_name, phone_number").eq("isapproved", true).limit(500),
-      5000,
-      "Fetching agents",
-    )
-
-    if (agentsError) {
-      console.error("[v0] Error fetching agents:", agentsError)
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Failed to fetch agents",
-          details: agentsError.message,
-        },
-        { status: 500 },
-      )
-    }
-
-    if (!agents || agents.length === 0) {
-      console.log("[v0] No approved agents found")
-      return NextResponse.json({
-        success: true,
-        data: {
-          agents: [],
-          timeframe: timeframe,
-          total_count: 0,
-          last_updated: new Date().toISOString(),
-        },
-      })
-    }
-
-    console.log("[v0] Found agents:", agents.length)
-    const agentIds = agents.map((a) => a.id)
-
-    console.log("[v0] Starting parallel queries for activities...")
-    const queries = [
-      withTimeout(
-        supabase
-          .from("referrals")
-          .select("agent_id", { count: "exact", head: false })
-          .in("agent_id", agentIds)
-          .gte("created_at", startDate.toISOString())
-          .lte("created_at", endDate.toISOString()),
-        8000,
-        "Referrals query",
-      ),
-      withTimeout(
-        supabase
-          .from("data_orders")
-          .select("agent_id", { count: "exact", head: false })
-          .in("agent_id", agentIds)
-          .gte("created_at", startDate.toISOString())
-          .lte("created_at", endDate.toISOString()),
-        8000,
-        "Data orders query",
-      ),
-      withTimeout(
-        supabase
-          .from("wholesale_orders")
-          .select("agent_id", { count: "exact", head: false })
-          .in("agent_id", agentIds)
-          .gte("created_at", startDate.toISOString())
-          .lte("created_at", endDate.toISOString()),
-        8000,
-        "Wholesale orders query",
-      ),
-      withTimeout(
-        supabase
-          .from("e_orders")
-          .select("agent_id", { count: "exact", head: false })
-          .in("agent_id", agentIds)
-          .gte("created_at", startDate.toISOString())
-          .lte("created_at", endDate.toISOString()),
-        8000,
-        "E-commerce orders query",
-      ),
-    ]
-
-    let results
+  const fetchRankings = async (tf: "7d" | "30d") => {
+    setLoading(true)
+    setError(null)
     try {
-      results = await Promise.allSettled(queries)
-    } catch (error) {
-      console.error("[v0] Promise.allSettled error:", error)
-      throw error
-    }
+      const response = await fetch(`/api/admin/agents/ranking?timeframe=${tf}&limit=10`)
+      const data: RankingResponse = await response.json()
 
-    const activityMap: Record<string, number> = {}
-    agentIds.forEach((id) => {
-      activityMap[id] = 0
-    })
-
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled") {
-        const { data, error } = result.value
-        const tableNames = ["referrals", "data_orders", "wholesale_orders", "e_orders"]
-
-        if (error) {
-          console.warn(`[v0] ${tableNames[index]} query error:`, error.message)
-        } else if (data) {
-          console.log(`[v0] ${tableNames[index]} records for ${timeframe}:`, data.length)
-          data.forEach((item: any) => {
-            activityMap[item.agent_id] = (activityMap[item.agent_id] || 0) + 1
-          })
-        }
-      } else {
-        console.error(
-          `[v0] ${["referrals", "data_orders", "wholesale_orders", "e_orders"][index]} query rejected:`,
-          result.reason,
-        )
+      if (!data.success) {
+        throw new Error(data.error || "Failed to fetch rankings")
       }
-    })
 
-    const agentActivities = agents.map((agent) => ({
-      agent_id: agent.id,
-      agent_name: agent.full_name || agent.phone_number || "Unknown Agent",
-      total_activity: activityMap[agent.id] || 0,
-    }))
-
-    const sortedAgents = agentActivities
-      .filter((agent) => agent.total_activity > 0)
-      .sort((a, b) => b.total_activity - a.total_activity)
-      .slice(0, limit)
-      .map((agent, index) => ({
-        name: agent.agent_name,
-        activity: agent.total_activity,
-        rank: index + 1,
-      }))
-
-    const duration = Date.now() - startTime
-    console.log(
-      `[v0] Ranking calculation completed in ${duration}ms for ${sortedAgents.length} agents with timeframe ${timeframe}`,
-    )
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          agents: sortedAgents,
-          timeframe: timeframe,
-          total_count: sortedAgents.length,
-          last_updated: new Date().toISOString(),
-          calculation_time_ms: duration,
-        },
-      },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-        },
-      },
-    )
-  } catch (error) {
-    console.error("[v0] Agent ranking API error:", error instanceof Error ? error.message : error)
-    const errorMessage = error instanceof Error ? error.message : "Unknown error"
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to calculate rankings",
-        details: errorMessage,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 502 },
-    )
+      setRankings(data.data?.agents || [])
+      setLastUpdated(data.data?.last_updated || "")
+      setCalculationTime(data.data?.calculation_time_ms || 0)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to load rankings"
+      setError(errorMsg)
+      console.error("[v0] Error fetching rankings:", errorMsg)
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
-export async function POST(request: NextRequest) {
-  try {
-    // This endpoint can be used to trigger manual ranking calculations
-    // For now, it just returns success since we calculate rankings on-demand
-    return NextResponse.json({
-      success: true,
-      message: "Rankings are calculated on-demand",
-      updated_at: new Date().toISOString(),
-    })
-  } catch (error) {
-    console.error("[v0] Error in ranking update:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
-      { status: 500 },
-    )
-  }
+  useEffect(() => {
+    fetchRankings(timeframe)
+  }, [timeframe])
+
+  return (
+    <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+      <CardHeader>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              Top Performing Agents
+            </CardTitle>
+            <CardDescription>Agent activity rankings based on orders and referrals</CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={timeframe === "7d" ? "default" : "outline"}
+              onClick={() => setTimeframe("7d")}
+              size="sm"
+              className={timeframe === "7d" ? "bg-blue-600 hover:bg-blue-700" : ""}
+            >
+              7 Days
+            </Button>
+            <Button
+              variant={timeframe === "30d" ? "default" : "outline"}
+              onClick={() => setTimeframe("30d")}
+              size="sm"
+              className={timeframe === "30d" ? "bg-blue-600 hover:bg-blue-700" : ""}
+            >
+              30 Days
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-12 bg-gray-200 rounded animate-pulse" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <div>
+              <p className="font-medium">Error loading rankings</p>
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          </div>
+        ) : rankings.length === 0 ? (
+          <div className="text-center py-8">
+            <TrendingUp className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-600">No agent activity found for this period</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {rankings.map((agent) => (
+              <div
+                key={agent.rank}
+                className={`flex items-center justify-between p-4 rounded-lg border transition-all ${
+                  agent.rank === 1
+                    ? "bg-amber-50 border-amber-200 shadow-sm"
+                    : agent.rank === 2
+                      ? "bg-gray-100 border-gray-300"
+                      : agent.rank === 3
+                        ? "bg-orange-50 border-orange-200"
+                        : "bg-gray-50 border-gray-200"
+                }`}
+              >
+                <div className="flex items-center gap-4 flex-1">
+                  <div
+                    className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-white ${
+                      agent.rank === 1
+                        ? "bg-gradient-to-br from-amber-400 to-amber-600"
+                        : agent.rank === 2
+                          ? "bg-gradient-to-br from-gray-400 to-gray-600"
+                          : agent.rank === 3
+                            ? "bg-gradient-to-br from-orange-400 to-orange-600"
+                            : "bg-blue-500"
+                    }`}
+                  >
+                    {agent.rank}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900">{agent.name}</p>
+                    <p className="text-sm text-gray-500">{agent.activity} activities</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge
+                    variant="secondary"
+                    className={
+                      agent.rank === 1
+                        ? "bg-amber-200 text-amber-900"
+                        : agent.rank === 2
+                          ? "bg-gray-200 text-gray-900"
+                          : agent.rank === 3
+                            ? "bg-orange-200 text-orange-900"
+                            : "bg-blue-200 text-blue-900"
+                    }
+                  >
+                    {agent.activity}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && !error && rankings.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-gray-500">
+              <span>Timeframe: {timeframe === "7d" ? "Last 7 days" : "Last 30 days"}</span>
+              <div className="flex items-center gap-4">
+                <span>Calculation time: {calculationTime}ms</span>
+                {lastUpdated && <span>Updated: {new Date(lastUpdated).toLocaleString()}</span>}
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
