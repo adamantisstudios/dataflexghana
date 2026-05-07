@@ -113,7 +113,6 @@ export default function DataOrdersPage() {
 
     return () => {
       clearTimeout(timer)
-      // Cleanup all channels on unmount
       channelsRef.current.forEach((channel) => {
         supabase.removeChannel(channel)
       })
@@ -124,9 +123,7 @@ export default function DataOrdersPage() {
   const loadWalletBalance = async (agentId: string) => {
     try {
       console.log("[v0] Loading wallet balance using unified calculation for agent:", agentId)
-
       const { balance } = await calculateCorrectWalletBalance(agentId)
-
       console.log("[v0] Wallet balance calculated:", balance)
       setWalletBalance(balance)
     } catch (error: any) {
@@ -165,7 +162,6 @@ export default function DataOrdersPage() {
   }, [filteredOrders, currentPage])
 
   const setupRealTimeUpdates = (agentId: string) => {
-    // Clean up any existing channels first
     channelsRef.current.forEach((channel) => {
       supabase.removeChannel(channel)
     })
@@ -340,9 +336,7 @@ export default function DataOrdersPage() {
     if (!agent) return
     try {
       console.log("[v0] Refreshing wallet balance using unified calculation for agent:", agent.id)
-
       const { balance } = await calculateCorrectWalletBalance(agent.id)
-
       console.log("[v0] Refreshed wallet balance:", balance)
       setWalletBalance(balance)
     } catch (error: any) {
@@ -437,12 +431,10 @@ export default function DataOrdersPage() {
     setIsDownloading(true)
     try {
       const ordersToDownload = [...filteredOrders]
-
       if (ordersToDownload.length === 0) {
         alert("No orders found matching your current filters.")
         return
       }
-
       await downloadEnhancedTransactionReport(ordersToDownload)
     } catch (error) {
       console.error("Error downloading report:", error)
@@ -454,7 +446,6 @@ export default function DataOrdersPage() {
 
   const downloadEnhancedTransactionReport = async (ordersToDownload: DataOrder[]) => {
     try {
-      // Fetch all wallet transactions for the agent
       const { data: walletTransactions, error: walletError } = await supabase
         .from("wallet_transactions")
         .select("*")
@@ -466,7 +457,6 @@ export default function DataOrdersPage() {
         throw walletError
       }
 
-      // Fetch all commissions for the agent
       const { data: commissions, error: commissionError } = await supabase
         .from("commissions")
         .select("*")
@@ -478,13 +468,9 @@ export default function DataOrdersPage() {
         throw commissionError
       }
 
-      // Create comprehensive transaction flow
       const transactionFlow = createTransactionFlow(ordersToDownload, walletTransactions || [], commissions || [])
-
-      // Generate enhanced CSV report
       const csvContent = generateEnhancedCSV(transactionFlow, ordersToDownload)
 
-      // Download the report
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
       const link = document.createElement("a")
       const url = URL.createObjectURL(blob)
@@ -529,7 +515,6 @@ export default function DataOrdersPage() {
     const flow: any[] = []
     let runningBalance = 0
 
-    // Combine all transactions with timestamps
     const allTransactions = [
       ...orders.map((order) => ({
         type: "data_order",
@@ -557,10 +542,8 @@ export default function DataOrdersPage() {
       })),
     ]
 
-    // Sort by timestamp
     allTransactions.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
-    // Calculate running balance and create flow
     allTransactions.forEach((transaction, index) => {
       const previousBalance = runningBalance
       runningBalance += transaction.amount
@@ -585,7 +568,7 @@ export default function DataOrdersPage() {
 
   const generateVerificationHash = (transaction: any) => {
     const hashData = `${transaction.timestamp}-${transaction.type}-${transaction.amount}-${transaction.data.id}`
-    return btoa(hashData).substring(0, 12) // Simple hash for verification
+    return btoa(hashData).substring(0, 12)
   }
 
   const generateEnhancedCSV = (transactionFlow: any[], orders: DataOrder[]) => {
@@ -611,38 +594,6 @@ export default function DataOrdersPage() {
       "=== DATA ORDERS (Most Recent First) ===",
       "",
     ]
-
-    const flowHeaders = [
-      "Sequence",
-      "Date",
-      "Time",
-      "Transaction Type",
-      "Description",
-      "Amount (GH₵)",
-      "Commission (GH₵)",
-      "Previous Balance (GH₵)",
-      "New Balance (GH₵)",
-      "Transaction ID",
-      "Verification Hash",
-      "Status/Notes",
-    ]
-
-    const flowData = transactionFlow.map((item) => [
-      item.sequence,
-      `"${format(new Date(item.timestamp), "yyyy-MM-dd")}"`,
-      `"${format(new Date(item.timestamp), "HH:mm:ss")}"`,
-      item.type.replace("_", " ").toUpperCase(),
-      `"${item.description}"`,
-      item.amount.toFixed(2),
-      item.commission.toFixed(2),
-      item.previousBalance.toFixed(2),
-      item.newBalance.toFixed(2),
-      item.transactionId,
-      item.verificationHash,
-      item.type === "data_order" ? (item.data.status || "pending").toUpperCase() : "PROCESSED",
-    ])
-
-    const orderSummary = ["", "", "=== DETAILED ORDER BREAKDOWN ===", ""]
 
     const orderHeaders = [
       "Seq",
@@ -670,7 +621,7 @@ export default function DataOrdersPage() {
         const total = bundlePrice + commission
 
         return [
-          (index + 1).toString(), // Sequence number for clarity
+          (index + 1).toString(),
           `"${timestamp.date}"`,
           `"${timestamp.time}"`,
           `"${order.data_bundles?.name || ""}"`,
@@ -687,57 +638,18 @@ export default function DataOrdersPage() {
         ]
       })
 
-    const trustMetrics = [
-      "",
-      "",
-      "=== TRUST & VERIFICATION METRICS ===",
-      "",
-      `Total Transactions Processed: ${transactionFlow.length}`,
-      `Data Orders: ${orders.length}`,
-      `Completed Orders: ${orders.filter((o) => o.status === "completed").length}`,
-      `Pending Orders: ${orders.filter((o) => o.status === "pending").length}`,
-      `Total Commission Earned: GH₵ ${orders.reduce((sum, o) => sum + o.commission_amount, 0).toFixed(2)}`,
-      `Average Order Value: GH₵ ${orders.length > 0 ? (orders.reduce((sum, o) => sum + (o.data_bundles?.price || 0), 0) / orders.length).toFixed(2) : "0.00"}`,
-      `Account Integrity Score: ${calculateIntegrityScore(transactionFlow, orders)}%`,
-      `Last Transaction: ${transactionFlow.length > 0 ? format(new Date(transactionFlow[transactionFlow.length - 1].timestamp), "yyyy-MM-dd HH:mm:ss") : "N/A"}`,
-      "",
-      "Note: All transactions are cryptographically verified with unique hashes.",
-      "Contact support if you notice any discrepancies in your transaction history.",
-      "",
-    ]
-
-    // Combine all sections - order summary focused
-    const csvContent = [
-      ...reportSummary,
-      orderHeaders.join(","),
-      ...orderData.map((row) => row.join(",")),
-    ].join("\n")
-
-    return csvContent
+    return [...reportSummary, orderHeaders.join(","), ...orderData.map((row) => row.join(","))].join("\n")
   }
 
   const calculateIntegrityScore = (transactionFlow: any[], orders: DataOrder[]) => {
     let score = 100
-
-    // Deduct points for inconsistencies
-    const completedOrders = orders.filter((o) => o.status === "completed")
-    const pendingOrders = orders.filter((o) => o.status === "pending")
-
-    // High pending ratio reduces score
-    if (orders.length > 0) {
-      const pendingRatio = pendingOrders.length / orders.length
-      if (pendingRatio > 0.3) score -= 10
-    }
-
-    // Recent activity increases score
+    const pendingRatio = orders.length > 0 ? orders.filter((o) => o.status === "pending").length / orders.length : 0
+    if (pendingRatio > 0.3) score -= 10
     const recentTransactions = transactionFlow.filter(
       (t) => new Date(t.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     )
     if (recentTransactions.length > 0) score += 5
-
-    // Consistent transaction patterns increase score
     if (transactionFlow.length > 10) score += 5
-
     return Math.max(85, Math.min(100, score))
   }
 
@@ -766,35 +678,33 @@ export default function DataOrdersPage() {
             <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 border-t-4 border-emerald-400">
               <div className="container mx-auto px-4">
                 <div className="py-5 md:py-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
-                  {/* Left side with icon and text */}
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="relative">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="relative flex-shrink-0">
                       <div className="absolute inset-0 bg-emerald-400 rounded-xl blur-md opacity-50"></div>
                       <div className="relative bg-emerald-500/80 backdrop-blur-sm border border-emerald-300/50 rounded-xl p-3">
                         <PiggyBank className="w-7 h-7 md:w-8 md:h-8 text-white" />
                       </div>
                     </div>
 
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-                        <span className="text-white font-bold text-base md:text-lg tracking-wide">
+                        <span className="text-white font-bold text-base md:text-lg tracking-wide whitespace-nowrap">
                           Maximize Your Earnings
                         </span>
                       </div>
-                      <p className="text-emerald-50/90 text-sm md:text-base leading-relaxed">
+                      <p className="text-emerald-50/90 text-sm md:text-base leading-relaxed line-clamp-2">
                         Our Savings & Investment Plans offer competitive interest rates. Grow your wealth while you work
                         with us!
                       </p>
                     </div>
                   </div>
 
-                  {/* Right side with buttons */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-shrink-0">
                     <Button
                       asChild
                       size="lg"
-                      className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold px-5 md:px-6 py-4 md:py-5 text-sm md:text-base shadow-lg hover:shadow-xl transition-all duration-200 border border-white/30 rounded-lg"
+                      className="bg-white text-emerald-700 hover:bg-emerald-50 font-semibold px-5 md:px-6 py-4 md:py-5 text-sm md:text-base shadow-lg hover:shadow-xl transition-all duration-200 border border-white/30 rounded-lg whitespace-nowrap"
                     >
                       <Link href="/agent/savings" className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
@@ -817,13 +727,11 @@ export default function DataOrdersPage() {
                 </div>
               </div>
 
-              {/* Subtle animated border */}
               <div className="h-[2px] bg-gradient-to-r from-transparent via-white to-transparent">
                 <div className="h-full w-1/3 bg-emerald-200 animate-slide-right"></div>
               </div>
             </div>
 
-            {/* Animation styles */}
             <style jsx>{`
               @keyframes slide-right {
                 0% { transform: translateX(-100%); }
@@ -840,7 +748,7 @@ export default function DataOrdersPage() {
           <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 shadow-xl border-b-4 border-emerald-700">
             <div className="container mx-auto px-4 py-4 sm:py-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3 sm:gap-4">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -853,25 +761,25 @@ export default function DataOrdersPage() {
                       <span className="sm:hidden">Back</span>
                     </Link>
                   </Button>
-                  <div>
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
+                  <div className="min-w-0">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg truncate">
                       My Data Orders
                     </h1>
-                    <p className="text-emerald-100 font-medium text-sm sm:text-base">
+                    <p className="text-emerald-100 font-medium text-sm sm:text-base truncate">
                       Track your data bundle orders and commissions
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/30">
                     <div className="flex items-center gap-2 text-white">
-                      <Wallet className="h-4 w-4" />
-                      <span className="text-sm font-medium">GH₵ {walletBalance.toFixed(2)}</span>
+                      <Wallet className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-sm font-medium truncate">GH₵ {walletBalance.toFixed(2)}</span>
                       <Button
                         onClick={refreshWalletBalance}
                         variant="ghost"
                         size="sm"
-                        className="h-6 w-6 p-0 text-white hover:bg-white/20"
+                        className="h-6 w-6 p-0 text-white hover:bg-white/20 flex-shrink-0"
                       >
                         <RefreshCw className="h-3 w-3" />
                       </Button>
@@ -886,7 +794,7 @@ export default function DataOrdersPage() {
               <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl">
                 <CardContent className="p-4">
                   <div className="text-center">
-                    <p className="text-blue-100 text-xs sm:text-sm font-medium">Total Orders</p>
+                    <p className="text-blue-100 text-xs sm:text-sm font-medium truncate">Total Orders</p>
                     <p className="text-xl sm:text-2xl font-bold">{orders.length}</p>
                   </div>
                 </CardContent>
@@ -894,7 +802,7 @@ export default function DataOrdersPage() {
               <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-xl">
                 <CardContent className="p-4">
                   <div className="text-center">
-                    <p className="text-green-100 text-xs sm:text-sm font-medium">Completed</p>
+                    <p className="text-green-100 text-xs sm:text-sm font-medium truncate">Completed</p>
                     <p className="text-xl sm:text-2xl font-bold">
                       {orders.filter((order) => order.status === "completed").length}
                     </p>
@@ -904,7 +812,7 @@ export default function DataOrdersPage() {
               <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-xl">
                 <CardContent className="p-4">
                   <div className="text-center">
-                    <p className="text-amber-100 text-xs sm:text-sm font-medium">Pending</p>
+                    <p className="text-amber-100 text-xs sm:text-sm font-medium truncate">Pending</p>
                     <p className="text-xl sm:text-2xl font-bold">
                       {orders.filter((order) => order.status === "pending").length}
                     </p>
@@ -914,8 +822,8 @@ export default function DataOrdersPage() {
               <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 shadow-xl">
                 <CardContent className="p-4">
                   <div className="text-center">
-                    <p className="text-purple-100 text-xs sm:text-sm font-medium">Commission For Withdraw</p>
-                    <p className="text-lg sm:text-xl font-bold">
+                    <p className="text-purple-100 text-xs sm:text-sm font-medium truncate">Commission For Withdraw</p>
+                    <p className="text-lg sm:text-xl font-bold truncate">
                       GH₵ {commissionData.totalAvailableCommissions.toFixed(2)}
                     </p>
                   </div>
@@ -925,32 +833,32 @@ export default function DataOrdersPage() {
             <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm shadow-lg mb-6">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-emerald-800 flex items-center gap-2">
-                      <Smartphone className="h-5 w-5" />
+                  <div className="min-w-0">
+                    <CardTitle className="text-emerald-800 flex items-center gap-2 truncate">
+                      <Smartphone className="h-5 w-5 flex-shrink-0" />
                       Data Orders ({filteredOrders.length} total)
                     </CardTitle>
-                    <CardDescription className="text-emerald-600">
+                    <CardDescription className="text-emerald-600 truncate">
                       Showing {paginatedOrders.length} of {filteredOrders.length} orders
                       {(statusFilter !== "all" || providerFilter !== "all" || searchTerm) && (
                         <span className="ml-2 text-blue-600 font-medium">• Filtered results</span>
                       )}
                     </CardDescription>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                     <div className="flex gap-2">
                       <Button
                         onClick={refreshOrders}
                         variant="outline"
                         size="sm"
-                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent"
+                        className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent whitespace-nowrap"
                       >
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Refresh
                       </Button>
                       <Button
                         asChild
-                        className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                        className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 whitespace-nowrap"
                       >
                         <Link href="/agent/data-order">
                           <Plus className="h-4 w-4 mr-2" />
@@ -964,16 +872,16 @@ export default function DataOrdersPage() {
                         disabled={isDownloading || filteredOrders.length === 0}
                         variant="outline"
                         size="sm"
-                        className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-white min-w-[140px]"
+                        className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-white min-w-[140px] whitespace-nowrap overflow-hidden"
                       >
                         {isDownloading ? (
                           <>
-                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin flex-shrink-0" />
                             Downloading...
                           </>
                         ) : (
                           <>
-                            <Download className="h-4 w-4 mr-2" />
+                            <Download className="h-4 w-4 mr-2 flex-shrink-0" />
                             Download Report
                           </>
                         )}
@@ -1022,16 +930,17 @@ export default function DataOrdersPage() {
               {paginatedOrders.map((order) => (
                 <Card
                   key={order.id}
-                  className="border-emerald-200 bg-white shadow-sm hover:shadow-md transition-shadow"
+                  className="border-emerald-200 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden"
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 sm:p-5">
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                      {/* Header: status badge + amount */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
                           {getStatusIcon(order.status)}
-                          <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                          <Badge className={`${getStatusColor(order.status)} truncate`}>{order.status}</Badge>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right flex-shrink-0">
                           <p className="text-lg font-bold text-emerald-700">
                             GH₵ {order.data_bundles?.price?.toFixed(2) || "0.00"}
                           </p>
@@ -1041,93 +950,80 @@ export default function DataOrdersPage() {
                         </div>
                       </div>
 
-                      <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
+                      {/* Bundle details box */}
+                      <div className="bg-emerald-50/70 rounded-lg p-3 border border-emerald-100">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
                             <h3 className="font-semibold text-emerald-800 truncate">
                               {getBundleDisplayName(order.data_bundles)}
                             </h3>
-                            <p className="text-sm text-emerald-600 mt-1">
+                            <p className="text-sm text-emerald-600 mt-1 truncate">
                               {order.data_bundles?.provider} • {order.data_bundles?.size_gb || 0}GB
                             </p>
                           </div>
-                          <div className="flex items-center gap-1 text-emerald-600">
+                          <div className="flex items-center gap-1.5 text-emerald-600 flex-shrink-0">
                             <Smartphone className="h-4 w-4" />
-                            <span className="text-sm font-mono">{order.recipient_phone}</span>
+                            <span className="text-sm font-mono truncate max-w-[160px]">{order.recipient_phone}</span>
                           </div>
                         </div>
                       </div>
 
+                      {/* Payment & Date metadata */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="h-4 w-4 text-emerald-500" />
-                          <div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <CreditCard className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                          <div className="min-w-0 truncate">
                             <span className="text-emerald-600">Payment:</span>
-                            <span className="ml-1 font-medium text-emerald-800 capitalize">{order.payment_method}</span>
+                            <span className="ml-1 font-medium text-emerald-800 capitalize">
+                              {order.payment_method}
+                            </span>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-emerald-500" />
-                          <div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Clock className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                          <div className="min-w-0 truncate">
                             <span className="text-emerald-600">Date:</span>
                             <span className="ml-1 font-medium text-emerald-800">
-                              {format(new Date(order.created_at), "MMM dd, yyyy")}
+                              {formatTimestamp(order.created_at).date} {formatTimestamp(order.created_at).time}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-gray-50 rounded-lg p-2 border">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">Reference:</span>
-                          <code className="text-sm font-mono bg-white px-2 py-1 rounded border text-emerald-700">
+                      {/* Reference row */}
+                      <div className="bg-gray-50/80 rounded-lg p-2.5 border border-gray-200">
+                        <div className="flex items-center justify-between gap-2 min-w-0">
+                          <span className="text-xs text-gray-600 flex-shrink-0">Reference:</span>
+                          <code className="text-sm font-mono bg-white px-2 py-1 rounded border text-emerald-700 truncate max-w-[200px] sm:max-w-xs">
                             {order.payment_reference}
                           </code>
                         </div>
                       </div>
 
-                      {order.admin_message && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <div className="flex items-start gap-2">
-                            <MessageCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs font-medium text-blue-700 mb-1">Admin Message:</p>
-                              <p className="text-sm text-blue-800">{order.admin_message}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-2 border-t border-emerald-100">
-                        <div className="flex items-center gap-2">
+                      {/* Action bar: message button (if exists) left, delete right */}
+                      <div className="flex items-center justify-between pt-1">
+                        <div>
                           {order.admin_message && (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => openMessageDialog(order)}
-                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50 whitespace-nowrap"
                             >
-                              <MessageCircle className="h-3 w-3 mr-1" />
-                              View Message
+                              <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
+                              Message
                             </Button>
                           )}
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-emerald-600">
-                            {formatTimestamp(order.created_at).localDateTime}
-                          </span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openDeleteDialog(order.id)}
-                            className="text-red-600 border-red-200 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openDeleteDialog(order.id)}
+                          className="text-red-600 border-red-200 hover:bg-red-50 whitespace-nowrap"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          Delete
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -1150,7 +1046,7 @@ export default function DataOrdersPage() {
             <div className="space-y-4">
               <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
                 <p className="text-sm font-medium text-emerald-800">Order Details:</p>
-                <p className="text-sm text-emerald-700">
+                <p className="text-sm text-emerald-700 truncate">
                   {selectedOrder.data_bundles?.name} - {selectedOrder.recipient_phone}
                 </p>
                 <p className="text-xs text-emerald-600">

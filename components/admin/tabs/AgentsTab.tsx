@@ -423,7 +423,10 @@ const AgentsTab = memo(function AgentsTab() {
         }. Agent historical data and wallet balances remain intact.`
       );
       setShowClearDialog(false);
-      window.location.reload();
+      // Refresh only the agents list, not the whole page
+        await loadAgentsPage(currentAgentsPage, agentSearchTerm, agentsFilterAdmin);
+        setShowClearDialog(false);
+        toast.success("Admin data cleared successfully");
     } catch (error) {
       console.error("Error during admin data cleanup:", error);
       alert("Failed to clear admin data. Please check your selection and try again.");
