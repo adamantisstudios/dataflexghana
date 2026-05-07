@@ -1,14 +1,33 @@
 "use client"
+
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ChevronLeft, MapPin, Clock, Briefcase, AlertCircle, X } from 'lucide-react'
+import {
+  ChevronLeft,
+  MapPin,
+  Clock,
+  Briefcase,
+  AlertCircle,
+  X,
+  DollarSign,
+  Calendar,
+  Mail,
+  Phone,
+  Globe,
+  FileText,
+  CheckCircle,
+  Zap,
+  TrendingUp,
+} from "lucide-react"
 import { supabaseJobs } from "@/lib/supabase-client-jobs"
 import { Footer } from "@/components/footer"
 
+// ========== TYPE DEFINITIONS ==========
 interface Job {
   id: string
   job_title: string
@@ -33,6 +52,9 @@ interface Job {
   industry: string
 }
 
+// ========== HELPER FUNCTIONS ==========
+const safeString = (value: string | null | undefined): string => value || ""
+
 const formatSalary = (
   salaryType: string | null,
   salaryMin: number | null,
@@ -41,32 +63,24 @@ const formatSalary = (
   salaryCustom: string | null,
   currency: string,
 ): string => {
-  if (!salaryType) {
-    return "Not specified"
-  }
-
+  if (!salaryType) return "Not specified"
   switch (salaryType) {
     case "negotiable":
       return "Negotiable"
     case "fixed_range":
-      if (salaryMin !== null && salaryMax !== null) {
+      if (salaryMin !== null && salaryMax !== null)
         return `${currency}${salaryMin.toLocaleString()} - ${currency}${salaryMax.toLocaleString()}`
-      }
       return "Not specified"
     case "exact_amount":
-      if (salaryExact !== null) {
-        return `${currency}${salaryExact.toLocaleString()}`
-      }
+      if (salaryExact !== null) return `${currency}${salaryExact.toLocaleString()}`
       return "Not specified"
     default:
-      if (salaryCustom) {
-        return salaryCustom
-      }
-      return "Not specified"
+      return salaryCustom || "Not specified"
   }
 }
 
 const generateSlug = (title: string): string => {
+  if (!title) return "job"
   return title
     .toLowerCase()
     .trim()
@@ -75,16 +89,42 @@ const generateSlug = (title: string): string => {
     .replace(/-+/g, "-")
 }
 
+const formatDateAgo = (dateString: string): string => {
+  if (!dateString) return "Recently"
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return "Recently"
+  const now = new Date()
+  date.setHours(0, 0, 0, 0)
+  now.setHours(0, 0, 0, 0)
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays === 0) return "Today"
+  if (diffDays === 1) return "Yesterday"
+  if (diffDays < 7) return `${diffDays} days ago`
+  return `${Math.floor(diffDays / 7)} weeks ago`
+}
+
+const formatTextWithMarkdown = (text: string): string => {
+  if (!text) return ""
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/\n\n/g, "</p><p>")
+    .replace(/\n/g, "<br>")
+}
+
+// ========== MAIN COMPONENT ==========
 export default function JobDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const slug = params.slug as string
+
   const [job, setJob] = useState<Job | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showCVNotification, setShowCVNotification] = useState(false)
   const [isAuthenticating, setIsAuthenticating] = useState(true)
 
+  // Authentication
   useEffect(() => {
     const checkAuthentication = async () => {
       try {
@@ -94,50 +134,43 @@ export default function JobDetailsPage() {
           return
         }
         setIsAuthenticating(false)
-      } catch (error) {
-        console.error("[v0] Auth error:", error)
+      } catch (err) {
+        console.error("[Auth error]", err)
         router.push("/agent/login")
       }
     }
-
     checkAuthentication()
   }, [router])
 
+  // Fetch job
   useEffect(() => {
     if (isAuthenticating) return
 
     const fetchJob = async () => {
       try {
-        console.log("[v0] Fetching job with slug:", slug)
         const { data, error: fetchError } = await supabaseJobs.from("jobs").select("*")
-
-        if (fetchError) {
-          console.log("[v0] Fetch error:", fetchError)
+        if (fetchError || !data) {
           setError("Job not found")
-        } else if (data && data.length > 0) {
+        } else {
           const foundJob = data.find((j: Job) => {
             const jobSlug = generateSlug(j.job_title)
             const jobIdStr = j.id.toString()
-
             return (
-              jobSlug === slug || jobIdStr === slug || jobSlug.includes(slug) || slug.includes(jobSlug.split("-")[0])
+              jobSlug === slug ||
+              jobIdStr === slug ||
+              jobSlug.includes(slug) ||
+              slug.includes(jobSlug.split("-")[0])
             )
           })
-
           if (foundJob) {
-            console.log("[v0] Job found:", foundJob.job_title)
             setJob(foundJob)
             setError(null)
           } else {
-            console.log("[v0] No job matched slug:", slug)
             setError("Job not found")
           }
-        } else {
-          console.log("[v0] No jobs in database")
-          setError("Job not found")
         }
       } catch (err) {
-        console.error("[v0] Error fetching job:", err)
+        console.error("[Fetch error]", err)
         setError("Failed to load job details")
       } finally {
         setIsLoading(false)
@@ -146,98 +179,82 @@ export default function JobDetailsPage() {
 
     fetchJob()
 
-    const subscription = supabaseJobs
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "jobs",
-        },
-        (payload) => {
-          console.log("[v0] Job updated in real-time:", payload)
-          fetchJob()
-        },
-      )
-      .subscribe()
-
+    // Real‑time subscription fallback
+    let subscription: any = null
+    try {
+      if (supabaseJobs && typeof supabaseJobs.channel === "function") {
+        subscription = supabaseJobs
+          .channel("public:jobs")
+          .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, () => fetchJob())
+          .subscribe()
+      } else {
+        const interval = setInterval(fetchJob, 30000)
+        return () => clearInterval(interval)
+      }
+    } catch (err) {
+      console.error("Subscription error", err)
+    }
     return () => {
-      subscription.unsubscribe()
+      if (subscription && typeof subscription.unsubscribe === "function") subscription.unsubscribe()
     }
   }, [slug, isAuthenticating])
 
+  // CV notification timer
   useEffect(() => {
     if (!isLoading && job) {
-      const timer = setTimeout(() => {
-        setShowCVNotification(true)
-      }, 20000)
+      const timer = setTimeout(() => setShowCVNotification(true), 20000)
       return () => clearTimeout(timer)
     }
   }, [isLoading, job])
 
-  const formatDateAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-
-    date.setHours(0, 0, 0, 0)
-    now.setHours(0, 0, 0, 0)
-
-    const diffTime = now.getTime() - date.getTime()
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 0) return "Today"
-    if (diffDays === 1) return "Yesterday"
-    if (diffDays < 7) return `${diffDays} days ago`
-    return `${Math.floor(diffDays / 7)} weeks ago`
+  // Helper for salary icon
+  const getSalaryIcon = () => {
+    if (job?.salary_type === "negotiable") return <TrendingUp className="h-4 w-4 text-green-600" />
+    if (job?.salary_min && job?.salary_max) return <DollarSign className="h-4 w-4 text-emerald-600" />
+    return <DollarSign className="h-4 w-4 text-gray-500" />
   }
 
-  const formatTextWithMarkdown = (text: string) => {
-    return text
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.*?)\*/g, "<em>$1</em>")
-      .replace(/\n\n/g, "</p><p>")
-      .replace(/\n/g, "<br>")
+  // Deadline urgency
+  const getDeadlineUrgency = (deadline: string) => {
+    const daysLeft = Math.ceil((new Date(deadline).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+    if (daysLeft < 0) return { color: "red", text: "Expired", bg: "bg-red-50 border-red-200" }
+    if (daysLeft <= 3)
+      return { color: "orange", text: `Urgent: ${daysLeft} day${daysLeft === 1 ? "" : "s"} left`, bg: "bg-orange-50 border-orange-200" }
+    return { color: "green", text: `${daysLeft} days remaining`, bg: "bg-green-50 border-green-200" }
   }
 
   const whatsappNumber = "+233242799990"
-  const whatsappMessage = `I want my cv tailored to fit ${job?.job_title || "this job"}, I want you to assist me`
+  const whatsappMessage = `I want my cv tailored to fit ${job?.job_title || "this job"}`
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`
 
-  if (isAuthenticating) {
+  // Loading & auth states
+  if (isAuthenticating || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Authenticating...</p>
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Loading job details...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">{isAuthenticating ? "Authenticating..." : "Loading job details..."}</p>
       </div>
     )
   }
 
   if (error || !job) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-          <div className="container mx-auto px-4 md:px-6 py-4">
+      <div className="min-h-screen flex flex-col">
+        <header className="bg-white border-b sticky top-0 z-40">
+          <div className="container mx-auto px-4 py-4">
             <Link href="/agent/dashboard">
-              <Button variant="outline" className="bg-transparent text-sm">
+              <Button variant="outline" size="sm">
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Button>
             </Link>
           </div>
         </header>
-        <div className="container mx-auto px-4 md:px-6 py-12 text-center flex-1">
+        <div className="container mx-auto px-4 py-12 text-center flex-1">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{error}</h1>
-          <p className="text-gray-600 mb-6">The job you're looking for is no longer available.</p>
+          <h1 className="text-2xl font-bold mb-2">{error}</h1>
+          <p className="text-gray-600 mb-6">The job you are looking for is no longer available.</p>
           <Link href="/jobboard">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-sm">Return to Job Board</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700">Return to Job Board</Button>
           </Link>
         </div>
         <Footer />
@@ -245,14 +262,15 @@ export default function JobDetailsPage() {
     )
   }
 
+  // ========== RENDER JOB DETAILS ==========
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 md:px-6 py-3">
           <Link href="/agent/dashboard">
-            <Button variant="outline" className="bg-transparent text-sm">
-              <ChevronLeft className="h-4 w-4 mr-2" />
+            <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-blue-600">
+              <ChevronLeft className="h-4 w-4" />
               Back to Dashboard
             </Button>
           </Link>
@@ -260,277 +278,251 @@ export default function JobDetailsPage() {
       </header>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          {/* Main Job Details */}
-          <div className="lg:col-span-2">
-            <Card className="overflow-hidden">
-              <CardContent className="p-4 md:p-6">
-                {/* Header with Logo */}
-                <div className="flex flex-col md:flex-row gap-4 md:gap-6 mb-4 pb-4 border-b">
-                  <div className="flex-shrink-0">
-                    <Image
-                      src={job.employer_logo_url || "/placeholder.svg"}
-                      alt={job.employer_name}
-                      width={80}
-                      height={80}
-                      className="w-16 h-16 md:w-20 md:h-20 rounded-lg object-cover bg-gray-100"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex flex-col">
-                      <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">{job.job_title}</h1>
-                      <p className="text-base text-gray-600 mb-2">{job.employer_name}</p>
-                      {job.is_featured && (
-                        <Badge className="bg-amber-100 text-amber-800 text-xs md:text-sm mb-2 w-fit">⭐ Featured</Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Key Information Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-6">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-500">Location</p>
-                      <p className="text-sm md:text-base font-medium text-gray-800">{job.location}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-500">Salary</p>
-                      <p className="text-sm md:text-base font-medium text-gray-800">
-                        {formatSalary(
-                          job.salary_type,
-                          job.salary_min,
-                          job.salary_max,
-                          job.salary_exact,
-                          job.salary_custom,
-                          job.salary_currency,
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Briefcase className="h-4 w-4 text-purple-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-500">Industry</p>
-                      <p className="text-sm md:text-base font-medium text-gray-800">
-                        {job.industry || "Not specified"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Clock className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs md:text-sm text-gray-500">Posted</p>
-                      <p className="text-sm md:text-base font-medium text-gray-800">{formatDateAgo(job.created_at)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Job Description */}
-                <div className="mb-6">
-                  <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3">Job Description</h2>
-                  <div
-                    className="text-sm md:text-base text-gray-700 leading-relaxed prose max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formatTextWithMarkdown(job.description) }}
-                  />
-                </div>
-
-                {job.requirements && (
-                  <div className="mb-6">
-                    <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-3">Requirements</h2>
-                    <div
-                      className="text-sm md:text-base text-gray-700 leading-relaxed prose max-w-none"
-                      dangerouslySetInnerHTML={{ __html: formatTextWithMarkdown(job.requirements) }}
-                    />
-                  </div>
-                )}
-
-                {(job.application_method || job.application_url || job.contact_email || job.contact_phone) && (
-                  <div className="space-y-4">
-                    {(job.application_method || job.application_url) && (
-                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 rounded-xl p-4 md:p-6">
-                        <h3 className="text-sm md:text-base font-bold text-blue-900 mb-4 flex items-center gap-2">
-                          <span className="inline-block w-2 h-2 bg-blue-600 rounded-full"></span>
-                          How to Apply
-                        </h3>
-                        <div className="space-y-3">
-                          {job.application_method === "hyperlink" && job.application_url ? (
-                            <div>
-                              <a
-                                href={job.application_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all hover:shadow-lg hover:scale-105 break-words"
-                              >
-                                🔗 Apply on Their Website
-                                <span className="text-lg">→</span>
-                              </a>
-                              <p className="text-xs md:text-sm text-blue-700 mt-2 font-mono break-all opacity-75">
-                                {job.application_url}
-                              </p>
-                            </div>
-                          ) : job.application_method === "email" && job.contact_email ? (
-                            <div>
-                              <a
-                                href={`mailto:${job.contact_email}?subject=Application for ${job.job_title}`}
-                                className="inline-flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all hover:shadow-lg hover:scale-105"
-                              >
-                                ✉️ Send Application via Email
-                                <span className="text-lg">→</span>
-                              </a>
-                              <p className="text-xs md:text-sm text-blue-700 mt-2 font-mono font-bold">
-                                {job.contact_email}
-                              </p>
-                            </div>
-                          ) : (
-                            <p className="text-sm md:text-base font-semibold text-blue-900 bg-white rounded p-3">
-                              {job.application_method || "Contact employer for application details"}
-                            </p>
-                          )}
-                        </div>
+      <div className="container mx-auto px-4 md:px-6 py-6 md:py-10 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* LEFT COLUMN – Job Details */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Hero Card – no repetition, all key info in one place */}
+            <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-blue-50/40">
+              <CardContent className="p-0">
+                <div className="p-6 md:p-8">
+                  <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+                    <div className="flex-shrink-0">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-2xl blur-lg opacity-20" />
+                        <Image
+                          src={safeString(job.employer_logo_url) || "/placeholder.svg"}
+                          alt={safeString(job.employer_name)}
+                          width={96}
+                          height={96}
+                          className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover bg-white shadow-md border border-gray-100"
+                        />
                       </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{safeString(job.job_title)}</h1>
+                        {job.is_featured && (
+                          <Badge className="bg-amber-100 text-amber-800 border-amber-200 px-3 py-1 text-xs">⭐ Featured</Badge>
+                        )}
+                      </div>
+                      <p className="text-lg text-gray-700 mb-3">{safeString(job.employer_name)}</p>
+
+                      {/* Info chips – no duplication */}
+                      <div className="flex flex-wrap gap-3 text-sm">
+                        <div className="flex items-center gap-1.5 bg-gray-100/80 rounded-full px-3 py-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-blue-500" />
+                          <span>{safeString(job.location)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-gray-100/80 rounded-full px-3 py-1.5">
+                          {getSalaryIcon()}
+                          <span className="font-medium">
+                            {formatSalary(
+                              job.salary_type,
+                              job.salary_min,
+                              job.salary_max,
+                              job.salary_exact,
+                              job.salary_custom,
+                              job.salary_currency
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-gray-100/80 rounded-full px-3 py-1.5">
+                          <Clock className="h-3.5 w-3.5 text-gray-500" />
+                          <span>Posted {formatDateAgo(job.created_at)}</span>
+                        </div>
+                        {job.industry && (
+                          <div className="flex items-center gap-1.5 bg-gray-100/80 rounded-full px-3 py-1.5">
+                            <Briefcase className="h-3.5 w-3.5 text-purple-500" />
+                            <span>{safeString(job.industry)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Job Description */}
+            <Card className="border border-gray-100 shadow-sm overflow-hidden">
+              <CardContent className="p-6 md:p-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <h2 className="text-xl font-bold text-gray-900">Job Description</h2>
+                </div>
+                <div
+                  className="prose prose-slate max-w-none prose-headings:font-semibold prose-a:text-blue-600 prose-strong:text-gray-900 prose-li:marker:text-blue-400 leading-relaxed text-gray-700"
+                  dangerouslySetInnerHTML={{ __html: formatTextWithMarkdown(safeString(job.description)) }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Requirements */}
+            {job.requirements && (
+              <Card className="border border-gray-100 shadow-sm overflow-hidden">
+                <CardContent className="p-6 md:p-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <CheckCircle className="h-5 w-5 text-emerald-600" />
+                    <h2 className="text-xl font-bold text-gray-900">Requirements & Qualifications</h2>
+                  </div>
+                  <div
+                    className="prose prose-slate max-w-none prose-headings:font-semibold prose-li:marker:text-emerald-500 leading-relaxed text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: formatTextWithMarkdown(safeString(job.requirements)) }}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Deadline Alert */}
+            {job.application_deadline && (
+              <div className={`rounded-xl border p-4 flex items-center gap-3 ${getDeadlineUrgency(job.application_deadline).bg}`}>
+                <AlertCircle
+                  className={`h-5 w-5 flex-shrink-0 ${
+                    getDeadlineUrgency(job.application_deadline).color === "red"
+                      ? "text-red-500"
+                      : getDeadlineUrgency(job.application_deadline).color === "orange"
+                      ? "text-orange-500"
+                      : "text-green-500"
+                  }`}
+                />
+                <div>
+                  <p className="font-semibold text-gray-800">Application Deadline</p>
+                  <p className="text-sm">
+                    {new Date(job.application_deadline).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                    <span className="ml-2 font-medium">({getDeadlineUrgency(job.application_deadline).text})</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* How to Apply – gradient CTA */}
+            {(job.application_method || job.application_url || job.contact_email || job.contact_phone) && (
+              <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                <CardContent className="p-6 md:p-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Zap className="h-5 w-5" />
+                    <h3 className="text-lg font-bold">How to Apply</h3>
+                  </div>
+                  <div className="space-y-4">
+                    {job.application_method === "hyperlink" && job.application_url ? (
+                      <a
+                        href={job.application_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-700 font-bold rounded-xl hover:shadow-xl transition-all hover:scale-105"
+                      >
+                        <Globe className="h-5 w-5" />
+                        Apply on Company Website
+                        <span className="text-lg">→</span>
+                      </a>
+                    ) : job.application_method === "email" && job.contact_email ? (
+                      <a
+                        href={`mailto:${job.contact_email}?subject=Application for ${job.job_title}`}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-700 font-bold rounded-xl hover:shadow-xl transition-all"
+                      >
+                        <Mail className="h-5 w-5" />
+                        Send Email Application
+                      </a>
+                    ) : (
+                      <p className="text-white/90 text-sm md:text-base">
+                        {job.application_method || "Contact employer directly using the information below"}
+                      </p>
                     )}
 
                     {(job.contact_email || job.contact_phone) && (
-                      <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 border-2 border-emerald-300 rounded-xl p-4 md:p-6">
-                        <h3 className="text-sm md:text-base font-bold text-emerald-900 mb-4 flex items-center gap-2">
-                          <span className="inline-block w-2 h-2 bg-emerald-600 rounded-full"></span>
-                          Contact Information
-                        </h3>
-                        <div className="space-y-3">
-                          {job.contact_email && (
-                            <div className="bg-white rounded-lg p-3 flex items-center justify-between gap-3">
-                              <div>
-                                <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wide">Email</p>
-                                <a
-                                  href={`mailto:${job.contact_email}`}
-                                  className="text-sm md:text-base font-bold text-emerald-700 hover:text-emerald-900 transition-colors break-all"
-                                >
-                                  {job.contact_email}
-                                </a>
-                              </div>
-                              <span className="text-lg">📧</span>
-                            </div>
-                          )}
-                          {job.contact_phone && (
-                            <div className="bg-white rounded-lg p-3 flex items-center justify-between gap-3">
-                              <div>
-                                <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wide">Phone</p>
-                                <a
-                                  href={`tel:${job.contact_phone}`}
-                                  className="text-sm md:text-base font-bold text-emerald-700 hover:text-emerald-900 transition-colors"
-                                >
-                                  {job.contact_phone}
-                                </a>
-                              </div>
-                              <span className="text-lg">📱</span>
-                            </div>
-                          )}
-                        </div>
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 space-y-2">
+                        {job.contact_email && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-4 w-4 text-white/70" />
+                            <a href={`mailto:${job.contact_email}`} className="hover:underline font-mono break-all">
+                              {job.contact_email}
+                            </a>
+                          </div>
+                        )}
+                        {job.contact_phone && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-4 w-4 text-white/70" />
+                            <a href={`tel:${job.contact_phone}`} className="hover:underline">
+                              {job.contact_phone}
+                            </a>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
-
-                {job.application_deadline && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 md:p-4 mb-6">
-                    <p className="text-xs md:text-sm text-amber-900">
-                      <span className="font-medium">Application Deadline:</span>{" "}
-                      {new Date(job.application_deadline).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
-          {/* Sidebar - WhatsApp Channel */}
-          <div className="lg:col-span-1 space-y-4">
-            <Card className="sticky top-20 overflow-hidden">
-              <CardContent className="p-4 md:p-6 space-y-5">
-                <div>
-                  <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3">Join Our WhatsApp Channel</h3>
-                  <p className="text-xs md:text-sm text-gray-600 mb-3">
-                    Stay updated with the latest job opportunities and career tips by joining our WhatsApp channel.
-                  </p>
-                </div>
-                <div className="border-t pt-4 space-y-2">
-                  <Link
-                    href="https://whatsapp.com/channel/0029VaBsn6KDZ4LgVUn0yg2T"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    <Button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 md:py-3 text-sm md:text-base">
-                      Join WhatsApp Channel
-                    </Button>
+          {/* RIGHT SIDEBAR – CTA cards */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="sticky top-24 space-y-6">
+              {/* WhatsApp Channel */}
+              <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white">
+                <CardContent className="p-6 text-center space-y-4">
+                  <div className="bg-white/20 rounded-full w-12 h-12 flex items-center justify-center mx-auto">
+                    <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.447-.52.15-.173.2-.298.3-.497.1-.198.05-.371-.025-.52-.075-.149-.669-1.61-.916-2.206-.242-.58-.487-.5-.67-.51-.173-.01-.371-.01-.57-.01-.2 0-.523.074-.797.371-.273.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.075 4.487.708.306 1.261.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.569-.347z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold">Join Our WhatsApp Channel</h3>
+                  <p className="text-green-50 text-sm">Get instant job alerts and career tips daily</p>
+                  <Link href="https://whatsapp.com/channel/0029VaBsn6KDZ4LgVUn0yg2T" target="_blank" rel="noopener noreferrer" className="block">
+                    <Button className="w-full bg-white text-green-700 hover:bg-gray-100 font-bold py-2">Join Now →</Button>
                   </Link>
-                  <Link href="/jobboard" className="block">
-                    <Button variant="outline" className="w-full bg-transparent py-2 md:py-3 text-sm md:text-base">
-                      Back to Search
-                    </Button>
-                  </Link>
-                </div>
-                <div className="bg-blue-50 rounded-lg p-3 text-center">
-                  <p className="text-xs md:text-sm text-gray-700 mb-2">
-                    Register to get contacted privately by companies interested in your profile
+                </CardContent>
+              </Card>
+
+              {/* Register Prompt */}
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100">
+                <CardContent className="p-5 text-center space-y-3">
+                  <p className="text-sm text-gray-700">
+                    <strong className="text-blue-800">Get discovered by employers</strong> – register your profile so companies can contact you directly.
                   </p>
                   <Link href="/">
-                    <Button
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm py-2"
-                      size="sm"
-                    >
-                      Register Now
-                    </Button>
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">Register for Free</Button>
                   </Link>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              {/* Back to Search */}
+              <Link href="/jobboard" className="block">
+                <Button variant="outline" className="w-full border-gray-200 text-gray-600 hover:bg-gray-50">
+                  ← Back to All Jobs
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* CV Notification Modal */}
       {showCVNotification && (
         <div className="fixed inset-0 z-50 flex items-end">
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowCVNotification(false)} aria-hidden="true" />
-
           <div className="relative w-full bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom-4 duration-300 p-4 md:p-6 max-w-2xl mx-auto">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1">Increase Your Interview Chances</h3>
                 <p className="text-sm md:text-base text-gray-600">
-                  Always apply with a tailored CV to stand out to employers. Let our experts tailor your CV to match
-                  this position.
+                  Always apply with a tailored CV to stand out to employers. Let our experts tailor your CV to match this position.
                 </p>
               </div>
-              <button
-                onClick={() => setShowCVNotification(false)}
-                className="flex-shrink-0 ml-4 text-gray-400 hover:text-gray-600"
-                aria-label="Close notification"
-              >
+              <button onClick={() => setShowCVNotification(false)} className="flex-shrink-0 ml-4 text-gray-400 hover:text-gray-600">
                 <X className="h-6 w-6" />
               </button>
             </div>
-
             <div className="flex flex-col sm:flex-row gap-3">
               <Link href={whatsappLink} target="_blank" rel="noopener noreferrer" className="flex-1">
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 md:py-3">
-                  Need help tailoring your CV?
-                </Button>
+                <Button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 md:py-3">Need help tailoring your CV?</Button>
               </Link>
-              <Button
-                variant="outline"
-                onClick={() => setShowCVNotification(false)}
-                className="flex-1 bg-transparent py-2 md:py-3"
-              >
+              <Button variant="outline" onClick={() => setShowCVNotification(false)} className="flex-1 bg-transparent py-2 md:py-3">
                 Maybe Later
               </Button>
             </div>
@@ -538,7 +530,6 @@ export default function JobDetailsPage() {
         </div>
       )}
 
-      {/* Footer */}
       <Footer />
     </div>
   )

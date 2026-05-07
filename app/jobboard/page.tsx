@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from 'next/navigation'
 import Image from "next/image"
@@ -71,10 +72,11 @@ interface Job {
 const jobsCache = {
   data: null as Job[] | null,
   timestamp: 0,
-  CACHE_DURATION: 0,
+  CACHE_DURATION: 5 * 60 * 1000,
 }
 
 const generateSlug = (title: string): string => {
+  if (!title) return "job"
   return title
     .toLowerCase()
     .trim()
@@ -112,6 +114,30 @@ const fetchJobs = async (): Promise<Job[]> => {
     console.error("[v0] Supabase client error:", error)
     return jobsCache.data || []
   }
+}
+
+const formatDateAgo = (dateString: string): string => {
+  if (!dateString) return "Recently"
+  
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return "Recently"
+  
+  const now = new Date()
+
+  date.setHours(0, 0, 0, 0)
+  now.setHours(0, 0, 0, 0)
+
+  const diffTime = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) return "Today"
+  if (diffDays === 1) return "Yesterday"
+  if (diffDays < 7) return `${diffDays} days ago`
+  return `${Math.floor(diffDays / 7)} weeks ago`
+}
+
+const safeString = (value: string | null | undefined): string => {
+  return value || ""
 }
 
 export default function JobBoard() {
@@ -169,8 +195,8 @@ export default function JobBoard() {
               schema: "public",
               table: "jobs",
             },
-            (payload: any) => {
-              console.log("[v0] Real-time update received:", payload.eventType)
+            () => {
+              console.log("[v0] Real-time update received")
               fetchJobs().then((updated) => {
                 setJobs(updated)
               })
@@ -192,12 +218,16 @@ export default function JobBoard() {
   }, [isAuthenticating])
 
   useEffect(() => {
-    const filtered = jobs.filter(
-      (job) =>
-        job.job_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.employer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.location.toLowerCase().includes(searchTerm.toLowerCase()),
-    )
+    const searchLower = searchTerm.toLowerCase()
+    const filtered = jobs.filter((job) => {
+      const title = safeString(job.job_title).toLowerCase()
+      const employer = safeString(job.employer_name).toLowerCase()
+      const location = safeString(job.location).toLowerCase()
+      
+      return title.includes(searchLower) || 
+             employer.includes(searchLower) || 
+             location.includes(searchLower)
+    })
     setFilteredJobs(filtered)
     setCurrentPage(0)
   }, [searchTerm, jobs])
@@ -224,24 +254,20 @@ export default function JobBoard() {
   }
 
   const paginatedJobs = filteredJobs.slice(currentPage * jobsPerPage, (currentPage + 1) * jobsPerPage)
-
-  const formatDateAgo = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-
-    date.setHours(0, 0, 0, 0)
-    now.setHours(0, 0, 0, 0)
-
-    const diffTime = now.getTime() - date.getTime()
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 0) return "Today"
-    if (diffDays === 1) return "Yesterday"
-    if (diffDays < 7) return `${diffDays} days ago`
-    return `${Math.floor(diffDays / 7)} weeks ago`
-  }
-
   const totalPages = Math.ceil(filteredJobs.length / jobsPerPage)
+
+  const formatSalary = (job: Job): string => {
+    if (job.salary_type === "negotiable") return "Negotiable"
+    if (job.salary_type === "fixed_range" && job.salary_min && job.salary_max) {
+      return `${job.salary_min} - ${job.salary_max}`
+    }
+    if (job.salary_type === "exact_amount" && job.salary_exact) {
+      return job.salary_exact.toString()
+    }
+    if (job.salary_custom) return job.salary_custom
+    if (job.salary_min && job.salary_max) return `${job.salary_min} - ${job.salary_max}`
+    return "Not specified"
+  }
 
   if (isAuthenticating) {
     return (
@@ -389,7 +415,7 @@ export default function JobBoard() {
                           <div className="flex-shrink-0">
                             <Image
                               src={job.employer_logo_url || "/placeholder.svg"}
-                              alt={job.employer_name}
+                              alt={safeString(job.employer_name)}
                               width={64}
                               height={64}
                               className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover bg-gray-100"
@@ -402,31 +428,17 @@ export default function JobBoard() {
                               </div>
                             )}
                             <h3 className="font-bold text-base md:text-lg text-gray-900 line-clamp-1">
-                              {job.job_title}
+                              {safeString(job.job_title)}
                             </h3>
-                            <p className="text-sm text-gray-600 mb-2">{job.employer_name}</p>
+                            <p className="text-sm text-gray-600 mb-2">{safeString(job.employer_name)}</p>
                             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm">
                               <div className="flex items-center gap-2 text-gray-700">
                                 <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                                <span className="line-clamp-1">{job.location}</span>
+                                <span className="line-clamp-1">{safeString(job.location)}</span>
                               </div>
                               <div className="flex items-center gap-1 font-semibold text-green-700">
                                 <span className="text-xs text-gray-500">Salary:</span>
-                                {job.salary_type === "negotiable" ? (
-                                  <span>Negotiable</span>
-                                ) : job.salary_type === "fixed_range" ? (
-                                  <span>
-                                    {job.salary_min} - {job.salary_max}
-                                  </span>
-                                ) : job.salary_type === "exact_amount" ? (
-                                  <span>{job.salary_exact}</span>
-                                ) : job.salary_custom ? (
-                                  <span>{job.salary_custom}</span>
-                                ) : (
-                                  <span>
-                                    {job.salary_min} - {job.salary_max}
-                                  </span>
-                                )}
+                                <span>{formatSalary(job)}</span>
                               </div>
                               <div className="text-xs text-gray-500">{formatDateAgo(job.created_at)}</div>
                             </div>
@@ -445,40 +457,42 @@ export default function JobBoard() {
                     </div>
                   ))}
                 </div>
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 w-full overflow-x-auto">
-                  <Button
-                    onClick={handlePrevPage}
-                    disabled={currentPage === 0}
-                    variant="outline"
-                    className="bg-transparent w-full sm:w-auto"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-2 sm:pb-0">
-                    {Array.from({ length: totalPages }).map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentPage(index)}
-                        className={`h-8 w-8 md:h-10 md:w-10 rounded transition-colors flex-shrink-0 text-xs sm:text-sm ${
-                          currentPage === index
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 w-full overflow-x-auto">
+                    <Button
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 0}
+                      variant="outline"
+                      className="bg-transparent w-full sm:w-auto"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-2 sm:pb-0">
+                      {Array.from({ length: Math.min(totalPages, 10) }).map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentPage(index)}
+                          className={`h-8 w-8 md:h-10 md:w-10 rounded transition-colors flex-shrink-0 text-xs sm:text-sm ${
+                            currentPage === index
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          {index + 1}
+                        </button>
+                      ))}
+                    </div>
+                    <Button
+                      onClick={handleNextPage}
+                      disabled={currentPage >= totalPages - 1}
+                      className="w-full sm:w-auto"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
                   </div>
-                  <Button
-                    onClick={handleNextPage}
-                    disabled={currentPage >= totalPages - 1}
-                    className="w-full sm:w-auto"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
+                )}
                 <p className="text-center text-sm text-gray-600">
                   Showing {currentPage * jobsPerPage + 1} -{" "}
                   {Math.min((currentPage + 1) * jobsPerPage, filteredJobs.length)} of {filteredJobs.length} jobs
@@ -547,7 +561,7 @@ export default function JobBoard() {
       </section>
 
       {showRegisterPrompt && (
-        <div className="fixed bottom-0 left-0 right-0 bg-blue-600 text-white p-4 md:p-6 shadow-lg animate-in slide-in-from-bottom duration-300">
+        <div className="fixed bottom-0 left-0 right-0 bg-blue-600 text-white p-4 md:p-6 shadow-lg animate-in slide-in-from-bottom duration-300 z-50">
           <div className="container mx-auto flex items-center justify-between gap-4">
             <p className="text-sm md:text-base flex-1">
               Found something interesting? Register now to get contacted privately by companies!
