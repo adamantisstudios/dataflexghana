@@ -974,7 +974,7 @@ export default function HomePage() {
                   asChild
                   className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-xl text-lg px-8 py-6"
                 >
-                  <Link href="https://fasthiredterms.netlify.app/" target="_blank" rel="noopener noreferrer">
+                  <Link href="https://nofeejobs.com/" target="_blank" rel="noopener noreferrer">
                     Visit Registration Portal
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
