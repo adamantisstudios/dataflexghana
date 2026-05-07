@@ -14,7 +14,6 @@ import {
   Briefcase,
   AlertCircle,
   X,
-  DollarSign,
   Calendar,
   Mail,
   Phone,
@@ -23,7 +22,7 @@ import {
   CheckCircle,
   Zap,
   TrendingUp,
-} from "lucide-react"
+} from "lucide-react" // ✅ removed DollarSign
 import { supabaseJobs } from "@/lib/supabase-client-jobs"
 import { Footer } from "@/components/footer"
 
@@ -113,7 +112,7 @@ export default function JobDetailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [showCVNotification, setShowCVNotification] = useState(false)
   const [isAuthenticating, setIsAuthenticating] = useState(true)
-  const [jobUrl, setJobUrl] = useState("") // ✅ Added: state for job URL
+  const [jobUrl, setJobUrl] = useState("")
 
   // Authentication
   useEffect(() => {
@@ -177,7 +176,7 @@ export default function JobDetailsPage() {
     }
   }, [jobId, isAuthenticating])
 
-  // ✅ NEW: Build job URL when job loads
+  // Build job URL when job loads
   useEffect(() => {
     if (!job) return
     if (typeof window !== "undefined") {
@@ -194,13 +193,6 @@ export default function JobDetailsPage() {
     }
   }, [isLoading, job])
 
-  // Helper for salary icon
-  const getSalaryIcon = () => {
-    if (job?.salary_type === "negotiable") return <TrendingUp className="h-4 w-4 text-green-600" />
-    if (job?.salary_min && job?.salary_max) return <DollarSign className="h-4 w-4 text-emerald-600" />
-    return <DollarSign className="h-4 w-4 text-gray-500" />
-  }
-
   // Deadline urgency
   const getDeadlineUrgency = (deadline: string) => {
     const daysLeft = Math.ceil((new Date(deadline).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
@@ -210,7 +202,7 @@ export default function JobDetailsPage() {
     return { color: "green", text: `${daysLeft} days remaining`, bg: "bg-green-50 border-green-200" }
   }
 
-  // ========== ENRICHED WHATSAPP MESSAGE WITH JOB LINK ==========
+  // ========== WHATSAPP MESSAGE ==========
   const whatsappNumber = "+233551999901"
   
   const urgency = job?.application_deadline 
@@ -219,9 +211,8 @@ export default function JobDetailsPage() {
   
   const jobTitle = job?.job_title || "this job"
   const companyName = job?.employer_name ? ` at ${job.employer_name}` : ""
-  const finalJobUrl = jobUrl || "" // ✅ Use the built URL
+  const finalJobUrl = jobUrl || ""
 
-  // Rich, detailed message – now includes the job link
   const whatsappMessage = 
 `*📄 CV TAILORING REQUEST*: ${jobTitle}${companyName}
 
@@ -328,14 +319,14 @@ I will send my current CV separately (PDF or Word). Please return a tailored ver
                       </div>
                       <p className="text-lg text-gray-700 mb-3">{safeString(job.employer_name)}</p>
 
-                      {/* Info chips */}
+                      {/* Info chips – salary icon removed */}
                       <div className="flex flex-wrap gap-3 text-sm">
                         <div className="flex items-center gap-1.5 bg-gray-100/80 rounded-full px-3 py-1.5">
                           <MapPin className="h-3.5 w-3.5 text-blue-500" />
                           <span>{safeString(job.location)}</span>
                         </div>
                         <div className="flex items-center gap-1.5 bg-gray-100/80 rounded-full px-3 py-1.5">
-                          {getSalaryIcon()}
+                          {/* ✅ No icon, only formatted salary from database */}
                           <span className="font-medium">
                             {formatSalary(
                               job.salary_type,
