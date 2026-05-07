@@ -25,7 +25,7 @@ const mockAds = [
     title: "Interview Preparation",
     description: "Master interview skills with our comprehensive training program",
     cta: "Get Started",
-    whatsappNumber: "+233546460945",
+    whatsappNumber: "+233551999901",
     whatsappMessage: "I need a comprehensive Interview Guide, where should I start?",
     image: "/interview-training.jpg",
   },
@@ -73,16 +73,6 @@ const jobsCache = {
   data: null as Job[] | null,
   timestamp: 0,
   CACHE_DURATION: 5 * 60 * 1000,
-}
-
-const generateSlug = (title: string): string => {
-  if (!title) return "job"
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
 }
 
 const fetchJobs = async (): Promise<Job[]> => {
@@ -446,7 +436,8 @@ export default function JobBoard() {
                         </div>
 
                         <div className="w-full md:w-auto flex-shrink-0">
-                          <Link href={`/job-details/${generateSlug(job.job_title)}`} className="block w-full md:w-auto">
+                          {/* ✅ FIXED: use job.id instead of slug */}
+                          <Link href={`/job-details/${job.id}`} className="block w-full md:w-auto">
                             <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap">
                               View Details
                               <ArrowRight className="ml-2 h-4 w-4" />

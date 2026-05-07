@@ -79,16 +79,6 @@ const formatSalary = (
   }
 }
 
-const generateSlug = (title: string): string => {
-  if (!title) return "job"
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-}
-
 const formatDateAgo = (dateString: string): string => {
   if (!dateString) return "Recently"
   const date = new Date(dateString)
@@ -116,7 +106,8 @@ const formatTextWithMarkdown = (text: string): string => {
 export default function JobDetailsPage() {
   const params = useParams()
   const router = useRouter()
-  const slug = params.slug as string
+  // ✅ Changed to jobId from slug
+  const jobId = (params as any)?.jobId as string
 
   const [job, setJob] = useState<Job | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -142,32 +133,24 @@ export default function JobDetailsPage() {
     checkAuthentication()
   }, [router])
 
-  // Fetch job
+  // Fetch job by ID
   useEffect(() => {
-    if (isAuthenticating) return
+    if (isAuthenticating || !jobId) return
 
     const fetchJob = async () => {
+      setIsLoading(true)
       try {
-        const { data, error: fetchError } = await supabaseJobs.from("jobs").select("*")
+        const { data, error: fetchError } = await supabaseJobs
+          .from("jobs")
+          .select("*")
+          .eq("id", jobId)   // ✅ Direct match on UUID
+          .single()
+
         if (fetchError || !data) {
           setError("Job not found")
         } else {
-          const foundJob = data.find((j: Job) => {
-            const jobSlug = generateSlug(j.job_title)
-            const jobIdStr = j.id.toString()
-            return (
-              jobSlug === slug ||
-              jobIdStr === slug ||
-              jobSlug.includes(slug) ||
-              slug.includes(jobSlug.split("-")[0])
-            )
-          })
-          if (foundJob) {
-            setJob(foundJob)
-            setError(null)
-          } else {
-            setError("Job not found")
-          }
+          setJob(data)
+          setError(null)
         }
       } catch (err) {
         console.error("[Fetch error]", err)
@@ -179,25 +162,21 @@ export default function JobDetailsPage() {
 
     fetchJob()
 
-    // Real‑time subscription fallback
-    let subscription: any = null
-    try {
-      if (supabaseJobs && typeof supabaseJobs.channel === "function") {
-        subscription = supabaseJobs
-          .channel("public:jobs")
-          .on("postgres_changes", { event: "*", schema: "public", table: "jobs" }, () => fetchJob())
-          .subscribe()
-      } else {
-        const interval = setInterval(fetchJob, 30000)
-        return () => clearInterval(interval)
-      }
-    } catch (err) {
-      console.error("Subscription error", err)
-    }
+    // Real‑time subscription for this specific job
+    const channel = supabaseJobs
+      .getClient()
+      .channel("public:jobs")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "jobs", filter: `id=eq.${jobId}` },
+        () => fetchJob()
+      )
+      .subscribe()
+
     return () => {
-      if (subscription && typeof subscription.unsubscribe === "function") subscription.unsubscribe()
+      supabaseJobs.getClient().removeChannel(channel)
     }
-  }, [slug, isAuthenticating])
+  }, [jobId, isAuthenticating])
 
   // CV notification timer
   useEffect(() => {
@@ -223,7 +202,7 @@ export default function JobDetailsPage() {
     return { color: "green", text: `${daysLeft} days remaining`, bg: "bg-green-50 border-green-200" }
   }
 
-  const whatsappNumber = "+233242799990"
+  const whatsappNumber = "+233551999901"
   const whatsappMessage = `I want my cv tailored to fit ${job?.job_title || "this job"}`
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`
 
@@ -241,10 +220,10 @@ export default function JobDetailsPage() {
       <div className="min-h-screen flex flex-col">
         <header className="bg-white border-b sticky top-0 z-40">
           <div className="container mx-auto px-4 py-4">
-            <Link href="/agent/dashboard">
+            <Link href="/jobboard">
               <Button variant="outline" size="sm">
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                Back to Job Board
               </Button>
             </Link>
           </div>
@@ -268,10 +247,10 @@ export default function JobDetailsPage() {
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 md:px-6 py-3">
-          <Link href="/agent/dashboard">
+          <Link href="/jobboard">
             <Button variant="ghost" size="sm" className="gap-2 text-gray-600 hover:text-blue-600">
               <ChevronLeft className="h-4 w-4" />
-              Back to Dashboard
+              Back to Job Board
             </Button>
           </Link>
         </div>
@@ -282,7 +261,7 @@ export default function JobDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* LEFT COLUMN – Job Details */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Hero Card – no repetition, all key info in one place */}
+            {/* Hero Card */}
             <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-blue-50/40">
               <CardContent className="p-0">
                 <div className="p-6 md:p-8">
@@ -308,7 +287,7 @@ export default function JobDetailsPage() {
                       </div>
                       <p className="text-lg text-gray-700 mb-3">{safeString(job.employer_name)}</p>
 
-                      {/* Info chips – no duplication */}
+                      {/* Info chips */}
                       <div className="flex flex-wrap gap-3 text-sm">
                         <div className="flex items-center gap-1.5 bg-gray-100/80 rounded-full px-3 py-1.5">
                           <MapPin className="h-3.5 w-3.5 text-blue-500" />
@@ -400,7 +379,7 @@ export default function JobDetailsPage() {
               </div>
             )}
 
-            {/* How to Apply – gradient CTA */}
+            {/* How to Apply */}
             {(job.application_method || job.application_url || job.contact_email || job.contact_phone) && (
               <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                 <CardContent className="p-6 md:p-8">
