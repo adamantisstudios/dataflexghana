@@ -17,7 +17,7 @@ const mockAds = [
     title: "Get Your Tailored Resume",
     description: "Always Apply with a tailored resume for maximum exposure",
     cta: "Upgrade Your CV",
-    ctaLink: "https://cvwriterpros.netlify.app/cv_writingrequest",
+    ctaLink: "https://writer.nofeejobs.com/order/",
     image: "/edited.png",
   },
   {

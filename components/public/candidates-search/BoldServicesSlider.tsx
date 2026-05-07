@@ -26,7 +26,7 @@ export default function BoldServicesSlider() {
       image: "/images/hr_documents.jpg",
       color: "from-blue-600 to-blue-700",
       icon: "📋",
-      link: "https://cvwriterpros.netlify.app/", // Custom link for HR Document Drafting
+      link: "https://writer.nofeejobs.com/order/", // Custom link for HR Document Drafting
     },
     {
       id: 2,

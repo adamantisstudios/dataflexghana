@@ -202,8 +202,39 @@ export default function JobDetailsPage() {
     return { color: "green", text: `${daysLeft} days remaining`, bg: "bg-green-50 border-green-200" }
   }
 
+  // ========== ENRICHED WHATSAPP MESSAGE (THE ONLY CHANGE) ==========
   const whatsappNumber = "+233551999901"
-  const whatsappMessage = `I want my cv tailored to fit ${job?.job_title || "this job"}`
+  
+  // Prepare urgency info
+  const urgency = job?.application_deadline 
+    ? getDeadlineUrgency(job.application_deadline) 
+    : { text: "No deadline specified" }
+  
+  const jobTitle = job?.job_title || "this job"
+  const companyName = job?.employer_name ? ` at ${job.employer_name}` : ""
+
+  // Rich, detailed message
+  const whatsappMessage = 
+`*📄 CV TAILORING REQUEST*: ${jobTitle}${companyName}
+
+⏰ *Deadline urgency*: ${urgency.text}
+
+I need my CV professionally tailored to match this specific role. Please help me with:
+
+1️⃣ *Keyword optimisation* – Extract all key skills/terms from the job description and ensure they appear naturally in my CV (ATS-friendly).
+
+2️⃣ *Rewrite my experience bullets* – Transform my generic achievements into role-specific impact statements that mirror the job's responsibilities.
+
+3️⃣ *Re-order sections* – Move the most relevant skills and experiences to the top (e.g., if they prioritise Python, put that before other tools).
+
+4️⃣ *Delete irrelevant content* – Remove anything that doesn't serve this application (old hobbies, unrelated jobs).
+
+5️⃣ *Add a targeted summary* – Write a 2‑line professional summary that directly addresses what ${job?.employer_name || "the employer"} is looking for.
+
+📎 I will send my current CV separately (PDF or Word). Please return a tailored version with changes highlighted.
+
+🙏 Thank you – I need this urgently to meet the deadline.`
+
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`
 
   // Loading & auth states
