@@ -106,7 +106,6 @@ const formatTextWithMarkdown = (text: string): string => {
 export default function JobDetailsPage() {
   const params = useParams()
   const router = useRouter()
-  // ✅ Changed to jobId from slug
   const jobId = (params as any)?.jobId as string
 
   const [job, setJob] = useState<Job | null>(null)
@@ -114,6 +113,7 @@ export default function JobDetailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [showCVNotification, setShowCVNotification] = useState(false)
   const [isAuthenticating, setIsAuthenticating] = useState(true)
+  const [jobUrl, setJobUrl] = useState("") // ✅ Added: state for job URL
 
   // Authentication
   useEffect(() => {
@@ -143,7 +143,7 @@ export default function JobDetailsPage() {
         const { data, error: fetchError } = await supabaseJobs
           .from("jobs")
           .select("*")
-          .eq("id", jobId)   // ✅ Direct match on UUID
+          .eq("id", jobId)
           .single()
 
         if (fetchError || !data) {
@@ -162,7 +162,6 @@ export default function JobDetailsPage() {
 
     fetchJob()
 
-    // Real‑time subscription for this specific job
     const channel = supabaseJobs
       .getClient()
       .channel("public:jobs")
@@ -177,6 +176,15 @@ export default function JobDetailsPage() {
       supabaseJobs.getClient().removeChannel(channel)
     }
   }, [jobId, isAuthenticating])
+
+  // ✅ NEW: Build job URL when job loads
+  useEffect(() => {
+    if (!job) return
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin
+      setJobUrl(`${origin}/job-details/${job.id}`)
+    }
+  }, [job])
 
   // CV notification timer
   useEffect(() => {
@@ -202,18 +210,18 @@ export default function JobDetailsPage() {
     return { color: "green", text: `${daysLeft} days remaining`, bg: "bg-green-50 border-green-200" }
   }
 
-  // ========== ENRICHED WHATSAPP MESSAGE (THE ONLY CHANGE) ==========
+  // ========== ENRICHED WHATSAPP MESSAGE WITH JOB LINK ==========
   const whatsappNumber = "+233551999901"
   
-  // Prepare urgency info
   const urgency = job?.application_deadline 
     ? getDeadlineUrgency(job.application_deadline) 
     : { text: "No deadline specified" }
   
   const jobTitle = job?.job_title || "this job"
   const companyName = job?.employer_name ? ` at ${job.employer_name}` : ""
+  const finalJobUrl = jobUrl || "" // ✅ Use the built URL
 
-  // Rich, detailed message
+  // Rich, detailed message – now includes the job link
   const whatsappMessage = 
 `*📄 CV TAILORING REQUEST*: ${jobTitle}${companyName}
 
@@ -231,7 +239,9 @@ I need my CV professionally tailored to match this specific role. Please help me
 
 5️⃣ *Add a targeted summary* – Write a 2‑line professional summary that directly addresses what ${job?.employer_name || "the employer"} is looking for.
 
-📎 I will send my current CV separately (PDF or Word). Please return a tailored version with changes highlighted.
+📎 Job link: ${finalJobUrl}
+
+I will send my current CV separately (PDF or Word). Please return a tailored version with changes highlighted.
 
 🙏 Thank you – I need this urgently to meet the deadline.`
 
