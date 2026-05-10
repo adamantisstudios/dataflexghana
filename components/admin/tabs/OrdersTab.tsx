@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -50,7 +50,6 @@ import {
   Calendar,
   Package,
   TrendingUp,
-  DollarSign,
 } from "lucide-react"
 import { getBundleDisplayName } from "@/lib/bundle-data-handler"
 import { toast } from "sonner"
@@ -91,7 +90,14 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   const fetchedPagesRef = useRef<Set<number>>(new Set())
   const { updateOrderStatus, isUpdating } = useOptimisticOrderUpdate()
 
-  // ---------- Helper: detect if filters are active (must be defined early) ----------
+  // ---------- Scroll to top on page change ----------
+  useEffect(() => {
+    if (ordersListRef.current) {
+      ordersListRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [currentPage])
+
+  // ---------- Helper: detect if filters are active ----------
   const isFilterActive = orderSearchTerm.trim() !== "" || combinedOrderFilter !== "All Orders"
 
   // ---------- Helper: build filter query ----------
@@ -261,9 +267,9 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     }
   }, [fetchPageFromDb, setCachedData])
 
-  // Polling for unfiltered mode only (depends on isFilterActive, which is now defined)
+  // Polling for unfiltered mode
   const refreshCurrentPage = useCallback(async () => {
-    if (isFilterActive) return // don't poll while filtering
+    if (isFilterActive) return
     if (!fetchedPagesRef.current.has(currentPage)) return
     try {
       const fresh = await fetchPageFromDb(currentPage)
@@ -281,13 +287,12 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     } catch (err) {}
   }, [currentPage, fetchPageFromDb, setCachedData, isFilterActive])
 
-  // Handle filter changes: load filtered data
+  // Filter change -> load filtered data
   useEffect(() => {
     if (isFilterActive) {
       loadFilteredPage(1)
       setCurrentPage(1)
     } else {
-      // When filters cleared, revert to lazy-loaded state
       setFilteredOrders([])
       setTotalFilteredCount(null)
     }
@@ -311,7 +316,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     }
   }, [loadInitialPages, refreshCurrentPage])
 
-  // Determine which orders to display
+  // Display orders
   const displayOrders = isFilterActive ? filteredOrders : allOrders
   const totalPages = isFilterActive
     ? Math.ceil((totalFilteredCount || 0) / ORDERS_PER_PAGE)
@@ -364,7 +369,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
 
   const openMessageDialog = (order: DataOrder) => {
     setSelectedOrder(order)
-    setAdminMessage(order.admin_message || "We cannot verify this manual order...")
+    setAdminMessage(order.admin_message || "We cannot verify this manual order or find proof of payment. Check and ensure you pay manually to 0557943392. Make sure to also use the payment ID or reference number to ensure your order is processed. If you have paid but our system did not detect it, send proof of payment to 0242799990. Thank You.")
     setShowMessageDialog(true)
   }
 
@@ -450,11 +455,18 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     }
   }
 
+  // ---------- Copy with visual feedback ----------
   const handleCopyPhone = async (phone: string) => {
     await navigator.clipboard.writeText(phone)
     setCopiedPhoneNumbers(prev => new Set([...prev, phone]))
     toast.success("Phone copied")
-    setTimeout(() => setCopiedPhoneNumbers(prev => { const s = new Set(prev); s.delete(phone); return s; }), 2000)
+    setTimeout(() => {
+      setCopiedPhoneNumbers(prev => {
+        const next = new Set(prev)
+        next.delete(phone)
+        return next
+      })
+    }, 2000)
   }
 
   const handleCopyRef = async (ref: string) => {
@@ -463,6 +475,13 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     setCopiedReferenceCodes(newSet)
     localStorage.setItem("copiedOrderReferences", JSON.stringify(Array.from(newSet)))
     toast.success("Reference copied")
+    setTimeout(() => {
+      setCopiedReferenceCodes(prev => {
+        const next = new Set(prev)
+        next.delete(ref)
+        return next
+      })
+    }, 2000)
   }
 
   const PaginationControls = () => {
@@ -559,19 +578,49 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <p className="flex items-center gap-1 text-emerald-600"><User className="h-3 w-3" /><span className="font-medium">Agent:</span> {order.agents?.full_name}</p>
                     <p className="flex items-center gap-1 text-emerald-600"><MapPin className="h-3 w-3" /><span className="font-medium">Recipient:</span> {order.recipient_phone}
-                      <Button size="sm" variant="ghost" onClick={() => handleCopyPhone(order.recipient_phone)} className="h-7 w-7 p-0 ml-1"><Copy className="h-4 w-4" /></Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleCopyPhone(order.recipient_phone)}
+                        className="h-7 w-7 p-0 ml-1"
+                      >
+                        {copiedPhoneNumbers.has(order.recipient_phone) ? (
+                          <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
                     </p>
                     <p className="flex items-center gap-1 text-emerald-600"><Hash className="h-3 w-3" /><span className="font-medium">Reference:</span> {order.payment_reference}
-                      <Button size="sm" variant="ghost" onClick={() => handleCopyRef(order.payment_reference)} className="h-7 w-7 p-0 ml-1"><Copy className="h-4 w-4" /></Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleCopyRef(order.payment_reference)}
+                        className="h-7 w-7 p-0 ml-1"
+                      >
+                        {copiedReferenceCodes.has(order.payment_reference) ? (
+                          <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
                     </p>
                     <p className="flex items-center gap-1 text-xs text-emerald-500"><Calendar className="h-3 w-3" /><span className="font-medium">Ordered:</span> {formatTimestamp(order.created_at)}</p>
                   </div>
                   <div className="flex justify-between items-center pt-2">
                     <div>
-                      <p className="text-sm font-semibold text-emerald-700 flex items-center gap-1"><DollarSign className="h-4 w-4" />GH₵ {order.data_bundles?.price?.toFixed(2) || "0.00"}</p>
-                      <p className="text-xs text-emerald-600 flex items-center gap-1"><TrendingUp className="h-3 w-3" />Commission: GH₵ {safeCommissionDisplay(order.commission_amount).toFixed(2)}</p>
+                      {/* Cedi sign only, no DollarSign icon */}
+                      <p className="text-sm font-semibold text-emerald-700 flex items-center gap-1">
+                        GH₵ {order.data_bundles?.price?.toFixed(2) || "0.00"}
+                      </p>
+                      <p className="text-xs text-emerald-600 flex items-center gap-1">
+                        <TrendingUp className="h-3 w-3" />
+                        Commission: GH₵ {safeCommissionDisplay(order.commission_amount).toFixed(2)}
+                      </p>
                     </div>
-                    {order.data_bundles?.size_gb && <Badge variant="outline"><Package className="h-3 w-3 mr-1" />{order.data_bundles.size_gb} GB</Badge>}
+                    {order.data_bundles?.size_gb && (
+                      <Badge variant="outline"><Package className="h-3 w-3 mr-1" />{order.data_bundles.size_gb} GB</Badge>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-emerald-100">
@@ -579,8 +628,13 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
                     <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="pending">Pending</SelectItem><SelectItem value="processing">Processing</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="canceled">Canceled</SelectItem></SelectContent>
                   </Select>
-                  <Button size="sm" variant="outline" onClick={() => openMessageDialog(order)} className="border-blue-300 text-blue-600 w-full sm:w-auto"><MessageCircle className="h-4 w-4 mr-2" />{order.admin_message ? "Edit" : "Send"} Message</Button>
-                  <Button size="sm" variant="destructive" onClick={() => deleteOrder(order.id)} className="w-full sm:w-auto"><Trash2 className="h-4 w-4 mr-2" />Delete</Button>
+                  <Button size="sm" variant="outline" onClick={() => openMessageDialog(order)} className="border-blue-300 text-blue-600 w-full sm:w-auto">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    {order.admin_message ? "Edit" : "Send"} Message
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => deleteOrder(order.id)} className="w-full sm:w-auto">
+                    <Trash2 className="h-4 w-4 mr-2" />Delete
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -592,15 +646,38 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       <PaginationControls />
       <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />
 
+      {/* Note: increased Textarea rows to 8 for full message visibility */}
       <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader><DialogTitle>Send Message</DialogTitle><DialogDescription>Visible to the agent.</DialogDescription></DialogHeader>
-          {selectedOrder && (<div className="grid gap-4 py-4"><Label>Order ID</Label><Input value={selectedOrder.id} disabled /><Label>Message</Label><Textarea value={adminMessage} onChange={e => setAdminMessage(e.target.value)} rows={4} /></div>)}
-          <DialogFooter><Button onClick={handleSendMessage}>Send</Button></DialogFooter>
+          <DialogHeader>
+            <DialogTitle>Send Message</DialogTitle>
+            <DialogDescription>Visible to the agent.</DialogDescription>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="grid gap-4 py-4">
+              <Label>Order ID</Label>
+              <Input value={selectedOrder.id} disabled />
+              <Label>Message</Label>
+              <Textarea
+                value={adminMessage}
+                onChange={e => setAdminMessage(e.target.value)}
+                rows={8}
+                className="resize-y"
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleSendMessage}>Send</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <OrderCleanupDialog open={showCleanupDialog} onOpenChange={setShowCleanupDialog} orders={allOrders} onOrdersUpdated={handleOrdersUpdated} />
+      <OrderCleanupDialog
+        open={showCleanupDialog}
+        onOpenChange={setShowCleanupDialog}
+        orders={allOrders}
+        onOrdersUpdated={handleOrdersUpdated}
+      />
     </div>
   )
 }
