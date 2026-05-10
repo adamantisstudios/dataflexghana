@@ -1,0 +1,16 @@
+
+Analyze the attached project analysis files and generate:
+
+- Full platform documentation
+- UI/UX architecture
+- Theme system
+- Navigation map
+- Dashboard breakdown
+- Admin panel analysis
+- Agent workflows
+- User flows
+- Feature inventory
+- Screen breakdowns
+- Product architecture
+
+Use the markdown and JSON files as source context.

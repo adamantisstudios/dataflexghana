@@ -819,10 +819,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     addressLocality: "Accra",
                   },
                   sameAs: [
-                    "https://www.dataflexagents.com",
-                    "https://agentwelcome.netlify.app/",
-                    "https://fasthiredterms.netlify.app/",
-                    "https://bizcomplianceforms.netlify.app/",
+                    "https://employers.nofeejobs.com/",
                   ],
                   foundingDate: "2023",
                   numberOfEmployees: "50-200",
