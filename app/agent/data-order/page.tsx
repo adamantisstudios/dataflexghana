@@ -42,7 +42,6 @@ import {
   ShoppingCart,
   X,
   Clock,
-  DollarSign,
   AlertCircle,
 } from "lucide-react"
 import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence"

@@ -47,10 +47,7 @@ export default function SavingsProgressPage() {
   }, [router])
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
+    return `₵${amount.toFixed(2)}`
   }
 
   if (loading) {
@@ -96,7 +93,7 @@ export default function SavingsProgressPage() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-blue-200">Wallet Balance</p>
-                <p className="font-medium text-white">{agent ? formatCurrency(agent.wallet_balance || 0) : '$0.00'}</p>
+                <p className="font-medium text-white">{agent ? formatCurrency(agent.wallet_balance || 0) : "₵0.00"}</p>
               </div>
             </div>
           </div>

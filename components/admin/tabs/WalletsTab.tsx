@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState, useEffect, useMemo, memo, useCallback, useRef } from "react"
+import { useState, useEffect, useMemo, memo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -38,7 +38,7 @@ import {
   Trash2,
   TrendingUp,
   RefreshCw,
-  Banknote,
+  DollarSign,
 } from "lucide-react"
 import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton"
 import { connectionManager } from "@/lib/connection-manager"
@@ -76,7 +76,7 @@ const getTransactionTypeLabel = (transaction: any): string => {
   }
 }
 
-// Transaction type icon (no DollarSign)
+// Transaction type icon
 const getTransactionTypeIcon = (transaction: any) => {
   const type = transaction.transaction_type?.toLowerCase()
   switch (type) {
@@ -88,7 +88,7 @@ const getTransactionTypeIcon = (transaction: any) => {
       return <RefreshCw className="h-5 w-5 text-purple-600" />
     case "commission":
     case "commission_deposit":
-      return <Banknote className="h-5 w-5 text-emerald-600" />
+      return <DollarSign className="h-5 w-5 text-emerald-600" />
     case "withdrawal_deduction":
       return <TrendingUp className="h-5 w-5 text-red-600 rotate-180" />
     case "admin_adjustment":
@@ -156,16 +156,6 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   const [agentSearchTerm, setAgentSearchTerm] = useState("")
   const [searchedAgent, setSearchedAgent] = useState<Agent | null>(null)
   const [agentSearchLoading, setAgentSearchLoading] = useState(false)
-
-  // Ref for scrolling to top of transaction list on pagination
-  const walletListRef = useRef<HTMLDivElement>(null)
-
-  // Scroll to top when current page changes
-  useEffect(() => {
-    if (walletListRef.current) {
-      walletListRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
-  }, [currentWalletsPage])
 
   // --- Helper to safely call setCachedData (prevents TypeError) ---
   const safeSetCachedData = useCallback(
@@ -1172,8 +1162,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         </div>
       )}
 
-      {/* Wallet Transactions List (with scroll ref) */}
-      <div ref={walletListRef} className="space-y-4">
+      {/* Wallet Transactions List */}
+      <div className="space-y-4">
         {filteredWalletTransactions.length === 0 && !error ? (
           <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
             <CardContent className="pt-6 text-center">

@@ -8,7 +8,6 @@ import { Progress } from '@/components/ui/progress'
 import { 
   TrendingUp, 
   Calendar, 
-  DollarSign, 
   Clock,
   Target,
   ArrowUp,
@@ -203,7 +202,7 @@ export default function SavingsProgressTracker({ savingsId, agentId }: SavingsPr
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <span className="text-lg font-bold text-muted-foreground">₵</span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{formatCurrency(savings.current_balance)}</div>
@@ -362,7 +361,7 @@ export default function SavingsProgressTracker({ savingsId, agentId }: SavingsPr
             </div>
           ) : transactions.length === 0 ? (
             <div className="text-center py-8">
-              <DollarSign className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <div className="mx-auto h-12 w-12 text-gray-400 mb-4 text-3xl font-bold flex items-center justify-center">₵</div>
               <p className="text-gray-500">No transactions yet</p>
             </div>
           ) : (

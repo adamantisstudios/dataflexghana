@@ -44,7 +44,7 @@ export default function AgentRegistrationNotification() {
             size="sm"
             className="w-full bg-white text-blue-600 hover:bg-blue-50 font-semibold gap-2"
           >
-            <Link href="/agent/register" className="flex items-center justify-center">
+            <Link href="/agent/registration-payment" className="flex items-center justify-center">
               <span>Register as Agent</span>
               <ChevronRight className="w-4 h-4" />
             </Link>

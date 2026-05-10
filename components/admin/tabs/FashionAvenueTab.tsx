@@ -96,10 +96,6 @@ export default function FashionAvenueTab() {
     return isNaN(num) ? defaultValue : num;
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   // Helper: Parse completion_time from string format (e.g., "10 days" or "10-14 days" -> "10")
   const parseCompletionTime = (value: any): string => {
     const str = toSafeString(value);
@@ -109,28 +105,8 @@ export default function FashionAvenueTab() {
     return match ? match[0] : '';
   };
 
-  // Sync form state when editingProduct changes (fixes data persistence bug)
-  useEffect(() => {
-    if (editingProduct) {
-      setProductForm({
-        product_name: toSafeString(editingProduct.product_name),
-        product_code: toSafeString(editingProduct.product_code),
-        description: toSafeString(editingProduct.description),
-        category_id: toSafeString(editingProduct.category_id),
-        base_price: toSafeString(editingProduct.base_price),
-        fabric_cost_included: editingProduct.fabric_cost_included,
-        completion_time: parseCompletionTime(editingProduct.completion_time || editingProduct.estimated_timeline_days),
-        express_charge: toSafeString(editingProduct.express_charge),
-        commission_amount: toSafeString(editingProduct.commission_amount),
-        image_urls: editingProduct.image_urls || [],
-      });
-      setNewImageUrl('');
-    }
-  }, [editingProduct]);
-
   const loadData = async () => {
     try {
-      setLoading(true);
       const [productsRes, categoriesRes, referralsRes] = await Promise.all([
         fetch('/api/fashion/products?limit=100'),
         fetch('/api/fashion/categories'),
@@ -157,6 +133,29 @@ export default function FashionAvenueTab() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Sync form state when editingProduct changes (fixes data persistence bug)
+  useEffect(() => {
+    if (editingProduct) {
+      setProductForm({
+        product_name: toSafeString(editingProduct.product_name),
+        product_code: toSafeString(editingProduct.product_code),
+        description: toSafeString(editingProduct.description),
+        category_id: toSafeString(editingProduct.category_id),
+        base_price: toSafeString(editingProduct.base_price),
+        fabric_cost_included: editingProduct.fabric_cost_included,
+        completion_time: parseCompletionTime(editingProduct.completion_time || editingProduct.estimated_timeline_days),
+        express_charge: toSafeString(editingProduct.express_charge),
+        commission_amount: toSafeString(editingProduct.commission_amount),
+        image_urls: editingProduct.image_urls || [],
+      });
+      setNewImageUrl('');
+    }
+  }, [editingProduct]);
 
   const handleAddProduct = async () => {
     // --- Convert all form fields to safe strings first ---

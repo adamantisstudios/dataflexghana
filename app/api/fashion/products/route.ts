@@ -69,12 +69,84 @@ const mockCategories = [
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id');
     const search = searchParams.get('search') || '';
     const category = searchParams.get('category') || '';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '12');
 
-    // Build Supabase query
+    // Helper function to format a single product
+    const formatProduct = (p: any) => {
+      let timelineDays = p.estimated_timeline_days || 0;
+      if (!timelineDays && p.completion_time) {
+        const match = String(p.completion_time).match(/\d+/);
+        timelineDays = match ? parseInt(match[0], 10) : 0;
+      }
+      
+      return {
+        id: p.id,
+        product_name: p.title,
+        product_code: p.product_code || `PROD-${p.id}`,
+        description: p.description,
+        category_id: p.category_id,
+        category_name: p.fashion_categories?.name || 'Unknown',
+        base_price: parseFloat(p.base_price),
+        fabric_cost_included: p.include_fabric_cost,
+        completion_time: `${timelineDays} days`,
+        estimated_timeline_days: timelineDays,
+        express_charge: parseFloat(p.express_sewing_charge || p.express_charge || 0),
+        commission_amount: parseFloat(p.commission_amount || 0),
+        image_urls: p.image_urls || [],
+        status: p.status,
+        created_at: p.created_at,
+      };
+    };
+
+    // **SINGLE PRODUCT FETCH** - When id parameter is provided
+    if (id) {
+      const productId = parseInt(id);
+      if (isNaN(productId)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid product ID' },
+          { status: 400 }
+        );
+      }
+
+      const { data: product, error } = await supabase
+        .from('fashion_products')
+        .select(
+          `
+          *,
+          fashion_categories(name)
+        `
+        )
+        .eq('id', productId)
+        .eq('status', 'active')
+        .single();
+
+      if (error) {
+        console.error('Error fetching single product:', error);
+        return NextResponse.json(
+          { success: false, error: 'Product not found' },
+          { status: 404 }
+        );
+      }
+
+      if (!product) {
+        return NextResponse.json(
+          { success: false, error: 'Product not found' },
+          { status: 404 }
+        );
+      }
+
+      const formatted = formatProduct(product);
+      return NextResponse.json({
+        success: true,
+        data: formatted,
+      });
+    }
+
+    // **PRODUCTS LIST FETCH** - When id parameter is NOT provided (existing behavior)
     let query = supabase
       .from('fashion_products')
       .select(
@@ -109,33 +181,7 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    // Format response with field mappings
-    const formatted = products?.map((p: any) => {
-      // Extract timeline days from estimated_timeline_days or parse from completion_time
-      let timelineDays = p.estimated_timeline_days || 0;
-      if (!timelineDays && p.completion_time) {
-        const match = String(p.completion_time).match(/\d+/);
-        timelineDays = match ? parseInt(match[0], 10) : 0;
-      }
-      
-      return {
-        id: p.id,
-        product_name: p.title,
-        product_code: p.product_code || `PROD-${p.id}`,
-        description: p.description,
-        category_id: p.category_id,
-        category_name: p.fashion_categories?.name || 'Unknown',
-        base_price: parseFloat(p.base_price),
-        fabric_cost_included: p.include_fabric_cost,
-        completion_time: `${timelineDays} days`,
-        estimated_timeline_days: timelineDays,
-        express_charge: parseFloat(p.express_sewing_charge || p.express_charge || 0),
-        commission_amount: parseFloat(p.commission_amount || 0),
-        image_urls: p.image_urls || [],
-        status: p.status,
-        created_at: p.created_at,
-      };
-    }) || [];
+    const formatted = products?.map(formatProduct) || [];
 
     return NextResponse.json({
       success: true,

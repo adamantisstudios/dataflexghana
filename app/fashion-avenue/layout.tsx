@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://dataflexghana.com'),
   title: 'Fashion Avenue - Professional Fashion Design Services',
-  description: 'Request custom fashion design projects and refer friends to our professional fashion design services.',
+  description:
+    'Request custom fashion design projects and refer friends to our professional fashion design services.',
   keywords: ['fashion design', 'custom design', 'fashion consultation', 'professional services'],
   openGraph: {
     title: 'Fashion Avenue',

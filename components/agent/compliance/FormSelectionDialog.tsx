@@ -33,7 +33,7 @@ export function FormSelectionDialog({ open, onOpenChange, forms, onSelectForm }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-md sm:max-w-lg p-0 flex flex-col max-h-[95vh] overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-md sm:max-w-lg p-0 flex flex-col max-h-[90vh] overflow-hidden my-auto mx-auto">
         {/* Fixed Header */}
         <DialogHeader className="flex-shrink-0 p-3 sm:p-4 border-b border-gray-200 relative">
           <DialogTitle className="text-base sm:text-lg pr-6">Select a Form</DialogTitle>

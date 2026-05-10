@@ -26,7 +26,23 @@ export default function SavingsProgressPage() {
           return
         }
 
-        setAgent(storedAgent)
+        // Fetch fresh agent data with current wallet balance from database
+        const { data: freshAgent, error: agentError } = await supabase
+          .from('agents')
+          .select('id, full_name, wallet_balance, email, phone_number')
+          .eq('id', storedAgent.id)
+          .single()
+
+        if (agentError || !freshAgent) {
+          // Fall back to stored agent if database fetch fails
+          setAgent(storedAgent)
+        } else {
+          // Use fresh agent data with updated wallet balance
+          setAgent({
+            ...storedAgent,
+            wallet_balance: freshAgent.wallet_balance || 0
+          })
+        }
 
         // Load active savings using agent ID from localStorage
         const { data: savingsData } = await supabase
@@ -47,10 +63,7 @@ export default function SavingsProgressPage() {
   }, [router])
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount)
+    return `₵${amount.toFixed(2)}`
   }
 
   if (loading) {
