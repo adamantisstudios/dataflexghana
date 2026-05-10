@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/pagination";
 import { supabase, hashPassword, type Agent } from "@/lib/supabase";
 import { getCurrentAdmin } from "@/lib/auth";
-import { useAdminTabCache } from "@/lib/admin-tabs-cache";
 import {
   Check,
   Trash2,
@@ -46,8 +45,12 @@ interface AgentWithWallet extends Agent {
   commission_balance?: number;
 }
 
-const AgentsTab = memo(function AgentsTab() {
-  const { getCachedData, setCachedData } = useAdminTabCache();
+interface AgentsTabProps {
+  getCachedData?: () => AgentWithWallet[] | undefined;
+  setCachedData?: (data: AgentWithWallet[]) => void;
+}
+
+const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: AgentsTabProps = {}) {
   const [agents, setAgents] = useState<AgentWithWallet[]>([]);
   const [totalAgents, setTotalAgents] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -112,7 +115,7 @@ const AgentsTab = memo(function AgentsTab() {
                     }
                   : a
               );
-              setCachedData(updated);
+              setCachedData?.(updated);
               return updated;
             });
           } catch (error) {
@@ -201,7 +204,7 @@ const AgentsTab = memo(function AgentsTab() {
 
   useEffect(() => {
     const loadInitialAgents = async () => {
-      const cachedData = getCachedData();
+      const cachedData = getCachedData?.();
       if (cachedData && cachedData.length > 0) {
         setAgents(cachedData);
         setLoading(false);
@@ -216,7 +219,7 @@ const AgentsTab = memo(function AgentsTab() {
       }
     };
     loadInitialAgents();
-  }, [getCachedData, loadAgentsPage, agentsFilterAdmin]);
+  }, [loadAgentsPage, agentsFilterAdmin]);
 
   // Handle search and filter changes - reload page 1 with new filters
   useEffect(() => {
@@ -245,7 +248,7 @@ const AgentsTab = memo(function AgentsTab() {
         agent.id === agentId ? { ...agent, isapproved: true } : agent
       );
       setAgents(updatedAgents);
-      setCachedData(updatedAgents);
+      setCachedData?.(updatedAgents);
     } catch (error) {
       console.error("Error approving agent:", error);
       alert("Failed to approve agent");
@@ -259,7 +262,7 @@ const AgentsTab = memo(function AgentsTab() {
       if (error) throw error;
       const updatedAgents = agents.filter((agent) => agent.id !== agentId);
       setAgents(updatedAgents);
-      setCachedData(updatedAgents);
+      setCachedData?.(updatedAgents);
     } catch (error) {
       console.error("Error deleting agent:", error);
       alert("Failed to delete agent");
@@ -423,10 +426,7 @@ const AgentsTab = memo(function AgentsTab() {
         }. Agent historical data and wallet balances remain intact.`
       );
       setShowClearDialog(false);
-      // Refresh only the agents list, not the whole page
-        await loadAgentsPage(currentAgentsPage, agentSearchTerm, agentsFilterAdmin);
-        setShowClearDialog(false);
-        toast.success("Admin data cleared successfully");
+      window.location.reload();
     } catch (error) {
       console.error("Error during admin data cleanup:", error);
       alert("Failed to clear admin data. Please check your selection and try again.");
@@ -446,7 +446,7 @@ const AgentsTab = memo(function AgentsTab() {
         agent.id === agentId ? { ...agent, isapproved: false } : agent
       );
       setAgents(updatedAgents);
-      setCachedData(updatedAgents);
+      setCachedData?.(updatedAgents);
     } catch (error) {
       console.error("Error unapproving agent:", error);
       alert("Failed to unapprove agent");

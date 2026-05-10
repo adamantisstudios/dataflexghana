@@ -1,6 +1,5 @@
 "use client"
-
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +27,8 @@ import { supabase, type DataOrder } from "@/lib/supabase"
 import { enhancedSupabase } from "@/lib/supabase-enhanced"
 import { useOptimisticOrderUpdate } from "@/hooks/use-optimistic-updates"
 import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton"
+import { realtimeManager } from "@/lib/realtime-manager"
+import { connectionManager } from "@/lib/connection-manager"
 import { getStoredAdmin } from "@/lib/auth"
 import OrderCleanupDialog from "@/components/admin/OrderCleanupDialog"
 import { safeCommissionDisplay } from "@/lib/commission-calculator"
@@ -40,16 +41,12 @@ import {
   Wallet,
   CreditCard,
   AlertCircle,
+  Wifi,
   WifiOff,
+  CheckCircle2,
   Database,
   Copy,
   Check,
-  MapPin,
-  User,
-  Hash,
-  Calendar,
-  Package,
-  TrendingUp,
 } from "lucide-react"
 import { getBundleDisplayName } from "@/lib/bundle-data-handler"
 import { toast } from "sonner"
@@ -59,317 +56,376 @@ interface OrdersTabProps {
   setCachedData?: (data: DataOrder[]) => void
 }
 
-const ORDERS_PER_PAGE = 12
-const INITIAL_PAGES_TO_LOAD = 3
-const POLLING_INTERVAL_MS = 3 * 60 * 1000
-
 export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabProps = {}) {
-  // ---------- State ----------
-  const [allOrders, setAllOrders] = useState<DataOrder[]>([])
+  const [dataOrders, setDataOrders] = useState<DataOrder[]>([])
   const [filteredOrders, setFilteredOrders] = useState<DataOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [orderSearchTerm, setOrderSearchTerm] = useState("")
   const [combinedOrderFilter, setCombinedOrderFilter] = useState("All Orders")
-  const [currentPage, setCurrentPage] = useState(1)
+  const [currentOrdersPage, setCurrentOrdersPage] = useState(1)
   const [showMessageDialog, setShowMessageDialog] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<DataOrder | null>(null)
-  const [adminMessage, setAdminMessage] = useState(
-    "We cannot verify this manual order or find proof of payment. Check and ensure you pay manually to 0557943392. Make sure to also use the payment ID or reference number to ensure your order is processed. If you have paid but our system did not detect it, send proof of payment to 0242799990. Thank You."
-  )
+  const [adminMessage, setAdminMessage] = useState("We cannot verify this manual order or find proof of payment. Check and ensure you pay manually to 0557943392. Make sure to also use the payment ID or reference number to ensure your order is processed. If you have paid but our system did not detect it, send proof of payment to 0242799990. Thank You.")
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [connectionError, setConnectionError] = useState<string | null>(null)
+  const [connectionStatus, setConnectionStatus] = useState(connectionManager.getConnectionStatus())
+  const [realtimeConnected, setRealtimeConnected] = useState(false)
   const [showCleanupDialog, setShowCleanupDialog] = useState(false)
   const [copiedPhoneNumbers, setCopiedPhoneNumbers] = useState<Set<string>>(new Set())
   const [copiedReferenceCodes, setCopiedReferenceCodes] = useState<Set<string>>(new Set())
-  const [totalFilteredCount, setTotalFilteredCount] = useState<number | null>(null)
-  const [loadingPage, setLoadingPage] = useState<number | null>(null)
 
+  useEffect(() => {
+    const stored = localStorage.getItem("copiedOrderReferences")
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setCopiedReferenceCodes(new Set(parsed))
+      } catch (e) {
+        console.error("Failed to parse copied references from localStorage:", e)
+      }
+    }
+  }, [])
+
+  const itemsPerPage = 12
   const ordersListRef = useRef<HTMLDivElement>(null)
   const loadingRef = useRef(false)
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const fetchedPagesRef = useRef<Set<number>>(new Set())
+  const realtimeUnsubscribeRef = useRef<(() => void) | null>(null)
+  const connectionUnsubscribeRef = useRef<(() => void) | null>(null)
   const { updateOrderStatus, isUpdating } = useOptimisticOrderUpdate()
 
-  // ---------- Scroll to top on page change ----------
-  useEffect(() => {
-    if (ordersListRef.current) {
-      ordersListRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
-  }, [currentPage])
+  const scrollToTop = () => {
+    ordersListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
-  // ---------- Helper: detect if filters are active ----------
-  const isFilterActive = orderSearchTerm.trim() !== "" || combinedOrderFilter !== "All Orders"
-
-  // ---------- Helper: build filter query ----------
-  const buildFilteredQuery = useCallback(async (page: number, searchTerm: string, combinedFilter: string) => {
-    const start = (page - 1) * ORDERS_PER_PAGE
-    const end = start + ORDERS_PER_PAGE - 1
-
-    let query = enhancedSupabase
-      .from("data_orders")
-      .select(
-        `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
-        { count: "exact" }
-      )
-      .or("admin_hidden.is.null,admin_hidden.eq.false")
-      .order("created_at", { ascending: false })
-
+  const filterOrders = useCallback((orders: DataOrder[], searchTerm: string, combinedFilter: string) => {
+    let filtered = orders
+    
+    // Parse combined filter to get status and type
     if (combinedFilter !== "All Orders") {
       if (combinedFilter === "Manual Orders") {
-        query = query.eq("payment_method", "manual")
+        filtered = filtered.filter((order) => order.payment_method === "manual")
       } else if (combinedFilter === "Wallet Orders") {
-        query = query.eq("payment_method", "wallet")
-      } else if (["Pending", "Processing", "Completed", "Canceled"].includes(combinedFilter)) {
-        const statusMap: Record<string, string> = {
-          Pending: "pending",
-          Processing: "processing",
-          Completed: "completed",
-          Canceled: "canceled",
-        }
-        query = query.eq("status", statusMap[combinedFilter])
+        filtered = filtered.filter((order) => order.payment_method === "wallet")
+      } else if (combinedFilter === "Pending" || combinedFilter === "Processing" || combinedFilter === "Completed" || combinedFilter === "Canceled") {
+        filtered = filtered.filter((order) => {
+          const statusMap: Record<string, string> = {
+            "Pending": "pending",
+            "Processing": "processing",
+            "Completed": "completed",
+            "Canceled": "canceled",
+          }
+          return order.status === statusMap[combinedFilter]
+        })
       }
     }
-
-    if (searchTerm.trim()) {
-      const term = `%${searchTerm.trim()}%`
-      query = query.or(
-        `agents.full_name.ilike.${term},recipient_phone.ilike.${term},payment_reference.ilike.${term},data_bundles.name.ilike.${term}`
-      )
+    
+    // Client-side search - searches across all visible fields
+    if (searchTerm && searchTerm.trim()) {
+      const lowerSearchTerm = searchTerm.toLowerCase().trim()
+      filtered = filtered.filter((order) => {
+        const agentName = order.agents?.full_name?.toLowerCase() || ""
+        const agentPhone = order.agents?.phone_number?.toLowerCase() || ""
+        const recipientPhone = order.recipient_phone?.toLowerCase() || ""
+        const reference = order.payment_reference?.toLowerCase() || ""
+        const bundleName = order.data_bundles?.name?.toLowerCase() || ""
+        const orderId = order.id?.toLowerCase() || ""
+        const status = order.status?.toLowerCase() || ""
+        
+        return (
+          agentName.includes(lowerSearchTerm) ||
+          agentPhone.includes(lowerSearchTerm) ||
+          recipientPhone.includes(lowerSearchTerm) ||
+          reference.includes(lowerSearchTerm) ||
+          bundleName.includes(lowerSearchTerm) ||
+          orderId.includes(lowerSearchTerm) ||
+          status.includes(lowerSearchTerm)
+        )
+      })
     }
-
-    const { data, error, count } = await query.range(start, end)
-    if (error) throw error
-    return { data: data || [], count: count || 0 }
+    return filtered
   }, [])
 
-  // ---------- Load filtered data (server-side) ----------
-  const loadFilteredPage = useCallback(async (page: number) => {
-    setLoadingPage(page)
-    try {
-      const { data, count } = await buildFilteredQuery(page, orderSearchTerm, combinedOrderFilter)
-      const processed = data.map(order => ({
-        ...order,
-        commission_amount:
-          order.commission_amount ||
-          (order.data_bundles?.price && order.data_bundles?.commission_rate
-            ? order.data_bundles.price * order.data_bundles.commission_rate
-            : 0),
-      }))
-      setFilteredOrders(processed)
-      setTotalFilteredCount(count)
-    } catch (err: any) {
-      console.error("Filtered load error", err)
-      setConnectionError(`Filter failed: ${err.message}`)
-      setFilteredOrders([])
-      setTotalFilteredCount(0)
-    } finally {
-      setLoadingPage(null)
-    }
-  }, [orderSearchTerm, combinedOrderFilter, buildFilteredQuery])
+  const memoizedFilteredOrders = useMemo(() => {
+    return filterOrders(dataOrders, orderSearchTerm, combinedOrderFilter)
+  }, [dataOrders, orderSearchTerm, combinedOrderFilter, filterOrders])
 
-  // ---------- Load lazy pages (unfiltered) ----------
-  const fetchPageFromDb = useCallback(async (page: number): Promise<DataOrder[]> => {
-    const start = (page - 1) * ORDERS_PER_PAGE
-    const end = start + ORDERS_PER_PAGE - 1
+  useEffect(() => {
+    setFilteredOrders(memoizedFilteredOrders)
+    // Reset to first page when filters/search changes
+    setCurrentOrdersPage(1)
+  }, [memoizedFilteredOrders])
 
-    let data, error
-    try {
-      let result
+  const setupRealtimeSubscription = useCallback(() => {
+    console.log("Setting up real-time subscription for data_orders...")
+    const unsubscribe = realtimeManager.subscribe("orders_tab_subscription", "data_orders", (payload) => {
+      console.log("Real-time order update received:", payload)
+      if (payload.eventType === "INSERT") {
+        const newOrder = payload.new as DataOrder
+        setDataOrders((prev) => {
+          const updated = [newOrder, ...prev]
+          setCachedData?.(updated)
+          return updated
+        })
+      } else if (payload.eventType === "UPDATE") {
+        const updatedOrder = payload.new as DataOrder
+        setDataOrders((prev) => {
+          const updated = prev.map((order) => (order.id === updatedOrder.id ? { ...order, ...updatedOrder } : order))
+          setCachedData?.(updated)
+          return updated
+        })
+      } else if (payload.eventType === "DELETE") {
+        const deletedOrder = payload.old as DataOrder
+        setDataOrders((prev) => {
+          const updated = prev.filter((order) => order.id !== deletedOrder.id)
+          setCachedData?.(updated)
+          return updated
+        })
+      }
+      setRealtimeConnected(true)
+    })
+    realtimeUnsubscribeRef.current = unsubscribe
+    setRealtimeConnected(true)
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = connectionManager.addConnectionListener((status) => {
+      setConnectionStatus(status)
+      if (!status.isOnline) {
+        setConnectionError("No internet connection. Please check your network.")
+      } else if (!status.isConnected) {
+        setConnectionError("Database connection lost. Attempting to reconnect...")
+      } else if (!status.isSessionValid) {
+        setConnectionError("Session expired. Refreshing authentication...")
+      } else {
+        setConnectionError(null)
+      }
+    })
+    connectionUnsubscribeRef.current = unsubscribe
+    return unsubscribe
+  }, [])
+
+  const loadOrders = useCallback(
+    async (forceRefresh = false) => {
+      if (loadingRef.current) return
+      loadingRef.current = true
+      setLoading(true)
       try {
-        result = await enhancedSupabase
-          .from("data_orders")
-          .select(
-            `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`
-          )
-          .or("admin_hidden.is.null,admin_hidden.eq.false")
-          .order("created_at", { ascending: false })
-          .range(start, end)
-      } catch (colError) {
-        result = await supabase
-          .from("data_orders")
-          .select(
-            `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`
-          )
-          .or("admin_hidden.is.null,admin_hidden.eq.false")
-          .order("created_at", { ascending: false })
-          .range(start, end)
+        setConnectionError(null)
+        let data, error
+        try {
+          let result
+          try {
+            result = await enhancedSupabase
+              .from("data_orders")
+              .select(
+                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
+              )
+              .or("admin_hidden.is.null,admin_hidden.eq.false")
+              .order("created_at", { ascending: false })
+          } catch (columnError) {
+            console.warn("admin_hidden column not found, querying without filter:", columnError)
+            result = await enhancedSupabase
+              .from("data_orders")
+              .select(
+                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
+              )
+              .order("created_at", { ascending: false })
+          }
+          data = result.data
+          error = result.error
+        } catch (enhancedError) {
+          console.warn("Enhanced Supabase client failed, falling back to regular client:", enhancedError)
+          let result
+          try {
+            result = await supabase
+              .from("data_orders")
+              .select(
+                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
+              )
+              .or("admin_hidden.is.null,admin_hidden.eq.false")
+              .order("created_at", { ascending: false })
+          } catch (columnError) {
+            console.warn("admin_hidden column not found in fallback, querying without filter:", columnError)
+            result = await supabase
+              .from("data_orders")
+              .select(
+                `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
+              )
+              .order("created_at", { ascending: false })
+          }
+          data = result.data
+          error = result.error
+        }
+        if (error) {
+          throw error
+        }
+        const ordersData = data || []
+        console.log(`✅ Successfully loaded ${ordersData.length} data orders`)
+        const processedOrders = ordersData.map((order) => ({
+          ...order,
+          commission_amount:
+            order.commission_amount ||
+            (order.data_bundles?.price && order.data_bundles?.commission_rate
+              ? order.data_bundles.price * order.data_bundles.commission_rate
+              : 0),
+        }))
+        setDataOrders(processedOrders)
+        setCachedData?.(processedOrders)
+        setLastRefresh(new Date())
+        setConnectionError(null)
+      } catch (error: any) {
+        const errorMessage = error?.message || "Unknown error occurred"
+        const errorDetails = {
+          message: errorMessage,
+          originalError: error?.originalError || error,
+          originalMessage: error?.originalMessage,
+          code: error?.code || error?.originalCode,
+          details: error?.details,
+          hint: error?.hint,
+          cause: error?.cause,
+          stack: error?.stack,
+        }
+        console.error("Error loading data orders:", JSON.stringify(errorDetails, null, 2))
+        setConnectionError(`Failed to load orders: ${errorMessage}`)
+        setDataOrders([])
+        setCachedData?.([])
+      } finally {
+        setLoading(false)
+        loadingRef.current = false
       }
-      data = result.data
-      error = result.error
-    } catch (err) {
-      const result = await supabase
-        .from("data_orders")
-        .select(
-          `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`
-        )
-        .or("admin_hidden.is.null,admin_hidden.eq.false")
-        .order("created_at", { ascending: false })
-        .range(start, end)
-      data = result.data
-      error = result.error
-    }
+    },
+    [],
+  )
 
-    if (error) throw error
-    return (data || []).map(order => ({
-      ...order,
-      commission_amount:
-        order.commission_amount ||
-        (order.data_bundles?.price && order.data_bundles?.commission_rate
-          ? order.data_bundles.price * order.data_bundles.commission_rate
-          : 0),
-    }))
-  }, [])
-
-  const loadInitialPages = useCallback(async () => {
-    if (loadingRef.current) return
-    loadingRef.current = true
-    setLoading(true)
-    try {
-      const pages = Array.from({ length: INITIAL_PAGES_TO_LOAD }, (_, i) => i + 1)
-      const results = await Promise.all(pages.map(p => fetchPageFromDb(p)))
-      const combined = results.flat()
-      const unique = new Map<string, DataOrder>()
-      combined.forEach(o => unique.set(o.id, o))
-      const sorted = Array.from(unique.values()).sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )
-      setAllOrders(sorted)
-      if (setCachedData) setCachedData(sorted)
-      pages.forEach(p => fetchedPagesRef.current.add(p))
-    } catch (err: any) {
-      setConnectionError(`Failed to load: ${err.message}`)
-    } finally {
-      setLoading(false)
-      loadingRef.current = false
-    }
-  }, [fetchPageFromDb, setCachedData])
-
-  const loadPage = useCallback(async (page: number) => {
-    if (fetchedPagesRef.current.has(page)) return
-    setLoadingPage(page)
-    try {
-      const newOrders = await fetchPageFromDb(page)
-      setAllOrders(prev => {
-        const map = new Map<string, DataOrder>()
-        prev.forEach(o => map.set(o.id, o))
-        newOrders.forEach(o => map.set(o.id, o))
-        const merged = Array.from(map.values()).sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-        if (setCachedData) setCachedData(merged)
-        return merged
-      })
-      fetchedPagesRef.current.add(page)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoadingPage(null)
-    }
-  }, [fetchPageFromDb, setCachedData])
-
-  // Polling for unfiltered mode
-  const refreshCurrentPage = useCallback(async () => {
-    if (isFilterActive) return
-    if (!fetchedPagesRef.current.has(currentPage)) return
-    try {
-      const fresh = await fetchPageFromDb(currentPage)
-      setAllOrders(prev => {
-        const map = new Map<string, DataOrder>()
-        prev.forEach(o => map.set(o.id, o))
-        fresh.forEach(o => map.set(o.id, o))
-        const merged = Array.from(map.values()).sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-        if (setCachedData) setCachedData(merged)
-        return merged
-      })
-      setLastRefresh(new Date())
-    } catch (err) {}
-  }, [currentPage, fetchPageFromDb, setCachedData, isFilterActive])
-
-  // Filter change -> load filtered data
   useEffect(() => {
-    if (isFilterActive) {
-      loadFilteredPage(1)
-      setCurrentPage(1)
-    } else {
-      setFilteredOrders([])
-      setTotalFilteredCount(null)
-    }
-  }, [orderSearchTerm, combinedOrderFilter, isFilterActive, loadFilteredPage])
-
-  // Lazy loading for unfiltered mode
-  useEffect(() => {
-    if (!isFilterActive && !loading) {
-      if (currentPage > INITIAL_PAGES_TO_LOAD && !fetchedPagesRef.current.has(currentPage)) {
-        loadPage(currentPage)
-      }
-    }
-  }, [currentPage, isFilterActive, loading, loadPage])
-
-  // Initial load & polling
-  useEffect(() => {
-    loadInitialPages()
-    pollingIntervalRef.current = setInterval(refreshCurrentPage, POLLING_INTERVAL_MS)
+    loadOrders()
+    setupRealtimeSubscription()
     return () => {
-      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current)
+      if (realtimeUnsubscribeRef.current) {
+        realtimeUnsubscribeRef.current()
+      }
+      if (connectionUnsubscribeRef.current) {
+        connectionUnsubscribeRef.current()
+      }
     }
-  }, [loadInitialPages, refreshCurrentPage])
+  }, [loadOrders, setupRealtimeSubscription])
 
-  // Display orders
-  const displayOrders = isFilterActive ? filteredOrders : allOrders
-  const totalPages = isFilterActive
-    ? Math.ceil((totalFilteredCount || 0) / ORDERS_PER_PAGE)
-    : Math.ceil(displayOrders.length / ORDERS_PER_PAGE)
-  const startIdx = (currentPage - 1) * ORDERS_PER_PAGE
-  const paginatedOrders = displayOrders.slice(startIdx, startIdx + ORDERS_PER_PAGE)
-
-  // ---------- CRUD operations ----------
-  const handleUpdateOrderStatus = useCallback(async (orderId: string, newStatus: string) => {
-    const order = allOrders.find(o => o.id === orderId) || filteredOrders.find(o => o.id === orderId)
-    if (!order) { toast.error("Order not found"); return }
-    const current = order.status?.toLowerCase()
-    const normalized = newStatus.toLowerCase()
-    if (current === normalized) return
-    if (current === "completed" || current === "canceled") {
-      toast.error(`Cannot change status of ${current} orders`)
-      return
-    }
-    try {
-      await updateOrderStatus(orderId, normalized, allOrders, setAllOrders, setCachedData)
-      if (isFilterActive) loadFilteredPage(currentPage)
-      else refreshCurrentPage()
-    } catch (err) {
-      toast.error("Update failed")
-    }
-  }, [allOrders, filteredOrders, updateOrderStatus, setCachedData, isFilterActive, currentPage, loadFilteredPage, refreshCurrentPage])
+  const handleUpdateOrderStatus = useCallback(
+    async (orderId: string, status: string) => {
+      try {
+        if (!orderId || typeof orderId !== "string" || orderId.trim() === "") {
+          setConnectionError("Invalid order ID provided")
+          return
+        }
+        if (!status || typeof status !== "string" || status.trim() === "") {
+          setConnectionError("Invalid status provided")
+          return
+        }
+        const validStatuses = ["pending", "processing", "completed", "canceled", "cancelled"]
+        const normalizedStatus = status.toLowerCase().trim()
+        if (!validStatuses.includes(normalizedStatus)) {
+          setConnectionError(`Invalid status: "${status}". Must be one of: ${validStatuses.join(", ")}`)
+          return
+        }
+        const admin = getStoredAdmin()
+        if (!admin) {
+          setConnectionError("Session expired. Please refresh the page.")
+          return
+        }
+        const orderToUpdate = dataOrders.find((order) => order && order.id === orderId)
+        if (!orderToUpdate) {
+          setConnectionError("Order not found. The page will be refreshed.")
+          setTimeout(() => window.location.reload(), 2000)
+          return
+        }
+        if (orderToUpdate.status === normalizedStatus) {
+          console.log(`Order ${orderId} already has status "${normalizedStatus}", no update needed`)
+          return
+        }
+        const currentStatus = orderToUpdate.status?.toLowerCase()
+        if (currentStatus === "completed" && normalizedStatus !== "completed") {
+          setConnectionError("Cannot change status of completed orders")
+          return
+        }
+        if (currentStatus === "canceled" && normalizedStatus !== "canceled") {
+          setConnectionError("Cannot change status of canceled orders")
+          return
+        }
+        setConnectionError(null)
+        console.log(`Updating order ${orderId} from "${currentStatus}" to "${normalizedStatus}"`)
+        await updateOrderStatus(orderId, normalizedStatus, dataOrders, setDataOrders, setCachedData)
+        if (normalizedStatus === "completed" && currentStatus !== "completed") {
+          console.log(`Order ${orderId} completed - commission should be automatically processed`)
+          setTimeout(() => {
+            loadOrders()
+          }, 1000)
+        }
+        console.log(`Successfully updated order ${orderId} to status "${normalizedStatus}"`)
+      } catch (error: any) {
+        console.error("Order status update failed:", error)
+        let errorMessage = "Failed to update order status. Please try again."
+        if (error?.message) {
+          const msg = error.message.toLowerCase()
+          if (msg.includes("network") || msg.includes("connection") || msg.includes("timeout")) {
+            errorMessage = "Network connection issue. Please check your internet and try again."
+          } else if (msg.includes("permission") || msg.includes("unauthorized") || msg.includes("access denied")) {
+            errorMessage = "You do not have permission to update this order. Please contact an administrator."
+          } else if (msg.includes("validation") || msg.includes("constraint") || msg.includes("check")) {
+            errorMessage = "Order validation failed. Please refresh the page and try again."
+          } else if (msg.includes("not found") || msg.includes("deleted") || msg.includes("pgrst116")) {
+            errorMessage = "This order no longer exists. The page will be refreshed."
+            setTimeout(() => window.location.reload(), 2000)
+          } else if (msg.includes("duplicate") || msg.includes("unique")) {
+            errorMessage = "Conflicting update detected. Please refresh the page and try again."
+          } else if (msg.includes("transaction validation failed")) {
+            errorMessage = "Transaction validation failed. Please verify the order details and try again."
+          } else {
+            errorMessage = `Update failed: ${error.message}`
+          }
+        }
+        setConnectionError(errorMessage)
+        setTimeout(() => {
+          setConnectionError(null)
+        }, 5000)
+      }
+    },
+    [dataOrders, setDataOrders, setCachedData, updateOrderStatus, loadOrders],
+  )
 
   const deleteOrder = async (orderId: string) => {
-    if (!confirm("Delete this order permanently?")) return
+    if (!confirm("Are you sure you want to delete this data order? This action cannot be undone.")) return
     try {
       const admin = getStoredAdmin()
-      if (!admin) throw new Error("Session expired")
+      if (!admin) {
+        setConnectionError("Session expired. Please refresh the page.")
+        return
+      }
       let error
       try {
-        const res = await enhancedSupabase.from("data_orders").delete().eq("id", orderId)
-        error = res.error
-      } catch {
-        const res = await supabase.from("data_orders").delete().eq("id", orderId)
-        error = res.error
+        const result = await enhancedSupabase.from("data_orders").delete().eq("id", orderId)
+        error = result.error
+      } catch (enhancedError) {
+        console.warn("Enhanced Supabase client failed for delete, falling back to regular client:", enhancedError)
+        const result = await supabase.from("data_orders").delete().eq("id", orderId)
+        error = result.error
       }
       if (error) throw error
-      setAllOrders(prev => prev.filter(o => o.id !== orderId))
-      if (setCachedData) setCachedData(allOrders.filter(o => o.id !== orderId))
-      if (isFilterActive) loadFilteredPage(currentPage)
-      toast.success("Order deleted")
-    } catch (err) {
-      toast.error("Delete failed")
+      const updatedOrders = dataOrders.filter((order) => order.id !== orderId)
+      setDataOrders(updatedOrders)
+      setCachedData?.(updatedOrders)
+      alert("Data order deleted successfully!")
+    } catch (error) {
+      console.error("Error deleting data order:", error)
+      alert("Failed to delete data order.")
     }
   }
 
   const openMessageDialog = (order: DataOrder) => {
     setSelectedOrder(order)
-    setAdminMessage(order.admin_message || "We cannot verify this manual order or find proof of payment. Check and ensure you pay manually to 0557943392. Make sure to also use the payment ID or reference number to ensure your order is processed. If you have paid but our system did not detect it, send proof of payment to 0242799990. Thank You.")
+    setAdminMessage(
+      order.admin_message ||
+      "We cannot verify this manual order or find proof of payment. Check and ensure you pay manually to 0557943392. Make sure to also use the payment ID or reference number to ensure your order is processed. If you have paid but our system did not detect it, send proof of payment to 0242799990. Thank You."
+    )
     setShowMessageDialog(true)
   }
 
@@ -377,134 +433,240 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     if (!selectedOrder || !adminMessage.trim()) return
     try {
       const admin = getStoredAdmin()
-      if (!admin) throw new Error("Session expired")
+      if (!admin) {
+        setConnectionError("Session expired. Please refresh the page.")
+        return
+      }
       let error
       try {
-        const res = await enhancedSupabase
+        const result = await enhancedSupabase
           .from("data_orders")
           .update({ admin_message: adminMessage.trim() })
           .eq("id", selectedOrder.id)
-        error = res.error
-      } catch {
-        const res = await supabase
+        error = result.error
+      } catch (enhancedError) {
+        console.warn(
+          "Enhanced Supabase client failed for message update, falling back to regular client:",
+          enhancedError,
+        )
+        const result = await supabase
           .from("data_orders")
           .update({ admin_message: adminMessage.trim() })
           .eq("id", selectedOrder.id)
-        error = res.error
+        error = result.error
       }
       if (error) throw error
-      const updateOrders = (orders: DataOrder[]) =>
-        orders.map(o => o.id === selectedOrder.id ? { ...o, admin_message: adminMessage.trim() } : o)
-      setAllOrders(updateOrders)
-      if (setCachedData) setCachedData(updateOrders(allOrders))
-      if (isFilterActive) loadFilteredPage(currentPage)
-      toast.success("Message sent")
+      alert("Message sent successfully!")
+      const updatedOrders = dataOrders.map((order) =>
+        order.id === selectedOrder.id ? { ...order, admin_message: adminMessage.trim() } : order,
+      )
+      setDataOrders(updatedOrders)
+      setCachedData?.(updatedOrders)
       setShowMessageDialog(false)
+      setAdminMessage("")
       setSelectedOrder(null)
-    } catch (err) {
-      toast.error("Send failed")
+    } catch (error) {
+      console.error("Error sending message:", error)
+      alert("Failed to send message. Please try again.")
     }
   }
 
   const handleCompleteRefresh = useCallback(async () => {
-    fetchedPagesRef.current.clear()
-    await loadInitialPages()
-    if (isFilterActive) await loadFilteredPage(1)
-    setLastRefresh(new Date())
-    toast.success("Refreshed")
-  }, [loadInitialPages, isFilterActive, loadFilteredPage])
+    console.log("Performing complete refresh...")
+    try {
+      await connectionManager.forceReconnect()
+      await loadOrders(true)
+      if (realtimeUnsubscribeRef.current) {
+        realtimeUnsubscribeRef.current()
+      }
+      setupRealtimeSubscription()
+      setLastRefresh(new Date())
+      console.log("Complete refresh successful")
+    } catch (error) {
+      console.error("Complete refresh failed:", error)
+    }
+  }, [loadOrders, setupRealtimeSubscription])
 
-  const handleOrdersUpdated = useCallback(() => handleCompleteRefresh(), [handleCompleteRefresh])
+  const handleOrdersUpdated = useCallback(() => {
+    loadOrders(true)
+  }, [loadOrders])
 
   const downloadDataOrdersCSV = () => {
-    const ordersToExport = isFilterActive ? filteredOrders : allOrders
-    if (ordersToExport.length === 0) { toast.error("No data"); return }
-    const headers = ["Date","Agent","Bundle Name","Provider","Size","Price","Phone","Method","Reference","Commission","Status"]
-    const rows = ordersToExport.map(o => [
-      new Date(o.created_at).toLocaleDateString(),
-      o.agents?.full_name || "",
-      o.data_bundles?.name || "",
-      o.data_bundles?.provider || "",
-      o.data_bundles?.size_gb || "",
-      o.data_bundles?.price?.toFixed(2) || "",
-      o.recipient_phone || "",
-      o.payment_method === "wallet" ? "Wallet" : "Manual",
-      o.payment_reference || "",
-      safeCommissionDisplay(o.commission_amount).toFixed(2),
-      o.status || "",
+    if (filteredOrders.length === 0) {
+      alert("No data to download")
+      return
+    }
+    const headers = [
+      "Date",
+      "Agent",
+      "Bundle Name",
+      "Provider",
+      "Size (GB)",
+      "Price (GH₵)",
+      "Recipient Phone",
+      "Payment Method",
+      "Payment Reference",
+      "Commission (GH₵)",
+      "Status",
+      "Commission Paid",
+    ]
+    const csvData = filteredOrders.map((order) => [
+      new Date(order.created_at).toLocaleDateString(),
+      order.agents?.full_name || "",
+      order.data_bundles?.name || "",
+      order.data_bundles?.provider || "",
+      order.data_bundles?.size_gb || "",
+      order.data_bundles?.price?.toFixed(2) || "",
+      order.recipient_phone || "",
+      order.payment_method === "wallet" ? "Wallet" : "Manual",
+      order.payment_reference || "",
+      safeCommissionDisplay(order.commission_amount).toFixed(2),
+      order.status || "",
+      order.commission_paid ? "Yes" : "No",
     ])
-    const csv = [headers, ...rows].map(r => r.join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv" })
+    const csvContent = [headers, ...csvData].map((row) => row.join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
     const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `orders-${new Date().toISOString().slice(0,10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success("Downloaded")
+    link.setAttribute("href", url)
+    link.setAttribute("download", `admin-data-orders-${new Date().toISOString().split("T")[0]}.csv`)
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
-  const formatTimestamp = (ts: string) => new Date(ts).toLocaleString()
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp)
+    return date.toLocaleDateString() + " - " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending": return "bg-amber-100 text-amber-800 border-amber-200"
-      case "processing": return "bg-purple-100 text-purple-800 border-purple-200"
-      case "completed": return "bg-emerald-100 text-emerald-800 border-emerald-200"
-      case "canceled": return "bg-red-100 text-red-800 border-red-200"
-      default: return "bg-gray-100"
+      case "pending":
+        return "bg-amber-100 text-amber-800 border-amber-200"
+      case "processing":
+        return "bg-purple-100 text-purple-800 border-purple-200"
+      case "completed":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200"
+      case "canceled":
+        return "bg-red-100 text-red-800 border-red-200"
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200"
     }
   }
 
-  // ---------- Copy with visual feedback ----------
-  const handleCopyPhone = async (phone: string) => {
-    await navigator.clipboard.writeText(phone)
-    setCopiedPhoneNumbers(prev => new Set([...prev, phone]))
-    toast.success("Phone copied")
-    setTimeout(() => {
-      setCopiedPhoneNumbers(prev => {
-        const next = new Set(prev)
-        next.delete(phone)
-        return next
-      })
-    }, 2000)
+  const getPaginatedData = (data: any[], currentPage: number) => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return data.slice(startIndex, endIndex)
   }
 
-  const handleCopyRef = async (ref: string) => {
-    await navigator.clipboard.writeText(ref)
-    const newSet = new Set([...copiedReferenceCodes, ref])
-    setCopiedReferenceCodes(newSet)
-    localStorage.setItem("copiedOrderReferences", JSON.stringify(Array.from(newSet)))
-    toast.success("Reference copied")
-    setTimeout(() => {
-      setCopiedReferenceCodes(prev => {
-        const next = new Set(prev)
-        next.delete(ref)
-        return next
-      })
-    }, 2000)
+  const getTotalPages = (totalItems: number) => {
+    return Math.ceil(totalItems / itemsPerPage)
   }
 
-  const PaginationControls = () => {
+  const handleCopyOrderNumber = async (phoneNumber: string) => {
+    try {
+      await navigator.clipboard.writeText(phoneNumber)
+      setCopiedPhoneNumbers((prev) => new Set([...prev, phoneNumber]))
+      toast.success("Recipient phone number copied!")
+      setTimeout(() => {
+        setCopiedPhoneNumbers((prev) => {
+          const newSet = new Set(prev)
+          newSet.delete(phoneNumber)
+          return newSet
+        })
+      }, 2000)
+    } catch (error) {
+      toast.error("Failed to copy recipient phone number")
+    }
+  }
+
+  const handleCopyReferenceCode = async (referenceCode: string, orderId: string) => {
+    try {
+      await navigator.clipboard.writeText(referenceCode)
+      const newSet = new Set([...copiedReferenceCodes, referenceCode])
+      setCopiedReferenceCodes(newSet)
+      localStorage.setItem("copiedOrderReferences", JSON.stringify(Array.from(newSet)))
+      toast.success("Reference code copied!")
+    } catch (error) {
+      toast.error("Failed to copy reference code")
+    }
+  }
+
+  useEffect(() => {
+    if (dataOrders.length === 0) return
+    const updatedCopied = new Set(copiedReferenceCodes)
+    let changed = false
+    dataOrders.forEach((order) => {
+      if (order.status === "completed" && copiedReferenceCodes.has(order.payment_reference)) {
+        updatedCopied.delete(order.payment_reference)
+        changed = true
+      }
+    })
+    if (changed) {
+      setCopiedReferenceCodes(updatedCopied)
+      localStorage.setItem("copiedOrderReferences", JSON.stringify(Array.from(updatedCopied)))
+    }
+  }, [dataOrders])
+
+  const PaginationControls = ({
+    currentPage,
+    totalPages,
+    onPageChange,
+  }: {
+    currentPage: number
+    totalPages: number
+    onPageChange: (page: number) => void
+  }) => {
     if (totalPages <= 1) return null
-    const maxVisible = 5
-    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2))
-    let end = Math.min(totalPages, start + maxVisible - 1)
-    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1)
-    const pages = Array.from({ length: end - start + 1 }, (_, i) => start + i)
     return (
-      <div className="flex justify-center mt-6">
+      <div className="flex justify-center mt-4 sm:mt-6">
         <Pagination>
-          <PaginationContent>
+          <PaginationContent className="gap-1 sm:gap-2">
             <PaginationItem>
-              <PaginationPrevious onClick={() => currentPage > 1 && setCurrentPage(p => p-1)} className={currentPage <= 1 ? "opacity-50 pointer-events-none" : "cursor-pointer"} />
+              <PaginationPrevious
+                onClick={() => {
+                  if (currentPage > 1) {
+                    onPageChange(currentPage - 1)
+                    scrollToTop()
+                  }
+                }}
+                className={`${
+                  currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
+                } h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
+              />
             </PaginationItem>
-            {pages.map(p => (
-              <PaginationItem key={p}>
-                <PaginationLink onClick={() => setCurrentPage(p)} isActive={currentPage === p}>{p}</PaginationLink>
-              </PaginationItem>
-            ))}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const pageNum = i + 1
+              return (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink
+                    onClick={() => {
+                      onPageChange(pageNum)
+                      scrollToTop()
+                    }}
+                    isActive={currentPage === pageNum}
+                    className="cursor-pointer h-8 w-8 sm:h-10 sm:w-10 text-xs sm:text-sm"
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                </PaginationItem>
+              )
+            })}
             <PaginationItem>
-              <PaginationNext onClick={() => currentPage < totalPages && setCurrentPage(p => p+1)} className={currentPage >= totalPages ? "opacity-50 pointer-events-none" : "cursor-pointer"} />
+              <PaginationNext
+                onClick={() => {
+                  if (currentPage < totalPages) {
+                    onPageChange(currentPage + 1)
+                    scrollToTop()
+                  }
+                }}
+                className={`${
+                  currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+                } h-8 px-2 sm:h-10 sm:px-4 text-xs sm:text-sm`}
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
@@ -512,170 +674,462 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     )
   }
 
-  // Loading skeleton
-  if (loading && allOrders.length === 0 && !isFilterActive) {
-    return <div className="space-y-4"><div className="h-8 w-48 bg-gray-200 animate-pulse" /><div className="h-10 bg-gray-200 animate-pulse" /><div className="space-y-4">{[...Array(5)].map((_,i) => <div key={i} className="h-32 bg-gray-100 animate-pulse rounded" />)}</div></div>
-  }
-
-  // Empty state
-  if (!loading && paginatedOrders.length === 0 && !connectionError) {
+  if (loading) {
     return (
       <div className="space-y-4">
-        <div className="flex justify-between"><h2 className="text-2xl font-bold text-emerald-800">Orders</h2><div className="flex gap-2"><Button variant="outline" onClick={() => setShowCleanupDialog(true)}>Cleanup</Button><Button variant="outline" onClick={downloadDataOrdersCSV}>CSV</Button></div></div>
-        <Input placeholder="Search..." value={orderSearchTerm} onChange={e => setOrderSearchTerm(e.target.value)} />
-        <Select value={combinedOrderFilter} onValueChange={setCombinedOrderFilter}><SelectTrigger><Filter className="h-4 w-4 mr-2" /><SelectValue /></SelectTrigger><SelectContent><SelectItem value="All Orders">All</SelectItem><SelectItem value="Pending">Pending</SelectItem><SelectItem value="Processing">Processing</SelectItem><SelectItem value="Completed">Completed</SelectItem><SelectItem value="Canceled">Canceled</SelectItem><SelectItem value="Manual Orders">Manual</SelectItem><SelectItem value="Wallet Orders">Wallet</SelectItem></SelectContent></Select>
-        <div className="text-center py-12"><Database className="h-12 w-12 mx-auto text-gray-300 mb-4" /><p>No orders match</p><Button onClick={() => { setOrderSearchTerm(""); setCombinedOrderFilter("All Orders") }}>Clear filters</Button></div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <div className="h-10 bg-gray-200 rounded w-24 animate-pulse"></div>
+            <div className="h-10 bg-gray-200 rounded w-32 animate-pulse"></div>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
+          <div className="w-full sm:w-48 h-10 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="border border-gray-200 rounded-lg p-6 bg-white">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
+                    <div className="flex gap-2">
+                      <div className="h-6 bg-gray-200 rounded w-20 animate-pulse"></div>
+                      <div className="h-6 bg-gray-200 rounded w-16 animate-pulse"></div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-36 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <div>
+                      <div className="h-5 bg-gray-200 rounded w-20 animate-pulse"></div>
+                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-gray-100">
+                  <div className="h-10 bg-gray-200 rounded w-full sm:w-40 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded w-full sm:w-32 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded w-full sm:w-20 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="text-center py-8">
+          <div className="flex items-center justify-center gap-2 text-emerald-600">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div>
+            <span className="font-medium">Loading data orders...</span>
+          </div>
+          <p className="text-sm text-gray-500 mt-2">Please wait while we fetch the latest order information</p>
+        </div>
       </div>
     )
   }
 
-  // Main render
+  if (!loading && filteredOrders.length === 0 && !connectionError) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-emerald-800">
+              <span className="hidden sm:inline">Data Order Management</span>
+              <span className="sm:hidden">Orders</span>
+            </h2>
+            <div className="flex items-center gap-2">
+              {realtimeConnected ? (
+                <div className="flex items-center gap-1 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-xs font-medium hidden sm:inline">Live Updates</span>
+                  <span className="text-xs font-medium sm:hidden">Live</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-amber-600">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-xs font-medium hidden sm:inline">Reconnecting...</span>
+                  <span className="text-xs font-medium sm:hidden">Offline</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              onClick={() => setShowCleanupDialog(true)}
+              variant="outline"
+              size="sm"
+              className="border-red-200 text-red-700 hover:bg-red-50 bg-transparent w-full sm:w-auto"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Cleanup Orders</span>
+              <span className="sm:hidden">Cleanup</span>
+            </Button>
+            <Button
+              onClick={downloadDataOrdersCSV}
+              variant="outline"
+              size="sm"
+              className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-transparent w-full sm:w-auto"
+              disabled
+            >
+              <Download className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Download CSV</span>
+              <span className="sm:hidden">Download CSV</span>
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
+            <Input
+              placeholder="Search orders..."
+              value={orderSearchTerm}
+              onChange={(e) => setOrderSearchTerm(e.target.value)}
+              className="pl-10 w-full border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+            <Select value={combinedOrderFilter} onValueChange={setCombinedOrderFilter}>
+              <SelectTrigger className="border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm w-full sm:w-64">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter Orders" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All Orders">All Orders</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Processing">Processing</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Canceled">Canceled</SelectItem>
+                <SelectItem value="Manual Orders">Manual Orders</SelectItem>
+                <SelectItem value="Wallet Orders">Wallet Orders</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="text-center py-16">
+          <div className="mx-auto w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+            <Database className="h-12 w-12 text-emerald-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {orderSearchTerm || combinedOrderFilter !== "All Orders" ? "No matching orders found" : "No data orders yet"}
+          </h3>
+          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+            {orderSearchTerm || combinedOrderFilter !== "All Orders"
+              ? "Try adjusting your search terms or filters to find what you're looking for."
+              : "Data orders will appear here once agents start placing orders. The system is ready and waiting for new orders."}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {(orderSearchTerm || combinedOrderFilter !== "All Orders") && (
+              <Button
+                onClick={() => {
+                  setOrderSearchTerm("")
+                  setCombinedOrderFilter("All Orders")
+                }}
+                variant="outline"
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              >
+                Clear Filters
+              </Button>
+            )}
+            <Button onClick={() => loadOrders(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Refresh Orders
+            </Button>
+          </div>
+        </div>
+        <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />
+        <OrderCleanupDialog
+          open={showCleanupDialog}
+          onOpenChange={setShowCleanupDialog}
+          orders={dataOrders}
+          onOrdersUpdated={handleOrdersUpdated}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4 relative">
-      {connectionError && <div className="bg-amber-50 p-3 rounded text-amber-800"><AlertCircle className="h-5 w-5 inline mr-2" />{connectionError}</div>}
-
-      <div className="text-right text-xs text-gray-400 flex justify-end items-center gap-2">
-        <WifiOff className="h-3 w-3" /> {isFilterActive ? "Filter mode • real‑time results" : `Auto-refresh every 3 min • Last: ${lastRefresh.toLocaleTimeString()}`}
+      {connectionError && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-2 text-amber-800">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-medium">{connectionError}</span>
+          </div>
+        </div>
+      )}
+      <div className="flex flex-col space-y-4 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-emerald-800">
+              <span className="hidden sm:inline">Data Order Management</span>
+              <span className="sm:hidden">Orders</span>
+            </h2>
+            {isUpdating && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                Updating...
+              </Badge>
+            )}
+            <div className="flex items-center gap-2">
+              {realtimeConnected ? (
+                <div className="flex items-center gap-1 text-green-600">
+                  <Wifi className="h-4 w-4" />
+                  <span className="text-xs font-medium hidden sm:inline">Live Updates</span>
+                  <span className="text-xs font-medium sm:hidden">Live</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-amber-600">
+                  <WifiOff className="h-4 w-4" />
+                  <span className="text-xs font-medium hidden sm:inline">Reconnecting...</span>
+                  <span className="text-xs font-medium sm:hidden">Offline</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              onClick={() => setShowCleanupDialog(true)}
+              variant="outline"
+              size="sm"
+              className="border-red-200 text-red-700 hover:bg-red-50 bg-transparent w-full sm:w-auto"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Cleanup Orders</span>
+              <span className="sm:hidden">Cleanup</span>
+            </Button>
+            <Button
+              onClick={downloadDataOrdersCSV}
+              variant="outline"
+              size="sm"
+              className="border-blue-200 text-blue-700 hover:bg-blue-50 bg-transparent w-full sm:w-auto"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Download CSV</span>
+              <span className="sm:hidden">Download CSV</span>
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" />
+            <Input
+              placeholder="Search orders..."
+              value={orderSearchTerm}
+              onChange={(e) => setOrderSearchTerm(e.target.value)}
+              className="pl-10 w-full border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
+            />
+          </div>
+          <Select value={combinedOrderFilter} onValueChange={setCombinedOrderFilter}>
+            <SelectTrigger className="w-full sm:w-56 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Filter Orders" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All Orders">All Orders</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Processing">Processing</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="Canceled">Canceled</SelectItem>
+              <SelectItem value="Manual Orders">Manual Orders</SelectItem>
+              <SelectItem value="Wallet Orders">Wallet Orders</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <h2 className="text-2xl font-bold text-emerald-800">Data Order Management</h2>
-        <div className="flex gap-2"><Button onClick={() => setShowCleanupDialog(true)} variant="outline" size="sm">Cleanup</Button><Button onClick={downloadDataOrdersCSV} variant="outline" size="sm">CSV</Button></div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-400 h-4 w-4" /><Input placeholder="Search by agent, phone, reference or bundle..." value={orderSearchTerm} onChange={e => { setOrderSearchTerm(e.target.value); setCurrentPage(1); }} className="pl-10" /></div>
-        <Select value={combinedOrderFilter} onValueChange={val => { setCombinedOrderFilter(val); setCurrentPage(1); }}>
-          <SelectTrigger className="w-full sm:w-56"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Filter" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All Orders">All Orders</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="Processing">Processing</SelectItem>
-            <SelectItem value="Completed">Completed</SelectItem>
-            <SelectItem value="Canceled">Canceled</SelectItem>
-            <SelectItem value="Manual Orders">Manual Orders</SelectItem>
-            <SelectItem value="Wallet Orders">Wallet Orders</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
       <div ref={ordersListRef} className="space-y-4">
-        {paginatedOrders.map(order => (
-          <Card key={order.id} className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300">
+        {getPaginatedData(filteredOrders, currentOrdersPage).map((order) => (
+          <Card
+            key={order.id}
+            className="border-emerald-200 bg-white/90 backdrop-blur-sm hover:shadow-lg transition-all duration-300"
+          >
             <CardContent className="pt-6">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-semibold text-emerald-800">{getBundleDisplayName(order.data_bundles)}</h3>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                       <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-                      <Badge variant="outline" className={order.payment_method === "wallet" ? "border-purple-200 text-purple-700 bg-purple-50" : "border-blue-200 text-blue-700 bg-blue-50"}>
-                        {order.payment_method === "wallet" ? <Wallet className="h-3 w-3 mr-1" /> : <CreditCard className="h-3 w-3 mr-1" />}
+                      <Badge
+                        variant="outline"
+                        className={
+                          order.payment_method === "wallet"
+                            ? "border-purple-200 text-purple-700 bg-purple-50"
+                            : "border-blue-200 text-blue-700 bg-blue-50"
+                        }
+                      >
+                        {order.payment_method === "wallet" ? (
+                          <Wallet className="h-3 w-3 mr-1" />
+                        ) : (
+                          <CreditCard className="h-3 w-3 mr-1" />
+                        )}
                         {order.payment_method === "wallet" ? "Wallet" : "Manual"}
                       </Badge>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    <p className="flex items-center gap-1 text-emerald-600"><User className="h-3 w-3" /><span className="font-medium">Agent:</span> {order.agents?.full_name}</p>
-                    <p className="flex items-center gap-1 text-emerald-600"><MapPin className="h-3 w-3" /><span className="font-medium">Recipient:</span> {order.recipient_phone}
+                    <p className="text-emerald-600">
+                      <span className="font-medium">Agent:</span> {order.agents?.full_name}
+                    </p>
+                    <p className="text-emerald-600">
+                      <span className="font-medium">To:</span> {order.recipient_phone}
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleCopyPhone(order.recipient_phone)}
-                        className="h-7 w-7 p-0 ml-1"
+                        onClick={() => handleCopyOrderNumber(order.recipient_phone)}
+                        className={`h-7 w-7 p-0 ml-2 ${
+                          copiedPhoneNumbers.has(order.recipient_phone)
+                            ? "text-green-600 hover:bg-green-100 cursor-not-allowed"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                        disabled={copiedPhoneNumbers.has(order.recipient_phone)}
+                        title={
+                          copiedPhoneNumbers.has(order.recipient_phone)
+                            ? "Copied (persists until order completed)"
+                            : "Copy recipient phone number"
+                        }
                       >
                         {copiedPhoneNumbers.has(order.recipient_phone) ? (
-                          <Check className="h-4 w-4 text-green-500" />
+                          <Check className="h-4 w-4" />
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}
                       </Button>
                     </p>
-                    <p className="flex items-center gap-1 text-emerald-600"><Hash className="h-3 w-3" /><span className="font-medium">Reference:</span> {order.payment_reference}
+                    <p className="text-emerald-600">
+                      <span className="font-medium">Reference:</span> {order.payment_reference}
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleCopyRef(order.payment_reference)}
-                        className="h-7 w-7 p-0 ml-1"
+                        onClick={() => handleCopyReferenceCode(order.payment_reference, order.id)}
+                        className={`h-7 w-7 p-0 ml-2 ${
+                          copiedReferenceCodes.has(order.payment_reference)
+                            ? "text-green-600 hover:bg-green-100 cursor-not-allowed"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                        disabled={copiedReferenceCodes.has(order.payment_reference)}
+                        title={
+                          copiedReferenceCodes.has(order.payment_reference)
+                            ? "Copied (persists until order completed)"
+                            : "Copy reference code"
+                        }
                       >
                         {copiedReferenceCodes.has(order.payment_reference) ? (
-                          <Check className="h-4 w-4 text-green-500" />
+                          <Check className="h-4 w-4" />
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}
                       </Button>
                     </p>
-                    <p className="flex items-center gap-1 text-xs text-emerald-500"><Calendar className="h-3 w-3" /><span className="font-medium">Ordered:</span> {formatTimestamp(order.created_at)}</p>
+                    <p className="text-xs text-emerald-500">
+                      <span className="font-medium">Ordered:</span> {formatTimestamp(order.created_at)}
+                    </p>
                   </div>
-                  <div className="flex justify-between items-center pt-2">
+                  <div className="flex items-center justify-between pt-2">
                     <div>
-                      {/* Cedi sign only, no DollarSign icon */}
-                      <p className="text-sm font-semibold text-emerald-700 flex items-center gap-1">
+                      <p className="text-sm font-semibold text-emerald-700">
                         GH₵ {order.data_bundles?.price?.toFixed(2) || "0.00"}
                       </p>
-                      <p className="text-xs text-emerald-600 flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3" />
+                      <p className="text-xs text-emerald-600">
                         Commission: GH₵ {safeCommissionDisplay(order.commission_amount).toFixed(2)}
                       </p>
                     </div>
-                    {order.data_bundles?.size_gb && (
-                      <Badge variant="outline"><Package className="h-3 w-3 mr-1" />{order.data_bundles.size_gb} GB</Badge>
-                    )}
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-emerald-100">
-                  <Select value={order.status} onValueChange={val => handleUpdateOrderStatus(order.id, val)} disabled={isUpdating}>
-                    <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="pending">Pending</SelectItem><SelectItem value="processing">Processing</SelectItem><SelectItem value="completed">Completed</SelectItem><SelectItem value="canceled">Canceled</SelectItem></SelectContent>
+                  <Select
+                    value={order.status}
+                    onValueChange={(value) => handleUpdateOrderStatus(order.id, value)}
+                    disabled={isUpdating}
+                  >
+                    <SelectTrigger className="w-full sm:w-40 border-emerald-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="canceled">Canceled</SelectItem>
+                    </SelectContent>
                   </Select>
-                  <Button size="sm" variant="outline" onClick={() => openMessageDialog(order)} className="border-blue-300 text-blue-600 w-full sm:w-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openMessageDialog(order)}
+                    className="border-blue-300 text-blue-600 hover:bg-blue-50 w-full sm:w-auto"
+                  >
                     <MessageCircle className="h-4 w-4 mr-2" />
-                    {order.admin_message ? "Edit" : "Send"} Message
+                    {order.admin_message ? "Edit Message" : "Send Message"}
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={() => deleteOrder(order.id)} className="w-full sm:w-auto">
-                    <Trash2 className="h-4 w-4 mr-2" />Delete
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => deleteOrder(order.id)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
-        {loadingPage !== null && <div className="text-center py-4 text-gray-500">Loading page {loadingPage}...</div>}
       </div>
-
-      <PaginationControls />
+      <PaginationControls
+        currentPage={currentOrdersPage}
+        totalPages={getTotalPages(filteredOrders.length)}
+        onPageChange={setCurrentOrdersPage}
+      />
       <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />
-
-      {/* Note: increased Textarea rows to 8 for full message visibility */}
       <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto mx-auto">
           <DialogHeader>
-            <DialogTitle>Send Message</DialogTitle>
-            <DialogDescription>Visible to the agent.</DialogDescription>
+            <DialogTitle>Send Message to Agent</DialogTitle>
+            <DialogDescription>
+              Send a message to the agent regarding this order. This message will be visible to the agent in their
+              dashboard.
+            </DialogDescription>
           </DialogHeader>
           {selectedOrder && (
             <div className="grid gap-4 py-4">
-              <Label>Order ID</Label>
-              <Input value={selectedOrder.id} disabled />
-              <Label>Message</Label>
-              <Textarea
-                value={adminMessage}
-                onChange={e => setAdminMessage(e.target.value)}
-                rows={8}
-                className="resize-y"
-              />
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="orderId" className="text-right">
+                  Order ID
+                </Label>
+                <Input type="text" id="orderId" value={selectedOrder.id} className="col-span-3" disabled />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="message" className="text-right">
+                  Message
+                </Label>
+                <Textarea
+                  id="message"
+                  value={adminMessage}
+                  onChange={(e) => setAdminMessage(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleSendMessage}>Send</Button>
+            <Button onClick={handleSendMessage}>Send Message</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <OrderCleanupDialog
         open={showCleanupDialog}
         onOpenChange={setShowCleanupDialog}
-        orders={allOrders}
+        orders={dataOrders}
         onOrdersUpdated={handleOrdersUpdated}
       />
     </div>
