@@ -124,7 +124,7 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="w-full">
       <Card>
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">

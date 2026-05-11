@@ -150,7 +150,7 @@ export function NoRegistrationSlider() {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/20"></div>
             <div className="relative z-10 container mx-auto px-4 h-full flex items-center">
-              <div className="max-w-2xl text-white">
+              <div className="w-full text-white">
                 <div className="mb-6 animate-in slide-in-from-left-8 duration-1000">
                   <span className="inline-block bg-white/40 backdrop-blur-sm rounded-full px-4 py-2 text-sm font-medium mb-4 shadow-lg border border-white/20">
                     {slide.subtitle}

@@ -235,8 +235,8 @@ Please process this order using the payment reference above.`;
     <>
       <section id="networks" className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
-          {/* Section header – simple and human */}
-          <div className="text-center max-w-3xl mx-auto mb-10">
+          {/* Section header – full width */}
+          <div className="w-full text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
               Data bundles that actually save you money
             </h2>
@@ -246,8 +246,8 @@ Please process this order using the payment reference above.`;
             </p>
           </div>
 
-          {/* Processing time – subtle */}
-          <div className="max-w-4xl mx-auto mb-8">
+          {/* Processing time – full width */}
+          <div className="w-full mb-8">
             <div className="bg-white border border-gray-200 rounded-lg p-3 flex items-start gap-2 text-sm">
               <Zap className="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
               <p className="text-gray-600">
@@ -257,8 +257,8 @@ Please process this order using the payment reference above.`;
             </div>
           </div>
 
-          {/* Network tabs – clean toggle */}
-          <div className="w-full max-w-md mx-auto mb-8">
+          {/* Network tabs – full width */}
+          <div className="w-full mb-8">
             <div className="flex border border-gray-200 rounded-md bg-white p-1">
               {Object.entries(networks).map(([key, network]) => (
                 <button
@@ -279,8 +279,8 @@ Please process this order using the payment reference above.`;
             </div>
           </div>
 
-          {/* Main card – no shadow, just border */}
-          <Card className="max-w-6xl mx-auto border border-gray-200 rounded-xl overflow-hidden bg-white">
+          {/* Main card – full width */}
+          <Card className="w-full border border-gray-200 rounded-xl overflow-hidden bg-white">
             <CardContent className="p-0">
               <div className="grid grid-cols-1 lg:grid-cols-2">
                 {/* Image side */}

@@ -78,7 +78,6 @@ Instructions:
   };
 
   const handlePaymentConfirmed = async () => {
-    // Log the AFA registration order
     try {
       await fetch("/api/admin/data-orders/log", {
         method: "POST",
@@ -104,7 +103,6 @@ Instructions:
     window.open(whatsappUrl, "_blank");
     setShowPaymentModal(false);
 
-    // Reset form
     setFormData({
       fullName: "",
       phone: "",
@@ -134,8 +132,8 @@ Instructions:
   ];
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      {/* Main registration card – clean, no floating badge */}
+    // CHANGED: removed max-w-2xl → now uses w-full (full width)
+    <div className="w-full space-y-8">
       <Card className="border border-gray-200 shadow-sm">
         <CardHeader className="text-center pb-4 border-b border-gray-100">
           <div className="mx-auto w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-3">
@@ -152,7 +150,7 @@ Instructions:
         </CardHeader>
 
         <CardContent className="pt-6">
-          {/* Benefits – simpler list, no badges or colorful icons */}
+          {/* Benefits list */}
           <div className="mb-8">
             <h3 className="text-sm font-medium text-gray-700 mb-3">What you get:</h3>
             <ul className="space-y-2">
@@ -270,7 +268,7 @@ Instructions:
               />
             </div>
 
-            {/* Payment reference section – less boxy */}
+            {/* Payment reference section */}
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-medium text-gray-700">Payment reference code</span>
@@ -319,7 +317,7 @@ Instructions:
         </CardContent>
       </Card>
 
-      {/* Agent redirect card – simpler and less distracting */}
+      {/* Agent redirect card – full width as well */}
       <Card className="border border-blue-200 bg-blue-50/50">
         <CardContent className="p-5 text-center">
           <h3 className="text-lg font-semibold text-blue-800 mb-1">Want to become an agent?</h3>

@@ -1,14 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { generateWhatsAppLink } from "@/utils/whatsapp"
 import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
 import { generatePaymentReferenceCode } from "@/lib/reference-code-generator"
-import { Badge } from "@/components/ui/badge"
 
 export function MTNSimForms() {
   const [activeForm, setActiveForm] = useState<"agent" | "merchant">("agent")
@@ -126,256 +125,255 @@ export function MTNSimForms() {
   }
 
   return (
-    <div>
-      <div className="flex justify-center mb-12">
-          <div className="flex p-1 bg-yellow-100 rounded-xl">
-            <Button
-              variant={activeForm === "agent" ? "default" : "ghost"}
-              onClick={() => setActiveForm("agent")}
-              className={`px-8 py-6 text-lg rounded-lg transition-all duration-200 ${
-                activeForm === "agent"
-                  ? "bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg"
-                  : "text-yellow-800 hover:bg-yellow-200"
-              }`}
-            >
-              Agent SIM
-            </Button>
-            <Button
-              variant={activeForm === "merchant" ? "default" : "ghost"}
-              onClick={() => setActiveForm("merchant")}
-              className={`px-8 py-6 text-lg rounded-lg transition-all duration-200 ${
-                activeForm === "merchant"
-                  ? "bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg"
-                  : "text-yellow-800 hover:bg-yellow-200"
-              }`}
-            >
-              Merchant SIM
-            </Button>
+    <div className="w-full">
+      {/* Toggle between Agent/Merchant – flat, no shadow */}
+      <div className="flex justify-center mb-8">
+        <div className="flex gap-2">
+          <Button
+            variant={activeForm === "agent" ? "default" : "outline"}
+            onClick={() => setActiveForm("agent")}
+            className={`px-6 py-2 text-base font-medium rounded-lg transition-colors ${
+              activeForm === "agent"
+                ? "bg-yellow-600 hover:bg-yellow-700 text-white"
+                : "border-yellow-600 text-yellow-700 hover:bg-yellow-50"
+            }`}
+          >
+            Agent SIM
+          </Button>
+          <Button
+            variant={activeForm === "merchant" ? "default" : "outline"}
+            onClick={() => setActiveForm("merchant")}
+            className={`px-6 py-2 text-base font-medium rounded-lg transition-colors ${
+              activeForm === "merchant"
+                ? "bg-yellow-600 hover:bg-yellow-700 text-white"
+                : "border-yellow-600 text-yellow-700 hover:bg-yellow-50"
+            }`}
+          >
+            Merchant SIM
+          </Button>
+        </div>
+      </div>
+
+      {/* Form container – flat, no card, no shadow, no overflow hidden */}
+      <div className="w-full border border-yellow-200 bg-white">
+        {/* Header – plain yellow background, no gradient tricks */}
+        <div className="bg-yellow-600 text-white px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold">{simOptions[activeForm].name}</h2>
+            <p className="text-yellow-100 text-sm mt-1">
+              {simOptions[activeForm].delivery} • {simOptions[activeForm].duration}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-black">₵{simOptions[activeForm].price}</div>
+            <Badge className="mt-1 bg-yellow-500 text-white border-none text-xs">Standard Pricing</Badge>
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          <Card className="border-yellow-200 shadow-xl overflow-hidden">
-            <CardHeader className="bg-yellow-600 text-white p-8">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-3xl font-bold">{simOptions[activeForm].name}</CardTitle>
-                  <CardDescription className="text-yellow-100 text-lg mt-2">
-                    {simOptions[activeForm].delivery} • {simOptions[activeForm].duration}
-                  </CardDescription>
+        {/* Form body – clean spacing, no shadows */}
+        <div className="p-6 md:p-8">
+          <form onSubmit={handleSubmit} className="space-y-10">
+            {/* SECTION A: Business Information */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 pb-2 border-b-2 border-yellow-100">
+                <div className="w-8 h-8 rounded-full bg-yellow-600 text-white flex items-center justify-center font-bold text-sm">
+                  A
                 </div>
-                <div className="text-right">
-                  <div className="text-4xl font-black">₵{simOptions[activeForm].price}</div>
-                  <Badge variant="secondary" className="mt-2 bg-yellow-500 text-white border-none">
-                    Standard Pricing
-                  </Badge>
+                <h3 className="text-lg font-bold text-gray-800">BUSINESS INFORMATION</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">Business Name</Label>
+                  <Input
+                    placeholder="Enter legal business name"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, bizName: e.target.value })
+                        : setMerchantData({ ...merchantData, bizName: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">Business Registration Number</Label>
+                  <Input
+                    placeholder="Registration No."
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, bizRegNo: e.target.value })
+                        : setMerchantData({ ...merchantData, bizRegNo: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-10">
-                {/* SECTION A: Business Information */}
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 pb-2 border-b-2 border-yellow-100">
-                    <div className="w-8 h-8 rounded-full bg-yellow-600 text-white flex items-center justify-center font-bold">
-                      A
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800">BUSINESS INFORMATION</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">Business Name</Label>
-                      <Input
-                        placeholder="Enter legal business name"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, bizName: e.target.value })
-                            : setMerchantData({ ...merchantData, bizName: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">Business Registration Number</Label>
-                      <Input
-                        placeholder="Registration No."
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, bizRegNo: e.target.value })
-                            : setMerchantData({ ...merchantData, bizRegNo: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">Type of Business</Label>
-                      <Input
-                        placeholder="e.g. Sole Proprietor"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, bizType: e.target.value })
-                            : setMerchantData({ ...merchantData, bizType: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">Nature of Business</Label>
-                      <Input
-                        placeholder="e.g. Retail"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, bizNature: e.target.value })
-                            : setMerchantData({ ...merchantData, bizNature: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">TIN Number</Label>
-                      <Input
-                        placeholder="Tax ID"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, tin: e.target.value })
-                            : setMerchantData({ ...merchantData, tin: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">Business Contact Number</Label>
-                      <Input
-                        placeholder="Contact"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, bizContact: e.target.value })
-                            : setMerchantData({ ...merchantData, bizContact: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">Business Email</Label>
-                      <Input
-                        placeholder="Email"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, bizEmail: e.target.value })
-                            : setMerchantData({ ...merchantData, bizEmail: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-700 font-semibold">Physical Address</Label>
-                    <Input
-                      placeholder="Street, Building, etc."
-                      onChange={(e) =>
-                        activeForm === "agent"
-                          ? setAgentData({ ...agentData, bizPhysicalAddr: e.target.value })
-                          : setMerchantData({ ...merchantData, bizPhysicalAddr: e.target.value })
-                      }
-                      className="border-yellow-200 focus:border-yellow-500"
-                    />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">Type of Business</Label>
+                  <Input
+                    placeholder="e.g. Sole Proprietor"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, bizType: e.target.value })
+                        : setMerchantData({ ...merchantData, bizType: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
                 </div>
-
-                {/* SECTION B: Owner Details */}
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3 pb-2 border-b-2 border-yellow-100">
-                    <div className="w-8 h-8 rounded-full bg-yellow-600 text-white flex items-center justify-center font-bold">
-                      B
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800">BUSINESS OWNER DETAILS</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">Full Name (as per ID)</Label>
-                      <Input
-                        placeholder="Owner's Name"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, ownerName: e.target.value })
-                            : setMerchantData({ ...merchantData, ownerName: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">Date of Birth</Label>
-                      <Input
-                        type="date"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, ownerDob: e.target.value })
-                            : setMerchantData({ ...merchantData, ownerDob: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">Nationality</Label>
-                      <Input
-                        placeholder="Ghanaian"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, ownerNationality: e.target.value })
-                            : setMerchantData({ ...merchantData, ownerNationality: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">ID Type</Label>
-                      <Input
-                        placeholder="e.g. Ghana Card"
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, ownerIdType: e.target.value })
-                            : setMerchantData({ ...merchantData, ownerIdType: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-gray-700 font-semibold">ID Number</Label>
-                      <Input
-                        placeholder="GHA-XXXX..."
-                        onChange={(e) =>
-                          activeForm === "agent"
-                            ? setAgentData({ ...agentData, ownerIdNo: e.target.value })
-                            : setMerchantData({ ...merchantData, ownerIdNo: e.target.value })
-                        }
-                        className="border-yellow-200 focus:border-yellow-500 font-mono"
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">Nature of Business</Label>
+                  <Input
+                    placeholder="e.g. Retail"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, bizNature: e.target.value })
+                        : setMerchantData({ ...merchantData, bizNature: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
                 </div>
-
-                {/* Footer Message */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-yellow-800 text-sm italic">
-                  * Note: For both Agent and Merchant SIMs, you will be required to share your signature and Ghana Card ID via WhatsApp
-                  after submitting this form.
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">TIN Number</Label>
+                  <Input
+                    placeholder="Tax ID"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, tin: e.target.value })
+                        : setMerchantData({ ...merchantData, tin: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">Business Contact Number</Label>
+                  <Input
+                    placeholder="Contact"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, bizContact: e.target.value })
+                        : setMerchantData({ ...merchantData, bizContact: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">Business Email</Label>
+                  <Input
+                    placeholder="Email"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, bizEmail: e.target.value })
+                        : setMerchantData({ ...merchantData, bizEmail: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-gray-700 font-medium mb-1">Physical Address</Label>
+                <Input
+                  placeholder="Street, Building, etc."
+                  onChange={(e) =>
+                    activeForm === "agent"
+                      ? setAgentData({ ...agentData, bizPhysicalAddr: e.target.value })
+                      : setMerchantData({ ...merchantData, bizPhysicalAddr: e.target.value })
+                  }
+                  className="border-yellow-200 focus:border-yellow-500 mt-1"
+                />
+              </div>
+            </div>
 
-                <Button
-                  type="submit"
-                  className="w-full py-8 text-xl font-bold bg-yellow-600 hover:bg-yellow-700 shadow-xl transition-all duration-300"
-                >
-                  Submit Forms
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+            {/* SECTION B: Owner Details */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 pb-2 border-b-2 border-yellow-100">
+                <div className="w-8 h-8 rounded-full bg-yellow-600 text-white flex items-center justify-center font-bold text-sm">
+                  B
+                </div>
+                <h3 className="text-lg font-bold text-gray-800">BUSINESS OWNER DETAILS</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">Full Name (as per ID)</Label>
+                  <Input
+                    placeholder="Owner's Name"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, ownerName: e.target.value })
+                        : setMerchantData({ ...merchantData, ownerName: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">Date of Birth</Label>
+                  <Input
+                    type="date"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, ownerDob: e.target.value })
+                        : setMerchantData({ ...merchantData, ownerDob: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">Nationality</Label>
+                  <Input
+                    placeholder="Ghanaian"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, ownerNationality: e.target.value })
+                        : setMerchantData({ ...merchantData, ownerNationality: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">ID Type</Label>
+                  <Input
+                    placeholder="e.g. Ghana Card"
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, ownerIdType: e.target.value })
+                        : setMerchantData({ ...merchantData, ownerIdType: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-gray-700 font-medium mb-1">ID Number</Label>
+                  <Input
+                    placeholder="GHA-XXXX..."
+                    onChange={(e) =>
+                      activeForm === "agent"
+                        ? setAgentData({ ...agentData, ownerIdNo: e.target.value })
+                        : setMerchantData({ ...merchantData, ownerIdNo: e.target.value })
+                    }
+                    className="border-yellow-200 focus:border-yellow-500 font-mono mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer note */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800 text-sm italic">
+              * Note: You will need to share your signature and Ghana Card ID via WhatsApp after submitting this form.
+            </div>
+
+            {/* Submit button – flat style */}
+            <Button
+              type="submit"
+              className="w-full py-6 text-lg font-bold bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg"
+            >
+              Submit Form
+            </Button>
+          </form>
         </div>
+      </div>
 
       <PaymentConfirmationModal
         isOpen={showPaymentModal}

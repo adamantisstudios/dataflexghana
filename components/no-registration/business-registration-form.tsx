@@ -1176,12 +1176,12 @@ Please confirm receipt and let us know if you need any clarifications.`
         {/* Header */}
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">Business Registration Services</h2>
-          <p className="text-lg md:text-xl text-slate-700 max-w-3xl mx-auto">
+          <p className="w-full text-lg md:text-xl text-slate-700">
             Complete business registration, renewals, amendments, and document replacements for all business types.
           </p>
         </div>
 
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full">
           {!selectedService ? (
             <>
               {/* Category Tabs (Mobile: Horizontal Scroll) */}

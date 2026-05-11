@@ -17,8 +17,8 @@ export function AFAContextSection() {
   return (
     <section className="py-16 bg-gradient-to-br from-green-50 to-blue-50">
       <div className="container mx-auto px-4">
-        {/* Header – simpler, less grandiose */}
-        <div className="max-w-3xl mx-auto text-center mb-10">
+        {/* Header – full width */}
+        <div className="w-full text-center mb-10">
           <h2 className="text-3xl font-semibold text-gray-800 mb-2">
             MTN AFA Bundle – what you should know
           </h2>
@@ -28,8 +28,8 @@ export function AFAContextSection() {
           </p>
         </div>
 
-        <div className="max-w-5xl mx-auto space-y-8">
-          {/* What is AFA – less boxy, more readable */}
+        <div className="w-full space-y-8">
+          {/* What is AFA – unchanged */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white">
               <div className="flex items-center gap-3">
@@ -66,7 +66,7 @@ export function AFAContextSection() {
             </div>
           </div>
 
-          {/* How to register – restructured, no forced two columns */}
+          {/* How to register – unchanged */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
               <div className="flex items-center gap-3">
@@ -127,7 +127,7 @@ export function AFAContextSection() {
             </div>
           </div>
 
-          {/* Cost & benefits – side by side but less rigid */}
+          {/* Cost & benefits – unchanged */}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="bg-gradient-to-r from-orange-600 to-orange-700 px-5 py-3 text-white">
@@ -173,10 +173,10 @@ export function AFAContextSection() {
             </div>
           </div>
 
-          {/* CTA – simpler, less flashy button */}
+          {/* CTA – unchanged */}
           <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-xl p-6 text-center text-white">
             <h3 className="text-2xl font-bold mb-2">Want help registering?</h3>
-            <p className="text-white/90 max-w-xl mx-auto mb-5">
+            <p className="w-full text-white/90 mb-5">
               DataFlex Ghana can register you for the AFA bundle and also provides the cheapest data rates in the country.
             </p>
             <Button

@@ -85,12 +85,12 @@ Adamantis Solutions (Francis Ani-Johnson .K) - 0557943392`
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">Quick Service Portal</h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="w-full text-xl text-gray-600">
             Order routers, software, vouchers, and more with instant 4-digit reference codes
           </p>
         </div>
 
-        <Card className="max-w-3xl mx-auto border-indigo-200 shadow-xl">
+        <Card className="w-full border-indigo-200 shadow-xl">
           <CardHeader className="bg-indigo-600 text-white text-center rounded-t-lg">
             <CardTitle className="text-2xl">Standard Service Form</CardTitle>
             <CardDescription className="text-indigo-100">

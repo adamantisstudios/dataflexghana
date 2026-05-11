@@ -60,15 +60,15 @@ export default function NoRegistrationPage() {
       <NoRegistrationSlider />
 
       <section className="py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-4xl mx-auto bg-gradient-to-r from-green-600 to-blue-600 text-white">
+        <div className="container mx-auto px-4 max-w-none">
+          <Card className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white">
             <CardContent className="p-8">
               <h2 className="text-3xl font-bold text-center mb-6">Why Choose No Registration?</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
                   <CheckCircle className="h-12 w-12 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">Instant Access</h3>
-                  <p className="text-green-100">No waiting, no forms - get what you need immediately</p>
+                  <p className="text-green-100">No waiting, no forms – get what you need immediately</p>
                 </div>
                 <div className="text-center">
                   <CheckCircle className="h-12 w-12 mx-auto mb-4" />
@@ -78,7 +78,7 @@ export default function NoRegistrationPage() {
                 <div className="text-center">
                   <CheckCircle className="h-12 w-12 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">Quality Service</h3>
-                  <p className="text-green-100">Same high-quality services without the paperwork</p>
+                  <p className="text-green-100">Same high‑quality services without the paperwork</p>
                 </div>
               </div>
             </CardContent>
@@ -87,15 +87,16 @@ export default function NoRegistrationPage() {
       </section>
 
       <section className="py-16 bg-gradient-to-br from-slate-50 to-gray-100">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 max-w-none">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Explore Our Services</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="w-full text-xl text-gray-600">
               Discover more opportunities and connect with professionals in various fields
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Apple Service Center */}
             <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
               <CardContent className="p-0">
                 <div className="relative w-full h-40 overflow-hidden bg-gray-200">
@@ -122,6 +123,7 @@ export default function NoRegistrationPage() {
               </CardContent>
             </Card>
 
+            {/* Domestic Workers */}
             <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
               <CardContent className="p-0">
                 <div className="relative w-full h-40 overflow-hidden bg-gray-200">
@@ -148,6 +150,7 @@ export default function NoRegistrationPage() {
               </CardContent>
             </Card>
 
+            {/* Job Board */}
             <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
               <CardContent className="p-0">
                 <div className="relative w-full h-40 overflow-hidden bg-gray-200">
@@ -174,6 +177,7 @@ export default function NoRegistrationPage() {
               </CardContent>
             </Card>
 
+            {/* Candidates Search Engine */}
             <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group">
               <CardContent className="p-0">
                 <div className="relative w-full h-40 overflow-hidden bg-gray-200">
@@ -200,6 +204,7 @@ export default function NoRegistrationPage() {
               </CardContent>
             </Card>
 
+            {/* Fashion Avenue */}
             <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group lg:col-span-1">
               <CardContent className="p-0">
                 <div className="relative w-full h-40 overflow-hidden bg-gray-200">
@@ -226,6 +231,7 @@ export default function NoRegistrationPage() {
               </CardContent>
             </Card>
 
+            {/* Salon & Beauty */}
             <Card className="hover:shadow-xl transition-all duration-300 overflow-hidden border-0 group lg:col-span-1">
               <CardContent className="p-0">
                 <div className="relative w-full h-40 overflow-hidden bg-gray-200">
@@ -257,8 +263,8 @@ export default function NoRegistrationPage() {
 
       {/* Business Compliance Hub Section - FOR NON-AGENTS */}
       <section className="py-16 bg-gradient-to-br from-purple-50 to-pink-50">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-5xl mx-auto border-0 overflow-hidden shadow-2xl hover:shadow-2xl transition-all duration-300">
+        <div className="container mx-auto px-4 max-w-none">
+          <Card className="w-full border-0 overflow-hidden shadow-2xl hover:shadow-2xl transition-all duration-300">
             <CardContent className="p-0 flex flex-col md:flex-row-reverse">
               <div className="relative w-full md:w-2/5 bg-gradient-to-br from-purple-100 to-pink-100">
                 <div className="relative w-full aspect-[3/4] md:aspect-auto md:h-full">
@@ -309,8 +315,8 @@ export default function NoRegistrationPage() {
 
       {/* General Support Services Section */}
       <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-5xl mx-auto border-0 overflow-hidden shadow-2xl hover:shadow-2xl transition-all duration-300">
+        <div className="container mx-auto px-4 max-w-none">
+          <Card className="w-full border-0 overflow-hidden shadow-2xl hover:shadow-2xl transition-all duration-300">
             <CardContent className="p-0 flex flex-col md:flex-row">
               <div className="relative w-full md:w-2/5 bg-gradient-to-br from-blue-100 to-indigo-100">
                 <div className="relative w-full aspect-[3/4] md:aspect-auto md:h-full">
@@ -363,8 +369,8 @@ export default function NoRegistrationPage() {
 
       {/* Wholesale Agent Opportunity Section */}
       <section className="py-16 bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-5xl mx-auto border-0 overflow-hidden shadow-2xl hover:shadow-2xl transition-all duration-300">
+        <div className="container mx-auto px-4 max-w-none">
+          <Card className="w-full border-0 overflow-hidden shadow-2xl hover:shadow-2xl transition-all duration-300">
             <CardContent className="p-0 flex flex-col md:flex-row">
               <div className="relative w-full md:w-2/5 h-64 md:h-auto min-h-64 bg-gradient-to-br from-amber-100 to-orange-100">
                 <Image
@@ -438,10 +444,10 @@ export default function NoRegistrationPage() {
         </div>
       </section>
 
-      {/* Data bundles that actually save you money – Collapsible */}
+      {/* ========== FIXED: Data bundles collapsible – wider ========== */}
       <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-6xl mx-auto border border-gray-200">
+        <div className="container mx-auto px-4 max-w-none">
+          <Card className="w-full border border-gray-200">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="network-offerings" className="border-0">
                 <AccordionTrigger className="px-6 py-4 hover:no-underline text-gray-800 font-medium hover:bg-gray-50 rounded-t-lg transition-colors">
@@ -461,10 +467,10 @@ export default function NoRegistrationPage() {
 
       <DevicesSection />
 
-      {/* MTN Agent & Merchant SIM Registration - Collapsible */}
+      {/* ========== FIXED: MTN Agent & Merchant SIM Registration – much wider ========== */}
       <section className="py-16 bg-gradient-to-br from-yellow-50 to-orange-50">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-4xl mx-auto border-yellow-200 shadow-lg">
+        <div className="container mx-auto px-4 max-w-none">
+          <Card className="w-full border-yellow-200 shadow-lg">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="mtn-sim" className="border-0">
                 <AccordionTrigger className="hover:no-underline px-6 py-4 flex items-center justify-between bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-t-lg">
@@ -473,7 +479,8 @@ export default function NoRegistrationPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-0 py-0 border-t border-yellow-200 bg-white rounded-b-lg overflow-hidden">
-                  <div className="pt-8">
+                  {/* Removed the narrow pt-8 and added proper padding */}
+                  <div className="p-6 md:p-8 w-full">
                     <MTNSimForms />
                   </div>
                 </AccordionContent>
@@ -483,10 +490,10 @@ export default function NoRegistrationPage() {
         </div>
       </section>
 
-      {/* AFA Context Section – Collapsible (hidden by default) */}
+      {/* AFA Context Section – already wide enough, but ensure full width */}
       <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-6xl mx-auto border border-gray-200">
+        <div className="container mx-auto px-4 max-w-none">
+          <Card className="w-full border border-gray-200">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="afa-context" className="border-0">
                 <AccordionTrigger className="px-6 py-4 hover:no-underline text-gray-800 font-medium hover:bg-gray-50 rounded-t-lg transition-colors">
@@ -504,10 +511,10 @@ export default function NoRegistrationPage() {
         </div>
       </section>
 
-      {/* AFA Registration Form – Collapsible (hidden by default) */}
+      {/* ========== FIXED: AFA Registration Form – wider ========== */}
       <section id="afa-registration" className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-4xl mx-auto border border-gray-200">
+        <div className="container mx-auto px-4 max-w-none">
+          <Card className="w-full border border-gray-200">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="afa-registration" className="border-0">
                 <AccordionTrigger className="px-6 py-4 hover:no-underline text-gray-800 font-medium hover:bg-gray-50 rounded-t-lg transition-colors">
@@ -517,7 +524,8 @@ export default function NoRegistrationPage() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-0 pb-6 pt-2 border-t border-gray-100">
-                  <div className="px-6">
+                  {/* Removed the inner px-6 that was causing narrowness – now full width */}
+                  <div className="w-full">
                     <AFARegistrationForm />
                   </div>
                 </AccordionContent>
@@ -528,8 +536,8 @@ export default function NoRegistrationPage() {
       </section>
 
       <section className="py-12 md:py-16 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="container mx-auto px-4 max-w-none">
+          <div className="w-full">
             <div className="text-center mb-8 md:mb-10">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
                 Ready To Earn More? Register As Agent
@@ -586,8 +594,8 @@ export default function NoRegistrationPage() {
       </section>
 
       <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-5xl mx-auto">
+        <div className="container mx-auto px-4 max-w-none">
+          <div className="w-full">
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-blue-100">
               <div className="grid md:grid-cols-2 gap-0">
                 <div className="p-8 lg:p-10 flex flex-col justify-center">
@@ -654,8 +662,8 @@ export default function NoRegistrationPage() {
       <section className="py-16 bg-gradient-to-r from-emerald-600 to-green-600 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Get Started?</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
-            No registration, no hassle - just quality services at affordable prices. Contact us via WhatsApp to place your order today!
+          <p className="w-full text-xl mb-8">
+            No registration, no hassle – just quality services at affordable prices. Contact us via WhatsApp to place your order today!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="secondary" asChild className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-6">

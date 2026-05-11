@@ -119,16 +119,16 @@ Please provide more details about this service and how I can help.`
     <section id="support-services" className="py-12 md:py-16 bg-gradient-to-br from-purple-50 to-purple-100">
       <div className="container mx-auto px-4">
         {/* Header - Icons removed, full text visible with proper padding */}
-        <div className="text-center mb-8 md:mb-12 max-w-5xl mx-auto">
+        <div className="w-full text-center mb-8 md:mb-12">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 px-2 leading-tight">
             General Support Services
           </h2>
-          <p className="text-lg md:text-xl text-slate-700 px-2 max-w-4xl mx-auto leading-relaxed">
+          <p className="w-full text-lg md:text-xl text-slate-700 px-2 leading-relaxed">
             We can support anyone to secure these services faster and with convenience. Contact our admin team for more information and personalized assistance.
           </p>
         </div>
 
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full">
           {!selectedService ? (
             <>
               {/* Category Tabs - Text-only tabs with full visibility */}
@@ -216,7 +216,7 @@ Please provide more details about this service and how I can help.`
             </>
           ) : (
             /* Service Details Form */
-            <Card className="max-w-2xl mx-auto border-0 shadow-xl">
+            <Card className="w-full border-0 shadow-xl">
               <CardContent className="p-6 md:p-8">
                 <div className="mb-6">
                   <h3 className="text-2xl font-bold text-slate-900 mb-2 break-words">{selectedService.service.name}</h3>
