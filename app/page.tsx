@@ -486,7 +486,7 @@ export default function HomePage() {
           <div className="text-center max-w-4xl mx-auto">
             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 mb-4">Why Choose Dataflex Ghana</Badge>
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Dataflex Ghana — The Data You Need to Start <span className="text-emerald-600">Earning Online</span>
+              Dataflex Ghana — All The Data (Information) You Need to Start <span className="text-emerald-600">Earning Online</span>
             </h2>
             <p className="text-xl text-gray-600">
               We provide all the tools, support, and opportunities you need to access quality services and start your earning journey
