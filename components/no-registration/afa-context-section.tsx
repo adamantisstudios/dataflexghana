@@ -8,6 +8,8 @@ import {
   CheckCircle,
   Phone,
   ArrowRight,
+  Clock,
+  Wifi,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -15,281 +17,179 @@ export function AFAContextSection() {
   return (
     <section className="py-16 bg-gradient-to-br from-green-50 to-blue-50">
       <div className="container mx-auto px-4">
-        {/* Section header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Understanding MTN AFA Bundle in Ghana
+        {/* Header – simpler, less grandiose */}
+        <div className="max-w-3xl mx-auto text-center mb-10">
+          <h2 className="text-3xl font-semibold text-gray-800 mb-2">
+            MTN AFA Bundle – what you should know
           </h2>
-          <p className="text-lg md:text-xl text-gray-600">
-            Learn about Ghana's most affordable telecommunications package
-            designed for farmers and rural communities
+          <p className="text-gray-600">
+            It’s a cheap phone and data plan for farmers and rural communities. 
+            Here’s how it works and how you can get it.
           </p>
         </div>
 
-        <div className="max-w-6xl mx-auto space-y-8">
-          {/* What is AFA Bundle */}
-          <Card className="border-0 shadow-lg overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6">
+        <div className="max-w-5xl mx-auto space-y-8">
+          {/* What is AFA – less boxy, more readable */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white">
               <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-3 rounded-xl">
-                  <Smartphone className="h-6 w-6" />
-                </div>
+                <Smartphone className="h-7 w-7" />
                 <div>
-                  <CardTitle className="text-xl md:text-2xl font-bold">
-                    What Is the MTN AFA Bundle?
-                  </CardTitle>
-                  <p className="text-green-100 text-sm mt-1">
-                    Affordable Farmers Access – designed for rural communities
-                  </p>
+                  <h3 className="text-xl font-bold">What’s the MTN AFA Bundle?</h3>
+                  <p className="text-green-100 text-sm">Affordable Farmers Access</p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-6 md:p-8">
-              <p className="text-gray-700 text-base md:text-lg mb-8 leading-relaxed">
-                In Ghana, the MTN AFA Bundle is a special telecommunications
-                offer provided by MTN Ghana, primarily targeting farmers and
-                individuals in rural areas.{" "}
-                <strong className="font-semibold text-green-700">
-                  "AFA" stands for "Affordable Farmers Access"
-                </strong>
-                , aiming to deliver cost-effective voice and data services to
-                underserved communities.
+            </div>
+            <div className="p-6 space-y-5">
+              <p className="text-gray-700 leading-relaxed">
+                <strong className="text-green-700">AFA stands for Affordable Farmers Access</strong> – 
+                a special MTN Ghana plan for farmers and people in rural areas. 
+                It gives you cheaper calls and data with longer validity.
               </p>
-
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FeatureCard
-                  icon={<Phone className="h-8 w-8 text-green-600" />}
-                  title="Free/Discounted Voice"
-                  description="Affordable call rates to all networks"
-                  bgColor="bg-green-50"
-                />
-                <FeatureCard
-                  icon={<Smartphone className="h-8 w-8 text-blue-600" />}
-                  title="Affordable Data"
-                  description="Discounted data packages for internet access"
-                  bgColor="bg-blue-50"
-                />
-                <FeatureCard
-                  icon={<CheckCircle className="h-8 w-8 text-purple-600" />}
-                  title="Extended Validity"
-                  description="Longer validity periods for better value"
-                  bgColor="bg-purple-50"
-                />
+                <div className="bg-green-50 p-4 rounded-lg text-center">
+                  <Phone className="h-7 w-7 text-green-600 mx-auto mb-2" />
+                  <h4 className="font-medium text-gray-800">Cheaper calls</h4>
+                  <p className="text-sm text-gray-600">To any network</p>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg text-center">
+                  <Wifi className="h-7 w-7 text-blue-600 mx-auto mb-2" />
+                  <h4 className="font-medium text-gray-800">Discounted data</h4>
+                  <p className="text-sm text-gray-600">Pay less for internet</p>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg text-center">
+                  <Clock className="h-7 w-7 text-purple-600 mx-auto mb-2" />
+                  <h4 className="font-medium text-gray-800">Longer validity</h4>
+                  <p className="text-sm text-gray-600">Your bundles last longer</p>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* How to Register */}
-          <Card className="border-0 shadow-lg overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
+          {/* How to register – restructured, no forced two columns */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
               <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-3 rounded-xl">
-                  <Users className="h-6 w-6" />
-                </div>
+                <Users className="h-7 w-7" />
                 <div>
-                  <CardTitle className="text-xl md:text-2xl font-bold">
-                    How to Register for the MTN AFA Bundle
-                  </CardTitle>
-                  <p className="text-blue-100 text-sm mt-1">
-                    Simple steps to get started
-                  </p>
+                  <h3 className="text-xl font-bold">How to register</h3>
+                  <p className="text-blue-100 text-sm">Do it yourself or let us help</p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-6 md:p-8">
-              <div className="grid lg:grid-cols-2 gap-8">
-                {/* Steps */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
-                    Registration Steps
-                  </h3>
-                  <div className="space-y-4">
-                    <Step
-                      number={1}
-                      title="Dial the Registration Code"
-                      description={
-                        <>
-                          On your MTN line, dial{" "}
-                          <code className="bg-gray-100 px-2 py-1 rounded text-blue-700 font-mono text-sm">
-                            *1848#
-                          </code>
-                        </>
-                      }
-                    />
-                    <Step
-                      number={2}
-                      title="Select Registration Option"
-                      description="Choose option 1 to register"
-                    />
-                    <Step
-                      number={3}
-                      title="Provide Required Information"
-                      description="Fill in your details as prompted"
-                    />
-                    <Step
-                      number={4}
-                      title="Complete Registration"
-                      description="Follow the prompts to finalize"
-                    />
+            </div>
+            <div className="p-6 space-y-6">
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-3">The steps (if you do it yourself)</h4>
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="w-7 h-7 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">1</div>
+                    <div>
+                      <p className="font-medium text-gray-800">Dial <code className="bg-gray-100 px-2 py-0.5 rounded text-sm">*1848#</code> on your MTN line</p>
+                      <p className="text-sm text-gray-600">Follow the menu that pops up</p>
+                    </div>
                   </div>
-                </div>
-
-                {/* Required Info */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <span className="w-1 h-6 bg-green-600 rounded-full"></span>
-                    Required Information
-                  </h3>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {[
-                      "Full name",
-                      "MTN phone number",
-                      "Ghana Card number",
-                      "Region and location",
-                      "Occupation (preferably 'farmer')",
-                      "Date of birth",
-                    ].map((item, idx) => (
-                      <li key={idx} className="flex items-center gap-2 text-gray-700">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <span className="text-sm md:text-base">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="flex gap-3">
+                    <div className="w-7 h-7 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">2</div>
+                    <div>
+                      <p className="font-medium text-gray-800">Choose registration option (usually 1)</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-7 h-7 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">3</div>
+                    <div>
+                      <p className="font-medium text-gray-800">Enter your details</p>
+                      <p className="text-sm text-gray-600">Full name, Ghana Card, location, occupation (prefer “farmer”)</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="w-7 h-7 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">4</div>
+                    <div>
+                      <p className="font-medium text-gray-800">Confirm and you’re done</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Cost & Benefits - Two Column */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Cost Card */}
-            <Card className="border-0 shadow-lg overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-orange-600 to-orange-700 text-white p-5">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 p-2 rounded-lg">
-                    <DollarSign className="h-5 w-5" />
-                  </div>
-                  <CardTitle className="text-lg font-bold">Cost of Registration</CardTitle>
+              <div className="bg-gray-50 p-4 rounded-lg mt-4">
+                <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  What you’ll need
+                </h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-700">
+                  <span>• Full name</span>
+                  <span>• MTN phone number</span>
+                  <span>• Ghana Card number</span>
+                  <span>• Region / location</span>
+                  <span>• Occupation (farmer recommended)</span>
+                  <span>• Date of birth</span>
                 </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-gray-600 text-sm mb-4">
-                  The registration fee varies depending on the registerer:
+              </div>
+            </div>
+          </div>
+
+          {/* Cost & benefits – side by side but less rigid */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="bg-gradient-to-r from-orange-600 to-orange-700 px-5 py-3 text-white">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  <h3 className="font-bold text-lg">Registration cost</h3>
+                </div>
+              </div>
+              <div className="p-5 text-center">
+                <p className="text-gray-600 text-sm mb-3">Depends who registers you:</p>
+                <div className="inline-block bg-orange-50 px-6 py-3 rounded-xl">
+                  <span className="text-4xl font-bold text-orange-600">₵3 – ₵30</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  DataFlex Ghana offers some of the lowest registration fees.
                 </p>
-                <div className="text-center p-5 bg-orange-50 rounded-xl">
-                  <span className="text-3xl md:text-4xl font-bold text-orange-600">
-                    ₵3 – ₵30
-                  </span>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Depending on the registerer and location
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    DataFlex Ghana offers competitive registration rates
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Benefits Card */}
-            <Card className="border-0 shadow-lg overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-5">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 p-2 rounded-lg">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <CardTitle className="text-lg font-bold">Benefits of AFA Bundle</CardTitle>
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-5 py-3 text-white">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  <h3 className="font-bold text-lg">What you get</h3>
                 </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <ul className="space-y-3">
+              </div>
+              <div className="p-5">
+                <ul className="space-y-2">
                   {[
-                    "Affordable call rates to all networks",
-                    "Discounted data packages",
-                    "Extended validity periods",
-                    "Access to agricultural information",
+                    "Cheaper calls to all networks",
+                    "Discounted data bundles",
+                    "Longer validity for your credit",
+                    "Agricultural info via SMS",
                     "Market price updates",
-                  ].map((benefit, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-gray-700">
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm md:text-base">{benefit}</span>
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-gray-700 text-sm">
+                      <CheckCircle className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                      <span>{item}</span>
                     </li>
                   ))}
                 </ul>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* Call to Action */}
-          <Card className="border-0 shadow-xl overflow-hidden bg-gradient-to-r from-green-600 to-blue-600">
-            <CardContent className="p-8 md:p-10 text-center text-white">
-              <h3 className="text-2xl md:text-3xl font-bold mb-4">
-                Ready to Get Your AFA Bundle?
-              </h3>
-              <p className="text-lg md:text-xl mb-6 opacity-90 max-w-2xl mx-auto">
-                DataFlex Ghana helps you register for AFA bundles and provides
-                the cheapest data rates in Ghana!
-              </p>
-              <Button
-                asChild
-                size="lg"
-                className="bg-white text-green-700 hover:bg-gray-100 px-8 py-6 rounded-xl shadow-lg"
-              >
-                <Link href="/agent/register">
-                  Register with DataFlex Ghana
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          {/* CTA – simpler, less flashy button */}
+          <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-xl p-6 text-center text-white">
+            <h3 className="text-2xl font-bold mb-2">Want help registering?</h3>
+            <p className="text-white/90 max-w-xl mx-auto mb-5">
+              DataFlex Ghana can register you for the AFA bundle and also provides the cheapest data rates in the country.
+            </p>
+            <Button
+              asChild
+              className="bg-white text-green-700 hover:bg-gray-100 px-6 py-2 rounded-lg"
+            >
+              <Link href="/agent/register" className="flex items-center gap-2">
+                Register with us <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </section>
-  );
-}
-
-// Helper component for feature cards (used in "What is AFA")
-function FeatureCard({
-  icon,
-  title,
-  description,
-  bgColor,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  bgColor: string;
-}) {
-  return (
-    <div
-      className={`${bgColor} p-5 rounded-xl text-center hover:shadow-md transition-shadow`}
-    >
-      <div className="flex justify-center mb-3">{icon}</div>
-      <h4 className="font-semibold text-gray-800 mb-1">{title}</h4>
-      <p className="text-sm text-gray-600">{description}</p>
-    </div>
-  );
-}
-
-// Helper component for registration steps
-function Step({
-  number,
-  title,
-  description,
-}: {
-  number: number;
-  title: string;
-  description: React.ReactNode;
-}) {
-  return (
-    <div className="flex gap-3">
-      <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
-        {number}
-      </div>
-      <div>
-        <p className="font-medium text-gray-800">{title}</p>
-        <p className="text-sm text-gray-600">{description}</p>
-      </div>
-    </div>
   );
 }

@@ -356,9 +356,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         await updateOrderStatus(orderId, normalizedStatus, dataOrders, setDataOrders, setCachedData)
         if (normalizedStatus === "completed" && currentStatus !== "completed") {
           console.log(`Order ${orderId} completed - commission should be automatically processed`)
-          setTimeout(() => {
-            loadOrders()
-          }, 1000)
         }
         console.log(`Successfully updated order ${orderId} to status "${normalizedStatus}"`)
       } catch (error: any) {

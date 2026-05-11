@@ -126,16 +126,8 @@ export function MTNSimForms() {
   }
 
   return (
-    <section id="mtn-sim-registration" className="py-16 bg-gradient-to-br from-yellow-50 to-orange-50">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">MTN Agent & Merchant SIM Registration</h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Get your business-ready MTN SIM cards with nationwide delivery
-          </p>
-        </div>
-
-        <div className="flex justify-center mb-12">
+    <div>
+      <div className="flex justify-center mb-12">
           <div className="flex p-1 bg-yellow-100 rounded-xl">
             <Button
               variant={activeForm === "agent" ? "default" : "ghost"}
@@ -384,7 +376,6 @@ export function MTNSimForms() {
             </CardContent>
           </Card>
         </div>
-      </div>
 
       <PaymentConfirmationModal
         isOpen={showPaymentModal}
@@ -397,6 +388,6 @@ export function MTNSimForms() {
         }}
         paymentReference={paymentReference}
       />
-    </section>
+    </div>
   )
 }

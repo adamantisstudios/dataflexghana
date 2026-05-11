@@ -221,24 +221,35 @@ export function DataBundleOrderForm() {
         </CardHeader>
 
         <CardContent className="p-6 space-y-6">
-          {/* Network Selection */}
-          <div className="space-y-3">
-            <Label htmlFor="network" className="text-sm font-semibold">
-              Select Network
-            </Label>
-            <Select value={selectedNetwork} onValueChange={handleNetworkChange}>
-              <SelectTrigger id="network" className="border-emerald-200">
-                <SelectValue placeholder="Choose a network provider..." />
-              </SelectTrigger>
-              <SelectContent>
-                {NETWORKS.map((network) => (
-                  <SelectItem key={network.value} value={network.value}>
-                    {network.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Network Selection - Hidden until bundles are loaded */}
+          {bundles.length > 0 && (
+            <div className="space-y-3">
+              <Label htmlFor="network" className="text-sm font-semibold">
+                Select Network
+              </Label>
+              <Select value={selectedNetwork} onValueChange={handleNetworkChange}>
+                <SelectTrigger id="network" className="border-emerald-200">
+                  <SelectValue placeholder="Choose a network provider..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {NETWORKS.map((network) => (
+                    <SelectItem key={network.value} value={network.value}>
+                      {network.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {bundles.length === 0 && (
+            <div className="text-center py-8">
+              <div className="text-gray-500">
+                <p className="text-sm">Loading available data bundles...</p>
+              </div>
+            </div>
+          )}
 
           {/* Bundle Selection */}
           {selectedNetwork && networkBundles.length > 0 && (

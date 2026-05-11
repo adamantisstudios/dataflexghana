@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { useSearchParams } from "next/navigation"
-import { Header } from "@/components/header"
-import { Footer } from "@/components/footer"
-import { ProtectedLink } from "@/components/protected-link"
-import { NoRegistrationSlider } from "@/components/no-registration/no-registration-slider"
-import { DevicesSection } from "@/components/no-registration/devices-section"
-import { ECGTopUpForm } from "@/components/no-registration/ecg-topup-form"
-import { NetworksSection } from "@/components/no-registration/networks-section"
-import { SoftwareStore } from "@/components/no-registration/software-store"
-import { AFAContextSection } from "@/components/no-registration/afa-context-section"
-import { AFARegistrationForm } from "@/components/no-registration/afa-registration-form"
-import { MTNSimForms } from "@/components/no-registration/mtn-sim-forms"
-import { BusinessRegistrationForm } from "@/components/no-registration/business-registration-form"
-import { SupportServices } from "@/components/no-registration/support-services"
-import { DataBundleOrderForm } from "@/components/no-registration/data-bundle-order-form"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { AgentBenefitsSlideup } from "@/components/no-registration/agent-benefits-slideup"
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
+import { ProtectedLink } from "@/components/protected-link";
+import { NoRegistrationSlider } from "@/components/no-registration/no-registration-slider";
+import { DevicesSection } from "@/components/no-registration/devices-section";
+import { ECGTopUpForm } from "@/components/no-registration/ecg-topup-form";
+import { NetworksSection } from "@/components/no-registration/networks-section";
+import { SoftwareStore } from "@/components/no-registration/software-store";
+import { AFAContextSection } from "@/components/no-registration/afa-context-section";
+import { AFARegistrationForm } from "@/components/no-registration/afa-registration-form";
+import { MTNSimForms } from "@/components/no-registration/mtn-sim-forms";
+import { BusinessRegistrationForm } from "@/components/no-registration/business-registration-form";
+import { SupportServices } from "@/components/no-registration/support-services";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { AgentBenefitsSlideup } from "@/components/no-registration/agent-benefits-slideup";
 import {
   CheckCircle,
   Shield,
@@ -32,36 +32,31 @@ import {
   CreditCard,
   DollarSign,
   Package,
-  MessageCircle,
-  FileText, // Add this line
-  X,
-} from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
+  FileText,
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function NoRegistrationPage() {
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const paymentStatus = searchParams.get("payment")
-    const whatsappUrl = searchParams.get("whatsapp_url")
+    const paymentStatus = searchParams.get("payment");
+    const whatsappUrl = searchParams.get("whatsapp_url");
 
-    // Handle successful payment - open WhatsApp after a short delay
     if (paymentStatus === "success" && whatsappUrl) {
       const timeout = setTimeout(() => {
-        console.log("[v0] Opening WhatsApp with payment confirmation")
-        window.open(decodeURIComponent(whatsappUrl), "_blank")
-      }, 500)
-      return () => clearTimeout(timeout)
+        console.log("[v0] Opening WhatsApp with payment confirmation");
+        window.open(decodeURIComponent(whatsappUrl), "_blank");
+      }, 500);
+      return () => clearTimeout(timeout);
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   return (
     <main className="min-h-screen">
       <AgentBenefitsSlideup />
-
       <Header />
-
       <NoRegistrationSlider />
 
       <section className="py-12 bg-white">
@@ -265,7 +260,6 @@ export default function NoRegistrationPage() {
         <div className="container mx-auto px-4">
           <Card className="max-w-5xl mx-auto border-0 overflow-hidden shadow-2xl hover:shadow-2xl transition-all duration-300">
             <CardContent className="p-0 flex flex-col md:flex-row-reverse">
-              {/* Image Section - fits the frame perfectly */}
               <div className="relative w-full md:w-2/5 bg-gradient-to-br from-purple-100 to-pink-100">
                 <div className="relative w-full aspect-[3/4] md:aspect-auto md:h-full">
                   <div className="absolute inset-0 rounded-xl shadow-lg border-4 border-white/80 transform transition-transform duration-300 hover:scale-105 overflow-hidden">
@@ -280,7 +274,6 @@ export default function NoRegistrationPage() {
                 </div>
               </div>
 
-              {/* Content Section */}
               <div className="p-8 md:p-10 flex flex-col justify-between bg-gradient-to-br from-purple-600 to-pink-600 text-white flex-1">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
@@ -292,12 +285,10 @@ export default function NoRegistrationPage() {
                       <p className="text-purple-100 text-sm md:text-base">Access Services Without Commissions</p>
                     </div>
                   </div>
-
                   <p className="text-base md:text-lg text-purple-50 leading-relaxed">
                     Non-agents can now access a dedicated Business Compliance Hub to fill all forms and secure compliance services. Enjoy full access to document filing, business registration, and professional compliance support.
                   </p>
                 </div>
-
                 <div className="pt-6 border-t border-white/20 mt-6">
                   <Button
                     asChild
@@ -316,12 +307,11 @@ export default function NoRegistrationPage() {
         </div>
       </section>
 
-       {/* ✅ FIXED: General Support Services Section - image now fits neatly */}
+      {/* General Support Services Section */}
       <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="container mx-auto px-4">
           <Card className="max-w-5xl mx-auto border-0 overflow-hidden shadow-2xl hover:shadow-2xl transition-all duration-300">
             <CardContent className="p-0 flex flex-col md:flex-row">
-              {/* Image Section - fits the frame perfectly */}
               <div className="relative w-full md:w-2/5 bg-gradient-to-br from-blue-100 to-indigo-100">
                 <div className="relative w-full aspect-[3/4] md:aspect-auto md:h-full">
                   <div className="absolute inset-0 rounded-xl shadow-lg border-4 border-white/80 transform transition-transform duration-300 hover:scale-105 overflow-hidden">
@@ -336,7 +326,6 @@ export default function NoRegistrationPage() {
                 </div>
               </div>
 
-              {/* Content Section */}
               <div className="p-8 md:p-10 flex flex-col justify-between bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex-1">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
@@ -348,12 +337,10 @@ export default function NoRegistrationPage() {
                       <p className="text-blue-100 text-sm md:text-base">Professional Form Filling & Compliance</p>
                     </div>
                   </div>
-
                   <p className="text-base md:text-lg text-blue-50 leading-relaxed">
                     We can support anyone to secure these services faster and with convenience. Contact our admin team for more information and personalized assistance.
                   </p>
                 </div>
-
                 <div className="pt-6 border-t border-white/20 mt-6">
                   <Button
                     asChild
@@ -371,7 +358,7 @@ export default function NoRegistrationPage() {
           </Card>
         </div>
       </section>
-      
+
       <SupportServices />
 
       {/* Wholesale Agent Opportunity Section */}
@@ -379,7 +366,6 @@ export default function NoRegistrationPage() {
         <div className="container mx-auto px-4">
           <Card className="max-w-5xl mx-auto border-0 overflow-hidden shadow-2xl hover:shadow-2xl transition-all duration-300">
             <CardContent className="p-0 flex flex-col md:flex-row">
-              {/* Image Section */}
               <div className="relative w-full md:w-2/5 h-64 md:h-auto min-h-64 bg-gradient-to-br from-amber-100 to-orange-100">
                 <Image
                   src="/wholesale-opportunity.jpg"
@@ -390,7 +376,6 @@ export default function NoRegistrationPage() {
                 />
               </div>
 
-              {/* Content Section */}
               <div className="p-8 md:p-10 flex flex-col justify-between bg-gradient-to-br from-orange-600 to-red-600 text-white flex-1">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
@@ -452,127 +437,95 @@ export default function NoRegistrationPage() {
           </Card>
         </div>
       </section>
-      
-      <NetworksSection />
-      <DevicesSection />
 
-      {/* Data Bundle Orders Section */}
-      <section className="py-16 bg-gradient-to-br from-cyan-50 to-teal-50">
+      {/* Data bundles that actually save you money – Collapsible */}
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <DataBundleOrderForm />
-        </div>
-      </section>
-
-      <MTNSimForms />
-
-      <section className="py-16 bg-gradient-to-br from-emerald-50 via-teal-50 to-green-50">
-        <div className="container mx-auto px-4">
-          <Card className="max-w-2xl mx-auto border-emerald-300 hover:shadow-2xl transition-all duration-300 overflow-hidden">
-            <CardContent className="p-0 flex flex-col">
-              <div className="relative w-full h-48 md:h-72 bg-gradient-to-br from-emerald-100 to-teal-100">
-                <Image
-                  src="/savings.jpg"
-                  alt="Savings and investment plans visualization"
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              </div>
-
-              <div className="p-8 md:p-10 flex flex-col space-y-6 bg-gradient-to-br from-emerald-600 to-teal-600 text-white">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
-                    <PiggyBank className="w-6 h-6 text-white" />
+          <Card className="max-w-6xl mx-auto border border-gray-200">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="network-offerings" className="border-0">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline text-gray-800 font-medium hover:bg-gray-50 rounded-t-lg transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">📶</span>
+                    <span className="text-base font-medium">Data bundles that actually save you money</span>
                   </div>
-                  <div>
-                    <h3 className="text-2xl md:text-3xl font-bold">Savings & Investment Plans</h3>
-                    <p className="text-emerald-100">Grow your wealth with our flexible plans</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                    <TrendingUp className="w-5 h-5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold">Competitive Interest Rates</p>
-                      <p className="text-sm text-emerald-100">Earn attractive returns on your investments</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold">Flexible Withdrawal</p>
-                      <p className="text-sm text-emerald-100">Access your funds when you need them</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                    <Shield className="w-5 h-5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold">Secure & Transparent</p>
-                      <p className="text-sm text-emerald-100">Track your investments in real-time</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-white/20">
-                  <p className="text-sm text-emerald-100 mb-4">
-                    Both agents and non-agents can invest and earn interest on their savings. Sign up today to get
-                    started!
-                  </p>
-                  <Button
-                    asChild
-                    size="lg"
-                    className="w-full bg-white text-emerald-600 hover:bg-emerald-50 font-bold text-base py-6"
-                  >
-                    <ProtectedLink href="/agent/register" className="flex items-center justify-center gap-2">
-                      <span>Sign Up Now</span>
-                      <ChevronRight className="w-5 h-5" />
-                    </ProtectedLink>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
+                </AccordionTrigger>
+                <AccordionContent className="px-0 pb-6 pt-2 border-t border-gray-100">
+                  <NetworksSection />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </Card>
         </div>
       </section>
 
-      <section id="ecg-topup" className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
+      <DevicesSection />
+
+      {/* MTN Agent & Merchant SIM Registration - Collapsible */}
+      <section className="py-16 bg-gradient-to-br from-yellow-50 to-orange-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">ECG Prepaid Top-Up</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Top up your ECG prepaid meter instantly with just ₵8 service charge
-            </p>
-          </div>
-          <ECGTopUpForm />
+          <Card className="max-w-4xl mx-auto border-yellow-200 shadow-lg">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="mtn-sim" className="border-0">
+                <AccordionTrigger className="hover:no-underline px-6 py-4 flex items-center justify-between bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-t-lg">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl font-semibold">📱 MTN Agent & Merchant SIM Registration</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-0 py-0 border-t border-yellow-200 bg-white rounded-b-lg overflow-hidden">
+                  <div className="pt-8">
+                    <MTNSimForms />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </Card>
         </div>
       </section>
 
-      <section id="software" className="py-16 bg-gradient-to-br from-purple-50 to-pink-50">
+      {/* AFA Context Section – Collapsible (hidden by default) */}
+      <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Software Installation & Store</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Professional software installation services for Windows, macOS, and more
-            </p>
-          </div>
-          <SoftwareStore />
+          <Card className="max-w-6xl mx-auto border border-gray-200">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="afa-context" className="border-0">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline text-gray-800 font-medium hover:bg-gray-50 rounded-t-lg transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🌾</span>
+                    <span className="text-base font-medium">AFA Context & Opportunities</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-0 pb-6 pt-2 border-t border-gray-100">
+                  <AFAContextSection />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </Card>
         </div>
       </section>
 
-      <section id="afa-registration" className="py-16 bg-gradient-to-br from-green-50 to-emerald-50">
+      {/* AFA Registration Form – Collapsible (hidden by default) */}
+      <section id="afa-registration" className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">AFA Registration</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Register for AFA membership and unlock exclusive benefits and priority support
-            </p>
-          </div>
-          <AFARegistrationForm />
+          <Card className="max-w-4xl mx-auto border border-gray-200">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="afa-registration" className="border-0">
+                <AccordionTrigger className="px-6 py-4 hover:no-underline text-gray-800 font-medium hover:bg-gray-50 rounded-t-lg transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🌾</span>
+                    <span className="text-base font-medium">AFA Registration Form</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-0 pb-6 pt-2 border-t border-gray-100">
+                  <div className="px-6">
+                    <AFARegistrationForm />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </Card>
         </div>
       </section>
-
-
 
       <section className="py-12 md:py-16 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50">
         <div className="container mx-auto px-4">
@@ -596,11 +549,7 @@ export default function NoRegistrationPage() {
               <CardContent className="space-y-4 sm:space-y-5 px-4 sm:px-6 py-6">
                 <div className="grid gap-3 sm:gap-4">
                   {[
-                    {
-                      icon: Sparkles,
-                      text: "Free Sales Training Manual (PDF, Audio, Video)",
-                      color: "text-yellow-600",
-                    },
+                    { icon: Sparkles, text: "Free Sales Training Manual (PDF, Audio, Video)", color: "text-yellow-600" },
                     { icon: Users, text: "Part of 10,000+ Active Agents Nationwide", color: "text-blue-600" },
                     { icon: Shield, text: "Supportive & Friendly Admin Access 24/7", color: "text-purple-600" },
                     { icon: PiggyBank, text: "Personal Support Assistant Access", color: "text-orange-600" },
@@ -618,7 +567,6 @@ export default function NoRegistrationPage() {
                     </div>
                   ))}
                 </div>
-
                 <div className="pt-4 border-t border-gray-200">
                   <Button
                     asChild
@@ -638,117 +586,68 @@ export default function NoRegistrationPage() {
       </section>
 
       <section className="py-16 bg-gradient-to-br from-blue-50 to-indigo-50">
-  <div className="container mx-auto px-4">
-    <div className="max-w-5xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-blue-100">
-        <div className="grid md:grid-cols-2 gap-0">
-          {/* Left Content */}
-          <div className="p-8 lg:p-10 flex flex-col justify-center">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
-                <svg
-                  className="w-7 h-7 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.8}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13M0 6.253v13C0 18.477 1.586 18 3 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-                  Educational Products & Services
-                </h2>
-                <p className="text-blue-600 font-medium">
-                  Results Checker Cards, School Forms & Subscriptions
-                </p>
-              </div>
-            </div>
-
-            <p className="text-gray-600 text-lg leading-relaxed mb-6">
-              Get instant access to BECE, WASSCE, ABCE results checker cards,
-              university application forms, and subscription services.
-              Delivered via email or WhatsApp!
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-              {[
-                "BECE Results",
-                "WASSCE Results",
-                "ABCE Results",
-                "University Forms",
-                "School Forms",
-                "Netflix",
-                "Spotify",
-                "Showmax",
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 text-gray-700">
-                  <svg
-                    className="w-5 h-5 text-green-500 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span className="text-sm font-medium">{item}</span>
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-blue-100">
+              <div className="grid md:grid-cols-2 gap-0">
+                <div className="p-8 lg:p-10 flex flex-col justify-center">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                      <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13M0 6.253v13C0 18.477 1.586 18 3 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Educational Products & Services</h2>
+                      <p className="text-blue-600 font-medium">Results Checker Cards, School Forms & Subscriptions</p>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-lg leading-relaxed mb-6">
+                    Get instant access to BECE, WASSCE, ABCE results checker cards, university application forms, and subscription services. Delivered via email or WhatsApp!
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+                    {[
+                      "BECE Results",
+                      "WASSCE Results",
+                      "ABCE Results",
+                      "University Forms",
+                      "School Forms",
+                      "Netflix",
+                      "Spotify",
+                      "Showmax",
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 text-gray-700">
+                        <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-sm font-medium">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Button asChild size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-6 rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl transition-all">
+                    <Link href="/voucher" className="flex items-center justify-center gap-2">
+                      Shop Educational Products
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  </Button>
                 </div>
-              ))}
-            </div>
-
-            <Button
-              asChild
-              size="lg"
-              className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-6 rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl transition-all"
-            >
-              <Link href="/voucher" className="flex items-center justify-center gap-2">
-                Shop Educational Products
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
+                <div className="relative h-72 md:h-auto min-h-[280px] bg-blue-100">
+                  <Image
+                    src="/educational-card.jpg"
+                    alt="Educational products showcase – results checkers, forms, and subscriptions"
+                    fill
+                    className="object-cover object-center"
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
-                </svg>
-              </Link>
-            </Button>
-          </div>
-
-          {/* Right Image */}
-          <div className="relative h-72 md:h-auto min-h-[280px] bg-blue-100">
-            <Image
-              src="/educational-card.jpg"
-              alt="Educational products showcase – results checkers, forms, and subscriptions"
-              fill
-              className="object-cover object-center"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-            {/* Optional subtle overlay for better text contrast if needed */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-      <AFAContextSection />
+      </section>
 
       <BusinessRegistrationForm />
 
@@ -756,26 +655,13 @@ export default function NoRegistrationPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Get Started?</h2>
           <p className="text-xl mb-8 max-w-2xl mx-auto">
-            No registration, no hassle - just quality services at affordable prices. Contact us via WhatsApp to place
-            your order today!
+            No registration, no hassle - just quality services at affordable prices. Contact us via WhatsApp to place your order today!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              variant="secondary"
-              asChild
-              className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-6"
-            >
-              <a href="https://wa.me/233242799990" target="_blank" rel="noopener noreferrer">
-                Order via WhatsApp
-              </a>
+            <Button size="lg" variant="secondary" asChild className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-6">
+              <a href="https://wa.me/233242799990" target="_blank" rel="noopener noreferrer">Order via WhatsApp</a>
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              asChild
-              className="border-white text-white hover:bg-white hover:text-green-600 text-lg px-8 py-6 bg-transparent"
-            >
+            <Button size="lg" variant="outline" asChild className="border-white text-white hover:bg-white hover:text-green-600 text-lg px-8 py-6 bg-transparent">
               <Link href="/">Back to Homepage</Link>
             </Button>
           </div>
@@ -784,5 +670,5 @@ export default function NoRegistrationPage() {
 
       <Footer />
     </main>
-  )
+  );
 }

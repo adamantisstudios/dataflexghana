@@ -23,6 +23,7 @@ interface PaystackPaymentModalProps {
     network: string
     dataBundle: string
   }
+  forcePaymentMethod?: "manual" | "paystack"
 }
 
 export interface PaymentCompletedData {
@@ -42,8 +43,9 @@ export function PaystackPaymentModal({
   customerPhone,
   customerName,
   orderMetadata,
+  forcePaymentMethod,
 }: PaystackPaymentModalProps) {
-  const [paymentMethod, setPaymentMethod] = useState<"manual" | "paystack">("manual")
+  const [paymentMethod, setPaymentMethod] = useState<"manual" | "paystack">(forcePaymentMethod || "manual")
   const [copied, setCopied] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -142,56 +144,58 @@ export function PaystackPaymentModal({
           </div>
         </div>
 
-        {/* Payment Method Selection */}
-        <div className="space-y-2">
-          {/* Paystack Option */}
-          <button
-            onClick={() => setPaymentMethod("paystack")}
-            className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-              paymentMethod === "paystack"
-                ? "border-blue-600 bg-blue-50"
-                : "border-gray-200 hover:border-gray-300 bg-white"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  paymentMethod === "paystack" ? "border-blue-600 bg-blue-600" : "border-gray-300"
-                }`}
-              >
-                {paymentMethod === "paystack" && <div className="w-2 h-2 bg-white rounded-full" />}
+        {/* Payment Method Selection - Only show if not forced */}
+        {!forcePaymentMethod && (
+          <div className="space-y-2">
+            {/* Paystack Option */}
+            <button
+              onClick={() => setPaymentMethod("paystack")}
+              className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                paymentMethod === "paystack"
+                  ? "border-blue-600 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300 bg-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    paymentMethod === "paystack" ? "border-blue-600 bg-blue-600" : "border-gray-300"
+                  }`}
+                >
+                  {paymentMethod === "paystack" && <div className="w-2 h-2 bg-white rounded-full" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900">Paystack</p>
+                  <p className="text-xs text-gray-500">Secure online payment</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">Paystack</p>
-                <p className="text-xs text-gray-500">Secure online payment</p>
-              </div>
-            </div>
-          </button>
+            </button>
 
-          {/* Manual Payment Option */}
-          <button
-            onClick={() => setPaymentMethod("manual")}
-            className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-              paymentMethod === "manual"
-                ? "border-green-600 bg-green-50"
-                : "border-gray-200 hover:border-gray-300 bg-white"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  paymentMethod === "manual" ? "border-green-600 bg-green-600" : "border-gray-300"
-                }`}
-              >
-                {paymentMethod === "manual" && <div className="w-2 h-2 bg-white rounded-full" />}
+            {/* Manual Payment Option */}
+            <button
+              onClick={() => setPaymentMethod("manual")}
+              className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                paymentMethod === "manual"
+                  ? "border-green-600 bg-green-50"
+                  : "border-gray-200 hover:border-gray-300 bg-white"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    paymentMethod === "manual" ? "border-green-600 bg-green-600" : "border-gray-300"
+                  }`}
+                >
+                  {paymentMethod === "manual" && <div className="w-2 h-2 bg-white rounded-full" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900">Manual Payment</p>
+                  <p className="text-xs text-gray-500">Pay with reference code</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">Manual Payment</p>
-                <p className="text-xs text-gray-500">Pay with reference code</p>
-              </div>
-            </div>
-          </button>
-        </div>
+            </button>
+          </div>
+        )}
 
         {/* Manual Payment Details */}
         {paymentMethod === "manual" && (

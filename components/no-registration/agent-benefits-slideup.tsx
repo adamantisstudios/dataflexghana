@@ -2,17 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  X,
-  Award,
-  Sparkles,
-  Users,
-  Shield,
-  PiggyBank,
-  Zap,
-  TrendingUp,
-  CreditCard,
-} from "lucide-react";
+import { X, Award, Sparkles, Users, Shield, PiggyBank, Zap, TrendingUp, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 export function AgentBenefitsSlideup() {
@@ -20,14 +10,14 @@ export function AgentBenefitsSlideup() {
   const [shouldSlideUp, setShouldSlideUp] = useState(false);
 
   const benefits = [
-    { icon: Sparkles, text: "Free Sales Training", color: "text-yellow-600" },
-    { icon: Users, text: "10,000+ Active Agents", color: "text-blue-600" },
-    { icon: Shield, text: "24/7 Admin Support", color: "text-purple-600" },
-    { icon: PiggyBank, text: "Personal Assistant", color: "text-orange-600" },
-    { icon: Zap, text: "Instant Opportunities", color: "text-red-600" },
-    { icon: TrendingUp, text: "Earn in 24 Hours", color: "text-green-600" },
-    { icon: CreditCard, text: "Discounted Costs", color: "text-indigo-600" },
-    { icon: Award, text: "Extra Commissions", color: "text-pink-600" },
+    { icon: Sparkles, text: "Free sales training", color: "text-yellow-600" },
+    { icon: Users, text: "10,000+ active agents", color: "text-blue-600" },
+    { icon: Shield, text: "24/7 admin support", color: "text-purple-600" },
+    { icon: PiggyBank, text: "Personal assistant", color: "text-orange-600" },
+    { icon: Zap, text: "Instant opportunities", color: "text-red-600" },
+    { icon: TrendingUp, text: "Earn within 24 hours", color: "text-green-600" },
+    { icon: CreditCard, text: "Discounted service costs", color: "text-indigo-600" },
+    { icon: Award, text: "Extra commission bonuses", color: "text-pink-600" },
   ];
 
   useEffect(() => {
@@ -38,9 +28,8 @@ export function AgentBenefitsSlideup() {
       setShouldSlideUp(true);
     };
 
-    // Show initially after 5 minutes (300,000 ms)
+    // Show initially after 5 minutes, then every 5 minutes
     const initialTimer = setTimeout(showNotification, 300000);
-    // Then show every 5 minutes
     const intervalTimer = setInterval(showNotification, 300000);
 
     return () => {
@@ -58,88 +47,61 @@ export function AgentBenefitsSlideup() {
 
   return (
     <>
-      {/* Backdrop – fades in with the card */}
+      {/* Simple dark backdrop – no blur */}
       <div
-        className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-500 pointer-events-none ${
+        className={`fixed inset-0 bg-black/30 transition-opacity duration-500 pointer-events-none ${
           shouldSlideUp ? "opacity-100" : "opacity-0"
         }`}
       />
 
-      {/* Slide‑up card */}
+      {/* Slide‑up card – clean, no gradient header */}
       <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none px-4 sm:px-6">
         <div
-          className={`pointer-events-auto mx-auto max-w-2xl w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden transition-all duration-500 ease-out ${
-            shouldSlideUp
-              ? "translate-y-0 opacity-100 mb-4"
-              : "translate-y-full opacity-0"
+          className={`pointer-events-auto mx-auto max-w-lg w-full bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden transition-all duration-500 ease-out ${
+            shouldSlideUp ? "translate-y-0 opacity-100 mb-4" : "translate-y-full opacity-0"
           }`}
         >
-          {/* Header with gradient and handle */}
-          <div className="relative bg-gradient-to-r from-green-600 to-emerald-600 text-white px-5 py-4">
-            {/* Subtle decorative pattern */}
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_20%,white,transparent)]" />
-
-            <div className="flex items-center justify-between relative">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="bg-white/20 p-2 rounded-full">
-                  <Award className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-base sm:text-lg truncate">
-                    Become an Agent Today
-                  </h3>
-                  <p className="text-xs sm:text-sm text-green-100 truncate">
-                    Unlock exclusive benefits & start earning
-                  </p>
+          {/* Header – solid green, no pattern */}
+          <div className="bg-green-700 px-5 py-4 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Award className="h-5 w-5" />
+                <div>
+                  <h3 className="font-bold text-base">Become an agent today</h3>
+                  <p className="text-xs text-green-100">Unlock benefits & start earning</p>
                 </div>
               </div>
               <button
                 onClick={handleDismiss}
-                className="p-1.5 hover:bg-white/20 rounded-full transition-colors ml-3 flex-shrink-0"
-                aria-label="Close notification"
+                className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
+                aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-
-            {/* Drag handle (visual only) */}
-            <div className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-12 h-1 bg-white/40 rounded-full" />
           </div>
 
-          {/* Benefits grid */}
-          <div className="px-5 py-6 bg-gray-50/50">
-            <div className="grid grid-cols-2 gap-4">
-              {benefits.map((benefit, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-                >
-                  <div className={`${benefit.color} bg-gray-50 p-2 rounded-lg`}>
-                    <benefit.icon className="h-4 w-4" />
-                  </div>
-                  <span className="font-medium text-gray-800 text-xs sm:text-sm leading-tight">
-                    {benefit.text}
-                  </span>
+          {/* Benefits – two columns, simple list */}
+          <div className="px-5 py-6">
+            <div className="grid grid-cols-2 gap-3">
+              {benefits.map((benefit, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-sm">
+                  <benefit.icon className={`h-4 w-4 ${benefit.color} shrink-0`} />
+                  <span className="text-gray-700">{benefit.text}</span>
                 </div>
               ))}
             </div>
 
-            {/* CTA Button */}
+            {/* CTA button – solid green */}
             <div className="mt-6">
               <Button
                 asChild
                 onClick={handleDismiss}
-                size="lg"
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-6 text-sm sm:text-base rounded-xl shadow-md"
+                className="w-full bg-green-700 hover:bg-green-800 text-white font-medium py-2 rounded-md"
               >
-                <Link href="/agent/register">Register Now & Start Earning</Link>
+                <Link href="/agent/register">Register now – start earning →</Link>
               </Button>
             </div>
-
-            {/* Trust indicator */}
-            <p className="text-center text-xs text-gray-400 mt-4">
-              ⚡ Join 10,000+ agents already earning
-            </p>
           </div>
         </div>
       </div>

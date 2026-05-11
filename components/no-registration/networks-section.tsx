@@ -15,14 +15,14 @@ import {
 import { generateWhatsAppLink } from "@/utils/whatsapp";
 import { PaystackPaymentModal, type PaymentCompletedData } from "@/components/paystack-payment-modal";
 import { generatePaymentReferenceCode } from "@/lib/reference-code-generator";
-import { ChevronDown, Phone, CheckCircle, Zap } from "lucide-react";
+import { Phone, CheckCircle, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 const networks = {
   mtn: {
     name: "MTN",
     image: "/assets/mtn.jpg",
-    description: "We offer the best MTN prices while maintaining healthy profit margins.",
+    description: "Reliable nationwide coverage. We offer competitive prices with room for resellers to earn.",
     plans: [
       { size: "1GB", price: 6.0 },
       { size: "2GB", price: 12.5 },
@@ -44,7 +44,7 @@ const networks = {
   telecel: {
     name: "Telecel",
     image: "/assets/telecel.jpg",
-    description: "Competitive pricing for Telecel users with reliable connectivity.",
+    description: "Good value packages for Telecel users, especially for moderate to heavy usage.",
     plans: [
       { size: "5GB", price: 32.0 },
       { size: "10GB", price: 54.0 },
@@ -60,7 +60,7 @@ const networks = {
   airteltigo: {
     name: "AirtelTigo",
     image: "/assets/airteltigo.jpg",
-    description: "The absolute cheapest data in Ghana with bulk discounts that beat everyone.",
+    description: "The most affordable data in Ghana. Perfect if you want low prices and high volume.",
     plans: [
       { size: "1GB", price: 6.0 },
       { size: "2GB", price: 10.0 },
@@ -188,7 +188,6 @@ export function NetworksSection() {
     const networkName = networks[activeNetwork].name;
     const amount = Number.parseFloat(priceStr);
 
-    // Log manual payment order silently to backend before opening WhatsApp
     (async () => {
       await logDataOrderSilently({
         network: networkName,
@@ -234,42 +233,43 @@ Please process this order using the payment reference above.`;
 
   return (
     <>
-      <section id="networks" className="py-16 bg-white">
+      <section id="networks" className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
-          {/* Section header */}
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Our Network Offerings
+          {/* Section header – simple and human */}
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+              Data bundles that actually save you money
             </h2>
-            <p className="text-lg md:text-xl text-gray-600">
-              Choose from Ghana's top 3 networks with our exclusive discounted rates
+            <p className="text-lg text-gray-600">
+              We work directly with Ghana’s top networks to bring you wholesale prices. 
+              Pick your network, choose a plan, and we’ll handle the rest.
             </p>
           </div>
 
-          {/* Processing time notice */}
-          <div className="max-w-4xl mx-auto mb-10">
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-              <Zap className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-blue-800">
-                <span className="font-semibold">Processing & Delivery Time:</span> Data bundles are processed and
-                delivered within <strong>10-30 minutes</strong> after payment confirmation.
+          {/* Processing time – subtle */}
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="bg-white border border-gray-200 rounded-lg p-3 flex items-start gap-2 text-sm">
+              <Zap className="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
+              <p className="text-gray-600">
+                <span className="font-medium">Delivery in 10‑30 minutes</span> after payment confirmation.
+                Orders placed after 9:30 PM are processed the next morning.
               </p>
             </div>
           </div>
 
-          {/* Network tabs - full width on all screens */}
-          <div className="w-full max-w-2xl mx-auto mb-8">
-            <div className="grid grid-cols-3 gap-2 p-1 bg-gray-100 rounded-2xl">
+          {/* Network tabs – clean toggle */}
+          <div className="w-full max-w-md mx-auto mb-8">
+            <div className="flex border border-gray-200 rounded-md bg-white p-1">
               {Object.entries(networks).map(([key, network]) => (
                 <button
                   key={key}
                   onClick={() => setActiveNetwork(key as keyof typeof networks)}
                   className={`
-                    py-3 px-2 rounded-xl font-medium text-sm transition-all duration-200
+                    flex-1 py-2 text-sm font-medium rounded transition-colors
                     ${
                       activeNetwork === key
-                        ? "bg-green-600 text-white shadow-md"
-                        : "bg-transparent text-gray-600 hover:bg-gray-200 hover:text-gray-900"
+                        ? "bg-gray-900 text-white"
+                        : "text-gray-600 hover:bg-gray-100"
                     }
                   `}
                 >
@@ -279,10 +279,10 @@ Please process this order using the payment reference above.`;
             </div>
           </div>
 
-          {/* Main card */}
-          <Card className="max-w-6xl mx-auto border-0 shadow-xl overflow-hidden">
+          {/* Main card – no shadow, just border */}
+          <Card className="max-w-6xl mx-auto border border-gray-200 rounded-xl overflow-hidden bg-white">
             <CardContent className="p-0">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+              <div className="grid grid-cols-1 lg:grid-cols-2">
                 {/* Image side */}
                 <div className="relative h-64 lg:h-auto min-h-[320px] bg-gray-100">
                   <Image
@@ -292,21 +292,22 @@ Please process this order using the payment reference above.`;
                     className="object-cover"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                 </div>
 
                 {/* Content side */}
                 <div className="p-6 md:p-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                    {networks[activeNetwork].name} Data Bundles
+                  <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+                    {networks[activeNetwork].name} bundles
                   </h3>
-                  <p className="text-gray-600 mb-6">{networks[activeNetwork].description}</p>
+                  <p className="text-gray-600 text-sm mb-6">
+                    {networks[activeNetwork].description}
+                  </p>
 
                   {/* Plan grid */}
                   <div className="mb-6">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      Select a plan
+                    <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-gray-500" />
+                      Choose your data size
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {networks[activeNetwork].plans.map((plan, index) => {
@@ -316,16 +317,16 @@ Please process this order using the payment reference above.`;
                             key={index}
                             onClick={() => handleSelectPlan(plan)}
                             className={`
-                              p-3 rounded-xl text-center transition-all duration-200
+                              p-2 rounded-lg text-center border transition-all
                               ${
                                 isSelected
-                                  ? "bg-green-600 text-white shadow-md scale-[1.02] ring-2 ring-green-200"
-                                  : "bg-gray-50 text-gray-700 hover:bg-green-50 hover:scale-105"
+                                  ? "border-gray-900 bg-gray-900 text-white"
+                                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-400"
                               }
                             `}
                           >
-                            <div className="font-bold text-sm">{plan.size}</div>
-                            <div className={`text-xs ${isSelected ? "text-green-100" : "text-green-600"}`}>
+                            <div className="font-medium text-sm">{plan.size}</div>
+                            <div className={`text-xs ${isSelected ? "text-gray-300" : "text-gray-500"}`}>
                               ₵{plan.price.toFixed(2)}
                             </div>
                           </button>
@@ -337,19 +338,19 @@ Please process this order using the payment reference above.`;
                   {/* Order form */}
                   <div className="space-y-4">
                     {selectedPlan && (
-                      <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center justify-between">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-between">
                         <div>
-                          <span className="text-xs text-gray-600">Selected plan</span>
-                          <p className="font-semibold text-green-700">{selectedPlan}</p>
+                          <span className="text-xs text-gray-500">Selected plan</span>
+                          <p className="font-medium text-gray-900">{selectedPlan}</p>
                         </div>
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-5 w-5 text-gray-600" />
                       </div>
                     )}
 
                     {!selectedPlan && (
                       <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                        <SelectTrigger className="border-gray-300 focus:ring-green-500">
-                          <SelectValue placeholder="Or select a plan from dropdown" />
+                        <SelectTrigger className="border-gray-300 focus:ring-gray-500">
+                          <SelectValue placeholder="Or pick from dropdown" />
                         </SelectTrigger>
                         <SelectContent>
                           {networks[activeNetwork].plans.map((plan, index) => (
@@ -364,7 +365,7 @@ Please process this order using the payment reference above.`;
                     <div>
                       <label className="text-sm font-medium text-gray-700 flex items-center gap-2 mb-1.5">
                         <Phone className="h-4 w-4 text-gray-400" />
-                        Phone number
+                        Phone number (for the data)
                       </label>
                       <Input
                         ref={phoneInputRef}
@@ -372,7 +373,7 @@ Please process this order using the payment reference above.`;
                         placeholder="e.g., 0541234567"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
-                        className="border-gray-300 focus:border-green-500 focus:ring-green-500"
+                        className="border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                       />
                     </div>
 
@@ -380,9 +381,9 @@ Please process this order using the payment reference above.`;
                       onClick={handleOrder}
                       disabled={!selectedPlan || !phoneNumber}
                       size="lg"
-                      className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg disabled:opacity-50 py-6 rounded-xl"
+                      className="w-full bg-gray-900 hover:bg-gray-800 text-white py-6 rounded-lg disabled:opacity-50"
                     >
-                      Order Now & Proceed to Payment
+                      Order now – proceed to payment
                     </Button>
                   </div>
                 </div>

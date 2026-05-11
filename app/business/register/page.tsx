@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useState, ChangeEvent } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Phone, Users, CheckCircle, ArrowRight, Play } from "lucide-react";
+import { Building2, Phone, Users, CheckCircle, ArrowRight, Play, CreditCard } from "lucide-react";
 import Link from "next/link";
+import { PaystackPaymentModal } from "@/components/paystack-payment-modal";
 
 export default function BusinessRegisterPage(): JSX.Element {
   const [formData, setFormData] = useState({
@@ -23,6 +25,10 @@ export default function BusinessRegisterPage(): JSX.Element {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"manual" | "paystack" | null>(null);
+  const [paymentReference, setPaymentReference] = useState("");
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -38,7 +44,38 @@ export default function BusinessRegisterPage(): JSX.Element {
     setIsSubmitting(true);
 
     try {
-      const message = `🏢 NEW BUSINESS REGISTRATION
+      if (!formData.servicePackage) {
+        alert("Please select a service package");
+        setIsSubmitting(false);
+        return;
+      }
+      const pinCode = String(Math.floor(1000 + Math.random() * 9000));
+      setPaymentReference(pinCode);
+      setShowPaymentOptions(true);
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("There was an error processing your registration. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleManualPaymentSelected = () => {
+    setSelectedPaymentMethod("manual");
+    setShowPaymentOptions(false);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaystackPaymentSelected = () => {
+    setSelectedPaymentMethod("paystack");
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentCompleted = (paymentData: any) => {
+    const pkg = servicePackages.find((p) => p.id === formData.servicePackage);
+    const packageName = pkg?.price || formData.servicePackage;
+
+    const message = `🏢 NEW BUSINESS REGISTRATION - PAYMENT RECEIVED
 
 📋 BUSINESS INFORMATION:
 • Business Name: ${formData.businessName}
@@ -51,406 +88,383 @@ export default function BusinessRegisterPage(): JSX.Element {
 • Website: ${formData.website || "Not provided"}
 • Social Media: ${formData.socialMedia || "Not provided"}
 
-💰 SERVICE PACKAGE SELECTED:
-${formData.servicePackage}
+💰 SERVICE PACKAGE & PAYMENT:
+• Package: ${packageName}/month
+• Payment Method: ${paymentData.paymentMethod === "paystack" ? "Paystack Online" : "Manual Payment"}
+• Payment Reference: ${paymentData.reference}
+• Amount Paid: ₵${paymentData.amount}
 
 ⏰ Registration Time: ${new Date().toLocaleString()}
 
-Please process this business registration and contact them for payment and setup.`;
+Please confirm receipt and activate this business registration immediately. Contact them to complete setup.`;
 
-      const whatsappNumber = "233242799990";
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+    const whatsappNumber = "233242799990";
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
 
-      window.open(whatsappUrl, "_blank");
+    setShowPaymentModal(false);
+    setShowPaymentOptions(false);
+    window.open(whatsappUrl, "_blank");
+    setTimeout(() => {
       window.location.href = "/business/success";
-    } catch (error) {
-      console.error("Registration error:", error);
-      alert("There was an error processing your registration. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    }, 1000);
   };
 
-  // Updated pricing tiers – same data, but UI revamped for mobile
   const servicePackages = [
-    {
-      id: "500-monthly",
-      price: "₵500",
-      duration: "month",
-      products: "Up to 10 products or services",
-      description: "Ideal for small businesses starting out",
-      popular: false,
-    },
     {
       id: "1000-monthly",
       price: "₵1,000",
       duration: "month",
-      products: "Up to 25 products or services",
+      products: "Up to 5 products or services",
+      description: "Ideal for small businesses starting out",
+      popular: false,
+    },
+    {
+      id: "2000-monthly",
+      price: "₵2,000",
+      duration: "month",
+      products: "Up to 10 products or services",
       description: "Perfect for growing businesses with more offerings",
       popular: true,
     },
     {
-      id: "1500-monthly",
-      price: "₵1,500",
+      id: "3000-monthly",
+      price: "₵3,000",
       duration: "month",
-      products: "Unlimited products or services",
+      products: "Up to 15 products or services",
       description: "Full access for established enterprises",
       popular: false,
     },
   ];
 
+  const getPackageAmount = () => {
+    const pkg = servicePackages.find((p) => p.id === formData.servicePackage);
+    if (!pkg) return 0;
+    const priceStr = pkg.price.replace("₵", "").replace(",", "");
+    return parseFloat(priceStr);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Header (unchanged) */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">DataFlex Business</span>
-            </Link>
-            <Link href="/" className="text-gray-600 hover:text-gray-900">
-              ← Back to Home
-            </Link>
+    <div className="bg-white text-gray-800">
+      {/* Simple header - no gradients */}
+      <header className="border-b border-gray-200 sticky top-0 bg-white z-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+          <Link href="/" className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-blue-700" />
+            <span className="font-semibold text-gray-900">DataFlex Business</span>
+          </Link>
+          <Link href="/" className="text-gray-500 text-sm hover:text-gray-800">
+            ← Back
+          </Link>
+        </div>
+      </header>
+
+      {/* Hero image - only image + simple overlay, no extra text below */}
+      <div className="relative h-80 md:h-96 w-full overflow-hidden">
+        <Image
+          src="/company_image.jpg"
+          alt="DataFlex business team"
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-white">
+          <div>
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-3">
+              Get your business on our network
+            </h1>
+            <p className="text-lg md:text-xl text-gray-100 max-w-2xl">
+              We connect you with verified agents across Ghana. No upfront costs if you don't want them.
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        {/* Hero + Video (unchanged) */}
-        <div className="text-center mb-12">
-          <Badge className="bg-blue-100 text-blue-800 border-blue-200 mb-4 px-4 py-2 text-base">
-            🏢 Business Registration
-          </Badge>
-          <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Register Your Business
-            </span>
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Join our platform and start selling your products and services with nationwide agent support. Reach
-            customers across Ghana with our trusted network.
-          </p>
+      <main className="max-w-3xl mx-auto px-4 py-12 md:py-16">
+        {/* Intro - short and human */}
+        <p className="text-gray-700 text-lg mb-12 text-center">
+          You've built something good. Now let's get it in front of customers who actually buy.
+          We've been doing this for years – agents in every region, real people promoting real products.
+          Tell us about your business and we'll figure out the best way to work together.
+        </p>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-blue-100">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Nationwide Reach</h3>
-              <p className="text-sm text-gray-600">Access customers across all regions of Ghana</p>
+        {/* Partnership options – rewritten to sound like real advice */}
+        <section className="mb-16">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6 text-center">
+            Two ways to work with us
+          </h2>
+          <div className="space-y-6">
+            <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Monthly subscription</h3>
+              <p className="text-gray-600 text-sm mb-3">
+                You pay a fixed fee every month. You keep full control over your products, prices, and inventory.
+                We handle agent coordination.
+              </p>
+              <ul className="space-y-1 text-sm text-gray-700 mb-3">
+                <li>• Predictable monthly cost</li>
+                <li>• You decide what to sell and at what price</li>
+                <li>• We manage the agent network</li>
+                <li>• Sales reports every week</li>
+              </ul>
+              <p className="text-xs text-gray-500">Best for: Businesses with existing stock and clear margins.</p>
             </div>
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-purple-100">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-6 w-6 text-purple-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Trusted Platform</h3>
-              <p className="text-sm text-gray-600">Verified agents and secure transactions</p>
+
+            <div className="border-2 border-blue-300 rounded-lg p-6 bg-white relative">
+              <span className="absolute -top-3 left-6 bg-blue-700 text-white text-xs px-3 py-0.5 rounded-full">
+                Most popular
+              </span>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Wholesale partnership</h3>
+              <p className="text-gray-600 text-sm mb-3">
+                You pay nothing upfront. Our agents buy from you at wholesale prices and sell for a profit.
+                You only make money when they sell – and so do we.
+              </p>
+              <ul className="space-y-1 text-sm text-gray-700 mb-3">
+                <li>• Zero monthly fees</li>
+                <li>• Agents are motivated – they only earn when they sell your products</li>
+                <li>• Instant access to our nationwide network</li>
+                <li>• You set wholesale prices, we handle the rest</li>
+              </ul>
+              <p className="text-xs text-gray-500">Best for: Growing businesses, limited marketing budget, or testing new markets.</p>
             </div>
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-green-100">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <ArrowRight className="h-6 w-6 text-green-600" />
+          </div>
+          <div className="mt-6 text-sm bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r">
+            <span className="font-semibold">Honest advice:</span> Most of our partners start with wholesale to test demand, then add a subscription once sales are steady.
+            We can also mix both – just ask.
+          </div>
+        </section>
+
+        {/* Quick facts – no icons with circles, just clean */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-16 text-center">
+          <div>
+            <Users className="h-7 w-7 text-blue-700 mx-auto mb-2" />
+            <h3 className="font-medium text-gray-900">Nationwide agents</h3>
+            <p className="text-sm text-gray-500">Active in all 16 regions of Ghana</p>
+          </div>
+          <div>
+            <CheckCircle className="h-7 w-7 text-blue-700 mx-auto mb-2" />
+            <h3 className="font-medium text-gray-900">Verified network</h3>
+            <p className="text-sm text-gray-500">Every agent goes through ID and reference checks</p>
+          </div>
+          <div>
+            <ArrowRight className="h-7 w-7 text-blue-700 mx-auto mb-2" />
+            <h3 className="font-medium text-gray-900">Fast setup</h3>
+            <p className="text-sm text-gray-500">Most businesses are live within 48 hours</p>
+          </div>
+        </div>
+
+        {/* Vimeo video – kept but less decorative */}
+        <div className="mb-16 max-w-md mx-auto border border-gray-200 rounded-lg overflow-hidden">
+          <div className="p-3 border-b border-gray-100 bg-gray-50">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
+              <Play className="h-4 w-4 text-blue-700" />
+              <span>Watch: How we work with businesses</span>
+            </div>
+          </div>
+          <div className="aspect-[9/16] w-full">
+            <iframe
+              src="https://player.vimeo.com/video/1191041607?badge=0&autopause=0&player_id=0&app_id=58479"
+              className="w-full h-full"
+              frameBorder="0"
+              allow="autoplay; fullscreen; picture-in-picture"
+              title="DataFlex Ghana partner explainer"
+            />
+          </div>
+          <p className="text-xs text-gray-500 text-center py-2">Portrait mode – quick overview</p>
+        </div>
+
+        {/* Registration form - clean, no gradients */}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Business info */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+              <h3 className="font-medium text-gray-900">Your business details</h3>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="grid sm:grid-cols-2 gap-5">
+                <div>
+                  <Label htmlFor="businessName" className="text-sm font-medium">Business name *</Label>
+                  <Input id="businessName" name="businessName" value={formData.businessName} onChange={handleInputChange} placeholder="e.g., Tema Spices Ltd" required className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="location" className="text-sm font-medium">Location (city/region) *</Label>
+                  <Input id="location" name="location" value={formData.location} onChange={handleInputChange} placeholder="e.g., Kumasi, Ashanti" required className="mt-1" />
+                </div>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Easy Setup</h3>
-              <p className="text-sm text-gray-600">Quick registration and fast approval</p>
+              <div>
+                <Label htmlFor="services" className="text-sm font-medium">What do you sell? *</Label>
+                <Textarea id="services" name="services" value={formData.services} onChange={handleInputChange} rows={3} placeholder="Brief description of your products or services" required className="mt-1" />
+              </div>
             </div>
           </div>
 
-          {/* Vimeo Video Card – unchanged */}
-          <Card className="border-0 shadow-xl mb-12 overflow-hidden max-w-2xl mx-auto">
-            <CardHeader className="pb-2 bg-gradient-to-r from-blue-50 to-purple-50">
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Play className="h-5 w-5 text-blue-600" />
-                Work With Dataflex Ghana
-              </CardTitle>
-              <CardDescription className="text-gray-700">
-                For companies that want to reach business goals – marketing, promotions, sales & more
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="flex justify-center bg-black/5 py-6 px-4">
-                <div className="relative w-full max-w-[360px] md:max-w-[400px] rounded-xl overflow-hidden shadow-lg">
-                  <div className="aspect-[9/16]">
-                    <iframe
-                      src="https://player.vimeo.com/video/1191041607?badge=0&autopause=0&player_id=0&app_id=58479"
-                      className="absolute top-0 left-0 w-full h-full"
-                      frameBorder="0"
-                      allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      title="Work With Dataflex Ghana"
-                      allowFullScreen
-                    />
+          {/* Contact info */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+              <h3 className="font-medium text-gray-900">How to reach you</h3>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="grid sm:grid-cols-2 gap-5">
+                <div>
+                  <Label htmlFor="email" className="text-sm font-medium">Business email *</Label>
+                  <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="hello@yourbusiness.com" required className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="contactNumbers" className="text-sm font-medium">Phone number(s) *</Label>
+                  <Input id="contactNumbers" name="contactNumbers" value={formData.contactNumbers} onChange={handleInputChange} placeholder="024XXXXXX, 030XXXXXX" required className="mt-1" />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-5">
+                <div>
+                  <Label htmlFor="website" className="text-sm font-medium">Website (optional)</Label>
+                  <Input id="website" name="website" type="url" value={formData.website} onChange={handleInputChange} placeholder="https://" className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="socialMedia" className="text-sm font-medium">Social media handles</Label>
+                  <Input id="socialMedia" name="socialMedia" value={formData.socialMedia} onChange={handleInputChange} placeholder="@instagram, facebook.com/..." className="mt-1" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Package selection - clean radio cards */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+              <h3 className="font-medium text-gray-900">Choose a monthly package</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Only needed if you pick the subscription model. If you prefer wholesale, you can still select one – we'll adjust later.</p>
+            </div>
+            <div className="p-6 space-y-4">
+              {servicePackages.map((pkg) => (
+                <label
+                  key={pkg.id}
+                  className={`block border rounded-lg p-4 cursor-pointer transition ${
+                    formData.servicePackage === pkg.id
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-200 hover:border-blue-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="servicePackage"
+                    value={pkg.id}
+                    checked={formData.servicePackage === pkg.id}
+                    onChange={(e) => handlePackageChange(e.target.value)}
+                    className="sr-only"
+                  />
+                  <div className="flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                      <p className="font-bold text-gray-900">{pkg.price}<span className="font-normal text-gray-500 text-sm">/{pkg.duration}</span></p>
+                      <p className="text-sm text-gray-700">{pkg.description}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{pkg.products}</p>
+                    </div>
+                    {pkg.popular && <Badge variant="outline" className="text-blue-700 border-blue-300">Popular</Badge>}
                   </div>
-                </div>
-              </div>
-              <div className="p-5 pt-2 text-sm text-gray-600 border-t border-gray-100 mt-2 bg-gray-50/50">
-                <p className="flex items-center gap-2">
-                  <span className="text-blue-600">📱</span> Learn how Dataflex Ghana helps businesses grow – watch in portrait mode
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </label>
+              ))}
+            </div>
+          </div>
 
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
-          {/* Sections 1 & 2 remain unchanged */}
-          <Card className="border-blue-200 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Building2 className="h-5 w-5 text-white" />
-                </div>
-                Section 1: Business Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="businessName" className="text-base font-medium">
-                    Business Name *
-                  </Label>
-                  <Input
-                    id="businessName"
-                    name="businessName"
-                    value={formData.businessName}
-                    onChange={handleInputChange}
-                    placeholder="Enter your business name"
-                    required
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location" className="text-base font-medium">
-                    Location *
-                  </Label>
-                  <Input
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    placeholder="City, Region"
-                    required
-                    className="h-12"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="services" className="text-base font-medium">
-                  Services or Products Sold *
-                </Label>
-                <Textarea
-                  id="services"
-                  name="services"
-                  value={formData.services}
-                  onChange={handleInputChange}
-                  placeholder="Describe the products or services your business offers"
-                  required
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-purple-200 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <Phone className="h-5 w-5 text-white" />
-                </div>
-                Section 2: Contact Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-base font-medium">
-                    Official Email *
-                  </Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="business@example.com"
-                    required
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contactNumbers" className="text-base font-medium">
-                    Contact Numbers *
-                  </Label>
-                  <Input
-                    id="contactNumbers"
-                    name="contactNumbers"
-                    value={formData.contactNumbers}
-                    onChange={handleInputChange}
-                    placeholder="0241234567, 0301234567"
-                    required
-                    className="h-12"
-                  />
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="website" className="text-base font-medium">
-                    Website Link or URL
-                  </Label>
-                  <Input
-                    id="website"
-                    name="website"
-                    type="url"
-                    value={formData.website}
-                    onChange={handleInputChange}
-                    placeholder="https://www.yourbusiness.com"
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="socialMedia" className="text-base font-medium">
-                    Social Media Handles
-                  </Label>
-                  <Input
-                    id="socialMedia"
-                    name="socialMedia"
-                    value={formData.socialMedia}
-                    onChange={handleInputChange}
-                    placeholder="@yourbusiness, Facebook: YourBusiness"
-                    className="h-12"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ========== REVAMPED PRICING SECTION – MOBILE-FIRST ========== */}
-          <Card className="border-green-200 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">
-              <CardTitle className="flex items-center gap-3 text-2xl">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-white" />
-                </div>
-                Section 3: Choose Your Package
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 md:p-8">
-              <div className="space-y-4">
-                {servicePackages.map((pkg) => {
-                  const selected = formData.servicePackage === pkg.id;
-
-                  return (
-                    <label
-                      key={pkg.id}
-                      htmlFor={pkg.id}
-                      className={`
-                        relative block rounded-xl p-5 cursor-pointer transition-all duration-200
-                        ${selected 
-                          ? "border-2 border-blue-500 bg-blue-50 shadow-md" 
-                          : "border-2 border-gray-200 hover:border-blue-300 hover:shadow-sm bg-white"}
-                        ${pkg.popular ? "ring-2 ring-blue-200" : ""}
-                      `}
-                    >
-                      {/* Hidden radio input */}
-                      <input
-                        id={pkg.id}
-                        name="servicePackage"
-                        type="radio"
-                        className="sr-only"
-                        value={pkg.id}
-                        checked={selected}
-                        onChange={(e) => handlePackageChange(e.target.value)}
-                      />
-
-                      {/* Popular badge (absolute) */}
-                      {pkg.popular && (
-                        <Badge className="absolute -top-3 left-4 bg-blue-600 text-white text-xs px-3 py-0.5">
-                          Most Popular
-                        </Badge>
-                      )}
-
-                      {/* Card content – stacked on mobile, row on tablet+ */}
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        {/* Left side: price + details */}
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center justify-between sm:justify-start gap-3 flex-wrap">
-                            <div>
-                              <span className="text-2xl md:text-3xl font-bold text-gray-900">{pkg.price}</span>
-                              <span className="text-gray-600 text-base ml-1">/{pkg.duration}</span>
-                            </div>
-                            <Badge variant="outline" className="text-xs sm:text-sm whitespace-nowrap">
-                              {pkg.products}
-                            </Badge>
-                          </div>
-                          <p className="text-gray-700 text-sm sm:text-base leading-relaxed">{pkg.description}</p>
-                          <p className="text-gray-500 text-xs sm:text-sm">Renewable every {pkg.duration}</p>
-                        </div>
-
-                        {/* Selection indicator – right aligned on desktop, visible on all sizes */}
-                        <div className="flex justify-start sm:justify-end">
-                          <div
-                            aria-hidden
-                            className={`
-                              w-7 h-7 flex items-center justify-center rounded-full border-2 shrink-0
-                              ${selected ? "bg-blue-500 border-blue-500" : "bg-white border-gray-300"}
-                            `}
-                          >
-                            {selected ? (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="w-4 h-4 text-white"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : (
-                              <div className="w-3 h-3 rounded-full bg-white" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Submit button (unchanged) */}
-          <div className="text-center">
+          {/* Submit button */}
+          <div className="text-center pt-4">
             <Button
               type="submit"
-              size="lg"
               disabled={isSubmitting || !formData.servicePackage}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-6 text-lg font-semibold shadow-xl"
+              className="bg-blue-700 hover:bg-blue-800 text-white px-8 py-2.5 text-base rounded-md shadow-sm"
             >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Processing Registration...
-                </>
-              ) : (
-                <>
-                  Submit Registration
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </>
-              )}
+              {isSubmitting ? "Processing..." : "Continue to payment →"}
             </Button>
-            <p className="text-sm text-gray-600 mt-4">
-              By submitting, you agree to our{" "}
-              <Link href="/business/terms" className="text-blue-600 hover:underline">
-                Terms and Conditions
-              </Link>
+            <p className="text-xs text-gray-500 mt-4">
+              By continuing you agree to our <Link href="/business/terms" className="text-blue-600 underline">terms</Link>.
+              We'll send a payment summary to your email.
             </p>
           </div>
         </form>
-      </div>
+      </main>
+
+      {/* Payment Options Modal - same logic, visually simplified */}
+      {showPaymentOptions && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-xl">
+            <div className="p-5 border-b border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-900">How would you like to pay?</h3>
+              <p className="text-sm text-gray-500 mt-1">Choose an option below</p>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="bg-gray-50 p-3 rounded-md text-sm">
+                <div className="flex justify-between">
+                  <span>Package:</span>
+                  <span className="font-medium">{servicePackages.find(p => p.id === formData.servicePackage)?.price || "N/A"}/month</span>
+                </div>
+                <div className="flex justify-between font-semibold mt-1 pt-1 border-t">
+                  <span>Total:</span>
+                  <span>₵{getPackageAmount()}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handlePaystackPaymentSelected}
+                className="w-full text-left p-3 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-3"
+              >
+                <CreditCard className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium">Paystack (card, mobile money)</p>
+                  <p className="text-xs text-gray-500">Instant online payment – secure</p>
+                </div>
+              </button>
+
+              <button
+                onClick={handleManualPaymentSelected}
+                className="w-full text-left p-3 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-3"
+              >
+                <span className="text-xl">💰</span>
+                <div>
+                  <p className="font-medium">Manual bank transfer</p>
+                  <p className="text-xs text-gray-500">We'll provide account details after confirmation</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowPaymentOptions(false);
+                  const msg = `Hello, I'm interested in registering ${formData.businessName}. Can we discuss custom payment or wholesale terms?`;
+                  window.open(`https://wa.me/233242799990?text=${encodeURIComponent(msg)}`, "_blank");
+                }}
+                className="w-full text-left p-3 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-3"
+              >
+                <span className="text-xl">💬</span>
+                <div>
+                  <p className="font-medium">Contact us directly</p>
+                  <p className="text-xs text-gray-500">WhatsApp – discuss wholesale or custom terms</p>
+                </div>
+              </button>
+            </div>
+            <div className="p-4 border-t border-gray-100 text-right">
+              <button onClick={() => setShowPaymentOptions(false)} className="text-sm text-gray-500 hover:text-gray-800">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Paystack modal (unchanged) */}
+      <PaystackPaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => {
+          setShowPaymentModal(false);
+          setShowPaymentOptions(true);
+          setSelectedPaymentMethod(null);
+        }}
+        onPaymentCompleted={handlePaymentCompleted}
+        orderSummary={{
+          service: `${servicePackages.find(p => p.id === formData.servicePackage)?.price || "N/A"}/month Business Package`,
+          amount: getPackageAmount(),
+          total: getPackageAmount(),
+        }}
+        paymentReference={paymentReference}
+        customerPhone={formData.contactNumbers.split(",")[0]?.trim() || ""}
+        customerName={formData.businessName}
+        forcePaymentMethod={selectedPaymentMethod || undefined}
+      />
     </div>
   );
 }
