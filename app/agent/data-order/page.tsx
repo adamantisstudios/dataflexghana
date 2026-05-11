@@ -39,6 +39,7 @@ import {
   Wallet,
   CreditCard,
   ArrowDown,
+  DollarSign,
   ShoppingCart,
   X,
   Clock,
