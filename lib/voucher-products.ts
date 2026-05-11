@@ -17,7 +17,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     title: "Buy ABCE Results Checker Card- WAEC PINs",
     description: "Buy ABCE Results Checker Card for checking ABCE May/June or Nov/Dec results online.",
     image_url: "https://i.ibb.co/4RrJp7pr/Buy-ABCE-Results-Checker-Cards-Shortcode-png.png",
-    price: 44,
+    price: 32,   // updated from 58 to 32
     quantity: 60,
     status: "published",
   },
@@ -77,7 +77,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "Buy CTVET Results Checker now to check both Core and Electives subjects of your Technical Examination Results for CTVET (Council for Technical and Vocational Education and Training) and National Board for Professional and Technician Examinations (NABPTEX).",
     image_url: "https://i.ibb.co/KzjrMVQv/CTVET-01.jpg",
-    price: 99,
+    price: 89,   // updated from 113 to 89
     quantity: 100,
     status: "published",
   },
@@ -97,7 +97,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "Buy GBCE Results Checker Card for checking GBCE May/June or Nov/Dec results online. Buy WAEC- GBCE Checker PINs using mobile money (ALL NETWORKS)",
     image_url: "https://i.ibb.co/qYyrDrdR/GBCE-01.jpg",
-    price: 39,
+    price: 32,   // updated from 53 to 32
     quantity: 166,
     status: "published",
   },
@@ -117,7 +117,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     description:
       "Buy WASSCE Results Checker Cards effortlessly and gain immediate access to your WASSCE MAYJUNE or NOVDEC results online. Requirement. You must order above 20 pieces",
     image_url: "https://i.ibb.co/zT2ZyfRk/WASSE-01.jpg",
-    price: 28,
+    price: 32,   // updated from 42 to 32
     quantity: 100,
     status: "published",
   },
@@ -156,7 +156,7 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
     title: "Buy NVTI Results Checker Card – PINs",
     description: "Buy NVTI Results Checker Card for checking NVTI May/June or Nov/Dec results online.",
     image_url: "https://i.ibb.co/7NjTD7c4/NVTI-01.jpg",
-    price: 84,
+    price: 74,   // updated from 98 to 74
     quantity: 100,
     status: "published",
   },

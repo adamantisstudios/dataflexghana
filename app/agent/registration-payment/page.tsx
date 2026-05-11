@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { supabase } from "@/lib/supabase"
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
 import {
   CreditCard,
   CheckCircle,
@@ -18,16 +18,16 @@ import {
   TrendingUp,
   Users,
   Play,
-} from "lucide-react"
-import { toast } from "sonner"
-import Link from "next/link"
+} from "lucide-react";
+import { toast } from "sonner";
+import Link from "next/link";
 
 // Constants
-const REGISTRATION_FEE = 50 // Paystack payment amount
-const REGISTRATION_FEE_MANUAL = 47 // Manual payment amount
-const WALLET_TOPUP = 5
+const REGISTRATION_FEE = 50;
+const REGISTRATION_FEE_MANUAL = 47;
+const WALLET_TOPUP = 5;
 
-// Video testimonial data
+// Video testimonial data (existing)
 const featuredTestimonies = [
   {
     id: 1,
@@ -43,72 +43,72 @@ const featuredTestimonies = [
     agentName: "Atta Alhassan Imoro",
     title: "Making daily cashouts - See how she does it",
   },
-]
+];
 
 interface PaystackResponse {
-  authorization_url: string
-  access_code: string
-  reference: string
+  authorization_url: string;
+  access_code: string;
+  reference: string;
 }
 
 export default function RegistrationPaymentPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [agentName, setAgentName] = useState("New Agent")
-  const [agentEmail, setAgentEmail] = useState("")
-  const [emailError, setEmailError] = useState("")
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [error, setError] = useState("")
-  const [verifyingPayment, setVerifyingPayment] = useState(false)
-  const [showManualDialog, setShowManualDialog] = useState(false)
-  const [manualCode, setManualCode] = useState("")
-  const [manualProcessing, setManualProcessing] = useState(false)
-  const [showVideo, setShowVideo] = useState(false)
-  const [currentVideo, setCurrentVideo] = useState<typeof featuredTestimonies[0] | null>(null)
-  const [selectedMethod, setSelectedMethod] = useState<"manual" | "paystack" | null>(null)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [agentName, setAgentName] = useState("New Agent");
+  const [agentEmail, setAgentEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState("");
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [showManualDialog, setShowManualDialog] = useState(false);
+  const [manualCode, setManualCode] = useState("");
+  const [manualProcessing, setManualProcessing] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+  const [currentVideo, setCurrentVideo] = useState<typeof featuredTestimonies[0] | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<"manual" | "paystack" | null>(null);
 
-  const generateCode = () => Math.floor(10000 + Math.random() * 90000).toString()
-  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-
-  useEffect(() => {
-    const name = searchParams.get("name")
-    const mailParam = searchParams.get("email")
-    console.log("[v0] Registration payment page loaded. URL params - name:", name, "email:", mailParam)
-    if (name) setAgentName(decodeURIComponent(name))
-    if (mailParam) setAgentEmail(decodeURIComponent(mailParam))
-  }, [searchParams])
+  const generateCode = () => Math.floor(10000 + Math.random() * 90000).toString();
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   useEffect(() => {
-    const reference = searchParams.get("reference")
-    console.log("[v0] Checking for Paystack callback. Reference:", reference)
+    const name = searchParams.get("name");
+    const mailParam = searchParams.get("email");
+    console.log("[v0] Registration payment page loaded. URL params - name:", name, "email:", mailParam);
+    if (name) setAgentName(decodeURIComponent(name));
+    if (mailParam) setAgentEmail(decodeURIComponent(mailParam));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const reference = searchParams.get("reference");
+    console.log("[v0] Checking for Paystack callback. Reference:", reference);
     if (reference) {
-      console.log("[v0] Verifying Paystack payment")
-      verifyPaystackPayment(reference)
+      console.log("[v0] Verifying Paystack payment");
+      verifyPaystackPayment(reference);
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   const openVideoModal = (video: typeof featuredTestimonies[0]) => {
-    setCurrentVideo(video)
-    setShowVideo(true)
-  }
+    setCurrentVideo(video);
+    setShowVideo(true);
+  };
 
   const closeVideoModal = () => {
-    setShowVideo(false)
-    setCurrentVideo(null)
-  }
+    setShowVideo(false);
+    setCurrentVideo(null);
+  };
 
   // Manual payment
   const handleManualStart = async () => {
-    console.log("[v0] Manual payment started")
-    setManualCode(generateCode())
-    setShowManualDialog(true)
-  }
+    console.log("[v0] Manual payment started");
+    setManualCode(generateCode());
+    setShowManualDialog(true);
+  };
 
   const handleManualComplete = async () => {
-    if (!manualCode) return
-    setManualProcessing(true)
+    if (!manualCode) return;
+    setManualProcessing(true);
     try {
-      const timestamp = new Date().toLocaleString()
+      const timestamp = new Date().toLocaleString();
       const message = `✅ *NEW AGENT REGISTRATION - MANUAL PAYMENT RECEIVED*
 
 Hello Admin,
@@ -137,38 +137,35 @@ The agent will immediately complete their full registration form with:
 
 Reference Code: *${manualCode}*
 
-Thank you!`
+Thank you!`;
 
-      window.open(`https://wa.me/233242799990?text=${encodeURIComponent(message)}`, "_blank")
-      setShowManualDialog(false)
-      toast.success("✅ WhatsApp opened! Admin will register your account. Check back soon to login.")
-      
-      // Store payment reference in localStorage
-      localStorage.setItem("payment_reference", manualCode)
-      localStorage.setItem("payment_method", "manual")
-      
-      // Redirect to login page after 2 seconds
+      window.open(`https://wa.me/233242799990?text=${encodeURIComponent(message)}`, "_blank");
+      setShowManualDialog(false);
+      toast.success("✅ WhatsApp opened! Admin will register your account. Check back soon to login.");
+
+      localStorage.setItem("payment_reference", manualCode);
+      localStorage.setItem("payment_method", "manual");
+
       setTimeout(() => {
-        router.push(`/agent/login`)
-      }, 2000)
+        router.push(`/agent/login`);
+      }, 2000);
     } catch (err) {
-      toast.error("Something went wrong")
+      toast.error("Something went wrong");
     } finally {
-      setManualProcessing(false)
+      setManualProcessing(false);
     }
-  }
+  };
 
   // Paystack
   const handlePaystack = async () => {
-    console.log("[v0] Paystack payment starting")
-    // Email is required for Paystack
+    console.log("[v0] Paystack payment starting");
     if (!agentEmail.trim() || !validateEmail(agentEmail)) {
-      setEmailError("Valid email required for Paystack payment")
-      return
+      setEmailError("Valid email required for Paystack payment");
+      return;
     }
-    setIsProcessing(true)
-    setError("")
-    setEmailError("")
+    setIsProcessing(true);
+    setError("");
+    setEmailError("");
     try {
       const res = await fetch("/api/paystack/register/initialize", {
         method: "POST",
@@ -178,58 +175,55 @@ Thank you!`
           amount: REGISTRATION_FEE * 100,
           email: agentEmail,
         }),
-      })
-      if (!res.ok) throw new Error("Payment initialization failed")
-      const data: PaystackResponse = await res.json()
-      // Store email for use after payment
-      localStorage.setItem("paystack_email", agentEmail)
-      localStorage.setItem("paystack_name", agentName)
-      window.location.href = data.authorization_url
+      });
+      if (!res.ok) throw new Error("Payment initialization failed");
+      const data: PaystackResponse = await res.json();
+      localStorage.setItem("paystack_email", agentEmail);
+      localStorage.setItem("paystack_name", agentName);
+      window.location.href = data.authorization_url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Payment error")
-      setIsProcessing(false)
+      setError(err instanceof Error ? err.message : "Payment error");
+      setIsProcessing(false);
     }
-  }
+  };
 
   const verifyPaystackPayment = async (reference: string) => {
-    setVerifyingPayment(true)
-    const timeout = setTimeout(() => handlePaymentSuccess(reference), 12000)
+    setVerifyingPayment(true);
+    const timeout = setTimeout(() => handlePaymentSuccess(reference), 12000);
     try {
       const res = await fetch("/api/paystack/register/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reference }),
-      })
-      clearTimeout(timeout)
+      });
+      clearTimeout(timeout);
       if (res.ok) {
-        const data = await res.json()
-        if (data.success) toast.success("Payment verified!")
+        const data = await res.json();
+        if (data.success) toast.success("Payment verified!");
       }
     } catch (err) {
-      console.warn("Verification error, redirecting anyway")
+      console.warn("Verification error, redirecting anyway");
     } finally {
-      handlePaymentSuccess(reference)
+      handlePaymentSuccess(reference);
     }
-  }
+  };
 
   const handlePaymentSuccess = (reference: string) => {
-    // Store payment verification in localStorage
-    localStorage.setItem("payment_verified", "true")
-    localStorage.setItem("payment_reference", reference)
-    localStorage.setItem("paystack_email", agentEmail)
-    localStorage.setItem("paystack_name", agentName)
-    localStorage.setItem("payment_method", "paystack")
-    // Redirect to registration form for Paystack users to complete registration
+    localStorage.setItem("payment_verified", "true");
+    localStorage.setItem("payment_reference", reference);
+    localStorage.setItem("paystack_email", agentEmail);
+    localStorage.setItem("paystack_name", agentName);
+    localStorage.setItem("payment_method", "paystack");
     router.push(
       `/agent/register?name=${encodeURIComponent(agentName)}&email=${encodeURIComponent(agentEmail)}&reference=${reference}`
-    )
-  }
+    );
+  };
 
   const handleContinue = () => {
-    if (!selectedMethod) return
-    if (selectedMethod === "manual") handleManualStart()
-    else handlePaystack()
-  }
+    if (!selectedMethod) return;
+    if (selectedMethod === "manual") handleManualStart();
+    else handlePaystack();
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -252,7 +246,9 @@ Thank you!`
             </div>
             <h1 className="text-3xl font-bold text-slate-900">Complete Payment to Register</h1>
             <p className="text-slate-600 mt-2 max-w-md mx-auto">
-              Pay now to unlock your agent registration. After payment, you'll complete your registration form and access your dashboard. Both options include <span className="font-medium text-emerald-600">₵{WALLET_TOPUP} free wallet credit</span>.
+              Pay now to unlock your agent registration. After payment, you'll complete your registration form and
+              access your dashboard. Both options include{" "}
+              <span className="font-medium text-emerald-600">₵{WALLET_TOPUP} free wallet credit</span>.
             </p>
           </div>
 
@@ -348,8 +344,8 @@ Thank you!`
                     type="email"
                     value={agentEmail}
                     onChange={(e) => {
-                      setAgentEmail(e.target.value)
-                      setEmailError("")
+                      setAgentEmail(e.target.value);
+                      setEmailError("");
                     }}
                     placeholder="you@example.com"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -374,9 +370,9 @@ Thank you!`
               <Button
                 onClick={handleContinue}
                 disabled={
-                  !selectedMethod || 
-                  isProcessing || 
-                  manualProcessing || 
+                  !selectedMethod ||
+                  isProcessing ||
+                  manualProcessing ||
                   (selectedMethod === "paystack" && (!agentEmail || !validateEmail(agentEmail)))
                 }
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-12 text-base"
@@ -386,8 +382,12 @@ Thank you!`
                 ) : (
                   <Zap className="h-5 w-5 mr-2" />
                 )}
-                {selectedMethod === "manual" ? "Continue with Manual Payment" : selectedMethod === "paystack" ? "Continue with Paystack" : "Select a payment method"}
-              </Button> 
+                {selectedMethod === "manual"
+                  ? "Continue with Manual Payment"
+                  : selectedMethod === "paystack"
+                  ? "Continue with Paystack"
+                  : "Select a payment method"}
+              </Button>
 
               {/* Savings note */}
               <p className="text-center text-sm text-emerald-700 font-medium">
@@ -407,8 +407,44 @@ Thank you!`
             </CardContent>
           </Card>
 
-          {/* Social proof sections (unchanged, kept as you had them) */}
-          {/* What you get */}
+          {/* ========== NEW: VERTICAL VIMEO VIDEO CARD ========== */}
+          {/* Fully responsive, 9:16 portrait, matches theme exactly */}
+          <Card className="border-0 shadow-md mb-8 overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Play className="h-5 w-5 text-emerald-600" />
+                Dataflex Platfrom Overview
+              </CardTitle>
+              <CardDescription>
+                Watch And Learn More Before You Join
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="flex justify-center bg-black/5 py-6 px-4">
+                {/* 9:16 aspect ratio wrapper – ensures true vertical video */}
+                <div className="relative w-full max-w-[360px] md:max-w-[400px] rounded-xl overflow-hidden shadow-lg">
+                  <div className="aspect-[9/16]">
+                    <iframe
+                      src="https://player.vimeo.com/video/1191024760?badge=0&autopause=0&player_id=0&app_id=58479"
+                      className="absolute top-0 left-0 w-full h-full"
+                      frameBorder="0"
+                      allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      title="dataflex project for agents intro"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="p-5 pt-2 text-sm text-slate-600 border-t border-slate-100 mt-2 bg-slate-50/30">
+                <p className="flex items-center gap-2">
+                  <span className="text-emerald-600">📱</span> Platform Overview Video
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* What you get (existing) */}
           <Card className="border-0 shadow-md mb-6">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -446,7 +482,7 @@ Thank you!`
             </CardContent>
           </Card>
 
-          {/* Video testimonials */}
+          {/* Video testimonials (existing) */}
           <Card className="border-0 shadow-md mb-6">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -493,7 +529,7 @@ Thank you!`
             </CardContent>
           </Card>
 
-          {/* Urgency section */}
+          {/* Urgency section (existing) */}
           <Card className="border-0 shadow-md mb-6 bg-gradient-to-r from-orange-50 to-amber-50">
             <CardContent className="p-5">
               <div className="flex items-start gap-3">
@@ -514,7 +550,7 @@ Thank you!`
             </CardContent>
           </Card>
 
-          {/* Agent success stories - redesigned */}
+          {/* Agent success stories - redesigned (existing) */}
           <Card className="border-0 shadow-md">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -534,9 +570,7 @@ Thank you!`
                     <h4 className="font-semibold text-slate-900">Ama Mensah</h4>
                     <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Accra</span>
                   </div>
-                  <p className="text-sm text-slate-600 mt-1">
-                    Sells Data Bundles + Registration + Wholesale
-                  </p>
+                  <p className="text-sm text-slate-600 mt-1">Sells Data Bundles + Registration + Wholesale</p>
                   <p className="text-sm font-medium text-emerald-700 mt-1">
                     Earning <span className="font-bold">₵2,500/month</span>
                   </p>
@@ -553,9 +587,7 @@ Thank you!`
                     <h4 className="font-semibold text-slate-900">Kwame Asante</h4>
                     <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Kumasi</span>
                   </div>
-                  <p className="text-sm text-slate-600 mt-1">
-                    Promoted Data Bundles + Real Estate
-                  </p>
+                  <p className="text-sm text-slate-600 mt-1">Promoted Data Bundles + Real Estate</p>
                   <p className="text-sm font-medium text-amber-700 mt-1">
                     Made <span className="font-bold">₵7,000 in one month</span>
                   </p>
@@ -572,16 +604,13 @@ Thank you!`
                     <h4 className="font-semibold text-slate-900">John Osei</h4>
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Tamale</span>
                   </div>
-                  <p className="text-sm text-slate-600 mt-1">
-                    Refers Projects + Data Bundles + Services
-                  </p>
+                  <p className="text-sm text-slate-600 mt-1">Refers Projects + Data Bundles + Services</p>
                   <p className="text-sm font-medium text-blue-700 mt-1">
                     Earned <span className="font-bold">₵10,000 from referrals</span>
                   </p>
                 </div>
               </div>
 
-              {/* Tip */}
               <p className="text-xs text-slate-500 flex items-center gap-2 pt-2 border-t border-slate-200">
                 <span className="text-lg">💡</span> Diversify your income streams for higher earnings
               </p>
@@ -591,90 +620,84 @@ Thank you!`
       )}
 
       {/* Manual payment dialog - balanced redesign */}
-{showManualDialog && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-    <Card className="w-full max-w-md shadow-xl rounded-lg">
-      <CardHeader className="bg-emerald-600 text-white py-3 px-5 rounded-t-lg">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <CreditCard className="h-5 w-5" />
-          Manual Payment Details
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="p-5 space-y-4">
-        {/* Amount and Reference - cleaner, readable */}
-        <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-          <div className="flex justify-between items-center mb-3">
-            <p className="text-sm font-medium text-emerald-700">Amount to Pay:</p>
-            <p className="text-2xl font-bold text-emerald-900">₵{REGISTRATION_FEE_MANUAL}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-emerald-700 mb-1.5">Your Reference Code:</p>
-            <div className="bg-white border-2 border-emerald-400 rounded-lg py-2 px-3 text-center">
-              <p className="text-lg font-mono font-bold text-emerald-900 tracking-wider">
-                {manualCode}
-              </p>
-            </div>
-            <p className="text-xs text-emerald-600 mt-1.5 text-center">Include this code in your payment note</p>
-          </div>
-        </div>
+      {showManualDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <Card className="w-full max-w-md shadow-xl rounded-lg">
+            <CardHeader className="bg-emerald-600 text-white py-3 px-5 rounded-t-lg">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CreditCard className="h-5 w-5" />
+                Manual Payment Details
+              </CardTitle>
+            </CardHeader>
 
-        {/* Payment Details - readable */}
-        <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-          <p className="text-sm font-bold text-amber-900 mb-2">📱 Send Payment To:</p>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center bg-white p-2.5 rounded-lg">
-              <span className="text-sm font-medium text-amber-700">Phone:</span>
-              <span className="font-mono font-bold text-base text-amber-900">+233 557 943 392</span>
-            </div>
-            <div className="flex justify-between items-center bg-white p-2.5 rounded-lg">
-              <span className="text-sm font-medium text-amber-700">Receiver:</span>
-              <span className="font-semibold text-amber-900">Adamantis Solutions</span>
-            </div>
-          </div>
-        </div>
+            <CardContent className="p-5 space-y-4">
+              <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                <div className="flex justify-between items-center mb-3">
+                  <p className="text-sm font-medium text-emerald-700">Amount to Pay:</p>
+                  <p className="text-2xl font-bold text-emerald-900">₵{REGISTRATION_FEE_MANUAL}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-emerald-700 mb-1.5">Your Reference Code:</p>
+                  <div className="bg-white border-2 border-emerald-400 rounded-lg py-2 px-3 text-center">
+                    <p className="text-lg font-mono font-bold text-emerald-900 tracking-wider">{manualCode}</p>
+                  </div>
+                  <p className="text-xs text-emerald-600 mt-1.5 text-center">Include this code in your payment note</p>
+                </div>
+              </div>
 
-        {/* Instructions - clear but shorter */}
-        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-          <p className="text-sm font-bold text-blue-900 mb-2">📋 What to do:</p>
-          <ul className="space-y-1.5 text-sm text-blue-900 pl-1">
-            <li>1. Send ₵{REGISTRATION_FEE_MANUAL} via Mobile Money to above number</li>
-            <li>2. Include reference code: <strong>{manualCode}</strong></li>
-            <li>3. Click "Payment Sent" below</li>
-            <li>4. Notify admin via WhatsApp to complete registration</li>
-          </ul>
-        </div>
+              <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                <p className="text-sm font-bold text-amber-900 mb-2">📱 Send Payment To:</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center bg-white p-2.5 rounded-lg">
+                    <span className="text-sm font-medium text-amber-700">Phone:</span>
+                    <span className="font-mono font-bold text-base text-amber-900">+233 557 943 392</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-white p-2.5 rounded-lg">
+                    <span className="text-sm font-medium text-amber-700">Receiver:</span>
+                    <span className="font-semibold text-amber-900">Adamantis Solutions</span>
+                  </div>
+                </div>
+              </div>
 
-        {/* Buttons - comfortable height */}
-        <div className="flex gap-3 pt-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowManualDialog(false)} 
-            className="flex-1 h-10 text-sm"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleManualComplete}
-            disabled={manualProcessing}
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-10 font-medium text-sm"
-          >
-            {manualProcessing ? (
-              <>
-                <Loader className="h-4 w-4 animate-spin mr-2" />
-                Processing...
-              </>
-            ) : (
-              "✓ Payment Sent"
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  </div>
-)}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <p className="text-sm font-bold text-blue-900 mb-2">📋 What to do:</p>
+                <ul className="space-y-1.5 text-sm text-blue-900 pl-1">
+                  <li>1. Send ₵{REGISTRATION_FEE_MANUAL} via Mobile Money to above number</li>
+                  <li>2. Include reference code: <strong>{manualCode}</strong></li>
+                  <li>3. Click "Payment Sent" below</li>
+                  <li>4. Notify admin via WhatsApp to complete registration</li>
+                </ul>
+              </div>
 
-      {/* Video modal */}
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowManualDialog(false)}
+                  className="flex-1 h-10 text-sm"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleManualComplete}
+                  disabled={manualProcessing}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-10 font-medium text-sm"
+                >
+                  {manualProcessing ? (
+                    <>
+                      <Loader className="h-4 w-4 animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    "✓ Payment Sent"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Video modal (existing) */}
       {showVideo && currentVideo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-black rounded-lg w-full max-w-sm max-h-[95vh] overflow-hidden shadow-2xl flex flex-col">
@@ -703,5 +726,5 @@ Thank you!`
         </div>
       )}
     </div>
-  )
+  );
 }

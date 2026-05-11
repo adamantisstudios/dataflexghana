@@ -1,21 +1,24 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { CheckCircle, Loader2 } from "lucide-react";
+import { getAllProducts, getProductById } from "@/lib/voucher-products";
+import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal";
 
-import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { CheckCircle, Loader2 } from "lucide-react"
-import { getAllProducts, getProductById } from "@/lib/voucher-products-data"
-import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal"
+interface VoucherOrderFormProps {
+  preselectedProductId?: number | null;
+}
 
-export function VoucherOrderForm() {
-  const products = getAllProducts()
+export function VoucherOrderForm({ preselectedProductId }: VoucherOrderFormProps) {
+  const products = getAllProducts();
   const [formData, setFormData] = useState({
     name: "",
     productId: 0,
@@ -24,28 +27,48 @@ export function VoucherOrderForm() {
     deliveryMode: "whatsapp",
     contact: "",
     additionalNotes: "",
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
-  const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [pendingMessage, setPendingMessage] = useState("")
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState("");
+
+  // Debug: log when prop changes
+  useEffect(() => {
+    console.log("VoucherOrderForm received preselectedProductId:", preselectedProductId);
+  }, [preselectedProductId]);
+
+  // Auto‑select product
+  useEffect(() => {
+    if (preselectedProductId && preselectedProductId > 0) {
+      const product = getProductById(preselectedProductId);
+      console.log("Found product:", product);
+      if (product) {
+        setFormData(prev => ({
+          ...prev,
+          productId: product.id,
+          productTitle: product.title,
+        }));
+      }
+    }
+  }, [preselectedProductId]);
 
   const handleProductChange = (productId: string) => {
-    const product = getProductById(Number.parseInt(productId))
+    const product = getProductById(Number.parseInt(productId));
     setFormData({
       ...formData,
       productId: Number.parseInt(productId),
       productTitle: product?.title || "",
-    })
-  }
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    const selectedProduct = getProductById(formData.productId)
+    const selectedProduct = getProductById(formData.productId);
     const totalPrice = selectedProduct
       ? (selectedProduct.price * Number.parseInt(formData.quantity)).toFixed(2)
-      : "0.00"
+      : "0.00";
 
     const message = `
 🎓 *New Educational Product Order*
@@ -62,27 +85,27 @@ ${formData.additionalNotes ? `📝 *Notes:* ${formData.additionalNotes}` : ""}
 💳 *PAYMENT CONFIRMATION:*
 ✅ Customer confirmed payment completed to 0557943392
 Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
-    `.trim()
+    `.trim();
 
-    setPendingMessage(message)
-    setShowPaymentModal(true)
-  }
+    setPendingMessage(message);
+    setShowPaymentModal(true);
+  };
 
   const handlePaymentConfirmed = () => {
-    setIsSubmitting(true)
-    setShowPaymentModal(false)
+    setIsSubmitting(true);
+    setShowPaymentModal(false);
 
-    const whatsappNumber = "233242799990"
-    const encodedMessage = encodeURIComponent(pendingMessage)
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
+    const whatsappNumber = "233242799990";
+    const encodedMessage = encodeURIComponent(pendingMessage);
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
 
     setTimeout(() => {
-      setIsSubmitting(false)
-      setIsSuccess(true)
-      window.open(whatsappUrl, "_blank")
+      setIsSubmitting(false);
+      setIsSuccess(true);
+      window.open(whatsappUrl, "_blank");
 
       setTimeout(() => {
-        setIsSuccess(false)
+        setIsSuccess(false);
         setFormData({
           name: "",
           productId: 0,
@@ -91,10 +114,10 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
           deliveryMode: "whatsapp",
           contact: "",
           additionalNotes: "",
-        })
-      }, 3000)
-    }, 1500)
-  }
+        });
+      }, 3000);
+    }, 1500);
+  };
 
   if (isSuccess) {
     return (
@@ -107,7 +130,7 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
           </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -146,10 +169,10 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
 
               {formData.productId > 0 &&
                 (() => {
-                  const selectedProduct = getProductById(formData.productId)
+                  const selectedProduct = getProductById(formData.productId);
                   const totalPrice = selectedProduct
                     ? (selectedProduct.price * Number.parseInt(formData.quantity || "1")).toFixed(2)
-                    : "0.00"
+                    : "0.00";
 
                   return selectedProduct ? (
                     <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
@@ -173,7 +196,7 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
                         </div>
                       </div>
                     </div>
-                  ) : null
+                  ) : null;
                 })()}
             </div>
 
@@ -201,15 +224,11 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="whatsapp" id="whatsapp" />
-                  <Label htmlFor="whatsapp" className="cursor-pointer">
-                    WhatsApp
-                  </Label>
+                  <Label htmlFor="whatsapp" className="cursor-pointer">WhatsApp</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="email" id="email" />
-                  <Label htmlFor="email" className="cursor-pointer">
-                    Email
-                  </Label>
+                  <Label htmlFor="email" className="cursor-pointer">Email</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -266,7 +285,6 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
         </CardContent>
       </Card>
 
-      {/* Payment Confirmation Modal */}
       <PaymentConfirmationModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
@@ -282,5 +300,5 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
         }}
       />
     </>
-  )
+  );
 }
