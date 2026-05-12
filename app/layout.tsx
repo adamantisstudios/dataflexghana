@@ -1041,7 +1041,7 @@ function AgentDataPricing() {
         <a href="https://www.dataflexghana.com/agent/registration-payment">
           https://www.dataflexghana.com/agent/registration-payment
         </a>
-      </p>s
+      </p>
       <h3>🛒 Don’t want to register yet?</h3>
       <p>
         Order directly here:{" "}
