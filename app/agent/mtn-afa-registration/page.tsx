@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowLeft } from "lucide-react"
 import MTNAFAForm from "@/components/agent/mtn-afa/MTNAFAForm"
-import AFAStatusTracker from "@/components/agent/AFAStatusTracker"
+import AFAStatusTracker from "@/components/agent/afa-status-tracker"
 
 export default function MTNAFARegistrationPage() {
   const router = useRouter()
