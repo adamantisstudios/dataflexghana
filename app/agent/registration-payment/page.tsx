@@ -16,7 +16,6 @@ import {
   Lock,
   X,
   TrendingUp,
-  Users,
   Play,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -27,7 +26,7 @@ const REGISTRATION_FEE = 50;
 const REGISTRATION_FEE_MANUAL = 47;
 const WALLET_TOPUP = 5;
 
-// Video testimonial data (existing)
+// Video testimonial data
 const featuredTestimonies = [
   {
     id: 1,
@@ -73,16 +72,14 @@ export default function RegistrationPaymentPage() {
   useEffect(() => {
     const name = searchParams.get("name");
     const mailParam = searchParams.get("email");
-    console.log("[v0] Registration payment page loaded. URL params - name:", name, "email:", mailParam);
     if (name) setAgentName(decodeURIComponent(name));
     if (mailParam) setAgentEmail(decodeURIComponent(mailParam));
   }, [searchParams]);
 
+  // Paystack callback verification
   useEffect(() => {
     const reference = searchParams.get("reference");
-    console.log("[v0] Checking for Paystack callback. Reference:", reference);
     if (reference) {
-      console.log("[v0] Verifying Paystack payment");
       verifyPaystackPayment(reference);
     }
   }, [searchParams]);
@@ -97,9 +94,8 @@ export default function RegistrationPaymentPage() {
     setCurrentVideo(null);
   };
 
-  // Manual payment
-  const handleManualStart = async () => {
-    console.log("[v0] Manual payment started");
+  // Manual payment handlers
+  const handleManualStart = () => {
     setManualCode(generateCode());
     setShowManualDialog(true);
   };
@@ -156,9 +152,8 @@ Thank you!`;
     }
   };
 
-  // Paystack
+  // Paystack payment handler
   const handlePaystack = async () => {
-    console.log("[v0] Paystack payment starting");
     if (!agentEmail.trim() || !validateEmail(agentEmail)) {
       setEmailError("Valid email required for Paystack payment");
       return;
@@ -238,388 +233,398 @@ Thank you!`;
           </Card>
         </div>
       ) : (
-        <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex h-14 w-14 bg-emerald-600 rounded-xl items-center justify-center mb-4 shadow-md">
-              <CreditCard className="h-7 w-7 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900">Complete Payment to Register</h1>
-            <p className="text-slate-600 mt-2 max-w-md mx-auto">
-              Pay now to unlock your agent registration. After payment, you'll complete your registration form and
-              access your dashboard. Both options include{" "}
-              <span className="font-medium text-emerald-600">₵{WALLET_TOPUP} free wallet credit</span>.
-            </p>
-          </div>
-
-          {/* Main payment card */}
-          <Card className="border-0 shadow-xl mb-8">
-            <CardContent className="p-5 md:p-6 space-y-6">
-              {/* Payment options - now selectable */}
-              <div className="grid md:grid-cols-2 gap-4">
-                {/* Manual – recommended */}
-                <div
-                  onClick={() => setSelectedMethod("manual")}
-                  className={`relative border-2 rounded-xl p-5 transition-all cursor-pointer ${
-                    selectedMethod === "manual"
-                      ? "border-emerald-500 bg-emerald-50 shadow-md"
-                      : "border-emerald-200 bg-emerald-50/30 hover:border-emerald-300"
-                  }`}
-                >
-                  <div className="absolute -top-3 left-4">
-                    <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
-                      ✅ RECOMMENDED
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-start mt-2">
-                    <div>
-                      <h3 className="font-bold text-lg text-slate-900">Manual payment</h3>
-                      <p className="text-sm text-slate-600">Mobile Money transfer</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-emerald-700">₵{REGISTRATION_FEE_MANUAL}</p>
-                      <p className="text-xs text-slate-400 line-through">₵{REGISTRATION_FEE}</p>
-                    </div>
-                  </div>
-                  <ul className="mt-4 space-y-2 text-sm text-slate-700">
-                    <li className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-emerald-600" /> Instant activation
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600" /> Contact admin directly
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-emerald-600" /> No waiting
-                    </li>
-                  </ul>
-                  {selectedMethod === "manual" && (
-                    <div className="absolute top-2 right-2">
-                      <CheckCircle className="h-5 w-5 text-emerald-600" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Paystack */}
-                <div
-                  onClick={() => setSelectedMethod("paystack")}
-                  className={`border rounded-xl p-5 transition-all cursor-pointer ${
-                    selectedMethod === "paystack"
-                      ? "border-emerald-500 bg-emerald-50 shadow-md"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-lg text-slate-900">Paystack</h3>
-                      <p className="text-sm text-slate-600">Card, mobile money, bank</p>
-                    </div>
-                    <p className="text-2xl font-bold text-slate-900">₵{REGISTRATION_FEE}</p>
-                  </div>
-                  <ul className="mt-4 space-y-2 text-sm text-slate-700">
-                    <li className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-amber-600" /> 10‑15 min validation
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-amber-600" /> Automated process
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-amber-600" /> Delayed approval
-                    </li>
-                  </ul>
-                  {selectedMethod === "paystack" && (
-                    <div className="absolute top-2 right-2">
-                      <CheckCircle className="h-5 w-5 text-emerald-600" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Email input - only show for Paystack */}
-              {selectedMethod === "paystack" && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Email address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={agentEmail}
-                    onChange={(e) => {
-                      setAgentEmail(e.target.value);
-                      setEmailError("");
-                    }}
-                    placeholder="you@example.com"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        <>
+          {/* HERO SECTION – image left (mobile top), text right (mobile bottom) */}
+          <section className="bg-white border-b border-slate-100">
+            <div className="max-w-5xl mx-auto px-4 py-8 md:py-16 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+              {/* Image block */}
+              <div className="w-full md:w-1/2 flex-shrink-0">
+                <div className="aspect-square rounded-xl overflow-hidden shadow-lg border border-slate-200">
+                  <img
+                    src="/images/hero-main.jpg"
+                    alt="DataFlex Agent Registration"
+                    className="w-full h-full object-cover"
                   />
-                  {emailError && (
-                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" /> {emailError}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Error message */}
-              {error && (
-                <div className="bg-red-50 text-red-800 text-sm p-3 rounded-lg flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              {/* Single Continue button */}
-              <Button
-                onClick={handleContinue}
-                disabled={
-                  !selectedMethod ||
-                  isProcessing ||
-                  manualProcessing ||
-                  (selectedMethod === "paystack" && (!agentEmail || !validateEmail(agentEmail)))
-                }
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-12 text-base"
-              >
-                {isProcessing || manualProcessing ? (
-                  <Loader className="h-5 w-5 animate-spin mr-2" />
-                ) : (
-                  <Zap className="h-5 w-5 mr-2" />
-                )}
-                {selectedMethod === "manual"
-                  ? "Continue with Manual Payment"
-                  : selectedMethod === "paystack"
-                  ? "Continue with Paystack"
-                  : "Select a payment method"}
-              </Button>
-
-              {/* Savings note */}
-              <p className="text-center text-sm text-emerald-700 font-medium">
-                💚 Save ₵14 – choose manual for instant access
-              </p>
-
-              {/* Trust badges */}
-              <div className="flex items-center justify-center gap-4 text-xs text-slate-500 pt-2">
-                <span className="flex items-center gap-1">
-                  <Shield className="h-3.5 w-3.5" /> SSL encrypted
-                </span>
-                <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                <span className="flex items-center gap-1">
-                  <CheckCircle className="h-3.5 w-3.5" /> Verified merchant
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ========== NEW: VERTICAL VIMEO VIDEO CARD ========== */}
-          {/* Fully responsive, 9:16 portrait, matches theme exactly */}
-          <Card className="border-0 shadow-md mb-8 overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Play className="h-5 w-5 text-emerald-600" />
-                Dataflex Platfrom Overview
-              </CardTitle>
-              <CardDescription>
-                Watch And Learn More Before You Join
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="flex justify-center bg-black/5 py-6 px-4">
-                {/* 9:16 aspect ratio wrapper – ensures true vertical video */}
-                <div className="relative w-full max-w-[360px] md:max-w-[400px] rounded-xl overflow-hidden shadow-lg">
-                  <div className="aspect-[9/16]">
-                    <iframe
-                      src="https://player.vimeo.com/video/1191024760?badge=0&autopause=0&player_id=0&app_id=58479"
-                      className="absolute top-0 left-0 w-full h-full"
-                      frameBorder="0"
-                      allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
-                      referrerPolicy="strict-origin-when-cross-origin"
-                      title="dataflex project for agents intro"
-                      allowFullScreen
-                    />
-                  </div>
                 </div>
               </div>
-              <div className="p-5 pt-2 text-sm text-slate-600 border-t border-slate-100 mt-2 bg-slate-50/30">
-                <p className="flex items-center gap-2">
-                  <span className="text-emerald-600">📱</span> Platform Overview Video
+
+              {/* Text block */}
+              <div className="w-full md:w-1/2 text-center md:text-left">
+                <div className="inline-flex h-14 w-14 bg-emerald-600 rounded-xl items-center justify-center mb-4 shadow-md">
+                  <CreditCard className="h-7 w-7 text-white" />
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+                  Complete Payment to Register
+                </h1>
+                <p className="text-slate-600 mt-3 max-w-md">
+                  Pay now to unlock your agent registration. After payment, you'll complete your registration form and
+                  access your dashboard. Both options include{" "}
+                  <span className="font-semibold text-emerald-600">
+                    ₵{WALLET_TOPUP} free wallet credit
+                  </span>
+                  .
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-          {/* What you get (existing) */}
-          <Card className="border-0 shadow-md mb-6">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-emerald-600" />
-                What you get
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                  Verified agent account
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                  All agent features & tools
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                  ₵5 free wallet credit
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                  Priority admin support
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                  WhatsApp confirmation
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                  Start earning immediately
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* Video testimonials (existing) */}
-          <Card className="border-0 shadow-md mb-6">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Play className="h-5 w-5 text-emerald-600" />
-                Real agents making money
-              </CardTitle>
-              <CardDescription>Watch how others are earning</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {featuredTestimonies.map((testimony) => (
+          {/* MAIN CONTENT */}
+          <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
+            {/* Main payment card */}
+            <Card className="border-0 shadow-xl mb-8">
+              <CardContent className="p-5 md:p-6 space-y-6">
+                {/* Payment options */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Manual – recommended */}
                   <div
-                    key={testimony.id}
-                    onClick={() => openVideoModal(testimony)}
-                    className="group cursor-pointer rounded-xl overflow-hidden bg-slate-900 hover:shadow-lg transition-all"
+                    onClick={() => setSelectedMethod("manual")}
+                    className={`relative border-2 rounded-xl p-5 transition-all cursor-pointer ${
+                      selectedMethod === "manual"
+                        ? "border-emerald-500 bg-emerald-50 shadow-md"
+                        : "border-emerald-200 bg-emerald-50/30 hover:border-emerald-300"
+                    }`}
                   >
-                    <div className="relative aspect-[9/16] w-full overflow-hidden">
-                      <img
-                        src={testimony.thumbnail}
-                        alt={testimony.agentName}
-                        className="w-full h-full object-cover group-hover:brightness-75 transition"
-                        crossOrigin="anonymous"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="bg-white/90 group-hover:bg-white rounded-full p-3 transform group-hover:scale-110 transition">
-                          <Play className="h-4 w-4 text-emerald-600 fill-emerald-600" />
-                        </div>
+                    <div className="absolute -top-3 left-4">
+                      <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                        ✅ RECOMMENDED
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-start mt-2">
+                      <div>
+                        <h3 className="font-bold text-lg text-slate-900">Manual payment</h3>
+                        <p className="text-sm text-slate-600">Mobile Money transfer</p>
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-3">
-                        <p className="text-white font-semibold text-xs">{testimony.agentName}</p>
-                        <p className="text-white/80 text-xs line-clamp-2">{testimony.title}</p>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-emerald-700">₵{REGISTRATION_FEE_MANUAL}</p>
+                        <p className="text-xs text-slate-400 line-through">₵{REGISTRATION_FEE}</p>
                       </div>
                     </div>
+                    <ul className="mt-4 space-y-2 text-sm text-slate-700">
+                      <li className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-emerald-600" /> Instant activation
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-emerald-600" /> Contact admin directly
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-emerald-600" /> No waiting
+                      </li>
+                    </ul>
+                    {selectedMethod === "manual" && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle className="h-5 w-5 text-emerald-600" />
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-              <Link
-                href="/testimonials"
-                target="_blank"
-                className="inline-block mt-4 text-sm text-emerald-700 hover:text-emerald-800 font-medium"
-              >
-                Watch more success stories →
-              </Link>
-            </CardContent>
-          </Card>
 
-          {/* Urgency section (existing) */}
-          <Card className="border-0 shadow-md mb-6 bg-gradient-to-r from-orange-50 to-amber-50">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-3">
-                <div className="bg-red-500 rounded-full p-2 flex-shrink-0">
-                  <Clock className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-orange-900">⏰ Registration expires in 24 hours</h3>
-                  <p className="text-sm text-orange-800 mt-1">
-                    Complete your payment today to lock in your fee. Prices may increase for late registrations.
-                  </p>
-                  <p className="text-xs font-semibold text-orange-900 mt-3 flex items-center gap-2">
-                    <Zap className="h-3 w-3 text-yellow-600" />
-                    Limited slots available this month
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Agent success stories - redesigned (existing) */}
-          <Card className="border-0 shadow-md">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-emerald-600" />
-                Real stories from agents
-              </CardTitle>
-              <CardDescription>How others are earning with us</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Ama Mensah */}
-              <div className="bg-slate-50 rounded-lg p-4 flex items-start gap-3">
-                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-semibold text-sm flex-shrink-0">
-                  AM
-                </div>
-                <div>
-                  <div className="flex items-center flex-wrap gap-2">
-                    <h4 className="font-semibold text-slate-900">Ama Mensah</h4>
-                    <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Accra</span>
+                  {/* Paystack */}
+                  <div
+                    onClick={() => setSelectedMethod("paystack")}
+                    className={`border rounded-xl p-5 transition-all cursor-pointer ${
+                      selectedMethod === "paystack"
+                        ? "border-emerald-500 bg-emerald-50 shadow-md"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-lg text-slate-900">Paystack</h3>
+                        <p className="text-sm text-slate-600">Card, mobile money, bank</p>
+                      </div>
+                      <p className="text-2xl font-bold text-slate-900">₵{REGISTRATION_FEE}</p>
+                    </div>
+                    <ul className="mt-4 space-y-2 text-sm text-slate-700">
+                      <li className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-amber-600" /> 10‑15 min validation
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Lock className="h-4 w-4 text-amber-600" /> Automated process
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-amber-600" /> Delayed approval
+                      </li>
+                    </ul>
+                    {selectedMethod === "paystack" && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircle className="h-5 w-5 text-emerald-600" />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm text-slate-600 mt-1">Sells Data Bundles + Registration + Wholesale</p>
-                  <p className="text-sm font-medium text-emerald-700 mt-1">
-                    Earning <span className="font-bold">₵2,500/month</span>
-                  </p>
                 </div>
-              </div>
 
-              {/* Kwame Asante */}
-              <div className="bg-slate-50 rounded-lg p-4 flex items-start gap-3">
-                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 font-semibold text-sm flex-shrink-0">
-                  KA
-                </div>
-                <div>
-                  <div className="flex items-center flex-wrap gap-2">
-                    <h4 className="font-semibold text-slate-900">Kwame Asante</h4>
-                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Kumasi</span>
+                {/* Email input (Paystack only) */}
+                {selectedMethod === "paystack" && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      Email address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={agentEmail}
+                      onChange={(e) => {
+                        setAgentEmail(e.target.value);
+                        setEmailError("");
+                      }}
+                      placeholder="you@example.com"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    {emailError && (
+                      <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" /> {emailError}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-sm text-slate-600 mt-1">Promoted Data Bundles + Real Estate</p>
-                  <p className="text-sm font-medium text-amber-700 mt-1">
-                    Made <span className="font-bold">₵7,000 in one month</span>
-                  </p>
-                </div>
-              </div>
+                )}
 
-              {/* John Osei */}
-              <div className="bg-slate-50 rounded-lg p-4 flex items-start gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold text-sm flex-shrink-0">
-                  JO
-                </div>
-                <div>
-                  <div className="flex items-center flex-wrap gap-2">
-                    <h4 className="font-semibold text-slate-900">John Osei</h4>
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Tamale</span>
+                {/* Error message */}
+                {error && (
+                  <div className="bg-red-50 text-red-800 text-sm p-3 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>{error}</span>
                   </div>
-                  <p className="text-sm text-slate-600 mt-1">Refers Projects + Data Bundles + Services</p>
-                  <p className="text-sm font-medium text-blue-700 mt-1">
-                    Earned <span className="font-bold">₵10,000 from referrals</span>
+                )}
+
+                {/* Continue button */}
+                <Button
+                  onClick={handleContinue}
+                  disabled={
+                    !selectedMethod ||
+                    isProcessing ||
+                    manualProcessing ||
+                    (selectedMethod === "paystack" && (!agentEmail || !validateEmail(agentEmail)))
+                  }
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold h-12 text-base"
+                >
+                  {isProcessing || manualProcessing ? (
+                    <Loader className="h-5 w-5 animate-spin mr-2" />
+                  ) : (
+                    <Zap className="h-5 w-5 mr-2" />
+                  )}
+                  {selectedMethod === "manual"
+                    ? "Continue with Manual Payment"
+                    : selectedMethod === "paystack"
+                    ? "Continue with Paystack"
+                    : "Select a payment method"}
+                </Button>
+
+                {/* Savings note */}
+                <p className="text-center text-sm text-emerald-700 font-medium">
+                  💚 Save ₵14 – choose manual for instant access
+                </p>
+
+                {/* Trust badges */}
+                <div className="flex items-center justify-center gap-4 text-xs text-slate-500 pt-2">
+                  <span className="flex items-center gap-1">
+                    <Shield className="h-3.5 w-3.5" /> SSL encrypted
+                  </span>
+                  <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                  <span className="flex items-center gap-1">
+                    <CheckCircle className="h-3.5 w-3.5" /> Verified merchant
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Vimeo overview video */}
+            <Card className="border-0 shadow-md mb-8 overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Play className="h-5 w-5 text-emerald-600" />
+                  Dataflex Platform Overview
+                </CardTitle>
+                <CardDescription>Watch And Learn More Before You Join</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="flex justify-center bg-black/5 py-6 px-4">
+                  <div className="relative w-full max-w-[360px] md:max-w-[400px] rounded-xl overflow-hidden shadow-lg">
+                    <div className="aspect-[9/16]">
+                      <iframe
+                        src="https://player.vimeo.com/video/1191024760?badge=0&autopause=0&player_id=0&app_id=58479"
+                        className="absolute top-0 left-0 w-full h-full"
+                        frameBorder="0"
+                        allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        title="dataflex project for agents intro"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 pt-2 text-sm text-slate-600 border-t border-slate-100 mt-2 bg-slate-50/30">
+                  <p className="flex items-center gap-2">
+                    <span className="text-emerald-600">📱</span> Platform Overview Video
                   </p>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              <p className="text-xs text-slate-500 flex items-center gap-2 pt-2 border-t border-slate-200">
-                <span className="text-lg">💡</span> Diversify your income streams for higher earnings
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            {/* What you get */}
+            <Card className="border-0 shadow-md mb-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-emerald-600" />
+                  What you get
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    Verified agent account
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    All agent features & tools
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    ₵5 free wallet credit
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    Priority admin support
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    WhatsApp confirmation
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                    Start earning immediately
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Agent Only Data Pricing – 1GB Highlight */}
+            <Card className="border-0 shadow-md mb-6 bg-gradient-to-br from-white to-emerald-50/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-emerald-600" />
+                  Agent Only Data Pricing
+                </CardTitle>
+                <CardDescription>Exclusive agent rates after registration</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📶</span>
+                    <div>
+                      <p className="font-semibold text-slate-900">MTN 1GB</p>
+                      <p className="text-xs text-slate-500">Instant delivery · No registration queue</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-emerald-700">₵3.70</p>
+                    <p className="text-xs text-slate-400 line-through">₵6.50</p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-3 text-center">
+                  Full price list with 15+ bundles and multiple networks available inside your agent dashboard
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Video testimonials */}
+            <Card className="border-0 shadow-md mb-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Play className="h-5 w-5 text-emerald-600" />
+                  Real agents making money
+                </CardTitle>
+                <CardDescription>Watch how others are earning</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {featuredTestimonies.map((testimony) => (
+                    <div
+                      key={testimony.id}
+                      onClick={() => openVideoModal(testimony)}
+                      className="group cursor-pointer rounded-xl overflow-hidden bg-slate-900 hover:shadow-lg transition-all"
+                    >
+                      <div className="relative aspect-[9/16] w-full overflow-hidden">
+                        <img
+                          src={testimony.thumbnail}
+                          alt={testimony.agentName}
+                          className="w-full h-full object-cover group-hover:brightness-75 transition"
+                          crossOrigin="anonymous"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="bg-white/90 group-hover:bg-white rounded-full p-3 transform group-hover:scale-110 transition">
+                            <Play className="h-4 w-4 text-emerald-600 fill-emerald-600" />
+                          </div>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-3">
+                          <p className="text-white font-semibold text-xs">{testimony.agentName}</p>
+                          <p className="text-white/80 text-xs line-clamp-2">{testimony.title}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/testimonials"
+                  target="_blank"
+                  className="inline-block mt-4 text-sm text-emerald-700 hover:text-emerald-800 font-medium"
+                >
+                  Watch more success stories →
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Agent success stories */}
+            <Card className="border-0 shadow-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-emerald-600" />
+                  Real stories from agents
+                </CardTitle>
+                <CardDescription>How others are earning with us</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-slate-50 rounded-lg p-4 flex items-start gap-3">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-700 font-semibold text-sm flex-shrink-0">AM</div>
+                  <div>
+                    <div className="flex items-center flex-wrap gap-2">
+                      <h4 className="font-semibold text-slate-900">Ama Mensah</h4>
+                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Accra</span>
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1">Sells Data Bundles + Registration + Wholesale</p>
+                    <p className="text-sm font-medium text-emerald-700 mt-1">Earning <span className="font-bold">₵2,500/month</span></p>
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4 flex items-start gap-3">
+                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 font-semibold text-sm flex-shrink-0">KA</div>
+                  <div>
+                    <div className="flex items-center flex-wrap gap-2">
+                      <h4 className="font-semibold text-slate-900">Kwame Asante</h4>
+                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Kumasi</span>
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1">Promoted Data Bundles + Real Estate</p>
+                    <p className="text-sm font-medium text-amber-700 mt-1">Made <span className="font-bold">₵7,000 in one month</span></p>
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-4 flex items-start gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold text-sm flex-shrink-0">JO</div>
+                  <div>
+                    <div className="flex items-center flex-wrap gap-2">
+                      <h4 className="font-semibold text-slate-900">John Osei</h4>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Tamale</span>
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1">Refers Projects + Data Bundles + Services</p>
+                    <p className="text-sm font-medium text-blue-700 mt-1">Earned <span className="font-bold">₵10,000 from referrals</span></p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 flex items-center gap-2 pt-2 border-t border-slate-200">
+                  <span className="text-lg">💡</span> Diversify your income streams for higher earnings
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </>
       )}
 
-      {/* Manual payment dialog - balanced redesign */}
+      {/* Manual payment dialog */}
       {showManualDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <Card className="w-full max-w-md shadow-xl rounded-lg">
@@ -629,7 +634,6 @@ Thank you!`;
                 Manual Payment Details
               </CardTitle>
             </CardHeader>
-
             <CardContent className="p-5 space-y-4">
               <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                 <div className="flex justify-between items-center mb-3">
@@ -644,7 +648,6 @@ Thank you!`;
                   <p className="text-xs text-emerald-600 mt-1.5 text-center">Include this code in your payment note</p>
                 </div>
               </div>
-
               <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
                 <p className="text-sm font-bold text-amber-900 mb-2">📱 Send Payment To:</p>
                 <div className="space-y-2">
@@ -658,7 +661,6 @@ Thank you!`;
                   </div>
                 </div>
               </div>
-
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <p className="text-sm font-bold text-blue-900 mb-2">📋 What to do:</p>
                 <ul className="space-y-1.5 text-sm text-blue-900 pl-1">
@@ -668,13 +670,8 @@ Thank you!`;
                   <li>4. Notify admin via WhatsApp to complete registration</li>
                 </ul>
               </div>
-
               <div className="flex gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowManualDialog(false)}
-                  className="flex-1 h-10 text-sm"
-                >
+                <Button variant="outline" onClick={() => setShowManualDialog(false)} className="flex-1 h-10 text-sm">
                   Cancel
                 </Button>
                 <Button
@@ -697,7 +694,7 @@ Thank you!`;
         </div>
       )}
 
-      {/* Video modal (existing) */}
+      {/* Video modal */}
       {showVideo && currentVideo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-black rounded-lg w-full max-w-sm max-h-[95vh] overflow-hidden shadow-2xl flex flex-col">
