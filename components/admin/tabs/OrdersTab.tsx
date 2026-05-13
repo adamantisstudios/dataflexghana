@@ -151,9 +151,17 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
 
   useEffect(() => {
     setFilteredOrders(memoizedFilteredOrders)
-    // Reset to first page when filters/search changes
-    setCurrentOrdersPage(1)
   }, [memoizedFilteredOrders])
+
+  // Adjust current page if it exceeds total pages after filtering
+  useEffect(() => {
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
+    if (currentOrdersPage > totalPages && totalPages > 0) {
+      setCurrentOrdersPage(totalPages)
+    } else if (totalPages === 0) {
+      setCurrentOrdersPage(1)
+    }
+  }, [filteredOrders.length, currentOrdersPage])
 
   const setupRealtimeSubscription = useCallback(() => {
     console.log("Setting up real-time subscription for data_orders...")
@@ -791,12 +799,18 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             <Input
               placeholder="Search orders..."
               value={orderSearchTerm}
-              onChange={(e) => setOrderSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setOrderSearchTerm(e.target.value)
+                setCurrentOrdersPage(1)
+              }}
               className="pl-10 w-full border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
             />
           </div>
           <div className="flex flex-col sm:flex-row gap-3 max-w-md">
-            <Select value={combinedOrderFilter} onValueChange={setCombinedOrderFilter}>
+            <Select value={combinedOrderFilter} onValueChange={(value) => {
+              setCombinedOrderFilter(value)
+              setCurrentOrdersPage(1)
+            }}>
               <SelectTrigger className="border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm w-full sm:w-64">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Filter Orders" />
@@ -831,6 +845,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
                 onClick={() => {
                   setOrderSearchTerm("")
                   setCombinedOrderFilter("All Orders")
+                  setCurrentOrdersPage(1)
                 }}
                 variant="outline"
                 className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
@@ -922,11 +937,17 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
             <Input
               placeholder="Search orders..."
               value={orderSearchTerm}
-              onChange={(e) => setOrderSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setOrderSearchTerm(e.target.value)
+                setCurrentOrdersPage(1)
+              }}
               className="pl-10 w-full border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm"
             />
           </div>
-          <Select value={combinedOrderFilter} onValueChange={setCombinedOrderFilter}>
+          <Select value={combinedOrderFilter} onValueChange={(value) => {
+            setCombinedOrderFilter(value)
+            setCurrentOrdersPage(1)
+          }}>
             <SelectTrigger className="w-full sm:w-56 border-emerald-200 focus:border-emerald-500 bg-white/80 backdrop-blur-sm">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Filter Orders" />

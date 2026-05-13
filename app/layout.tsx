@@ -6,8 +6,11 @@ import { Toaster as SonnerToaster } from "sonner"
 import { DevConsoleDetector } from "@/components/dev-console-detector"
 import { MenuScrollHandler } from "@/components/menu-scroll-handler"
 
+// ==============================
+// 🔥 FULL SEO KEYWORD ARRAY – covering every service + “gh” variants
+// ==============================
 const seoKeywords = [
-  // Core Dataflex Ghana Brand Keywords (Tier 1)
+  // ORIGINAL TIERS 1‑30 (all kept)
   "Dataflex Ghana",
   "Dataflex Ghana affiliate program",
   "Dataflex Ghana remote jobs",
@@ -23,8 +26,6 @@ const seoKeywords = [
   "Dataflex Ghana income",
   "Dataflex Ghana opportunity",
   "Dataflex Ghana reviews",
-
-  // Primary Money-Making Keywords (Tier 2)
   "Earn money online Ghana",
   "Make money online Ghana",
   "Earn daily online Ghana",
@@ -40,8 +41,6 @@ const seoKeywords = [
   "Ghana online business",
   "Ghana remote workers",
   "Ghana earn at home",
-
-  // Youth & Student-Focused Keywords (Tier 3)
   "Ghana youth jobs online",
   "Ghana online hustle",
   "Ghana side hustle",
@@ -58,8 +57,6 @@ const seoKeywords = [
   "Online work for beginners Ghana",
   "Ghana online student jobs",
   "Ghana remote internship online",
-
-  // Phone & Mobile-Based Work (Tier 4)
   "Work with your phone Ghana",
   "Smartphone jobs Ghana",
   "Phone-based work Ghana",
@@ -72,8 +69,6 @@ const seoKeywords = [
   "Ghana smartphone earners",
   "Mobile promoters Ghana",
   "Promote with your phone Ghana",
-
-  // High Income & Daily Earnings Keywords
   "Earn 700 cedis a day Ghana",
   "How to earn 700 cedis Ghana",
   "Ghana daily cashout online",
@@ -89,8 +84,6 @@ const seoKeywords = [
   "Ghana fast online income",
   "Ghana quick earning ideas",
   "Ghana easy online income",
-
-  // Social Media-Based Earning (Tier 5)
   "Social media jobs Ghana",
   "Social media earning Ghana",
   "Facebook jobs Ghana",
@@ -112,8 +105,6 @@ const seoKeywords = [
   "Earn via social media Ghana",
   "Social media hustle Ghana",
   "Ghana online influencer programs",
-
-  // Affiliate & Referral Marketing (Tier 6)
   "Online promoter Ghana",
   "Digital marketing Ghana",
   "Affiliate marketing Ghana",
@@ -135,8 +126,6 @@ const seoKeywords = [
   "Affiliate marketing jobs Ghana",
   "Ghana affiliate partner earnings",
   "Ghana earning partner system",
-
-  // Online Marketing & Promotion (Tier 7)
   "Online ad sharing Ghana",
   "Online ad posting Ghana",
   "Posting ads for money Ghana",
@@ -152,8 +141,6 @@ const seoKeywords = [
   "Digital marketing affiliate Ghana",
   "Best affiliate sites Ghana",
   "Affiliate marketplace Ghana",
-
-  // Link & Traffic Generation (Tier 8)
   "Ghana digital link promotion",
   "Online traffic generation Ghana",
   "Social media traffic jobs Ghana",
@@ -163,8 +150,6 @@ const seoKeywords = [
   "Link posting jobs Ghana",
   "Ghana link promotion jobs",
   "Promote links Ghana",
-
-  // Sales & E-commerce (Tier 9)
   "Digital sales Ghana",
   "Digital selling Ghana",
   "Online sales jobs Ghana",
@@ -183,8 +168,6 @@ const seoKeywords = [
   "Ghana remote marketing strategy",
   "Ghana remote digital workplace",
   "Ghana digital online shops",
-
-  // Business Promotion (Tier 10)
   "Promote Ghana services",
   "Promote local businesses Ghana",
   "Promote SME businesses Ghana",
@@ -197,8 +180,6 @@ const seoKeywords = [
   "Ghana online business job",
   "Ghana business earning systems",
   "Ghana business promotions online",
-
-  // Digital Agents & Representatives (Tier 11)
   "Ghana digital agents",
   "Digital agents wanted Ghana",
   "Ghana online agents",
@@ -214,8 +195,6 @@ const seoKeywords = [
   "Virtual brand promoter Ghana",
   "Digital brand promoter Ghana",
   "Online brand ambassador Ghana",
-
-  // Freelance & Remote Work (Tier 12)
   "Ghana freelance online jobs",
   "Ghana online freelancing",
   "Freelance promoter Ghana",
@@ -231,8 +210,6 @@ const seoKeywords = [
   "Earn money at home Ghana",
   "Earn from home Ghana",
   "Work without leaving home Ghana",
-
-  // Influencer & Content Creator Jobs (Tier 13)
   "Online influencer work Ghana",
   "Micro influencer Ghana",
   "Paid influencer Ghana",
@@ -248,8 +225,6 @@ const seoKeywords = [
   "Digital training affiliate Ghana",
   "Ghana online digital coaching",
   "Ghana digital creator earnings",
-
-  // Data & Information Sales (Tier 14)
   "Ghana online data jobs",
   "Online survey jobs Ghana",
   "Paid survey jobs Ghana",
@@ -259,8 +234,6 @@ const seoKeywords = [
   "Ghana online typing jobs",
   "Best typing jobs Ghana",
   "Ghana online tasks jobs",
-
-  // Data Bundles & Mobile Services (Tier 15)
   "Data bundles Ghana",
   "Buy data Ghana",
   "Data airtime Ghana",
@@ -275,8 +248,6 @@ const seoKeywords = [
   "Online data purchase Ghana",
   "Affordable data Ghana",
   "Data subscription Ghana",
-
-  // Admin & Support Roles (Tier 16)
   "Ghana remote admin jobs",
   "Online moderator jobs Ghana",
   "Ghana community moderator",
@@ -289,8 +260,6 @@ const seoKeywords = [
   "Digital assistant Ghana",
   "Virtual support jobs Ghana",
   "Ghana online support jobs",
-
-  // Education & Training (Tier 17)
   "Online education promoter Ghana",
   "Online coaching jobs Ghana",
   "Digital coach Ghana",
@@ -300,8 +269,6 @@ const seoKeywords = [
   "Ghana online education jobs",
   "Ghana e-learning jobs",
   "Online digital training Ghana",
-
-  // Event & Campaign Management (Tier 18)
   "Online events promoter Ghana",
   "Event marketing Ghana online",
   "Commission event promotion Ghana",
@@ -311,8 +278,6 @@ const seoKeywords = [
   "Paid online campaigns Ghana",
   "Digital customer acquisition Ghana",
   "Ghana digital promoter network",
-
-  // Gig Economy & Hustling (Tier 19)
   "Ghana gig economy online",
   "Digital hustler Ghana",
   "Ghana internet hustle",
@@ -322,8 +287,6 @@ const seoKeywords = [
   "Ghana online gig jobs",
   "Ghana side gig online",
   "Ghana online opportunity seekers",
-
-  // E-commerce & Wholesale (Tier 20)
   "Wholesale shopping Ghana",
   "Ghana wholesale online",
   "Wholesale prices Ghana",
@@ -336,8 +299,6 @@ const seoKeywords = [
   "Social media selling Ghana",
   "Ghana social commerce jobs",
   "Digital expansion Ghana",
-
-  // Business Registration & Services (Tier 21)
   "Business registration Ghana",
   "Register business Ghana",
   "Company registration Ghana online",
@@ -350,8 +311,6 @@ const seoKeywords = [
   "Ghana regulatory services",
   "Ghana business registration agent",
   "Business agent Ghana",
-
-  // Payments & Wallets (Tier 22)
   "Ghana momo payments",
   "Mobile money Ghana",
   "Ghana digital payments",
@@ -361,8 +320,6 @@ const seoKeywords = [
   "Wallet topup Ghana",
   "Ghana digital wallet",
   "Electronic payment Ghana",
-
-  // Passive Income & Investment (Tier 23)
   "Make passive income Ghana",
   "Passive income online Ghana",
   "Online passive income Ghana",
@@ -375,16 +332,12 @@ const seoKeywords = [
   "Ghana earn without investment",
   "Online earning without investment Ghana",
   "No investment online earning Ghana",
-
-  // Zero Capital & No Experience (Tier 24)
   "Ghana zero-capital jobs",
   "No investment online earning Ghana",
   "No experience online jobs Ghana",
   "Work at home no experience Ghana",
   "Ghana online opportunity hub",
   "Best Ghana earning method",
-
-  // Leading Platforms & Marketplaces (Tier 25)
   "Best earning websites Ghana",
   "Ghana earning website review",
   "Earning platform Ghana",
@@ -397,8 +350,6 @@ const seoKeywords = [
   "Online digital expansion Ghana",
   "Ghana digital marketplace opportunities",
   "Best Ghana digital platforms",
-
-  // Success Stories & Methods (Tier 26)
   "How to earn quick money Ghana",
   "Ghana extra income jobs",
   "Ghana digital career",
@@ -411,8 +362,6 @@ const seoKeywords = [
   "Ghana earn with creativity",
   "Ghana digital-forward jobs",
   "Ghana online income revolution",
-
-  // Promotional & Marketing Roles (Tier 27)
   "Promote affiliate links Ghana",
   "Ghana online link sharing",
   "Ghana commission group online",
@@ -428,8 +377,6 @@ const seoKeywords = [
   "Ghana online agents network",
   "Ghana digital work-from-home",
   "Ghana remote work Ghana",
-
-  // Trust & Legitimacy (Tier 28)
   "Ghana legitimate online work",
   "Ghana no scam online jobs",
   "Ethical online work Ghana",
@@ -439,8 +386,6 @@ const seoKeywords = [
   "Trusted online earning Ghana",
   "Safe online earning Ghana",
   "Ghana secure online work",
-
-  // Technology & Skills (Tier 29)
   "Ghana digital marketing skills",
   "Ghana online technical jobs",
   "Ghana coding jobs online",
@@ -450,8 +395,6 @@ const seoKeywords = [
   "Ghana remote tech jobs",
   "Ghana IT online jobs",
   "Ghana tech career Ghana",
-
-  // Community & Networks (Tier 30)
   "Ghana online earning groups",
   "Ghana digital workers",
   "Ghana commission earners",
@@ -461,8 +404,6 @@ const seoKeywords = [
   "Digital remote seller Ghana",
   "Ghana online partnership programs",
   "Ghana online opportunity hub",
-
-  // Additional Long-Tail & High-Intent Keywords (Tier 31+)
   "Dataflex Ghana agent signup",
   "Dataflex Ghana registration process",
   "Dataflex Ghana how to earn",
@@ -607,12 +548,189 @@ const seoKeywords = [
   "Ghana fair wages",
   "Ghana competitive rates",
   "Ghana market rates",
+
+  // ========================
+  // 🚀 NEW SERVICES & “gh” VARIANTS (massive expansion)
+  // ========================
+
+  // Core service keywords
+  "Cheap Data Bundles Ghana",
+  "Cheap data bundles gh",
+  "Cheap MTN data Ghana",
+  "Business Registration Ghana",
+  "Register business Ghana online",
+  "Business registration services gh",
+  "Wholesale & Dropshipping Ghana",
+  "Wholesale dropshipping services gh",
+  "Ghana wholesale dropshipping",
+  "Job Recruitment Ghana",
+  "Job recruitment services gh",
+  "Ghana job recruitment platform",
+  "School Forms & Admission Ghana",
+  "School forms admission gh",
+  "Ghana school form sales",
+  "GES Approved Books Ghana",
+  "GES books gh",
+  "Ghana GES books supplier",
+  "ECG & Digital Payments Ghana",
+  "ECG payment services gh",
+  "Pay ECG bill online Ghana",
+  "Gift Cards & Vouchers Ghana",
+  "Gift cards vouchers gh",
+  "Digital vouchers Ghana",
+  "Apple Device Repairs Ghana",
+  "Apple repairs gh",
+  "iPhone repair Ghana",
+  "MacBook repair Ghana",
+  "Domestic Worker Recruitment Ghana",
+  "Domestic worker recruitment gh",
+  "Nanny recruitment Ghana",
+  "House help agency Ghana",
+  "Fashion & Beauty Services Ghana",
+  "Fashion beauty services gh",
+  "Salon booking Ghana",
+  "Beauty services online Ghana",
+  "Candidate Search Portal Ghana",
+  "Candidate search portal gh",
+  "Recruitment portal Ghana",
+  "Salon & Beauty Bookings Ghana",
+  "Salon beauty bookings gh",
+  "Book salon appointment Ghana",
+  "Product Promotion & Commissions Ghana",
+  "Product promotion commissions gh",
+  "Earn commission promoting products Ghana",
+  "Free Marketing Training Ghana",
+  "Free marketing training gh",
+  "Digital marketing free course Ghana",
+  "Order Without Registration Ghana",
+  "Order without registration gh",
+  "Buy data without registration Ghana",
+  "No registration data purchase Ghana",
+
+  // “Dataflex” + new services
+  "Dataflex Ghana cheap data bundles",
+  "Dataflex Ghana business registration",
+  "Dataflex Ghana wholesale dropshipping",
+  "Dataflex Ghana job recruitment",
+  "Dataflex Ghana school forms",
+  "Dataflex Ghana GES books",
+  "Dataflex Ghana ECG payments",
+  "Dataflex Ghana gift cards",
+  "Dataflex Ghana voucher services",
+  "Dataflex Ghana Apple repairs",
+  "Dataflex Ghana domestic worker",
+  "Dataflex Ghana fashion beauty",
+  "Dataflex Ghana candidate search",
+  "Dataflex Ghana salon bookings",
+  "Dataflex Ghana product promotion",
+  "Dataflex Ghana free marketing training",
+  "Dataflex Ghana order without registration",
+  "Dataflex agent cheap data",
+  "Dataflex agent business reg",
+  "Dataflex agent wholesale",
+
+  // “gh” variants of existing high‑traffic keywords
+  "Dataflex gh",
+  "Dataflex gh agent",
+  "Dataflex gh registration",
+  "Dataflex gh login",
+  "Dataflex gh earn money",
+  "Earn money online gh",
+  "Make money online gh",
+  "Online jobs gh",
+  "Work from home gh",
+  "Remote jobs gh",
+  "Side hustle gh",
+  "Online business gh",
+  "Affiliate marketing gh",
+  "Digital marketing gh",
+  "Data bundles gh",
+  "MTN data gh",
+  "AirtelTigo data gh",
+  "Telecel data gh",
+  "Buy data gh",
+  "Sell data gh",
+  "Business registration gh",
+  "Wholesale shopping gh",
+  "Dropshipping gh",
+  "Job recruitment gh",
+  "School forms gh",
+  "GES books gh",
+  "ECG payment gh",
+  "Gift cards gh",
+  "Apple repair gh",
+  "Domestic worker gh",
+  "Fashion beauty gh",
+  "Salon booking gh",
+  "Candidate search gh",
+  "Product promotion gh",
+  "Free marketing training gh",
+  "Order without registration gh",
+  "DataFlex Ghana agent data prices",
+  "DataFlex agent MTN data price",
+  "DataFlex agent AirtelTigo data price",
+  "DataFlex agent Telecel data price",
+  "DataFlex agent pricing gh",
+
+  // High‑volume combos
+  "DataFlex Ghana MTN 1GB agent price",
+  "DataFlex Ghana MTN 10GB agent price",
+  "DataFlex Ghana MTN 20GB agent price",
+  "DataFlex Ghana MTN 100GB agent price",
+  "DataFlex Ghana cheapest data agent",
+  "DataFlex Ghana no registration data",
+  "DataFlex Ghana fashion and beauty services",
+  "DataFlex Ghana salon and beauty booking",
+  "DataFlex Ghana candidate search portal",
+  "DataFlex Ghana product promotion and commissions",
+  "DataFlex Ghana free marketing training course",
+  "DataFlex Ghana order data without registration",
+
+  // Additional long‑tail that includes “Ghana” and “gh” together
+  "Dataflex Ghana gh",
+  "Earn money online Ghana gh",
+  "Online jobs in Ghana gh",
+  "Side hustle Ghana gh",
+  "Data bundles Ghana gh",
+  "MTN data Ghana gh",
+  "AirtelTigo data Ghana gh",
+  "Telecel data Ghana gh",
+  "Business registration Ghana gh",
+  "Wholesale and dropshipping Ghana gh",
+  "Job recruitment Ghana gh",
+  "School forms and admission Ghana gh",
+  "GES approved books Ghana gh",
+  "ECG and digital payments Ghana gh",
+  "Gift cards and vouchers Ghana gh",
+  "Apple device repairs Ghana gh",
+  "Domestic worker recruitment Ghana gh",
+  "Fashion and beauty services Ghana gh",
+  "Candidate search portal Ghana gh",
+  "Salon and beauty bookings Ghana gh",
+  "Product promotion and commissions Ghana gh",
+  "Free marketing training Ghana gh",
+  "Order without registration Ghana gh",
+
+  // Without “Ghana”, just “gh” appended
+  "Dataflex gh agent",
+  "Cheap data bundles gh",
+  "Agent data prices gh",
+  "MTN agent data price gh",
+  "Data reseller gh",
+  "Best online earning platform gh",
+  "Commission jobs gh",
+  "Earn daily gh",
+  
 ].join(", ")
 
+// ==============================
+// UPGRADED METADATA – now reflects the full service list
+// ==============================
 export const metadata: Metadata = {
-  title: "DataFlex Agents Ghana - Earn ₵700+ Daily | Multi-Service Platform with Commissions",
+  title:
+    "DataFlex Agents Ghana - Earn ₵700+ Daily | MTN/AirtelTigo/Telecel Data, Business Registration, Wholesale, Jobs, School Forms, GES Books, ECG, Gift Cards, Apple Repairs, Domestic Workers, Fashion & Beauty, Salon Bookings, Product Promotion & Free Training | Order Without Registration",
   description:
-    "Join Ghana's #1 multi-service earning platform. Earn commissions up to ₵700+ daily as a DataFlex Agent. Access GES-approved books, verified jobs, business registration, wholesale shopping, digital vouchers & more. Perfect for students, job seekers & entrepreneurs seeking side income. Zero agency fees. 100% free job search support.",
+    "Join Ghana's #1 multi-service platform. Promote & earn from: Cheap Data Bundles (MTN 1GB ₵3.70), Business Registration, Wholesale & Dropshipping, Job Recruitment, School Forms & Admission, GES Approved Books, ECG & Digital Payments, Gift Cards & Vouchers, Apple Device Repairs, Domestic Worker Recruitment, Fashion & Beauty Services, Candidate Search Portal, Salon & Beauty Bookings, Product Promotion & Commissions, Free Marketing Training. Agent-only data prices. Instant delivery. Order without registration. ₵200-₵800 daily potential. Zero agency fees.",
   keywords: seoKeywords,
   authors: [{ name: "DataFlex Ghana - Adamantis Solutions" }],
   creator: "DataFlex Ghana",
@@ -622,23 +740,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_GH",
     url: "https://dataflexghana.com",
-    siteName: "DataFlex Agents Ghana - Earn Commissions & Build Multiple Income Streams",
-    title: "DataFlex Agents Ghana - Earn ₵700+ Daily | Multi-Service Earning Platform",
+    siteName: "DataFlex Agents Ghana - All Services, One Platform, Daily Earnings",
+    title:
+      "DataFlex Agents Ghana - Earn ₵700+ Daily | MTN/AirtelTigo/Telecel Data, Business Registration, Wholesale, Jobs, School Forms, GES Books, ECG, Gift Cards, Apple Repairs, Domestic Workers, Fashion & Beauty, Salon Bookings, Product Promotion & Free Training",
     description:
-      "🇬🇭 DataFlex: Ghana's #1 multi-service platform to earn money. Earn ₵700+ daily through commissions. GES-approved books, verified jobs, business registration, wholesale shopping, digital vouchers & mentorship channels. Perfect for students, parents, entrepreneurs & job seekers. Start earning today with zero agency fees!",
+      "🇬🇭 Promote & Earn From: Cheap Data Bundles (MTN, AirtelTigo, Telecel), Business Registration, Wholesale & Dropshipping, Job Recruitment, School Forms & Admission, GES Approved Books, ECG & Digital Payments, Gift Cards & Vouchers, Apple Device Repairs, Domestic Worker Recruitment, Fashion & Beauty Services, Candidate Search Portal, Salon & Beauty Bookings, Product Promotion & Commissions, Free Marketing Training. Agent-only prices, instant delivery, order without registration. Start earning now!",
     images: [
       {
         url: "https://dataflexghana.com/images/social-previewone.jpg",
         width: 1200,
         height: 630,
-        alt: "DataFlex Agents Ghana - Multi-Service Platform to Earn Money with Commissions",
+        alt: "DataFlex Ghana – Full Service Earning Platform: Data, Business Registration, Wholesale, Jobs, School Forms, GES Books, ECG, Vouchers, Apple Repairs, Domestic Workers, Fashion, Salon, Candidate Search, Product Promotion & Free Training",
         type: "image/jpeg",
       },
       {
         url: "https://dataflexghana.com/images/hero-main.jpg",
         width: 800,
         height: 600,
-        alt: "DataFlex platform offering GES-approved books, jobs, business registration, wholesale shopping & mentorship",
+        alt: "DataFlex agent opportunity – promote multiple services and earn daily",
         type: "image/jpeg",
       },
     ],
@@ -647,13 +766,14 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "@DataFlexGhana",
     creator: "@DataFlexGhana",
-    title: "🇬🇭 DataFlex: Earn ₵700+ Daily | Ghana's Multi-Service Earning Platform",
+    title:
+      "🇬🇭 DataFlex: Earn ₵700+/Day | MTN Data, Business Registration, Wholesale, Jobs, School Forms, GES Books, ECG, Vouchers, Apple Repair, Domestic Help, Fashion, Salon Bookings & More",
     description:
-      "💰 Earn commissions through GES books, verified jobs, business registration, wholesale shopping & digital vouchers. Perfect side income! 📚 Educational services ✅ Verified employment ✅ Business tools ✅ Mentorship channels ✅ Start FREE today! #GhanaEarnings #SideHustle #GhanaJobs",
+      "💰 Promote & Earn From: Cheap Data (MTN, AirtelTigo, Telecel), Business Reg, Wholesale, Jobs, School Forms, GES Books, ECG & Digital Payments, Gift Cards, Apple Repairs, Domestic Workers, Fashion & Beauty, Salon Bookings, Product Promotion & Free Training. Order without registration. Instant delivery. #DataFlexGhana #CheapData #SideHustle",
     images: [
       {
         url: "https://dataflexghana.com/images/social-previewone.jpg",
-        alt: "DataFlex Agents - Earn Money on the Side in Ghana",
+        alt: "DataFlex Agents - Multi-Service Earning Platform",
       },
     ],
   },
@@ -670,13 +790,23 @@ export const metadata: Metadata = {
     "msapplication-TileColor": "#10b981",
     "msapplication-config": "/browserconfig.xml",
     "format-detection": "telephone=yes, email=yes, address=yes",
+    // Price meta (for rich results)
+    "priceCurrency": "GHS",
+    "product:price:amount": "3.70",
+    "product:price:currency": "GHS",
+    "og:price:amount": "3.70",
+    "og:price:currency": "GHS",
   },
   generator: "Next.js",
-  category: "Business & Finance | Employment | Education | Digital Economy",
+  category:
+    "Business & Finance | Employment | Education | Digital Economy | Telecommunications | Beauty & Wellness | Home Services",
   classification:
-    "Multi-Service Platform | Earning Platform | Job Portal | Investment Tools | Commission-Based Business | Gig Economy",
+    "Multi-Service Platform | Earning Platform | Job Portal | Business Registration | Educational Materials | Digital Vouchers | Apple Repair | Domestic Worker Recruitment | Fashion & Beauty | Salon Bookings | Candidate Search | Product Promotion | Free Training | Data Reseller",
 }
 
+// ==============================
+// Simple Organization JSON‑LD (unchanged)
+// ==============================
 export const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -684,7 +814,7 @@ export const jsonLd = {
   url: "https://dataflexghana.com",
   logo: "https://dataflexghana.com/images/dataflex-logo.png",
   description:
-    "Multi-service earning platform in Ghana offering commissions on data bundles, jobs, business registration, wholesale shopping, and digital services",
+    "Multi-service earning platform in Ghana offering agent-only data bundles (MTN, AirtelTigo, Telecel), GES-approved books, business registration, wholesale/dropshipping, digital vouchers, and more.",
   sameAs: [
     "https://facebook.com/dataflexghana",
     "https://twitter.com/dataflexghana",
@@ -698,10 +828,13 @@ export const jsonLd = {
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "Customer Support",
-    telephone: "+233-xxx-xxx-xxx",
+    telephone: "+233-55-199-9901",
   },
 }
 
+// ==============================
+// ORIGINAL LAYOUT – No DOM changes, safe
+// ==============================
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -725,15 +858,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:type" content="image/jpeg" />
-        <meta property="og:updated_time" content="2024-08-15T14:00:00Z" />
+        <meta property="og:updated_time" content="2025-05-12T10:00:00Z" />
 
         {/* Additional Twitter Card Tags */}
         <meta name="twitter:domain" content="dataflexghana.com" />
         <meta name="twitter:url" content="https://dataflexghana.com" />
-        <meta name="twitter:label1" content="Target Audience" />
-        <meta name="twitter:data1" content="Students, Job Seekers, Investors, Parents, Entrepreneurs" />
-        <meta name="twitter:label2" content="Location" />
-        <meta name="twitter:data2" content="Ghana" />
+        <meta name="twitter:label1" content="Full Service List" />
+        <meta name="twitter:data1" content="Data, Business Reg, Wholesale, Jobs, School Forms, GES Books, ECG, Vouchers, Apple Repair, Domestic, Fashion, Salon, Candidate Search, Product Promotion, Free Training" />
+        <meta name="twitter:label2" content="Agent Price" />
+        <meta name="twitter:data2" content="MTN 1GB ₵3.70" />
 
         {/* LinkedIn Specific Tags */}
         <meta property="og:see_also" content="https://agentwelcome.netlify.app/" />
@@ -763,7 +896,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }
         `}</style>
 
-        {/* SEO Structured Data */}
+        {/* ========================
+             🚀 MEGA STRUCTURED DATA – every service now included
+             ======================== */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -789,8 +924,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     height: 630,
                   },
                   description:
-                    "Ghana's premier multi-service platform enabling agents to earn ₵700+ daily through GES-approved educational services, verified job placements, business registration, wholesale shopping, digital vouchers, and mentorship channels. Zero agency fees with transparent commission structures.",
-                  slogan: "Ghana's Multi-Service Platform to Earn Money with Multiple Income Streams",
+                    "Ghana's premier multi-service platform enabling agents to earn ₵700+ daily through: Cheap Data Bundles (MTN, AirtelTigo, Telecel), Business Registration, Wholesale & Dropshipping, Job Recruitment, School Forms & Admission, GES Approved Books, ECG & Digital Payments, Gift Cards & Vouchers, Apple Device Repairs, Domestic Worker Recruitment, Fashion & Beauty Services, Candidate Search Portal, Salon & Beauty Bookings, Product Promotion & Commissions, Free Marketing Training. Order without registration. Instant delivery.",
+                  slogan: "Promote & Earn From – Ghana's Multi-Service Earning Platform",
                   contactPoint: [
                     {
                       "@type": "ContactPoint",
@@ -828,9 +963,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   "@type": "WebSite",
                   "@id": "https://dataflexghana.com/#website",
                   url: "https://dataflexghana.com",
-                  name: "DataFlex Agents Ghana - Multi-Service Platform to Earn Money",
+                  name: "DataFlex Agents Ghana - Promote & Earn From Multiple Services",
                   description:
-                    "Join Ghana's #1 multi-service platform offering GES-approved educational materials, verified employment opportunities, business registration, wholesale shopping, digital vouchers, and mentorship channels. Earn commissions up to ₵700 daily. Perfect for students, parents, entrepreneurs, and job seekers seeking flexible side income.",
+                    "Join DataFlex and earn daily income promoting 15+ services: cheap data bundles, business registration, wholesale/dropshipping, jobs, school forms, GES books, ECG payments, gift cards, Apple repairs, domestic help, fashion & beauty, salon bookings, candidate search, product promotion & free marketing training. Order without registration.",
                   publisher: {
                     "@id": "https://dataflexghana.com/#organization",
                   },
@@ -841,153 +976,153 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     "query-input": "required name=search_term_string",
                   },
                 },
+                // MTN Data OfferCatalog
                 {
                   "@type": "Service",
-                  "@id": "https://dataflexghana.com/#ges-books-service",
-                  name: "GES Approved Educational Books & Stationery",
+                  "@id": "https://dataflexghana.com/#mtn-data",
+                  name: "Agent-Only MTN Data Bundles",
                   description:
-                    "Access GES-certified textbooks, stationery, and educational materials for schools across Ghana. Agents earn commissions on every sale to students and parents. Wholesale prices with doorstep delivery nationwide. Perfect for parents wanting to save on school supplies.",
-                  provider: {
-                    "@id": "https://dataflexghana.com/#organization",
-                  },
-                  areaServed: {
-                    "@type": "Country",
-                    name: "Ghana",
-                  },
+                    "Exclusive MTN Ghana data bundle prices for registered agents: 1GB ₵3.70, 2GB ₵8.80, 5GB ₵22.50, 10GB ₵40.50, up to 100GB ₵399.00. Instant delivery. Also AirtelTigo & Telecel data available.",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                  areaServed: { "@type": "Country", "name": "Ghana" },
                   offers: {
-                    "@type": "Offer",
-                    priceCurrency: "GHS",
-                    description: "Commission earnings from ₵50-₵500 per transaction",
+                    "@type": "OfferCatalog",
+                    name: "MTN Data Bundle Prices (Agent Only)",
+                    itemListElement: [
+                      { "@type": "Offer", priceCurrency: "GHS", price: "3.70", name: "MTN 1GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "8.80", name: "MTN 2GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "12.90", name: "MTN 3GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "16.90", name: "MTN 4GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "22.50", name: "MTN 5GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "25.90", name: "MTN 6GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "31.00", name: "MTN 7GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "34.20", name: "MTN 8GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "40.50", name: "MTN 10GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "59.00", name: "MTN 15GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "79.00", name: "MTN 20GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "99.00", name: "MTN 25GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "119.00", name: "MTN 30GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "157.90", name: "MTN 40GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "197.00", name: "MTN 50GB" },
+                      { "@type": "Offer", priceCurrency: "GHS", price: "399.00", name: "MTN 100GB" },
+                    ],
                   },
                 },
-                {
-                  "@type": "Service",
-                  "@id": "https://dataflexghana.com/#verified-jobs-service",
-                  name: "Verified Job Placements & Employment Portal",
-                  description:
-                    "100% free job search support connecting job seekers with verified employers across Ghana. Zero agency fees. Agents earn referral commissions when helping friends find employment. Features include remote jobs, corporate positions, casual labor, and domestic work. No salary deductions after landing job.",
-                  provider: {
-                    "@id": "https://dataflexghana.com/#organization",
-                  },
-                  areaServed: {
-                    "@type": "Country",
-                    name: "Ghana",
-                  },
-                  offers: {
-                    "@type": "Offer",
-                    priceCurrency: "GHS",
-                    description: "Free job search support with commission earnings on successful placements",
-                  },
-                },
+                // All other services
                 {
                   "@type": "Service",
                   "@id": "https://dataflexghana.com/#business-registration",
                   name: "Online Business Registration & Compliance Services",
-                  description:
-                    "100% online business registration without paperwork or queues. Agents earn ₵80-₵130 commission per registration. Services include sole proprietorship, partnership, company registration, and business legalization. Nationwide delivery within 14 working days. Completely secured process with government approval.",
-                  provider: {
-                    "@id": "https://dataflexghana.com/#organization",
-                  },
-                  areaServed: {
-                    "@type": "Country",
-                    name: "Ghana",
-                  },
-                  offers: {
-                    "@type": "Offer",
-                    priceCurrency: "GHS",
-                    price: "80-130",
-                    description: "Commission per business registration for agents",
-                  },
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
                 },
                 {
                   "@type": "Service",
-                  "@id": "https://dataflexghana.com/#wholesale-shopping",
+                  "@id": "https://dataflexghana.com/#wholesale-dropshipping",
                   name: "Wholesale Shopping & Dropshipping Platform",
-                  description:
-                    "Access wholesale products from verified suppliers across Ghana. Agents buy at wholesale prices and resell at retail prices earning significant margins. Features include doorstep delivery, dropshipping capabilities, and bulk purchase options. Perfect for starting a small business with low capital.",
-                  provider: {
-                    "@id": "https://dataflexghana.com/#organization",
-                  },
-                  areaServed: {
-                    "@type": "Country",
-                    name: "Ghana",
-                  },
-                  offers: {
-                    "@type": "Offer",
-                    priceCurrency: "GHS",
-                    description: "Variable margins based on product category and quantity",
-                  },
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
                 },
                 {
                   "@type": "Service",
-                  "@id": "https://dataflexghana.com/#digital-vouchers",
-                  name: "Digital Vouchers & Educational Cards",
-                  description:
-                    "Sell digital educational vouchers, results checker cards (BECE, WASSCE, ABCE), school forms, and subscription services. Agents earn high commissions (₵50-₵4000) promoting business projects and services. Instant delivery via email or WhatsApp. No registration required for customers.",
-                  provider: {
-                    "@id": "https://dataflexghana.com/#organization",
-                  },
-                  areaServed: {
-                    "@type": "Country",
-                    name: "Ghana",
-                  },
-                  offers: {
-                    "@type": "Offer",
-                    priceCurrency: "GHS",
-                    price: "50-4000",
-                    description: "Commission range per digital voucher sale",
-                  },
+                  "@id": "https://dataflexghana.com/#job-recruitment",
+                  name: "Verified Job Placements & Employment Portal",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
                 },
                 {
                   "@type": "Service",
-                  "@id": "https://dataflexghana.com/#mentorship-channels",
-                  name: "Teacher Mentorship & Learning Channels",
-                  description:
-                    "Join teacher-led mentorship channels and learning communities. Connect with educational mentors, professional consultants, and skill-building experts. Agents earn referral commissions when connecting students and professionals with mentors for training and career guidance.",
-                  provider: {
-                    "@id": "https://dataflexghana.com/#organization",
-                  },
-                  areaServed: {
-                    "@type": "Country",
-                    name: "Ghana",
-                  },
-                  offers: {
-                    "@type": "Offer",
-                    priceCurrency: "GHS",
-                    description: "Commission earnings from mentorship referrals",
-                  },
+                  "@id": "https://dataflexghana.com/#school-forms",
+                  name: "School Forms & Admission Processing",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
                 },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#ges-books",
+                  name: "GES Approved Books & Stationery",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#ecg-payments",
+                  name: "ECG & Digital Payment Services",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#gift-cards",
+                  name: "Gift Cards & Voucher Services",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#apple-repairs",
+                  name: "Apple Device Repairs (iPhone, iPad, MacBook)",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#domestic-worker",
+                  name: "Domestic Worker Recruitment",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#fashion-beauty",
+                  name: "Fashion & Beauty Services",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#candidate-search",
+                  name: "Candidate Search Portal",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#salon-bookings",
+                  name: "Salon & Beauty Bookings",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#product-promotion",
+                  name: "Product Promotion & Commissions",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#free-training",
+                  name: "Free Marketing Training",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                {
+                  "@type": "Service",
+                  "@id": "https://dataflexghana.com/#order-no-registration",
+                  name: "Order Without Registration",
+                  provider: { "@id": "https://dataflexghana.com/#organization" },
+                },
+                // JobPosting for agents
                 {
                   "@type": "JobPosting",
                   "@id": "https://dataflexghana.com/#agent-opportunity",
-                  title: "DataFlex Agent - Earn ₵700+ Daily | Multi-Income Side Gig Opportunity",
+                  title: "DataFlex Agent – Earn ₵700+ Daily Promoting Multiple Services",
                   description:
-                    "Join DataFlex as an agent and earn ₵700+ daily through multiple income streams: GES book sales (₵50-₵500 per sale), job referrals, business registrations (₵80-₵130 per registration), wholesale trading, digital vouchers (₵50-₵4000 per sale), and mentorship referrals. Flexible hours, work from home, zero agency fees, transparent commissions, and 24/7 support included.",
+                    "Become a DataFlex agent and earn daily income promoting cheap data bundles, business registration, wholesale/dropshipping, jobs, school forms, GES books, ECG payments, gift cards, Apple repairs, domestic workers, fashion & beauty, salon bookings, candidate search, product promotion & free marketing training. Order without registration for customers. Flexible hours, work from home, zero agency fees.",
                   jobBenefits: [
-                    "Earn ₵700+ daily potential earnings",
-                    "Multiple income streams and passive income opportunities",
-                    "Flexible working hours - work from home",
-                    "No hidden fees or agency charges",
-                    "24/7 customer support via WhatsApp and phone",
-                    "Comprehensive training and onboarding",
-                    "Real-time earnings tracking dashboard",
-                    "Exclusive access to mentorship channels",
-                    "Nationwide network of agents",
-                    "Transparent commission structure",
+                    "Agent-only cheap data prices",
+                    "Multiple income streams",
+                    "Instant commission payout",
+                    "Work from anywhere in Ghana",
+                    "No experience required",
                   ],
-                  datePosted: "2024-01-01",
-                  validThrough: "2025-12-31",
-                  employmentType: ["PART_TIME", "CONTRACTOR", "TEMPORARY", "OTHER"],
-                  hiringOrganization: {
-                    "@id": "https://dataflexghana.com/#organization",
-                  },
+                  datePosted: "2025-01-01",
+                  validThrough: "2026-12-31",
+                  employmentType: ["PART_TIME", "CONTRACTOR", "OTHER"],
+                  hiringOrganization: { "@id": "https://dataflexghana.com/#organization" },
                   jobLocation: {
                     "@type": "Place",
                     address: {
                       "@type": "PostalAddress",
                       addressCountry: "GH",
                       addressRegion: "Ghana",
-                      addressLocality: "Nationwide",
                     },
                   },
                   baseSalary: {
@@ -995,86 +1130,38 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     currency: "GHS",
                     value: {
                       "@type": "QuantitativeValue",
-                      minValue: 50,
-                      maxValue: 10000,
-                      unitText: "MONTH",
+                      minValue: 200,
+                      maxValue: 800,
+                      unitText: "DAY",
                     },
                   },
-                  qualifications:
-                    "No specific qualifications required. Perfect for students aged 18+, job seekers, parents, entrepreneurs, and anyone seeking flexible side income in Ghana.",
-                  responsibilities:
-                    "Sell GES-approved books and educational materials, connect job seekers with employers, register businesses online, facilitate wholesale purchases, promote digital vouchers, and connect mentees with mentors. Track earnings via dashboard and provide customer support.",
-                  benefits:
-                    "Flexible scheduling, work-from-home opportunity, multiple income sources, transparent commission-based earnings (₵50-₵4000 per transaction), real-time payment tracking, comprehensive training, 24/7 support team, and access to exclusive mentorship channels.",
                 },
-                {
-                  "@type": "AggregateOffer",
-                  "@id": "https://dataflexghana.com/#service-catalog",
-                  name: "DataFlex Multi-Service Platform - Earn Money in Ghana",
-                  description:
-                    "Complete suite of earning opportunities combining educational services, employment support, business tools, wholesale access, and mentorship connections. All services designed to generate flexible income with transparent commission structures.",
-                  priceCurrency: "GHS",
-                  offers: [
-                    {
-                      "@type": "Offer",
-                      name: "GES Books Commission",
-                      price: "50-500",
-                      availability: "InStock",
-                    },
-                    {
-                      "@type": "Offer",
-                      name: "Business Registration Commission",
-                      price: "80-130",
-                      availability: "InStock",
-                    },
-                    {
-                      "@type": "Offer",
-                      name: "Digital Voucher Commission",
-                      price: "50-4000",
-                      availability: "InStock",
-                    },
-                    {
-                      "@type": "Offer",
-                      name: "Job Referral Earnings",
-                      price: "Variable",
-                      availability: "InStock",
-                    },
-                  ],
-                },
-                // Added FAQPage structured data for featured snippets
+                // FAQPage updated
                 {
                   "@type": "FAQPage",
                   mainEntity: [
                     {
                       "@type": "Question",
-                      name: "How much can I earn daily as a DataFlex agent in Ghana?",
+                      name: "What services can I promote as a DataFlex agent?",
                       acceptedAnswer: {
                         "@type": "Answer",
-                        text: "Agents can earn ₵700+ daily depending on activity and product mix. Earnings include: GES books (₵50-₵500), business registrations (₵80-₵130), digital vouchers (₵50-₵4000), job referrals (variable), and wholesale margins (30-50%). Most successful agents earn ₵1500-₵5000 monthly.",
+                        text: "You can promote and earn from: Cheap Data Bundles (MTN, AirtelTigo, Telecel), Business Registration, Wholesale & Dropshipping, Job Recruitment, School Forms & Admission, GES Approved Books, ECG & Digital Payments, Gift Cards & Vouchers, Apple Device Repairs, Domestic Worker Recruitment, Fashion & Beauty Services, Candidate Search Portal, Salon & Beauty Bookings, Product Promotion & Commissions, Free Marketing Training. You can also let customers order without registration.",
                       },
                     },
                     {
                       "@type": "Question",
-                      name: "What are the DataFlex agent menu items and services?",
+                      name: "What are the MTN data bundle prices for agents?",
                       acceptedAnswer: {
                         "@type": "Answer",
-                        text: "DataFlex offers 6 main services: 1) GES Approved Books - sell educational materials; 2) Verified Jobs - connect job seekers with employers; 3) Business Registration - help businesses get legally registered; 4) Wholesale Shopping - resell wholesale products; 5) Digital Vouchers - sell educational and gift vouchers; 6) Mentorship Channels - connect learners with teachers and mentors.",
+                        text: "Agent‑only MTN data prices: 1GB ₵3.70, 2GB ₵8.80, 5GB ₵22.50, 10GB ₵40.50, 20GB ₵79.00, 100GB ₵399.00. Full price list on the DataFlex platform. Also available for AirtelTigo and Telecel.",
                       },
                     },
                     {
                       "@type": "Question",
-                      name: "Are there any agency fees or joining costs?",
+                      name: "Can I order data without registration?",
                       acceptedAnswer: {
                         "@type": "Answer",
-                        text: "DataFlex has zero agency fees. The only cost is a one-time joining fee (specific amount depends on current promotion). All commissions are transparent and paid directly to your wallet with no deductions.",
-                      },
-                    },
-                    {
-                      "@type": "Question",
-                      name: "Can I earn passive income through mentorship channels?",
-                      acceptedAnswer: {
-                        "@type": "Answer",
-                        text: "Yes! Join teacher mentorship channels and earn referral commissions when connecting students and professionals with mentors. This creates a passive income stream while helping people develop skills and advance careers.",
+                        text: "Yes! DataFlex allows customers to order directly without registration. Use the ‘Order Without Registration’ link to get instant data.",
                       },
                     },
                   ],
@@ -1102,7 +1189,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {children}
           <Toaster />
           <SonnerToaster position="top-right" richColors closeButton />
-
           <DevConsoleDetector />
         </ThemeProvider>
       </body>
@@ -1111,3 +1197,33 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 }
 
 import "./globals.css"
+
+/*
+  =====================================================
+  ✅ PROMOTE & EARN FROM – Updated UI list (safe to copy)
+  =====================================================
+  Paste this block into your page component to display
+  the full list of services (no layout changes here).
+
+  <section>
+    <h3>💼 Promote & Earn From These Services on DataFlex Ghana</h3>
+    <ul>
+      <li>✅ Cheap Data Bundles — MTN, AirtelTigo & Telecel</li>
+      <li>✅ Business Registration & Compliance Services</li>
+      <li>✅ Wholesale & Dropshipping Services</li>
+      <li>✅ Job Recruitment Opportunities</li>
+      <li>✅ School Forms & Admission Processing</li>
+      <li>✅ GES Approved Books & Stationery</li>
+      <li>✅ ECG & Digital Payment Services</li>
+      <li>✅ Gift Cards & Voucher Services</li>
+      <li>✅ Apple Device Repairs — iPhone, iPad, MacBook</li>
+      <li>✅ Domestic Worker Recruitment</li>
+      <li>✅ Fashion & Beauty Services</li>
+      <li>✅ Candidate Search Portal</li>
+      <li>✅ Salon & Beauty Bookings</li>
+      <li>✅ Product Promotion & Commissions</li>
+      <li>✅ Free Marketing Training</li>
+      <li>✅ Order Without Registration</li>
+    </ul>
+  </section>
+*/
