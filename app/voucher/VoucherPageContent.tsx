@@ -264,7 +264,7 @@ export default function VoucherPageContent() {
               asChild
               className="border-white text-white hover:bg-white hover:text-blue-600 text-lg px-8 py-6 bg-transparent"
             >
-              <a href="https://wa.me/233242799990" target="_blank" rel="noopener noreferrer">
+              <a href="https://wa.me/233246827049" target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="mr-2 h-5 w-5" />
                 WhatsApp Us
               </a>

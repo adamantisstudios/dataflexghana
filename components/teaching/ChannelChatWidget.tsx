@@ -32,7 +32,7 @@ export function ChannelChatWidget() {
     try {
       setIsSending(true)
 
-      const phoneNumber = "233242799990"
+      const phoneNumber = "233246827049"
       const formattedMessage = `📚 *EDUCATIONAL CONTENT REQUEST*\n\n${message}\n\nPlease contact me with more information about purchasing formatted past questions, notes, and PDF books from teachers.`
       const encodedMessage = encodeURIComponent(formattedMessage)
       const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`

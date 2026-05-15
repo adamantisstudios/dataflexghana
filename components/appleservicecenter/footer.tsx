@@ -59,14 +59,14 @@ export default function Footer() {
             <ul className="space-y-3 text-sm text-slate-400">
               <li className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4" />
-                <a href="https://wa.me/233242799990" className="hover:text-white transition">
+                <a href="https://wa.me/233246827049" className="hover:text-white transition">
                   WhatsApp
                 </a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4" />
-                <a href="tel:+233242799990" className="hover:text-white transition">
-                  +233 24 279 9990
+                <a href="tel:+233246827049" className="hover:text-white transition">
+                  +233 246827049
                 </a>
               </li>
               <li className="flex items-center gap-2">

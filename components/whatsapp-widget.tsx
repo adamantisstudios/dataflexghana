@@ -12,7 +12,7 @@ export function WhatsAppWidget() {
     "Hi! I'm interested in learning more about DataFlexAgent and how I can start earning as a data agent. Can you help me get started?",
   )
 
-  const phoneNumber = "+233242799990"
+  const phoneNumber = "+233246827049"
 
   const sendWhatsAppMessage = () => {
     const encodedMessage = encodeURIComponent(message)

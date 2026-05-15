@@ -106,7 +106,7 @@ export default function BusinessSuccessPage() {
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">Phone Support</h3>
                 <p className="text-gray-600 mb-3">Call us for immediate assistance</p>
-                <p className="font-semibold text-blue-600">+233 24 279 9990</p>
+                <p className="font-semibold text-blue-600">+233 246827049</p>
               </CardContent>
             </Card>
 
@@ -117,7 +117,7 @@ export default function BusinessSuccessPage() {
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">WhatsApp</h3>
                 <p className="text-gray-600 mb-3">Quick support via WhatsApp</p>
-                <p className="font-semibold text-green-600">+233 24 279 9990</p>
+                <p className="font-semibold text-green-600">+233 246827049</p>
               </CardContent>
             </Card>
           </div>
@@ -141,7 +141,7 @@ export default function BusinessSuccessPage() {
               asChild
               className="border-green-300 text-green-600 hover:bg-green-50 px-8 py-6 text-lg bg-transparent"
             >
-              <a href="https://wa.me/233242799990" target="_blank" rel="noopener noreferrer">
+              <a href="https://wa.me/233246827049" target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="mr-2 h-5 w-5" />
                 Contact Us on WhatsApp
               </a>

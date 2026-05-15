@@ -67,7 +67,7 @@ export function WhatsAppPromoNotification({ memberId, userType = "member" }: Wha
   }, [isMounted, memberId, userType, dismissTimer, visibilityTimer])
 
   const handleWhatsAppClick = () => {
-    const phoneNumber = "233242799990"
+    const phoneNumber = "233246827049"
     const message = "I want to know more about the educational and platform resources for sale. Where should i start"
     const encodedMessage = encodeURIComponent(message)
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`

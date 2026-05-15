@@ -105,7 +105,7 @@ Name: ${customerName}
 Email: ${customerEmail}
 
 📞 CONTACT US:
-WhatsApp: +233 242 799990
+WhatsApp: +233 246827049
 Business Hours: 9:00 AM - 9:30 PM
 
 Please provide more details about this service and how I can help.`

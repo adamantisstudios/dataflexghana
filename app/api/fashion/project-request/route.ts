@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Create WhatsApp URL
-    const designerNumber = '233242799990';
+    const designerNumber = '233246827049';
     const whatsappUrl = `https://wa.me/${designerNumber}?text=${encodeURIComponent(messageText)}`;
 
     return NextResponse.json(

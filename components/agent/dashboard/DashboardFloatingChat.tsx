@@ -47,7 +47,7 @@ export default function DashboardFloatingChat({ agent }: DashboardFloatingChatPr
   const handleSendComplaint = () => {
     if (!message.trim() || !issueType) return
 
-    const whatsappNumber = "+233242799990"
+    const whatsappNumber = "+233246827049"
     const complaintMessage = `Hello Admin,
 
 Issue Type: ${issueType}

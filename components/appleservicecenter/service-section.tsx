@@ -90,7 +90,7 @@ export default function ServiceSection() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </a>
-              <a href="https://wa.me/233242799990" className="flex-1">
+              <a href="https://wa.me/233246827049" className="flex-1">
                 <Button
                   variant="outline"
                   className="w-full border-amber-600 text-amber-600 hover:bg-amber-50 bg-transparent"

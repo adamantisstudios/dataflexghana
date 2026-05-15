@@ -66,7 +66,7 @@ export default function PaymentReminderPage() {
     const message = encodeURIComponent(
       `Hello! I just completed payment on Dataflex Ghana. My name is ${paymentDetails.agentName} and I have paid the ₵47 registration fee. Please check my account and approve it so I can start using the platform. Thank you!`,
     )
-    const whatsappUrl = `https://wa.me/233242799990?text=${message}`
+    const whatsappUrl = `https://wa.me/233246827049?text=${message}`
     window.open(whatsappUrl, "_blank")
   }
 

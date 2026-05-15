@@ -93,7 +93,7 @@ Date: ${new Date().toLocaleString('en-GB')}
     `.trim();
 
     try {
-      const whatsappUrl = `https://wa.me/233242799990?text=${encodeURIComponent(message)}`;
+      const whatsappUrl = `https://wa.me/233246827049?text=${encodeURIComponent(message)}`;
       console.log('[v0] WhatsApp link generated:', whatsappUrl);
     } catch (waErr) {
       console.error('[v0] WhatsApp error:', waErr);

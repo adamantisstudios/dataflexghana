@@ -319,7 +319,7 @@ ${description || "No additional information provided"}
 Timestamp: ${new Date().toLocaleString()}
     `.trim()
 
-    const whatsappURL = `https://wa.me/233242799990?text=${encodeURIComponent(message)}`
+    const whatsappURL = `https://wa.me/233246827049?text=${encodeURIComponent(message)}`
     window.open(whatsappURL, "_blank")
   }
 

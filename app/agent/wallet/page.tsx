@@ -656,7 +656,7 @@ export default function WalletPage() {
   // Function to handle WhatsApp redirect with default message
   const handleWhatsAppRedirect = () => {
     const message = encodeURIComponent("I want to load 500 Cedis and above to qualify for the Wallet Topup Reward")
-    window.open(`https://wa.me/233242799990?text=${message}`, "_blank")
+    window.open(`https://wa.me/233246827049?text=${message}`, "_blank")
   }
 
   if (loading) {

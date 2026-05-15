@@ -94,7 +94,7 @@ export default function PublishPropertiesPage() {
   }
 
   if (!permissions.canPublish && !permissions.canUpdate) {
-    const whatsappNumber = "+233242799990"
+    const whatsappNumber = "+233246827049"
     const defaultMessage = encodeURIComponent("I want to publish properties on Dataflex Ghana. What are the requirements?")
     const whatsappLink = `https://wa.me/${whatsappNumber.replace("+", "")}?text=${defaultMessage}`
 

@@ -943,7 +943,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     {
                       "@type": "ContactPoint",
                       contactType: "WhatsApp Support",
-                      url: "https://wa.me/233242799990",
+                      url: "https://wa.me/233246827049",
                       areaServed: "GH",
                     },
                   ],

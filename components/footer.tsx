@@ -106,7 +106,7 @@ export function Footer() {
             <ul className="space-y-2 text-sm lg:text-base">
               <li className="flex items-center space-x-2 text-gray-400">
                 <Phone className="h-4 w-4 flex-shrink-0" />
-                <span>0242799990</span>
+                <span>0246827049</span>
               </li>
               <li className="flex items-center space-x-2 text-gray-400">
                 <Mail className="h-4 w-4 flex-shrink-0" />

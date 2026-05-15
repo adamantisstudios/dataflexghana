@@ -164,8 +164,8 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
     amenities: "",
     location: "",
     description: "",
-    phone: "0242799990",
-    whatsapp: "+233242799990",
+    phone: "0246827049",
+    whatsapp: "+233246827049",
     badges: [] as string[],
     status: "Published",
   })
@@ -382,8 +382,8 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
         amenities: property.details?.amenities || "",
         location: property.location || "",
         description: property.description || "",
-        phone: property.contact_info?.phone || "0242799990",
-        whatsapp: property.contact_info?.whatsapp || "+233242799990",
+        phone: property.contact_info?.phone || "0246827049",
+        whatsapp: property.contact_info?.whatsapp || "+233246827049",
         badges: property.badges || [],
         status: property.status || "Published",
       })
@@ -404,8 +404,8 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
         amenities: "",
         location: "",
         description: "",
-        phone: "0242799990",
-        whatsapp: "+233242799990",
+        phone: "0246827049",
+        whatsapp: "+233246827049",
         badges: [],
         status: "Published",
       })

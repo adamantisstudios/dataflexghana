@@ -183,7 +183,7 @@ export function DataBundleOrderForm() {
       } else {
         // Manual payment - Open WhatsApp for payment confirmation with reference code
         const whatsappMessage = `I want to order ${formData.quantity}x ${selectedBundle.name} for ₵${totalAmount.toFixed(2)}. Reference Code: ${referenceCode}`;
-        const whatsappUrl = `https://wa.me/233242799990?text=${encodeURIComponent(whatsappMessage)}`;
+        const whatsappUrl = `https://wa.me/233246827049?text=${encodeURIComponent(whatsappMessage)}`;
         window.open(whatsappUrl, "_blank");
       }
 

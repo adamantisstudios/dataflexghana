@@ -146,7 +146,7 @@ Amount Paid: ₵${amount.toFixed(2)}
 Please process this order.`
 
     const encodedMessage = encodeURIComponent(whatsappMessage)
-    const whatsappNumber = "233242799990" // WhatsApp number
+    const whatsappNumber = "233246827049" // WhatsApp number
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
 
     // Encode WhatsApp URL to pass it as a parameter

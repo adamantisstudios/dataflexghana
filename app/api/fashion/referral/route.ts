@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     // Create WhatsApp URLs
     const whatsappUrl = `https://wa.me/${formattedFriendWhatsApp}?text=${encodeURIComponent(messageText)}`;
-    const adminNotificationUrl = `https://wa.me/233242799990?text=${encodeURIComponent(adminNotification)}`;
+    const adminNotificationUrl = `https://wa.me/233246827049?text=${encodeURIComponent(adminNotification)}`;
 
     console.log('[v0] Referral created:', {
       referralId: savedReferral.id,

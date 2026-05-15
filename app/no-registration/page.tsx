@@ -667,7 +667,7 @@ export default function NoRegistrationPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="secondary" asChild className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-6">
-              <a href="https://wa.me/233242799990" target="_blank" rel="noopener noreferrer">Order via WhatsApp</a>
+              <a href="https://wa.me/233246827049" target="_blank" rel="noopener noreferrer">Order via WhatsApp</a>
             </Button>
             <Button size="lg" variant="outline" asChild className="border-white text-white hover:bg-white hover:text-green-600 text-lg px-8 py-6 bg-transparent">
               <Link href="/">Back to Homepage</Link>

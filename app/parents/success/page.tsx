@@ -120,7 +120,7 @@ export default function ParentSuccessPage() {
                 asChild
                 className="border-green-300 text-green-600 hover:bg-green-50 bg-transparent"
               >
-                <a href="https://wa.me/0242799990" target="_blank" rel="noopener noreferrer">
+                <a href="https://wa.me/0246827049" target="_blank" rel="noopener noreferrer">
                   <MessageCircle className="h-4 w-4 mr-2" />
                   WhatsApp
                 </a>
@@ -132,7 +132,7 @@ export default function ParentSuccessPage() {
                 asChild
                 className="border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
               >
-                <a href="tel:0242799990">
+                <a href="tel:0246827049">
                   <Phone className="h-4 w-4 mr-2" />
                   Call Us
                 </a>

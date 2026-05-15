@@ -366,7 +366,7 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 max-w-2xl mx-auto">
                   <a
-                    href="tel:+233242799990"
+                    href="tel:+233246827049"
                     className="flex items-center justify-center gap-3 sm:gap-4 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-gray-100 group"
                   >
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">

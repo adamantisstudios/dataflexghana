@@ -98,7 +98,7 @@ export default function ParentRegisterPage() {
   const sendWhatsAppMessage = async (message: string) => {
     try {
       // Format phone number for WhatsApp (remove any spaces, dashes, etc.)
-      const whatsappNumber = "0242799990"
+      const whatsappNumber = "0246827049"
       const encodedMessage = encodeURIComponent(message)
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
 

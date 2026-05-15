@@ -98,7 +98,7 @@ export default function BusinessRegisterPage(): JSX.Element {
 
 Please confirm receipt and activate this business registration immediately. Contact them to complete setup.`;
 
-    const whatsappNumber = "233242799990";
+    const whatsappNumber = "233246827049";
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
 
@@ -428,7 +428,7 @@ Please confirm receipt and activate this business registration immediately. Cont
                 onClick={() => {
                   setShowPaymentOptions(false);
                   const msg = `Hello, I'm interested in registering ${formData.businessName}. Can we discuss custom payment or wholesale terms?`;
-                  window.open(`https://wa.me/233242799990?text=${encodeURIComponent(msg)}`, "_blank");
+                  window.open(`https://wa.me/233246827049?text=${encodeURIComponent(msg)}`, "_blank");
                 }}
                 className="w-full text-left p-3 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-3"
               >

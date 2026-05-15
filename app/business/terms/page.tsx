@@ -256,7 +256,7 @@ export default function BusinessTermsPage() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-blue-50 rounded-lg p-4">
                   <h4 className="font-semibold text-blue-800 mb-2">WhatsApp Support</h4>
-                  <p className="text-blue-600 font-medium">+233 24 279 9990</p>
+                  <p className="text-blue-600 font-medium">+233 246827049</p>
                 </div>
                 <div className="bg-green-50 rounded-lg p-4">
                   <h4 className="font-semibold text-green-800 mb-2">Business Hours</h4>

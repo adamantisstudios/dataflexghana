@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 );
 
-const WHATSAPP_NUMBER = '+233242799990';
+const WHATSAPP_NUMBER = '+233246827049';
 
 // Generate WhatsApp URL for booking
 function generateWhatsAppUrl(booking: any): string {

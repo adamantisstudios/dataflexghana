@@ -90,7 +90,7 @@ Thank you for your swift attention.
 
 Best regards,
 ${name}`
-        const whatsappUrl = `https://wa.me/233242799990?text=${encodeURIComponent(activationMessage)}`
+        const whatsappUrl = `https://wa.me/233246827049?text=${encodeURIComponent(activationMessage)}`
         window.open(whatsappUrl, "_blank")
         sessionStorage.setItem(storageKey, "1")
         toast.success("WhatsApp opened – send the message to notify admin for faster activation!")
@@ -167,7 +167,7 @@ Best regards,
 Dataflex Ghana Admin Team
 Support: +233 242 799 990`
 
-    const phoneNumber = "233242799990"
+    const phoneNumber = "233246827049"
     const encodedMessage = encodeURIComponent(whatsappMessage)
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`
 
@@ -180,7 +180,7 @@ Support: +233 242 799 990`
     const message = encodeURIComponent(
       `Hello! I just completed payment on Dataflex Ghana. My name is ${agentName} and I have paid the ₵${REGISTRATION_FEE_PAYSTACK} registration fee (Reference: ${reference}). Please check my account and approve it so I can start using the platform. Thank you!`,
     )
-    const whatsappUrl = `https://wa.me/233242799990?text=${message}`
+    const whatsappUrl = `https://wa.me/233246827049?text=${message}`
     window.open(whatsappUrl, "_blank")
   }
 
@@ -226,7 +226,7 @@ Thank you for your swift attention to this request.
 Best regards,
 ${agentName}`
 
-    const whatsappUrl = `https://wa.me/233242799990?text=${encodeURIComponent(activationMessage)}`
+    const whatsappUrl = `https://wa.me/233246827049?text=${encodeURIComponent(activationMessage)}`
     
     console.log("[v0] Opening WhatsApp with activation request")
     window.open(whatsappUrl, "_blank")

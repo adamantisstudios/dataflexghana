@@ -51,7 +51,7 @@ export default function FloatingChatButton({ agent }: FloatingChatButtonProps) {
   const handleSendRequest = () => {
     if (!description.trim()) return
 
-    const whatsappNumber = "+233242799990"
+    const whatsappNumber = "+233246827049"
     const message = `Hello Admin, I'd like to request posting a property.
 
 Agent: ${agent.full_name}

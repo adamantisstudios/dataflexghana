@@ -162,7 +162,7 @@ export default function FashionAvenuePage() {
   const goToProduct = (id: number) => router.push(`/fashion-avenue/${id}`);
 
   const handleSubmitDesign = () => {
-    const phone = '233242799990';
+    const phone = '233246827049';
     const message = encodeURIComponent('I want to submit my custom design for a sewing project.');
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };

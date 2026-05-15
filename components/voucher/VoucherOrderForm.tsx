@@ -95,7 +95,7 @@ Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
     setIsSubmitting(true);
     setShowPaymentModal(false);
 
-    const whatsappNumber = "233242799990";
+    const whatsappNumber = "233246827049";
     const encodedMessage = encodeURIComponent(pendingMessage);
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
 

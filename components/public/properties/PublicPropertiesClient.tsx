@@ -262,7 +262,7 @@ export default function PublicPropertiesClient() {
   }
 
   const handleCallAdmin = (property: Property) => {
-    const phone = "0242799990"
+    const phone = "0246827049"
     window.open(`tel:${phone}`, "_self")
   }
 

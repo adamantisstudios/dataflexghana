@@ -157,7 +157,7 @@ export default function DomesticWorkersClient() {
   }
 
   const handleWhatsAppAdmin = (worker: DomesticWorker) => {
-    const whatsappNumber = "+233242799990"
+    const whatsappNumber = "+233246827049"
     const message = `Hello Admin, I'm interested in this domestic worker:\n\nWorker ID: ${worker.id}\nName: ${worker.full_name}\nExperience: ${worker.years_of_experience} years\nLocation: ${worker.current_location}\nSkills: ${worker.key_skills}\n\nPlease provide more details and arrange a meeting.`
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, "_blank")

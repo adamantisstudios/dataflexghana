@@ -3463,7 +3463,7 @@ export default function TermsPage() {
               <ul className="space-y-2 text-xs sm:text-sm lg:text-base">
                 <li className="flex items-center space-x-2 text-emerald-100">
                   <Phone className="h-3 sm:h-4 w-3 sm:w-4 flex-shrink-0" />
-                  <span>0242799990</span>
+                  <span>0246827049</span>
                 </li>
                 <li className="flex items-center space-x-2 text-emerald-100">
                   <Mail className="h-3 sm:h-4 w-3 sm:w-4 flex-shrink-0" />

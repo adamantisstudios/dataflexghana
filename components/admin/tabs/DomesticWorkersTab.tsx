@@ -464,7 +464,7 @@ Job Type: ${worker.job_type || "—"}
 
 ✅ Status: ${worker.availability_status === "available" ? "Available" : "Unavailable"}
 
-Contact admin for more details: +233242799990`.trim()
+Contact admin for more details: +233246827049`.trim()
 
     navigator.clipboard.writeText(details)
     toast.success("Worker details copied to clipboard!")

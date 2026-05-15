@@ -293,7 +293,7 @@ export default function ParentTermsPage() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-blue-700">
               <p>
-                <strong>WhatsApp Support:</strong> 0242799990
+                <strong>WhatsApp Support:</strong> 0246827049
               </p>
               <p>
                 <strong>Email:</strong> support@dataflexges.com

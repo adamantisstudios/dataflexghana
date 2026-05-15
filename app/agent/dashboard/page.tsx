@@ -870,7 +870,7 @@ Hello! I'm ${agent?.full_name}, and I want to invite you to join an amazing oppo
 ��� Access to multiple income streams
 ✅ Professional training and support
 *Register here:* ${typeof window !== "undefined" ? window.location.origin : "https://dataflexghana.com"}/agent/register
-⚠️ *IMPORTANT:* After completing your registration, please contact the admin on WhatsApp at +233242799990 and mention that *${agent?.full_name}* recommended you to register. This ensures you get proper onboarding support!
+⚠️ *IMPORTANT:* After completing your registration, please contact the admin on WhatsApp at +233246827049 and mention that *${agent?.full_name}* recommended you to register. This ensures you get proper onboarding support!
 Don't miss this opportunity to start earning today! 💰
 Best regards,
 ${agent?.full_name}
@@ -1352,7 +1352,7 @@ DataFlex Ghana Agent 🇬🇭`
                       </h3>
                       <p className="text-sm text-green-50 mt-2 leading-relaxed">
                         For help or inquiries, call
-                        <strong className="font-bold text-white ml-1 text-base">0242799990</strong> — we’re here for
+                        <strong className="font-bold text-white ml-1 text-base">0246827049</strong> — we’re here for
                         you.
                       </p>
                     </div>

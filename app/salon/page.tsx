@@ -318,7 +318,7 @@ export default function SalonPage() {
       const data = await response.json();
       if (data.success) {
         const whatsappMessage = `Hi! I'd like to refer ${referralForm.referred_name} for ${selectedService.service_name} service. Their contact: ${referralForm.referred_whatsapp}`;
-        window.open(`https://wa.me/233242799990?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+        window.open(`https://wa.me/233246827049?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
         setShowReferralModal(false);
         setReferralForm({
           referrer_name: '',
