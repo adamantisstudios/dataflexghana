@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { supabase } from "@/lib/supabase";
+import { getAdminClient } from "@/lib/supabase-base";
 import { BlogList } from "@/components/public/blog/BlogList"
 import { BlogCategories } from "@/components/public/blog/BlogCategories"
 import { StructuredData } from "@/components/seo/StructuredData"
@@ -13,6 +13,7 @@ interface CategoryPageProps {
 }
 
 async function getCategory(slug: string) {
+  const supabase = getAdminClient()
   try {
     const { data: category, error } = await supabase.from("blog_categories").select("*").eq("slug", slug).single()
 
@@ -28,6 +29,7 @@ async function getCategory(slug: string) {
 }
 
 async function getBlogsByCategory(categoryId: string) {
+  const supabase = getAdminClient()
   try {
     const { data: blogs, error } = await supabase
       .from("blogs")

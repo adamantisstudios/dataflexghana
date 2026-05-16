@@ -1,4 +1,9 @@
-import { supabase } from "./supabase"
+import { getAdminClient } from "./supabase-base"
+import { supabase as browserSupabase } from "./supabase-client"
+
+function storageClient() {
+  return typeof window === "undefined" ? getAdminClient() : browserSupabase
+}
 
 /**
  * Upload a fashion product image to Supabase storage
@@ -29,7 +34,7 @@ export async function uploadFashionProductImage(
     const uniqueFilename = `fashion/products/${random}_${timestamp}.${fileExtension}`
 
     // Upload to Supabase storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await storageClient().storage
       .from("fashion-images")
       .upload(uniqueFilename, file, {
         cacheControl: "3600",
@@ -42,7 +47,7 @@ export async function uploadFashionProductImage(
     }
 
     // Get the public URL
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = storageClient().storage
       .from("fashion-images")
       .getPublicUrl(data.path)
 
@@ -73,7 +78,7 @@ export async function deleteFashionProductImage(imageUrl: string): Promise<void>
     const urlParts = imageUrl.split("/")
     const filePath = urlParts.slice(-2).join("/")
 
-    const { error } = await supabase.storage
+    const { error } = await storageClient().storage
       .from("fashion-images")
       .remove([filePath])
 

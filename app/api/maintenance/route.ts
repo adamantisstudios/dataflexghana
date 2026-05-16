@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 
 // GET - Check maintenance mode status
 export async function GET(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     const { data, error } = await supabase
       .from('maintenance_mode')
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Update maintenance mode status
 export async function POST(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     const body = await request.json()
     const { 

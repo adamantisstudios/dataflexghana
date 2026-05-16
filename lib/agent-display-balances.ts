@@ -16,6 +16,30 @@ export interface AgentDisplayBalances {
 }
 
 export async function getAgentDisplayBalances(agentId: string): Promise<AgentDisplayBalances> {
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch(
+        `/api/agent/display-balances?agentId=${encodeURIComponent(agentId)}`,
+        { cache: "no-store" },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.error) {
+          return {
+            wallet_balance: Number(data.wallet_balance ?? 0),
+            commission_balance: Number(data.commission_balance ?? 0),
+            available_balance: Number(data.available_balance ?? data.commission_balance ?? 0),
+            total_commission_earned: Number(data.total_commission_earned ?? 0),
+            total_paid_out: Number(data.total_paid_out ?? 0),
+            pending_payout: Number(data.pending_payout ?? 0),
+          };
+        }
+      }
+    } catch {
+      // fall through to server-side helpers
+    }
+  }
+
   const [wallet_balance, summary] = await Promise.all([
     calculateWalletBalance(agentId),
     getAgentCommissionSummary(agentId),

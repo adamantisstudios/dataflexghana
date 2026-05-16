@@ -62,34 +62,7 @@ export default function WithdrawPage() {
 
     setRefreshing(true)
     try {
-      const { getAgentDisplayBalances } = await import("@/lib/agent-display-balances")
-      const { getAgentCommissionSummary } = await import("@/lib/commission-earnings")
-      const balances = await getAgentDisplayBalances(agent.id)
-      const commissionSummary = await getAgentCommissionSummary(agent.id)
-
-      const availableForWithdrawal = balances.commission_balance
-      setAvailableBalance(availableForWithdrawal)
-
-      const breakdown = [
-        {
-          source_type: "referral",
-          total_amount: commissionSummary.referralCommissions || 0,
-        },
-        {
-          source_type: "data_order",
-          total_amount: commissionSummary.dataOrderCommissions || 0,
-        },
-        {
-          source_type: "wholesale_order",
-          total_amount: commissionSummary.wholesaleCommissions || 0,
-        },
-      ]
-      setCommissionBreakdown(breakdown)
-
-      console.log("✅ Withdrawal page commission data refreshed:", {
-        availableForWithdrawal,
-        breakdown: breakdown.map((b) => `${b.source_type}: ${b.total_amount}`).join(", "),
-      })
+      await loadEarnings(agent.id)
     } catch (error) {
       console.error("Error refreshing earnings data:", error)
       alert("Failed to refresh earnings data. Please try again.")
@@ -121,60 +94,46 @@ export default function WithdrawPage() {
       })
   }, [router])
 
+  const fetchWithdrawalData = async (agentId: string) => {
+    const sessionAgent = getStoredAgent()
+    const headers: Record<string, string> = { cache: "no-store" }
+    if (sessionAgent) {
+      headers.Authorization = `Bearer ${btoa(JSON.stringify(sessionAgent))}`
+    }
+
+    const res = await fetch(`/api/agent/withdrawals?agentId=${encodeURIComponent(agentId)}`, { headers })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || "Failed to load withdrawal data")
+    }
+    return res.json()
+  }
+
   const loadEarnings = async (agentId: string) => {
     try {
-      let commissionSummary
-      try {
-        const { getAgentDisplayBalances } = await import("@/lib/agent-display-balances")
-        const { getAgentCommissionSummary } = await import("@/lib/commission-earnings")
-        const balances = await getAgentDisplayBalances(agentId)
-        const breakdownSummary = await getAgentCommissionSummary(agentId)
-        commissionSummary = {
-          ...breakdownSummary,
-          availableForWithdrawal: balances.commission_balance,
-          availableCommissions: balances.commission_balance,
-        }
+      const data = await fetchWithdrawalData(agentId)
+      const summary = data.summary || {}
 
-        console.log("✅ Agent Withdrawal using Agents tab balance method:", {
-          agentId,
-          availableForWithdrawal: balances.commission_balance,
-          wallet_balance: balances.wallet_balance,
-        })
-      } catch (error) {
-        console.error("Failed to load unified commission system, using fallback:", error)
-        commissionSummary = await calculateLegacyBalance(agentId)
-      }
-
-      const availableForWithdrawal = commissionSummary.availableForWithdrawal || 0
+      const availableForWithdrawal = Number(summary.availableForWithdrawal ?? 0)
       setAvailableBalance(availableForWithdrawal)
+      setCommissionBreakdown(
+        data.breakdown || [
+          { source_type: "referral", total_amount: summary.referralCommissions || 0 },
+          { source_type: "data_order", total_amount: summary.dataOrderCommissions || 0 },
+          { source_type: "wholesale_order", total_amount: summary.wholesaleCommissions || 0 },
+        ],
+      )
 
-      const breakdown = [
-        {
-          source_type: "referral",
-          total_amount: commissionSummary.referralCommissions || 0,
-        },
-        {
-          source_type: "data_order",
-          total_amount: commissionSummary.dataOrderCommissions || 0,
-        },
-        {
-          source_type: "wholesale_order",
-          total_amount: commissionSummary.wholesaleCommissions || 0,
-        },
-      ]
-      setCommissionBreakdown(breakdown)
+      const list = data.withdrawals || []
+      const activeWithdrawals = list.filter((w: { status: string }) => w.status !== "paid")
+      const pending = data.pendingWithdrawals || []
 
-      await Promise.allSettled([
-        loadReferrals(agentId),
-        loadDataOrders(agentId),
-        loadWholesaleCommissions(agentId),
-        loadWithdrawals(agentId),
-      ])
+      setHasPendingWithdrawal(data.hasPendingWithdrawal || pending.length > 0)
+      setPendingWithdrawalInfo(pending[0] || null)
+      setWithdrawals(activeWithdrawals)
+      setMonthlyWithdrawals(data.monthlyWithdrawalCount ?? 0)
 
-      console.log("✅ Withdrawal page commission data loaded:", {
-        availableForWithdrawal,
-        breakdown: breakdown.map((b) => `${b.source_type}: ${b.total_amount}`).join(", "),
-      })
+      await Promise.allSettled([loadReferrals(agentId), loadDataOrders(agentId), loadWholesaleCommissions(agentId)])
     } catch (error) {
       console.error("Error loading earnings:", error)
       setLoadingError("Failed to load commission data. Some information may be outdated.")
@@ -347,47 +306,6 @@ export default function WithdrawPage() {
     }
   }
 
-  const loadWithdrawals = async (agentId: string) => {
-    try {
-      const { data: withdrawalsData, error: withdrawalsError } = await supabase
-        .from("withdrawals")
-        .select("*")
-        .eq("agent_id", agentId)
-        .order("requested_at", { ascending: false })
-
-      if (withdrawalsError) throw withdrawalsError
-
-      const activeWithdrawals = (withdrawalsData || []).filter((w) => w.status !== "paid")
-
-      // Check for pending withdrawals
-      const pendingWithdrawals = activeWithdrawals.filter((w) =>
-        ["requested", "processing", "pending"].includes(w.status),
-      )
-
-      if (pendingWithdrawals.length > 0) {
-        setHasPendingWithdrawal(true)
-        setPendingWithdrawalInfo(pendingWithdrawals[0])
-      } else {
-        setHasPendingWithdrawal(false)
-        setPendingWithdrawalInfo(null)
-      }
-
-      // Calculate monthly withdrawals (current month)
-      const currentMonth = new Date().getMonth()
-      const currentYear = new Date().getFullYear()
-      const monthlyCount = activeWithdrawals.filter((w) => {
-        const withdrawalDate = new Date(w.requested_at)
-        return withdrawalDate.getMonth() === currentMonth && withdrawalDate.getFullYear() === currentYear
-      }).length
-
-      setWithdrawals(activeWithdrawals)
-      setMonthlyWithdrawals(monthlyCount)
-    } catch (error) {
-      console.error("Error loading withdrawals:", error)
-      setWithdrawals([])
-      setMonthlyWithdrawals(0)
-    }
-  }
 
   const referralEarnings = referrals.reduce((sum, r) => sum + (r.services?.commission_amount || 0), 0)
   const dataOrderEarnings = dataOrders.reduce((sum, o) => sum + (o.commission_amount || 0), 0)

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 
 export async function GET(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     // Get all stats in parallel for better performance
     const [

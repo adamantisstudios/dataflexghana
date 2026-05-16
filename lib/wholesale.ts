@@ -1,5 +1,14 @@
 import { supabase } from "@/lib/supabase-client"
+import { getAdminClient } from "@/lib/supabase-base"
 import { getStoredAdmin } from "./auth"
+
+/** Service role on server; browser wrapper on client. */
+function wholesaleDb() {
+  if (typeof window === "undefined") {
+    return getAdminClient()
+  }
+  return supabase
+}
 
 // Wholesale Product Types
 export interface ProductVariant {
@@ -1697,15 +1706,15 @@ export async function getWithdrawalWithCommissionSources(withdrawalId: string): 
     }
 
     // Get withdrawal details
-    const { data: withdrawal, error: withdrawalError } = await supabase
+    const db = wholesaleDb()
+    const { data: withdrawal, error: withdrawalError } = await db
       .from("withdrawals")
       .select(`
         *,
         agents:agent_id (
           id,
-          name,
-          email,
-          phone,
+          full_name,
+          phone_number,
           momo_number
         )
       `)
@@ -1723,7 +1732,7 @@ export async function getWithdrawalWithCommissionSources(withdrawalId: string): 
 
     // Get commission sources linked to this withdrawal
     const [referrals, dataOrders, wholesaleOrders] = await Promise.all([
-      supabase
+      db
         .from("referrals")
         .select(`
           id,
@@ -1731,7 +1740,7 @@ export async function getWithdrawalWithCommissionSources(withdrawalId: string): 
           services (commission_amount, name)
         `)
         .eq("withdrawal_id", withdrawalId),
-      supabase
+      db
         .from("data_orders")
         .select(`
           id,
@@ -1740,7 +1749,7 @@ export async function getWithdrawalWithCommissionSources(withdrawalId: string): 
           data_bundles (name, price)
         `)
         .eq("withdrawal_id", withdrawalId),
-      supabase
+      db
         .from("wholesale_orders")
         .select(`
           id,
@@ -1811,8 +1820,9 @@ export async function processWithdrawalPayout(
       throw new WholesaleError("Admin ID is required")
     }
 
-    // Get withdrawal details
-    const { data: withdrawal, error: withdrawalError } = await supabase
+    const db = wholesaleDb()
+
+    const { data: withdrawal, error: withdrawalError } = await db
       .from("withdrawals")
       .select("*")
       .eq("id", withdrawalId)
@@ -1831,8 +1841,7 @@ export async function processWithdrawalPayout(
       throw new WholesaleError(`Cannot process withdrawal with status: ${withdrawal.status}`)
     }
 
-    // Update withdrawal status to paid
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from("withdrawals")
       .update({
         status: "paid",
@@ -1848,23 +1857,22 @@ export async function processWithdrawalPayout(
       throw new WholesaleError(`Failed to update withdrawal status: ${updateError.message}`, updateError)
     }
 
-    // Mark commission sources as paid
     await Promise.all([
-      supabase
+      db
         .from("referrals")
         .update({
           commission_paid: true,
           withdrawn_at: new Date().toISOString(),
         })
         .eq("withdrawal_id", withdrawalId),
-      supabase
+      db
         .from("data_orders")
         .update({
           commission_paid: true,
           withdrawn_at: new Date().toISOString(),
         })
         .eq("withdrawal_id", withdrawalId),
-      supabase
+      db
         .from("wholesale_orders")
         .update({
           commission_paid: true,

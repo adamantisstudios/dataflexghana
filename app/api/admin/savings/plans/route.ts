@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 
 // GET - Fetch all savings plans for admin
 export async function GET(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     const { searchParams } = new URL(request.url)
     const includeInactive = searchParams.get('includeInactive') === 'true'
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new savings plan
 export async function POST(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     const body = await request.json()
     const { 
@@ -110,6 +112,7 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update savings plan
 export async function PUT(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     const body = await request.json()
     const { 
@@ -165,6 +168,7 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Delete savings plan (soft delete by setting inactive)
 export async function DELETE(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

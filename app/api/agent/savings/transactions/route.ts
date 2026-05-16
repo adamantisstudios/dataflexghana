@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 import { withUnifiedAuth } from '@/lib/auth-middleware'
 
 // GET - Fetch savings transactions for an agent
 export const GET = withUnifiedAuth(async (request: NextRequest, user: any) => {
+  const supabase = getAdminClient()
   try {
     const { searchParams } = new URL(request.url)
     const agentId = searchParams.get('agentId')

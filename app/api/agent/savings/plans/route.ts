@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 
 // GET - Fetch available savings plans (public endpoint, no auth required)
 export async function GET(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
-    // Fetch active savings plans
     const { data: plans, error } = await supabase
       .from('savings_plans')
       .select('*')

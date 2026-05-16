@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { supabase } from "@/lib/supabase";
+import { getAdminClient } from "@/lib/supabase-base";
 import { BlogList } from "@/components/public/blog/BlogList"
 import { BlogHero } from "@/components/public/blog/BlogHero"
 import { BlogCategories } from "@/components/public/blog/BlogCategories"
@@ -49,6 +49,7 @@ export const metadata: Metadata = {
 }
 
 async function getBlogs() {
+  const supabase = getAdminClient()
   try {
     const { data: blogs, error } = await supabase
       .from("blogs")
@@ -72,6 +73,7 @@ async function getBlogs() {
 }
 
 async function getCategories() {
+  const supabase = getAdminClient()
   try {
     const { data: categories, error } = await supabase.from("blog_categories").select("*").order("name")
 

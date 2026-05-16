@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-client";
+import { getAdminClient } from "@/lib/supabase-base";
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { calculateWalletBalance } from "@/lib/earnings-calculator"
 
@@ -70,6 +70,7 @@ export const GET = withUnifiedAuth(async (request: NextRequest, user: any) => {
 
 // POST - Create new savings account
 export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
+  const supabase = getAdminClient()
   try {
     const body = await request.json()
     const { agentId, savingsPlanId, amount } = body

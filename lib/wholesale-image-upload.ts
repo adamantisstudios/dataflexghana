@@ -1,4 +1,9 @@
-import { supabase } from "./supabase"
+import { getAdminClient } from "./supabase-base"
+import { supabase as browserSupabase } from "./supabase-client"
+
+function storageClient() {
+  return typeof window === "undefined" ? getAdminClient() : browserSupabase
+}
 
 /**
  * Upload a wholesale product image to Supabase storage
@@ -31,7 +36,7 @@ export async function uploadWholesaleProductImage(
     const uniqueFilename = `products/${random}_${timestamp}.${fileExtension}`
 
     // Upload to Supabase storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await storageClient().storage
       .from("wholesale-products")
       .upload(uniqueFilename, file, {
         cacheControl: "3600",
@@ -44,7 +49,7 @@ export async function uploadWholesaleProductImage(
     }
 
     // Get the public URL
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = storageClient().storage
       .from("wholesale-products")
       .getPublicUrl(data.path)
 
@@ -77,7 +82,7 @@ export async function deleteWholesaleProductImage(imageUrl: string): Promise<voi
     const urlParts = imageUrl.split("/")
     const filePath = urlParts.slice(-2).join("/") // Get 'products/filename'
 
-    const { error } = await supabase.storage
+    const { error } = await storageClient().storage
       .from("wholesale-products")
       .remove([filePath])
 

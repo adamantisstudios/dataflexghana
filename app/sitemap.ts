@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next"
-import { supabase } from "@/lib/supabase";
+import { getAdminClient } from "@/lib/supabase-base";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://dataflex.com"
+  const supabase = getAdminClient()
 
-  // Get all published blogs
   const { data: blogs } = await supabase
     .from("blogs")
     .select("slug, updated_at")

@@ -1,8 +1,6 @@
 // Unified Authentication System
 // Works with both admin and agent authentication using direct database queries
 
-import { supabase } from '@/lib/supabase'
-
 export interface UnifiedUser {
   id: string
   email?: string

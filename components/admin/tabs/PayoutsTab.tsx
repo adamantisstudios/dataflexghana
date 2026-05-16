@@ -182,15 +182,19 @@ export default function PayoutsTab() {
   useEffect(() => {
     const loadWithdrawals = async () => {
       try {
-        const { data, error } = await supabase
-          .from("withdrawals")
-          .select(`*, agents (full_name, phone_number), commission_items`)
-          .order("requested_at", { ascending: false })
+        const headers: Record<string, string> = {}
+        if (admin) {
+          headers.Authorization = `Bearer ${btoa(JSON.stringify(admin))}`
+        }
 
-        if (error) throw error
+        const res = await fetch("/api/admin/payouts?status=all", { headers, cache: "no-store" })
+        const json = await res.json()
 
-        // Enrich withdrawals with detailed commission data
-        const enrichedWithdrawals = await enrichWithdrawalsWithCommissionDetails(data || [])
+        if (!res.ok || !json.success) {
+          throw new Error(json.error || "Failed to load withdrawals")
+        }
+
+        const enrichedWithdrawals = await enrichWithdrawalsWithCommissionDetails(json.withdrawals || [])
         setWithdrawals(enrichedWithdrawals)
       } catch (error) {
         console.error("Error loading withdrawals:", error)

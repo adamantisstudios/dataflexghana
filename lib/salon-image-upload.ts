@@ -1,4 +1,9 @@
-import { supabase } from "./supabase"
+import { getAdminClient } from "./supabase-base"
+import { supabase as browserSupabase } from "./supabase-client"
+
+function storageClient() {
+  return typeof window === "undefined" ? getAdminClient() : browserSupabase
+}
 
 /**
  * Upload a salon service image to Supabase storage
@@ -29,7 +34,7 @@ export async function uploadSalonServiceImage(
     const uniqueFilename = `salon/services/${random}_${timestamp}.${fileExtension}`
 
     // Upload to Supabase storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await storageClient().storage
       .from("salon-images")
       .upload(uniqueFilename, file, {
         cacheControl: "3600",
@@ -42,7 +47,7 @@ export async function uploadSalonServiceImage(
     }
 
     // Get the public URL
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = storageClient().storage
       .from("salon-images")
       .getPublicUrl(data.path)
 
@@ -73,7 +78,7 @@ export async function deleteSalonServiceImage(imageUrl: string): Promise<void> {
     const urlParts = imageUrl.split("/")
     const filePath = urlParts.slice(-2).join("/")
 
-    const { error } = await supabase.storage
+    const { error } = await storageClient().storage
       .from("salon-images")
       .remove([filePath])
 

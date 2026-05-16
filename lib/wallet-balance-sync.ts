@@ -6,8 +6,12 @@
  * maintains Supabase as the single source of truth.
  */
 
-import { supabase } from "./supabase"
+import { getAdminClient } from "./supabase-base"
 import { calculateCorrectWalletBalance } from "./commission-earnings"
+
+function db() {
+  return getAdminClient()
+}
 
 export interface WalletSyncResult {
   success: boolean
@@ -36,7 +40,7 @@ export async function syncAgentWalletBalance(agentId: string): Promise<WalletSyn
     console.log("🔄 Synchronizing wallet balance for agent:", agentId)
 
     // Get current stored balance
-    const { data: agent, error: agentError } = await supabase
+    const { data: agent, error: agentError } = await db()
       .from("agents")
       .select("walletBalance, full_name")
       .eq("id", agentId)
@@ -62,7 +66,7 @@ export async function syncAgentWalletBalance(agentId: string): Promise<WalletSyn
 
     // Only update if there's a significant difference (more than 1 cent)
     if (difference > 0.01) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await db()
         .from("agents")
         .update({
           walletBalance: newBalance,
@@ -135,7 +139,7 @@ export async function bulkSyncAllWalletBalances(): Promise<BulkSyncResult> {
     console.log("🔄 Starting bulk wallet balance synchronization...")
 
     // Get all agents with wallet transactions
-    const { data: agentsWithTransactions, error: agentsError } = await supabase
+    const { data: agentsWithTransactions, error: agentsError } = await db()
       .from("wallet_transactions")
       .select("agent_id")
       .eq("status", "approved")
@@ -247,7 +251,7 @@ export async function validateAgentWalletIntegrity(agentId: string): Promise<{
     const recommendations: string[] = []
 
     // Get stored balance
-    const { data: agent, error: agentError } = await supabase
+    const { data: agent, error: agentError } = await db()
       .from("agents")
       .select("walletBalance, full_name")
       .eq("id", agentId)
@@ -344,7 +348,7 @@ export async function getWalletSyncReport(): Promise<{
 }> {
   try {
     // Get all agents with wallet balances
-    const { data: agents, error: agentsError } = await supabase
+    const { data: agents, error: agentsError } = await db()
       .from("agents")
       .select("id, full_name, walletBalance")
       .not("walletBalance", "is", null)

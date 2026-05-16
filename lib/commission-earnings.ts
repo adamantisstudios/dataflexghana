@@ -1,4 +1,14 @@
-import { supabase } from "./supabase"
+import { getAdminClient } from "./supabase-base"
+
+/** Service-role client for all commission DB operations (RLS blocks anon). */
+function db() {
+  return getAdminClient()
+}
+import {
+  computeAgentCommissionSummary,
+  emptyAgentCommissionSummary,
+  type AgentCommissionSummary,
+} from "./commission-summary-server"
 import { meetsConstraints } from "./commission-calculation"
 
 /**
@@ -46,139 +56,30 @@ const pendingCommissionRequests = new Map<string, Promise<any>>();
  * Get agent's complete commission summary from centralized commissions table
  * With request deduplication to prevent "AbortError: Lock broken" from parallel calls.
  */
-export async function getAgentCommissionSummary(agentId: string): Promise<{
-  availableForWithdrawal: number
-  breakdown: string
-  totalEarned: number
-  totalWithdrawn: number
-  pendingWithdrawal: number
-  totalCommissions: number
-  availableCommissions: number
-  totalPaidOut: number
-  pendingPayout: number
-  referralCommissions: number
-  dataOrderCommissions: number
-  wholesaleCommissions: number
-}> {
+export async function getAgentCommissionSummary(agentId: string): Promise<AgentCommissionSummary> {
   // Return pending promise if one already exists for this agentId
   if (pendingCommissionRequests.has(agentId)) {
     return pendingCommissionRequests.get(agentId)!;
   }
 
-  const promise = (async () => {
+  const promise = (async (): Promise<AgentCommissionSummary> => {
     try {
-      console.log(`🔄 Getting commission summary for agent: ${agentId}`)
-
-      // Get commissions that are NOT withdrawn (exclude withdrawn status)
-      const { data: commissions, error: commissionsError } = await supabase
-        .from("commissions")
-        .select("*")
-        .eq("agent_id", agentId)
-        .neq("status", "withdrawn") // Exclude withdrawn commissions from breakdown
-
-      if (commissionsError) {
-        const errorMessage = commissionsError?.message || JSON.stringify(commissionsError) || 'Unknown error'
-        console.error(`[v0] Error fetching commissions for agent ${agentId}:`, errorMessage)
-        // Return safe defaults instead of throwing
-        return {
-          availableForWithdrawal: 0,
-          breakdown: "referral: 0, data_order: 0, wholesale_order: 0",
-          totalEarned: 0,
-          totalWithdrawn: 0,
-          pendingWithdrawal: 0,
-          totalCommissions: 0,
-          availableCommissions: 0,
-          totalPaidOut: 0,
-          pendingPayout: 0,
-          referralCommissions: 0,
-          dataOrderCommissions: 0,
-          wholesaleCommissions: 0,
-        }
+      if (typeof window !== "undefined") {
+        const res = await fetch(
+          `/api/agent/commission-summary?agentId=${encodeURIComponent(agentId)}`,
+          { cache: "no-store" },
+        )
+        if (!res.ok) return emptyAgentCommissionSummary()
+        const data = await res.json()
+        if (data.error) return emptyAgentCommissionSummary()
+        return data as AgentCommissionSummary
       }
 
-      const breakdown = {
-        referral: 0,
-        data_order: 0,
-        wholesale_order: 0,
-      }
-
-      let totalEarned = 0
-      let pendingWithdrawal = 0
-
-      if (commissions && Array.isArray(commissions)) {
-        for (const commission of commissions) {
-          let amount = Number(commission.amount) || 0
-
-          const validation = meetsConstraints(amount)
-          if (!validation.valid) {
-            console.warn(`⚠️ Commission ${commission.id} constraint violation: ${validation.error}`)
-            // Auto-correct if within tolerance
-            amount = Math.max(0.01, Math.min(0.4, amount))
-          }
-
-          totalEarned += amount
-
-          if (commission.status === "pending_withdrawal") {
-            pendingWithdrawal += amount
-          }
-
-          // Add to breakdown by source type
-          if (commission.source_type in breakdown) {
-            breakdown[commission.source_type as keyof typeof breakdown] += amount
-          }
-        }
-      }
-
-      // Get total withdrawn amount from withdrawals table
-      const { data: withdrawals, error: withdrawalError } = await supabase
-        .from("withdrawals")
-        .select("amount")
-        .eq("agent_id", agentId)
-        .eq("status", "paid")
-
-      let totalWithdrawn = 0
-      if (!withdrawalError && withdrawals && Array.isArray(withdrawals)) {
-        totalWithdrawn = withdrawals.reduce((sum, w) => sum + (Number(w.amount) || 0), 0)
-      }
-
-      const availableForWithdrawal = Math.max(0, totalEarned - pendingWithdrawal)
-
-      const breakdownString = `referral: ${breakdown.referral.toFixed(2)}, data_order: ${breakdown.data_order.toFixed(2)}, wholesale_order: ${breakdown.wholesale_order.toFixed(2)}`
-
-      const summary = {
-        availableForWithdrawal,
-        breakdown: breakdownString,
-        totalEarned,
-        totalWithdrawn,
-        pendingWithdrawal,
-        totalCommissions: totalEarned,
-        availableCommissions: availableForWithdrawal,
-        totalPaidOut: totalWithdrawn,
-        pendingPayout: pendingWithdrawal,
-        referralCommissions: breakdown.referral,
-        dataOrderCommissions: breakdown.data_order,
-        wholesaleCommissions: breakdown.wholesale_order,
-      }
-
-      console.log("✅ Commission summary:", summary)
-      return summary
+      return computeAgentCommissionSummary(getAdminClient(), agentId)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error)
       console.error(`[v0] Error getting commission summary for agent ${agentId}:`, errorMessage)
-      return {
-        availableForWithdrawal: 0,
-        breakdown: "referral: 0, data_order: 0, wholesale_order: 0",
-        totalEarned: 0,
-        totalWithdrawn: 0,
-        pendingWithdrawal: 0,
-        totalCommissions: 0,
-        availableCommissions: 0,
-        totalPaidOut: 0,
-        pendingPayout: 0,
-        referralCommissions: 0,
-        dataOrderCommissions: 0,
-        wholesaleCommissions: 0,
-      }
+      return emptyAgentCommissionSummary()
     }
   })();
 
@@ -218,7 +119,7 @@ export async function getDetailedCommissionBreakdown(agentId: string): Promise<{
   try {
     console.log(`📊 Getting detailed commission breakdown for agent: ${agentId}`)
 
-    const { data: commissionsData, error } = await supabase
+    const { data: commissionsData, error } = await db()
       .from("commissions")
       .select(`
         *,
@@ -385,7 +286,7 @@ export async function processWithdrawalRequest(
   try {
     console.log(`🔒 Processing withdrawal request: ${withdrawalId} for agent: ${agentId}, amount: ${amount}`)
 
-    const { data: commissionsToLock, error: selectError } = await supabase
+    const { data: commissionsToLock, error: selectError } = await db()
       .from("commissions")
       .select("id, amount")
       .eq("agent_id", agentId)
@@ -423,7 +324,7 @@ export async function processWithdrawalRequest(
     }
 
     // Lock the selected commissions
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db()
       .from("commissions")
       .update({
         status: "pending_withdrawal",
@@ -471,7 +372,7 @@ export async function completeWithdrawal(withdrawalId: string): Promise<{
     console.log(`✅ Completing withdrawal: ${withdrawalId}`)
 
     // Step 1: Get the withdrawal details
-    const { data: withdrawal, error: withdrawalError } = await supabase
+    const { data: withdrawal, error: withdrawalError } = await db()
       .from("withdrawals")
       .select("*")
       .eq("id", withdrawalId)
@@ -486,7 +387,7 @@ export async function completeWithdrawal(withdrawalId: string): Promise<{
     }
 
     // Step 2: Mark all pending_withdrawal commissions as withdrawn
-    const { data: affectedRows, error: updateError } = await supabase
+    const { data: affectedRows, error: updateError } = await db()
       .from("commissions")
       .update({
         status: "withdrawn",
@@ -507,7 +408,7 @@ export async function completeWithdrawal(withdrawalId: string): Promise<{
 
     // Step 3: Also update agent_commission_sources if it exists
     try {
-      await supabase
+      await db()
         .from("agent_commission_sources")
         .update({
           commission_withdrawn: true,
@@ -554,7 +455,7 @@ export async function cancelWithdrawal(withdrawalId: string): Promise<{
     console.log(`❌ Canceling withdrawal: ${withdrawalId}`)
 
     // Step 1: Get the withdrawal details
-    const { data: withdrawal, error: withdrawalError } = await supabase
+    const { data: withdrawal, error: withdrawalError } = await db()
       .from("withdrawals")
       .select("*")
       .eq("id", withdrawalId)
@@ -569,7 +470,7 @@ export async function cancelWithdrawal(withdrawalId: string): Promise<{
     }
 
     // Step 2: Revert all pending_withdrawal commissions back to earned status
-    const { data: affectedRows, error: updateError } = await supabase
+    const { data: affectedRows, error: updateError } = await db()
       .from("commissions")
       .update({
         status: "earned",
@@ -590,7 +491,7 @@ export async function cancelWithdrawal(withdrawalId: string): Promise<{
 
     // Step 3: Also update agent_commission_sources if it exists
     try {
-      await supabase
+      await db()
         .from("agent_commission_sources")
         .update({
           commission_withdrawn: false,
@@ -631,7 +532,7 @@ export async function validateCommissionWithdrawalIntegrity(
 }> {
   try {
     // Get earned commissions (excluding withdrawn ones)
-    const { data: earnedCommissions, error: earnedError } = await supabase
+    const { data: earnedCommissions, error: earnedError } = await db()
       .from("commissions")
       .select("amount")
       .eq("agent_id", agentId)
@@ -644,7 +545,7 @@ export async function validateCommissionWithdrawalIntegrity(
     const totalEarned = (earnedCommissions || []).reduce((sum, c) => sum + (Number(c.amount) || 0), 0)
 
     // Get pending and paid withdrawals to exclude from available balance
-    const { data: withdrawals, error: withdrawalError } = await supabase
+    const { data: withdrawals, error: withdrawalError } = await db()
       .from("withdrawals")
       .select("amount, status")
       .eq("agent_id", agentId)
@@ -730,7 +631,7 @@ export async function calculateCorrectWalletBalance(agentId: string): Promise<{
 }> {
   try {
     // Get all approved wallet transactions (excluding commission deposits)
-    const { data: transactions, error } = await supabase
+    const { data: transactions, error } = await db()
       .from("wallet_transactions")
       .select("transaction_type, amount, status, created_at")
       .eq("agent_id", agentId)
@@ -856,7 +757,7 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
     const { balance: walletBalance } = await calculateCorrectWalletBalance(agentId)
 
     // CRITICAL FIX: Get transaction summary with better error handling
-    const { data: transactions, error: transactionsError } = await supabase
+    const { data: transactions, error: transactionsError } = await db()
       .from("wallet_transactions")
       .select("*")
       .eq("agent_id", agentId)
@@ -967,7 +868,7 @@ export async function calculateCompleteEarnings(agentId: string): Promise<Earnin
     const walletSummary = await getAgentWalletSummary(agentId)
 
     // Get withdrawal amounts
-    const { data: withdrawals, error: withdrawalError } = await supabase
+    const { data: withdrawals, error: withdrawalError } = await db()
       .from("withdrawals")
       .select("amount, status")
       .eq("agent_id", agentId)
@@ -1038,19 +939,19 @@ export async function calculateMonthlyStatistics(agentId: string) {
 
     // Get counts for this month (for display purposes)
     const [referralsCount, dataOrdersCount, wholesaleCount] = await Promise.all([
-      supabase
+      db()
         .from("referrals")
         .select("id", { count: "exact" })
         .eq("agent_id", agentId)
         .gte("created_at", startOfMonth.toISOString())
         .lte("created_at", endOfMonth.toISOString()),
-      supabase
+      db()
         .from("data_orders")
         .select("id", { count: "exact" })
         .eq("agent_id", agentId)
         .gte("created_at", startOfMonth.toISOString())
         .lte("created_at", endOfMonth.toISOString()),
-      supabase
+      db()
         .from("wholesale_orders")
         .select("id", { count: "exact" })
         .eq("agent_id", agentId)
@@ -1179,7 +1080,7 @@ async function calculateCommissionsDirectly(agentId: string): Promise<{
   try {
     console.log(`🔄 Calculating commissions directly from orders for agent: ${agentId}`)
 
-    const { data: dataOrders, error: dataOrdersError } = await supabase
+    const { data: dataOrders, error: dataOrdersError } = await db()
       .from("data_orders")
       .select(`
         id,
@@ -1194,7 +1095,7 @@ async function calculateCommissionsDirectly(agentId: string): Promise<{
       console.error("Error fetching data orders:", dataOrdersError)
     }
 
-    const { data: referrals, error: referralsError } = await supabase
+    const { data: referrals, error: referralsError } = await db()
       .from("referrals")
       .select(`
         id,
@@ -1208,7 +1109,7 @@ async function calculateCommissionsDirectly(agentId: string): Promise<{
       console.error("Error fetching referrals:", referralsError)
     }
 
-    const { data: wholesaleOrders, error: wholesaleError } = await supabase
+    const { data: wholesaleOrders, error: wholesaleError } = await db()
       .from("wholesale_orders")
       .select(`
         id,
@@ -1255,7 +1156,7 @@ async function calculateCommissionsDirectly(agentId: string): Promise<{
 
     const totalEarned = dataOrderCommissions + referralCommissions + wholesaleCommissions
 
-    const { data: withdrawals, error: withdrawalError } = await supabase
+    const { data: withdrawals, error: withdrawalError } = await db()
       .from("withdrawals")
       .select("amount, status")
       .eq("agent_id", agentId)

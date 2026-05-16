@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { supabase } from "@/lib/supabase";
+import { getAdminClient } from "@/lib/supabase-base";
 import { BlogPost } from "@/components/public/blog/BlogPost"
 import { RelatedPosts } from "@/components/public/blog/RelatedPosts"
 import { BlogCategories } from "@/components/public/blog/BlogCategories"
@@ -14,6 +14,7 @@ interface BlogPageProps {
 }
 
 async function getBlog(slug: string) {
+  const supabase = getAdminClient()
   try {
     const { data: blog, error } = await supabase
       .from("blogs")
@@ -43,6 +44,7 @@ async function getBlog(slug: string) {
 }
 
 async function getRelatedPosts(categoryId: string, currentBlogId: string) {
+  const supabase = getAdminClient()
   try {
     const { data: relatedPosts, error } = await supabase
       .from("blogs")
@@ -134,6 +136,7 @@ export default async function BlogPage({ params }: BlogPageProps) {
 
   const relatedPosts = await getRelatedPosts(blog.category_id, blog.id)
 
+  const supabase = getAdminClient()
   const { data: categories } = await supabase.from("blog_categories").select("*").order("name")
 
   // Generate structured data

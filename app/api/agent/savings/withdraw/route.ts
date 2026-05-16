@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 import { withUnifiedAuth } from '@/lib/auth-middleware'
 
 // POST - Request withdrawal from savings account
 export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
+  const supabase = getAdminClient()
   try {
     const body = await request.json()
     const {

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 import { getCurrentAdmin } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     // Check if user is authenticated as admin
     const admin = await getCurrentAdmin()

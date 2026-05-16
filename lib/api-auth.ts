@@ -4,7 +4,7 @@
  */
 
 import { NextRequest } from 'next/server'
-import { supabase } from './supabase'
+import { getAdminClient } from './supabase-base'
 
 export interface AuthResult {
   success: boolean
@@ -50,7 +50,7 @@ export async function authenticateAdmin(request: NextRequest): Promise<AuthResul
     }
     
     // Verify admin exists and is active
-    const { data: admin, error } = await supabase
+    const { data: admin, error } = await getAdminClient()
       .from('admin_users')
       .select('*')
       .eq('id', adminData.id)
@@ -119,7 +119,7 @@ export async function authenticateAgent(request: NextRequest, agentId?: string):
     }
     
     // Verify agent exists and is approved
-    const { data: agent, error } = await supabase
+    const { data: agent, error } = await getAdminClient()
       .from('agents')
       .select('*')
       .eq('id', targetAgentId)

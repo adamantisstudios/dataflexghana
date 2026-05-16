@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, validateCommissionRate, calculatePreciseCommission } from '@/lib/supabase'
+import { validateCommissionRate, calculatePreciseCommission } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 import { authenticateAdmin } from '@/lib/api-auth'
 
 // GET - Fetch all data bundles
 export async function GET(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     // CRITICAL FIX: Add proper admin authentication
     const authResult = await authenticateAdmin(request);
@@ -46,6 +48,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new data bundle
 export async function POST(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     console.log('POST /api/admin/data-bundles - Starting request processing')
 
@@ -202,6 +205,7 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update existing data bundle
 export async function PUT(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     // CRITICAL FIX: Add proper admin authentication
     const authResult = await authenticateAdmin(request);
@@ -355,6 +359,7 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Delete data bundle
 export async function DELETE(request: NextRequest) {
+  const supabase = getAdminClient()
   try {
     // CRITICAL FIX: Add proper admin authentication
     const authResult = await authenticateAdmin(request);

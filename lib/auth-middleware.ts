@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "./supabase";
+import { getAdminClient } from "./supabase-base";
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {
@@ -67,6 +67,7 @@ export async function authenticateAdmin(
     }
 
     // Get admin details from database
+    const supabase = getAdminClient()
     const { data: admin, error: adminError } = await supabase
       .from("admin_users")
       .select("*")
@@ -132,7 +133,7 @@ export async function authenticateAgent(
 
     console.log("[v0] Authenticating agent with ID:", agentId)
 
-    // Get agent details from database
+    const supabase = getAdminClient()
     const { data: agent, error: agentError } = await supabase
       .from("agents")
       .select("id, full_name, phone_number, wallet_balance, commission, status, created_at, isapproved")
@@ -167,7 +168,8 @@ export async function authenticateFromLocalStorage(
   request: NextRequest,
   requiredRole?: "admin" | "agent",
 ): Promise<{ success: boolean; user?: any; error?: string }> {
-  // For GET requests with query params, try to get ID from URL
+  const supabase = getAdminClient()
+
   if (request.method === "GET") {
     const { searchParams } = new URL(request.url)
     const agentId = searchParams.get("agentId")
@@ -297,6 +299,7 @@ export async function checkSavingsAccess(
       }
 
       if (savingsId) {
+        const supabase = getAdminClient()
         const { data: savings, error } = await supabase
           .from("agent_savings")
           .select("agent_id")

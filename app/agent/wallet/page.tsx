@@ -23,7 +23,6 @@ import { supabase } from "@/lib/supabase-client";
 import type { Agent } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
-import { getUnifiedTransactionHistory } from "@/lib/earnings-calculator"
 
 // Extend Window interface for timeout property
 declare global {
@@ -73,10 +72,31 @@ export default function WalletPage() {
   const [typeFilter, setTypeFilter] = useState("all")
   const [showWalletRewardNotification, setShowWalletRewardNotification] = useState(true)
   const [isWalletRewardNotificationVisible, setIsWalletRewardNotificationVisible] = useState(false)
+  const [pendingCommissionWithdrawals, setPendingCommissionWithdrawals] = useState<
+    Array<{ id: string; amount: number; status: string; requested_at: string }>
+  >([])
   const router = useRouter()
 
   const MIN_TOPUP_AMOUNT = 100
   const MIN_REFERENCE_LENGTH = 7
+
+  const fetchWalletTransactions = async (agentId: string, limit = 100) => {
+    const sessionAgent = getCurrentAgent()
+    const headers: Record<string, string> = { cache: "no-store" }
+    if (sessionAgent) {
+      headers.Authorization = `Bearer ${btoa(JSON.stringify(sessionAgent))}`
+    }
+    const res = await fetch(
+      `/api/agent/wallet/transactions?agentId=${encodeURIComponent(agentId)}&limit=${limit}`,
+      { headers },
+    )
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || "Failed to load transaction history")
+    }
+    const json = await res.json()
+    return json.transactions || []
+  }
 
   // Generate a 7-character alphanumeric reference code
   const generateReferenceCode = (): string => {
@@ -200,9 +220,19 @@ export default function WalletPage() {
     try {
       console.log("[v0] Loading wallet data for agent:", agentId)
 
-      const [balancesResult, transactionHistory] = await Promise.allSettled([
+      const sessionAgent = getCurrentAgent()
+      const authHeaders: Record<string, string> = {}
+      if (sessionAgent) {
+        authHeaders.Authorization = `Bearer ${btoa(JSON.stringify(sessionAgent))}`
+      }
+
+      const [balancesResult, transactionHistory, withdrawalsResult] = await Promise.allSettled([
         getAgentDisplayBalances(agentId),
-        getUnifiedTransactionHistory(agentId),
+        fetchWalletTransactions(agentId, 100),
+        fetch(`/api/agent/withdrawals?agentId=${encodeURIComponent(agentId)}&status=pending`, {
+          headers: authHeaders,
+          cache: "no-store",
+        }).then((r) => (r.ok ? r.json() : { pendingWithdrawals: [] })),
       ])
 
       let finalBalance = 0
@@ -228,6 +258,7 @@ export default function WalletPage() {
           totalWithdrawals: balances.total_paid_out,
           totalDeductions: 0,
           pendingTransactions: balances.pending_payout,
+          pendingWithdrawal: balances.pending_payout,
           lastTransactionDate: null,
         }
         console.log("[v0] Wallet data synchronized (Agents tab method):", finalSummary)
@@ -235,29 +266,18 @@ export default function WalletPage() {
         console.warn("[v0] Display balances failed:", balancesResult.reason)
       }
 
+      if (withdrawalsResult.status === "fulfilled") {
+        setPendingCommissionWithdrawals(withdrawalsResult.value.pendingWithdrawals || [])
+      } else {
+        setPendingCommissionWithdrawals([])
+      }
+
       let finalTransactionHistory: any[] = []
       if (transactionHistory.status === "fulfilled") {
         finalTransactionHistory = transactionHistory.value || []
         console.log("[v0] Transaction history loaded:", finalTransactionHistory.length, "transactions")
       } else {
-        console.warn("[v0] Transaction history failed, trying direct query:", transactionHistory.reason)
-        try {
-          const { data: fallbackTransactions, error: fallbackError } = await supabase
-            .from("wallet_transactions")
-            .select("*")
-            .eq("agent_id", agentId)
-            .order("created_at", { ascending: false })
-            .limit(100)
-
-          if (!fallbackError && fallbackTransactions) {
-            finalTransactionHistory = fallbackTransactions
-            console.log("[v0] Using direct query for transaction history")
-          } else {
-            console.warn("[v0] Direct query failed:", fallbackError?.message)
-          }
-        } catch (fallbackError) {
-          console.warn("[v0] Transaction history fallback error:", fallbackError)
-        }
+        console.warn("[v0] Transaction history API failed:", transactionHistory.reason)
       }
 
       console.log("[v0] Final wallet data loaded successfully:", {
@@ -297,19 +317,7 @@ export default function WalletPage() {
     try {
       console.log("[v0] Using fallback method to load wallet data")
 
-      const { data, error } = await supabase
-        .from("wallet_transactions")
-        .select("*")
-        .eq("agent_id", agentId)
-        .order("created_at", { ascending: false })
-        .limit(100)
-
-      if (error) {
-        console.error("[v0] Fallback query error:", error)
-        throw error
-      }
-
-      const transactions = data || []
+      const transactions = await fetchWalletTransactions(agentId, 100)
       console.log("[v0] Fallback loaded", transactions.length, "transactions")
       setTransactions(transactions)
 
@@ -806,13 +814,50 @@ export default function WalletPage() {
                         GH₵ {(walletSummary?.availableCommissions || 0).toFixed(2)}
                       </p>
                       <p className="text-emerald-200 text-xs mt-1">Available for withdrawal</p>
+                      {(walletSummary?.pendingWithdrawal ?? 0) > 0 && (
+                        <p className="text-amber-200 text-xs mt-2">
+                          GH₵ {Number(walletSummary.pendingWithdrawal).toFixed(2)} locked in pending payout
+                        </p>
+                      )}
                     </div>
-                    <div className="bg-emerald-400/30 rounded-full p-3">
-                      <DollarSign className="h-10 w-10 text-emerald-200" />
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="bg-emerald-400/30 rounded-full p-3">
+                        <DollarSign className="h-10 w-10 text-emerald-200" />
+                      </div>
+                      <Link href="/agent/withdraw">
+                        <Button size="sm" variant="secondary" className="bg-white/90 text-emerald-700">
+                          Request Withdrawal
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+
+              {pendingCommissionWithdrawals.length > 0 && (
+                <Card className="border-amber-200 bg-amber-50/90 mt-4">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-amber-900 text-base flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Pending Commission Withdrawals
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {pendingCommissionWithdrawals.map((w) => (
+                      <div
+                        key={w.id}
+                        className="flex flex-wrap justify-between items-center gap-2 text-sm border-b border-amber-100 pb-2 last:border-0"
+                      >
+                        <span className="text-amber-800 capitalize">{w.status}</span>
+                        <span className="font-medium text-amber-900">GH₵ {Number(w.amount).toFixed(2)}</span>
+                        <span className="text-amber-600 text-xs">
+                          {new Date(w.requested_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Updated Transaction History with new transaction types */}

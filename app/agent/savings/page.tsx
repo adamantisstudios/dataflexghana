@@ -9,9 +9,11 @@ import { BackToTop } from '@/components/back-to-top'
 import SavingsProgressTracker from '@/components/agent/savings/SavingsProgressTracker'
 import { Button } from '@/components/ui/button'
 import { getStoredAgent, type Agent } from '@/lib/unified-auth-system'
+import { getAgentDisplayBalances } from '@/lib/agent-display-balances'
 
 export default function SavingsProgressPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
+  const [walletBalance, setWalletBalance] = useState(0)
   const [activeSavings, setActiveSavings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -27,22 +29,14 @@ export default function SavingsProgressPage() {
           return
         }
 
-        // Fetch fresh agent data with current wallet balance from database
-        const { data: freshAgent, error: agentError } = await supabase
-          .from('agents')
-          .select('id, full_name, wallet_balance, email, phone_number')
-          .eq('id', storedAgent.id)
-          .single()
+        setAgent(storedAgent)
 
-        if (agentError || !freshAgent) {
-          // Fall back to stored agent if database fetch fails
-          setAgent(storedAgent)
-        } else {
-          // Use fresh agent data with updated wallet balance
-          setAgent({
-            ...storedAgent,
-            wallet_balance: freshAgent.wallet_balance || 0
-          })
+        try {
+          const balances = await getAgentDisplayBalances(storedAgent.id)
+          setWalletBalance(balances.wallet_balance)
+        } catch (balanceError) {
+          console.error('Error loading wallet balance:', balanceError)
+          setWalletBalance(storedAgent.wallet_balance || 0)
         }
 
         // Load active savings using agent ID from localStorage
@@ -64,7 +58,7 @@ export default function SavingsProgressPage() {
   }, [router])
 
   const formatCurrency = (amount: number) => {
-    return `₵${amount.toFixed(2)}`
+    return `₵${amount.toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   if (loading) {
@@ -116,7 +110,7 @@ export default function SavingsProgressPage() {
               </div>
               <div className="text-right">
                 <p className="text-sm text-blue-100">Wallet Balance</p>
-                <p className="font-medium text-white">{agent ? formatCurrency(agent.wallet_balance || 0) : "₵0.00"}</p>
+                <p className="font-medium text-white">{formatCurrency(walletBalance)}</p>
               </div>
             </div>
           </div>
@@ -133,7 +127,7 @@ export default function SavingsProgressPage() {
             </div>
             <div className="text-right">
               <p className="text-xs text-blue-700 font-medium">Wallet Balance</p>
-              <p className="font-medium text-blue-900">{agent ? formatCurrency(agent.wallet_balance || 0) : "₵0.00"}</p>
+              <p className="font-medium text-blue-900">{formatCurrency(walletBalance)}</p>
             </div>
           </div>
         </div>
