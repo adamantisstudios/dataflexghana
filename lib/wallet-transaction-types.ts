@@ -1,3 +1,4 @@
+import { supabase } from "./supabase";
 /**
  * Wallet Transaction Types and Validation
  *

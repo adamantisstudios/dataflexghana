@@ -12,8 +12,8 @@ import AgentEditProperties from "@/components/agent/AgentEditProperties"
 import AgentPublishNewProperties from "@/components/agent/AgentPublishNewProperties"
 import PublishingRulesModalProperties from "@/components/agent/PublishingRulesModalProperties"
 import { getStoredAgent } from "@/lib/agent-auth"
-import { supabase } from "@/lib/supabase"
-import type { Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent  } from "@/lib/supabase"
 
 export default function PublishPropertiesPage() {
   const router = useRouter()

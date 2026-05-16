@@ -65,8 +65,19 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const metadata = data.data.metadata as PaystackMetadata
+    const metadata = (data.data.metadata || {}) as PaystackMetadata & {
+      registration_type?: string
+    }
     const amount = data.data.amount / 100 // Convert from pesewas to cedis
+
+    // Agent registration payment → registration form
+    if (metadata.registration_type === "agent_registration") {
+      const registerUrl = new URL("/agent/register", request.url)
+      registerUrl.searchParams.set("payment", "success")
+      registerUrl.searchParams.set("reference", reference)
+      if (metadata.phone) registerUrl.searchParams.set("phone", metadata.phone)
+      return NextResponse.redirect(registerUrl, 302)
+    }
 
     // Store payment record in database
     try {

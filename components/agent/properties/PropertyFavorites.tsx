@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -13,8 +13,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { MapPin, Bed, Bath, Square, Heart, Phone, MessageCircle, PhoneCall, Plus } from "lucide-react"
-import { supabase } from "@/lib/supabase"
-import type { Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent  } from "@/lib/supabase"
 import type { Property } from "../../../app/agent/properties/page"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { ImageModal } from "@/components/ui/image-modal"

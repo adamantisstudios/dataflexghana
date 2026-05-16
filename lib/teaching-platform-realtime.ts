@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 
 /**
  * Real-time subscription manager for teaching platform

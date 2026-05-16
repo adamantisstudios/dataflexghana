@@ -1,6 +1,6 @@
-import { supabase } from "@/lib/supabase"
-import { supabaseJobs } from "@/lib/supabase-client-jobs"
-import { getAgentCommissionSummary } from "@/lib/commission-earnings"
+import { supabase } from "@/lib/supabase-client";
+import { fetchJobsFromApi } from "@/lib/jobs-api";
+import { getAgentDisplayBalances } from "@/lib/agent-display-balances";
 
 export interface AgentDashboardData {
   commissionSummary: any
@@ -16,16 +16,14 @@ export async function loadAgentDashboardData(agentId: string): Promise<AgentDash
   try {
     // Parallel fetch all required data
     const [
-      commissionSummary,
-      agentData,
+      displayBalances,
       referralsData,
       dataOrdersData,
       wholesaleOrdersData,
       withdrawalsData,
       paidWithdrawalsData,
     ] = await Promise.all([
-      getAgentCommissionSummary(agentId),
-      supabase.from("agents").select("wallet_balance").eq("id", agentId).single(),
+      getAgentDisplayBalances(agentId),
       supabase
         .from("referrals")
         .select(`*, services (title, commission_amount)`)
@@ -60,8 +58,14 @@ export async function loadAgentDashboardData(agentId: string): Promise<AgentDash
     ])
 
     return {
-      commissionSummary,
-      agentData: agentData.data,
+      commissionSummary: {
+        totalEarned: displayBalances.total_commission_earned,
+        availableForWithdrawal: displayBalances.available_balance,
+        pendingWithdrawal: displayBalances.pending_payout,
+        totalWithdrawn: displayBalances.total_paid_out,
+      },
+      agentData: { wallet_balance: displayBalances.wallet_balance },
+      displayBalances,
       referralsData: referralsData.data || [],
       dataOrdersData: dataOrdersData.data || [],
       wholesaleOrdersData: wholesaleOrdersData.data || [],
@@ -116,17 +120,12 @@ export async function loadTabData(tabName: string, agentId: string): Promise<any
         return withdrawalsData || []
 
       case "jobs":
-        const { data: jobsData, error: jobsError } = await supabaseJobs
-          .from("jobs")
-          .select("*")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-
-        if (jobsError) {
+        try {
+          return await fetchJobsFromApi({ active: true })
+        } catch (jobsError) {
           console.error("Error loading jobs:", jobsError)
           return []
         }
-        return jobsData || []
 
       case "courses":
         const { data: coursesData, error: coursesError } = await supabase

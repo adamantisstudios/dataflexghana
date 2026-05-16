@@ -1,4 +1,4 @@
-import { supabase } from "./supabase"
+import { supabase } from "@/lib/supabase-client"
 import { sessionManager } from "./session-manager"
 import { realtimeManager } from "./realtime-manager"
 

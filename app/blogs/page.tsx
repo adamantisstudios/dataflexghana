@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase";
 import { BlogList } from "@/components/public/blog/BlogList"
 import { BlogHero } from "@/components/public/blog/BlogHero"
 import { BlogCategories } from "@/components/public/blog/BlogCategories"

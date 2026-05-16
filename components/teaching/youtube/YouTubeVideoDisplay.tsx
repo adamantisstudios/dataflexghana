@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { YouTubeVideoFrame } from "./YouTubeVideoFrame"
 import { YouTubeVideoPreviewModal } from "./YouTubeVideoPreviewModal"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 
 interface YouTubeVideoDisplayProps {

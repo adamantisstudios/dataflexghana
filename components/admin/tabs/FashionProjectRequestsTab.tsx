@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageCircle, Phone, MapPin, Calendar, CheckCircle2, AlertCircle, Clock, Trash2 } from 'lucide-react';
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
+  import {
   Select,
   SelectContent,
   SelectItem,

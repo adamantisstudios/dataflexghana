@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { MessageCircle, Send } from "lucide-react"
-import type { Agent } from "@/lib/supabase"
+import type { Agent  } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 
 interface FloatingChatButtonProps {
   agent: Agent

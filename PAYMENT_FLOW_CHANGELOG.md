@@ -301,7 +301,7 @@ import { useEffect, useState } from "react" ✅
 import { useRouter, useSearchParams } from "next/navigation" ✅
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card" ✅
 import { Button } from "@/components/ui/button" ✅
-import { supabase } from "@/lib/supabase" ✅
+import { supabase } from "@/lib/supabase-client" { supabase } from "@/lib/supabase-client"" ✅
 import { toast } from "sonner" ✅
 ```
 All imports are standard and available ✅

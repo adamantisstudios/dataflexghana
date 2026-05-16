@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { RichTextRenderer } from "@/components/ui/rich-text-renderer"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -21,11 +21,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { supabase, type Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { ImageModal } from "@/components/ui/image-modal"
-import {
+  import {
   ArrowLeft,
   Users,
   DollarSign,

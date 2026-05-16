@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { AgentBenefitsSlideup } from "@/components/no-registration/agent-benefits-slideup";
-import {
+  import {
   CheckCircle,
   Shield,
   ChevronRight,

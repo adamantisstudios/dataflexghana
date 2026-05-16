@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -12,7 +12,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { supabase, type Withdrawal } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Withdrawal } from "@/lib/supabase";
 import { ViewDetailsDialog } from "@/components/admin/ViewDetailsDialog"
 import { getCurrentAdmin } from "@/lib/auth"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"

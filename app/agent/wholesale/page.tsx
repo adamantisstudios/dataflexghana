@@ -11,7 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ShoppingBag, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react"
 
 import { getCurrentAgent } from "@/lib/auth"
-import { type Agent, supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent } from "@/lib/supabase";
 import { type WholesaleProduct, generateWholesaleOrderReference } from "@/lib/wholesale"
 
 import ProductBrowser from "@/components/agent/wholesale/ProductBrowser"
@@ -48,8 +49,9 @@ export default function WholesalePage() {
       setAgent(cached)
 
       try {
-        const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-        const balance = await calculateWalletBalance(cached.id)
+        const { getAgentDisplayBalances } = await import("@/lib/agent-display-balances")
+        const balances = await getAgentDisplayBalances(cached.id)
+        const balance = balances.wallet_balance
 
         const { data, error } = await supabase.from("agents").select("*").eq("id", cached.id).single()
 

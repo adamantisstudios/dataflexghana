@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { getPlatformName } from "@/lib/config"
-import {
+  import {
   Clock,
   CheckCircle,
   Sparkles,

@@ -10,15 +10,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
-import {
+  } from "@/components/ui/pagination"
+  import {
   LogOut,
   Plus,
   MessageCircle,
@@ -54,13 +54,12 @@ import {
 import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
-import { supabase } from "@/lib/supabase"
-import type { Job } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Job  } from "@/lib/supabase"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
-import { calculateCompleteEarnings } from "@/lib/earnings-calculator"
+import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
 import { AgentMenuCards } from "@/components/agent/AgentMenuCards"
-import { getAgentCommissionSummary } from "@/lib/commission-earnings"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -379,18 +378,15 @@ export default function AgentDashboard() {
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null
     const checkDeactivationStatus = async () => {
+      if (!agent?.id) return
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-        if (!session?.user) return
-        const { data: agent } = await supabase
+        const { data: agentRow } = await supabase
           .from("agents")
           .select("auto_deactivated_at")
-          .eq("user_id", session.user.id)
+          .eq("id", agent.id)
           .single()
-        if (agent?.auto_deactivated_at) {
-          const lastShownKey = `deactivation_alert_shown_${session.user.id}`
+        if (agentRow?.auto_deactivated_at) {
+          const lastShownKey = `deactivation_alert_shown_${agent.id}`
           const lastShownDate = localStorage.getItem(lastShownKey)
           const today = new Date().toDateString()
           if (lastShownDate !== today) {
@@ -409,7 +405,7 @@ export default function AgentDashboard() {
     return () => {
       if (timer) clearTimeout(timer)
     }
-  }, [])
+  }, [agent?.id])
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -444,12 +440,15 @@ export default function AgentDashboard() {
           return
         }
         const dashboardData = await loadAgentDashboardData(parsedAgent.id)
+        const balances =
+          dashboardData.displayBalances ??
+          (await getAgentDisplayBalances(parsedAgent.id))
         const earnings = {
-          totalEarnings: dashboardData.commissionSummary.totalEarned || 0,
-          availableBalance: dashboardData.commissionSummary.availableForWithdrawal || 0,
-          pendingPayout: dashboardData.commissionSummary.pendingWithdrawal || 0,
-          totalPaidEarnings: dashboardData.commissionSummary.totalWithdrawn || 0,
-          walletBalance: Number(dashboardData.agentData?.wallet_balance) || 0,
+          totalEarnings: balances.total_commission_earned,
+          availableBalance: balances.available_balance,
+          pendingPayout: balances.pending_payout,
+          totalPaidEarnings: balances.total_paid_out,
+          walletBalance: balances.wallet_balance,
           referralCommissions: 0,
           dataOrderCommissions: 0,
           wholesaleCommissions: 0,
@@ -515,23 +514,19 @@ export default function AgentDashboard() {
               dataOrders: data.dataOrders,
             }))
           } else if (tab === "jobs") {
-            const { supabaseJobs } = await import("@/lib/supabase-client-jobs")
-            const { data: fetchedJobs, error } = await supabaseJobs
-              .from("jobs")
-              .select("*")
-              .eq("is_active", true)
-              .order("created_at", { ascending: false })
-            if (error) {
-              console.error("Error fetching jobs:", error)
-              setTabData((prev) => ({ ...prev, jobs: [] }))
-            } else {
-              const jobsWithTitles = fetchedJobs.map((job: any) => {
+            const { fetchJobsFromApi } = await import("@/lib/jobs-api")
+            try {
+              const fetchedJobs = await fetchJobsFromApi({ active: true })
+              const jobsWithTitles = fetchedJobs.map((job: { job_title?: string; industry?: string }) => {
                 if (!job.job_title && job.industry) {
                   return { ...job, job_title: job.industry }
                 }
                 return job
               })
               setTabData((prev) => ({ ...prev, jobs: jobsWithTitles }))
+            } catch (error) {
+              console.error("Error fetching jobs:", error)
+              setTabData((prev) => ({ ...prev, jobs: [] }))
             }
           }
           if (tab === "online-courses") {
@@ -602,15 +597,15 @@ export default function AgentDashboard() {
     }
   }
 
-  const calculateEarnings = async (agentId: string, agentData: any) => {
+  const calculateEarnings = async (agentId: string) => {
     try {
-      const earnings = await calculateCompleteEarnings(agentId)
+      const balances = await getAgentDisplayBalances(agentId)
       setEarningsData({
-        totalEarnings: earnings.totalEarnings,
-        totalPaidEarnings: earnings.totalPaidOut,
-        pendingPayout: earnings.pendingPayout,
-        availableBalance: earnings.availableBalance,
-        walletBalance: 0,
+        totalEarnings: balances.total_commission_earned,
+        totalPaidEarnings: balances.total_paid_out,
+        pendingPayout: balances.pending_payout,
+        availableBalance: balances.available_balance,
+        walletBalance: balances.wallet_balance,
         referralCommissions: 0,
         dataOrderCommissions: 0,
         wholesaleCommissions: 0,
@@ -814,24 +809,17 @@ export default function AgentDashboard() {
     if (!agentId) return
     try {
       setLoading(true)
-      const commissionSummary = await getAgentCommissionSummary(agentId)
+      const balances = await getAgentDisplayBalances(agentId)
       setEarningsData({
-        totalEarnings: commissionSummary.totalEarned || 0,
-        availableBalance: commissionSummary.availableForWithdrawal || 0,
-        pendingPayout: commissionSummary.pendingWithdrawal || 0,
-        totalPaidEarnings: commissionSummary.totalWithdrawn || 0,
-        walletBalance: 0,
+        totalEarnings: balances.total_commission_earned,
+        availableBalance: balances.available_balance,
+        pendingPayout: balances.pending_payout,
+        totalPaidEarnings: balances.total_paid_out,
+        walletBalance: balances.wallet_balance,
         referralCommissions: 0,
         dataOrderCommissions: 0,
         wholesaleCommissions: 0,
       })
-      const { data: agentData } = await supabase.from("agents").select("wallet_balance").eq("id", agentId).single()
-      if (agentData) {
-        setEarningsData((prev) => ({
-          ...prev,
-          walletBalance: Number(agentData.wallet_balance) || 0,
-        }))
-      }
     } catch (error) {
       console.error("Error loading earnings data:", error)
     } finally {

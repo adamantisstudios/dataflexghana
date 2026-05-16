@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { authenticateAdmin } from "@/lib/api-auth"
 import { cleanOrdersData, canUpdateOrderStatus } from "@/lib/bundle-data-handler"
 import { calculateFinalCommission } from "@/lib/commission-calculator"

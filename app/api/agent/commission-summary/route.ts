@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { getAdminClient } from "@/lib/supabase-base";
 import { meetsConstraints } from "@/lib/commission-calculation"
 
 export const dynamic = "force-dynamic"
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get commission summary from the centralized commissions table
+    const supabase = getAdminClient()
     const { data: commissions, error: commissionsError } = await supabase
       .from("commissions")
       .select("*")

@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 
 /**
  * Diagnostic logging for channel membership issues

@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { ImageModal } from "@/components/ui/image-modal"
 import WholesaleHeroSlider from "./WholesaleHeroSlider"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,

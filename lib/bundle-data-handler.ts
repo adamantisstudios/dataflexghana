@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase-client";
 /**
  * Bundle data handling utilities
  * Provides robust data cleaning and validation for bundle information

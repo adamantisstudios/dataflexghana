@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, PiggyBank } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { BackToTop } from "@/components/back-to-top"
 import SavingsCommitmentForm from "@/components/agent/savings/SavingsCommitmentForm"
 import { getStoredAgent, type Agent } from "@/lib/unified-auth-system"

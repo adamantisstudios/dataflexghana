@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
-import {
+  import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
+  import {
   Search,
   Download,
   Trash2,
@@ -31,14 +31,13 @@ import {
   Database,
   Upload,
   Home,
-  CheckCircle,      // ✅ added
-  Clock,            // ✅ added
-  ArrowRight,       // ✅ added
+  CheckCircle,
+  Clock,
+  ArrowRight,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import { getAgentDisplayBalances } from "@/lib/agent-display-balances";
 import { toast } from "sonner"
-import { getAgentCommissionSummary } from "@/lib/commission-earnings"
-import { calculateWalletBalance } from "@/lib/earnings-calculator"
 
 interface Agent {
   id: string
@@ -151,12 +150,12 @@ export default function AgentManagementTab() {
           let commissionBalance = 0
           let liveWalletBalance = agent.wallet_balance || 0
           try {
-            const commissionSummary = await getAgentCommissionSummary(agent.id)
-            commissionBalance = commissionSummary.availableForWithdrawal || 0
-          } catch { }
-          try {
-            liveWalletBalance = await calculateWalletBalance(agent.id)
-          } catch { }
+            const balances = await getAgentDisplayBalances(agent.id)
+            liveWalletBalance = balances.wallet_balance
+            commissionBalance = balances.commission_balance
+          } catch {
+            /* keep defaults */
+          }
           return {
             ...agent,
             wallet_balance: liveWalletBalance,
@@ -281,19 +280,18 @@ export default function AgentManagementTab() {
 
   const handleViewDetails = async (agent: Agent) => {
     try {
-      const { data: freshAgent } = await supabase
-        .from("agents")
-        .select("id, full_name, phone_number, wallet_balance, created_at, can_publish_products, can_update_products, can_publish_properties, can_update_properties, status, isapproved")
-        .eq("id", agent.id)
-        .single()
-      if (freshAgent) {
-        setSelectedAgent({ ...agent, ...freshAgent, is_approved: freshAgent.isapproved })
-      } else {
-        setSelectedAgent(agent)
-      }
+      const balances = await getAgentDisplayBalances(agent.id)
+      setSelectedAgent({
+        ...agent,
+        wallet_balance: balances.wallet_balance,
+        commission_balance: balances.commission_balance,
+        total_commission_earned: balances.total_commission_earned,
+        is_approved: agent.is_approved,
+      })
       setShowDetailsDialog(true)
       await fetchAgentSummary(agent.id)
-    } catch (error) {
+    } catch {
+      setSelectedAgent(agent)
       setShowDetailsDialog(true)
     }
   }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { MessageCircle, Gift, TrendingUp, User, Calendar, Trash2 } from 'lucide-react';
-import {
+  import {
   Select,
   SelectContent,
   SelectItem,

@@ -1,6 +1,6 @@
 "use client"
 import { useState, useCallback } from "react"
-import { enhancedSupabase } from "@/lib/supabase-enhanced"
+import { supabase } from "@/lib/supabase-client";
 
 export interface OptimisticUpdateOptions {
   maxRetries?: number
@@ -186,13 +186,13 @@ export function useOptimisticUpdates() {
         async () => {
           try {
             console.log(`Attempting to update order ${orderId} to status ${normalizedStatus}`)
-            if (!enhancedSupabase) {
+            if (!supabase) {
               throw new Error("Supabase client not initialized")
             }
 
             const {
               data: { session },
-            } = await enhancedSupabase.auth.getSession()
+            } = await supabase.auth.getSession()
             console.log(`Auth session exists: ${!!session}`)
 
             const updatePayload = {
@@ -201,7 +201,7 @@ export function useOptimisticUpdates() {
             }
             console.log("Update payload:", updatePayload)
 
-            const { data, error } = await enhancedSupabase
+            const { data, error } = await supabase
               .from("data_orders")
               .update(updatePayload)
               .eq("id", orderId)
@@ -377,7 +377,7 @@ export function useOptimisticUpdates() {
                   }
 
                   console.log("Creating commission record:", commissionRecord)
-                  const { data: commData, error: commError } = await enhancedSupabase
+                  const { data: commData, error: commError } = await supabase
                     .from("commissions")
                     .insert([commissionRecord])
                     .select()
@@ -442,7 +442,7 @@ export function useOptimisticUpdates() {
                     source_id: orderId,
                   }
 
-                  const { data: txData, error: txError } = await enhancedSupabase
+                  const { data: txData, error: txError } = await supabase
                     .from("wallet_transactions")
                     .insert([refundTransaction])
                     .select()

@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -24,7 +24,7 @@ import {
 import { Upload, Plus, ArrowLeft, Lock, CheckCircle, AlertCircle, Loader, BookOpen, Zap, Eye, Edit } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getStoredAgent } from "@/lib/agent-auth"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { WHOLESALE_CATEGORIES, createWholesaleProduct } from "@/lib/wholesale"
 import { uploadWholesaleProductImage } from "@/lib/wholesale-image-upload"
 import PublishingRulesModal from "@/components/agent/PublishingRulesModal"

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createSupabaseAdmin } from "@/lib/supabase-query"
+import { supabase } from "@/lib/supabase-client";
+import { createSupabaseAdmin } from "@/lib/supabase-query";
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"

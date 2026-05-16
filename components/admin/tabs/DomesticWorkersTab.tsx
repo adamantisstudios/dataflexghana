@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
+  import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import {
+  import {
   Users,
   Plus,
   Edit,
@@ -39,7 +39,7 @@ import {
   Calendar,
   FileText,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"

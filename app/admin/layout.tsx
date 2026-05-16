@@ -3,7 +3,7 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { LogOut, Shield, CheckCircle2, AlertCircle, Wrench } from "lucide-react"

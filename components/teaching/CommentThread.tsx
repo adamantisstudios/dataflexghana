@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { Heart, Trash2, Edit2, Reply, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react'
 import { toast } from "sonner"
-import {
+  import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,

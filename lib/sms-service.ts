@@ -1,5 +1,5 @@
 import { getSmsConfig, validateSmsConfig } from "@/lib/sms-config"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 
 export interface SendSmsParams {
   phoneNumber: string

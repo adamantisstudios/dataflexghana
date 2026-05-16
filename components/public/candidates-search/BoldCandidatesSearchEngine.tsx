@@ -23,7 +23,7 @@ import CandidatesHeroSlider from "@/components/public/candidates-search/Candidat
 import { isLocationInGhana } from "@/lib/ghana-locations"
 import { Footer } from "@/components/footer"
 import { SearchAdsOverlay } from "@/components/public/candidates-search/SearchAdsOverlay"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,

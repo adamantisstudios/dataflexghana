@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
+  import {
   Plus,
   Clock,
   CheckCircle,
@@ -16,7 +16,8 @@ import {
   Info,
   CreditCard,
 } from "lucide-react"
-import { supabase, type FormSubmission } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { FormSubmission } from "@/lib/supabase";
 import { toast } from "sonner"
 import { ResumeWritingForm } from "./forms/ResumeWritingForm"
 import { CurriculumVitaeForm } from "./forms/CurriculumVitaeForm"

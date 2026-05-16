@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import {
+  import {
   Users,
   Smartphone,
   Briefcase,

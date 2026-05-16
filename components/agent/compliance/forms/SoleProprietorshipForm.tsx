@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ChevronLeft, ChevronRight, Upload, X, Building2, Save } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 import { SignatureCanvas } from "../SignatureCanvas"
 import { PaymentReminderModal } from "@/components/shared/PaymentReminderModal"

@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, MapPin, Briefcase, Search, X, ArrowRight, MessageCircle } from 'lucide-react'
-import { supabaseJobs } from "@/lib/supabase-client-jobs"
+import { supabase } from "@/lib/supabase-client";
+import { fetchJobsFromApi } from "@/lib/jobs-api";
 import { Footer } from "@/components/footer"
 
 const mockAds = [
@@ -84,19 +85,8 @@ const fetchJobs = async (): Promise<Job[]> => {
   }
 
   try {
-    console.log("[v0] Fetching jobs from Supabase")
-    const { data, error } = await supabaseJobs
-      .from("jobs")
-      .select("*")
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-
-    if (error) {
-      console.error("[v0] Error fetching jobs:", error)
-      return jobsCache.data || []
-    }
-
-    const jobs = data || []
+    console.log("[v0] Fetching jobs from /api/jobs")
+    const jobs = await fetchJobsFromApi({ active: true })
     jobsCache.data = jobs
     jobsCache.timestamp = now
     return jobs
@@ -174,35 +164,17 @@ export default function JobBoard() {
       setError(null)
       setIsLoading(false)
 
-      try {
-        subscriptionRef.current = supabaseJobs
-          .getClient()
-          .channel("public:jobs")
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "jobs",
-            },
-            () => {
-              console.log("[v0] Real-time update received")
-              fetchJobs().then((updated) => {
-                setJobs(updated)
-              })
-            },
-          )
-          .subscribe()
-      } catch (err) {
-        console.error("[v0] Error setting up subscription:", err)
-      }
+      const pollInterval = setInterval(() => {
+        fetchJobs().then((updated) => setJobs(updated))
+      }, 60_000)
+      subscriptionRef.current = { unsubscribe: () => clearInterval(pollInterval) }
     }
 
     initializeJobs()
 
     return () => {
-      if (subscriptionRef.current) {
-        supabaseJobs.getClient().removeChannel(subscriptionRef.current)
+      if (subscriptionRef.current?.unsubscribe) {
+        subscriptionRef.current.unsubscribe()
       }
     }
   }, [isAuthenticating])

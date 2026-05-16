@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 import {
   calculateWalletBalance,
   getAgentWalletSummary,
@@ -17,9 +17,14 @@ import {
   validateAgentWalletIntegrity
 } from '@/lib/wallet-balance-sync'
 
+function db() {
+  return getAdminClient()
+}
+
 // GET - Get wallet information for an agent
 export async function GET(request: NextRequest) {
   try {
+    const supabase = db()
     const { searchParams } = new URL(request.url)
     const agent_id = searchParams.get('agent_id')
     const action = searchParams.get('action')
@@ -65,7 +70,7 @@ export async function GET(request: NextRequest) {
         const currentBalance = await calculateWalletBalance(agent_id)
         
         // Get stored balance from agents table for comparison
-        const { data: agentData, error: agentError } = await supabase
+        const { data: agentData, error: agentError } = await db()
           .from('agents')
           .select('wallet_balance')
           .eq('id', agent_id)
@@ -111,6 +116,7 @@ export async function GET(request: NextRequest) {
 // POST - Admin wallet management actions
 export async function POST(request: NextRequest) {
   try {
+    const supabase = db()
     const body = await request.json()
     const { action, agent_id, admin_id, ...params } = body
 
@@ -123,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify admin exists and is active
-    const { data: adminData, error: adminError } = await supabase
+    const { data: adminData, error: adminError } = await db()
       .from('admins')
       .select('id, name, is_active')
       .eq('id', admin_id)
@@ -235,7 +241,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Update the agent's stored wallet balance to 0
-          const { error: updateError } = await supabase
+          const { error: updateError } = await db()
             .from('agents')
             .update({ 
               wallet_balance: 0,
@@ -248,7 +254,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Log the reset action
-          await supabase
+          await db()
             .from('admin_actions')
             .insert({
               admin_id,
@@ -294,7 +300,7 @@ export async function POST(request: NextRequest) {
 
         try {
           // Get all commission-related transactions
-          const { data: commissionTransactions, error: commissionError } = await supabase
+          const { data: commissionTransactions, error: commissionError } = await db()
             .from('wallet_transactions')
             .select('id, amount, transaction_type, status')
             .eq('agent_id', agent_id)
@@ -322,7 +328,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Log the commission reset action
-            await supabase
+            await db()
               .from('admin_actions')
               .insert({
                 admin_id,
@@ -378,7 +384,7 @@ export async function POST(request: NextRequest) {
 
         try {
           // Get the original transaction details
-          const { data: originalTransaction, error: fetchError } = await supabase
+          const { data: originalTransaction, error: fetchError } = await db()
             .from('wallet_transactions')
             .select('*')
             .eq('id', transaction_id)
@@ -400,7 +406,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Check if transaction is already reversed
-          const { data: existingReversal, error: reversalCheckError } = await supabase
+          const { data: existingReversal, error: reversalCheckError } = await db()
             .from('wallet_transactions')
             .select('id')
             .eq('source_id', transaction_id)
@@ -449,7 +455,7 @@ export async function POST(request: NextRequest) {
         // Sync stored balance with calculated balance
         const calculatedBalance = await calculateWalletBalance(agent_id)
 
-        const { error: updateError } = await supabase
+        const { error: updateError } = await db()
           .from('agents')
           .update({ wallet_balance: calculatedBalance })
           .eq('id', agent_id)
@@ -462,7 +468,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Log the sync action
-        await supabase
+        await db()
           .from('admin_actions')
           .insert({
             admin_id,
@@ -667,6 +673,7 @@ export async function POST(request: NextRequest) {
 // PUT - Update wallet transaction status (admin approval/rejection)
 export async function PUT(request: NextRequest) {
   try {
+    const supabase = db()
     const body = await request.json()
     const { transaction_id, status, admin_id, admin_notes } = body
 
@@ -687,7 +694,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verify admin exists and is active
-    const { data: adminData, error: adminError } = await supabase
+    const { data: adminData, error: adminError } = await db()
       .from('admins')
       .select('id, name, is_active')
       .eq('id', admin_id)
@@ -701,7 +708,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update transaction status
-    const { data: updatedTransaction, error: updateError } = await supabase
+    const { data: updatedTransaction, error: updateError } = await db()
       .from('wallet_transactions')
       .update({
         status,
@@ -720,7 +727,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Log the admin action
-    await supabase
+    await db()
       .from('admin_actions')
       .insert({
         admin_id,

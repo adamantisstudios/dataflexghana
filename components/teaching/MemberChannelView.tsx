@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 import { Eye, MessageSquare, Heart, Share2, Bookmark } from 'lucide-react'
 import { ContentRenderer } from "./media/ContentRenderer"

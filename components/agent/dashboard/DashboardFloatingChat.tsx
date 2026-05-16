@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MessageCircle, Send } from "lucide-react"
-import type { Agent } from "@/lib/supabase"
+import type { Agent  } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 
 interface DashboardFloatingChatProps {
   agent: Agent

@@ -1,5 +1,5 @@
-import { supabase } from "@/lib/supabase"
-import type { FormSubmission } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { FormSubmission  } from "@/lib/supabase"
 
 /**
  * Load form submissions for a specific agent

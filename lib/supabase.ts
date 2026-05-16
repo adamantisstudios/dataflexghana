@@ -388,66 +388,42 @@ const validateCommissionRate = (
   return { isValid: true, numericValue: numericRate }
 }
 
-// Job Board functions
+// Job Board functions — external jobs DB via /api/jobs (never main-app /api/db)
 export async function getJobs(): Promise<Job[]> {
-  const { data, error } = await supabase.from("jobs").select("*").order("created_at", { ascending: false })
-  if (error) throw error
-  return data || []
+  const { fetchJobsFromApi } = await import("./jobs-api")
+  return fetchJobsFromApi()
 }
 
 export async function getActiveJobs(): Promise<Job[]> {
-  const { data, error } = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return data || []
+  const { fetchJobsFromApi } = await import("./jobs-api")
+  return fetchJobsFromApi({ active: true })
 }
 
 export async function getFeaturedJobs(): Promise<Job[]> {
-  const { data, error } = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("is_active", true)
-    .eq("is_featured", true)
-    .order("created_at", { ascending: false })
-  if (error) throw error
-  return data || []
+  const { fetchJobsFromApi } = await import("./jobs-api")
+  return fetchJobsFromApi({ active: true, featured: true })
 }
 
 export async function getLatestJobs(limit = 5): Promise<Job[]> {
-  const { data, error } = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(limit)
-  if (error) throw error
-  return data || []
+  const { fetchJobsFromApi } = await import("./jobs-api")
+  return fetchJobsFromApi({ active: true, limit })
 }
 
 export async function getJobById(id: string): Promise<Job | null> {
-  const { data, error } = await supabase.from("jobs").select("*").eq("id", id).single()
-  if (error) throw error
-  return data
+  const { fetchJobByIdFromApi } = await import("./jobs-api")
+  return fetchJobByIdFromApi(id)
 }
 
-export async function createJob(job: Omit<Job, "id" | "created_at" | "updated_at">): Promise<Job> {
-  const { data, error } = await supabase.from("jobs").insert(job).select().single()
-  if (error) throw error
-  return data
+export async function createJob(_job: Omit<Job, "id" | "created_at" | "updated_at">): Promise<Job> {
+  throw new Error("createJob must be called via a dedicated jobs admin API route")
 }
 
-export async function updateJob(id: string, updates: Partial<Job>): Promise<Job> {
-  const { data, error } = await supabase.from("jobs").update(updates).eq("id", id).select().single()
-  if (error) throw error
-  return data
+export async function updateJob(_id: string, _updates: Partial<Job>): Promise<Job> {
+  throw new Error("updateJob must be called via a dedicated jobs admin API route")
 }
 
-export async function deleteJob(id: string): Promise<void> {
-  const { error } = await supabase.from("jobs").delete().eq("id", id)
-  if (error) throw error
+export async function deleteJob(_id: string): Promise<void> {
+  throw new Error("deleteJob must be called via a dedicated jobs admin API route")
 }
 
 // Compliance System functions

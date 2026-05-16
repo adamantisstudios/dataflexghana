@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -13,12 +13,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
+  import {
   Alert,
   AlertDescription,
 } from "@/components/ui/alert"
 import { Calendar, Trash2, AlertTriangle, CheckCircle2, XCircle } from "lucide-react"
-import { enhancedSupabase } from "@/lib/supabase-enhanced"
+import { supabase } from "@/lib/supabase-client";
 
 interface OrderCleanupDialogProps {
   open: boolean
@@ -94,7 +94,7 @@ export default function OrderCleanupDialog({
       console.log(`🗑️ Deleting ${orderIds.length} orders:`, orderIds)
 
       // Use enhanced supabase client for reliable deletion
-      const { error: deleteError } = await enhancedSupabase
+      const { error: deleteError } = await supabase
         .from('data_orders')
         .delete()
         .in('id', orderIds)

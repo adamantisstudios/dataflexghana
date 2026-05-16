@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { supabase, hashPassword } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import { hashPassword } from "@/lib/supabase";
 import { getPlatformName } from "@/lib/config"
 import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { 

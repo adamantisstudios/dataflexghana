@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
 import { createClient } from "@supabase/supabase-js"

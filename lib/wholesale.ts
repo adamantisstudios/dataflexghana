@@ -1,4 +1,4 @@
-import { supabase } from "./supabase"
+import { supabase } from "@/lib/supabase-client"
 import { getStoredAdmin } from "./auth"
 
 // Wholesale Product Types

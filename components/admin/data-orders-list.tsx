@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Wifi, RefreshCw, Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 
 interface DataOrder {
   id: string

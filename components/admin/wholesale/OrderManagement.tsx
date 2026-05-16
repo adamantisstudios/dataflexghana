@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,15 +17,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "@/components/ui/pagination"
-import {
+  } from "@/components/ui/pagination"
+  import {
   Search,
   Filter,
   ShoppingCart,
@@ -46,8 +46,7 @@ import {
   MoreHorizontal,
   User,
 } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import {
+  import {
   type WholesaleOrder,
   getWholesaleOrdersAdmin,
   updateWholesaleOrderStatusAdmin,

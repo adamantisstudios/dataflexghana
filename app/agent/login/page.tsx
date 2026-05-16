@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { supabase, verifyPassword } from "@/lib/supabase"
 import { setStoredAgent } from "@/lib/agent-auth"
 import { getPlatformName } from "@/lib/config"
 import { ArrowLeft, LogIn, Eye, EyeOff, Phone, Lock, AlertTriangle, UserCheck } from "lucide-react"
@@ -31,32 +30,35 @@ export default function AgentLoginPage() {
     setLoading(true)
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from("agents")
-        .select("*")
-        .eq("phone_number", formData.phone_number)
-        .single()
+      const loginRes = await fetch("/api/agent/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone_number: formData.phone_number,
+          password: formData.password,
+        }),
+      })
 
-      if (fetchError || !data) {
-        setError("Agent not found. Please check your phone number or register first.")
+      const loginJson = await loginRes.json()
+
+      if (!loginRes.ok) {
+        setError(
+          loginJson.error ||
+            (loginRes.status === 404
+              ? "Agent not found. Please check your phone number or register first."
+              : "Login failed. Please try again.")
+        )
         setLoading(false)
         return
       }
 
-      if (!data.isapproved) {
-        setError("Your account is pending approval. Please wait for admin approval.")
+      const data = loginJson.agent
+      if (!data) {
+        setError("Login failed. Please try again.")
         setLoading(false)
         return
       }
 
-      // Verify password
-      if (!data.password_hash || !(await verifyPassword(formData.password, data.password_hash))) {
-        setError("Invalid password. Please try again.")
-        setLoading(false)
-        return
-      }
-
-      // Store agent info using the authentication utility
       setStoredAgent(data)
 
       // Set cookie for special agent to bypass maintenance mode

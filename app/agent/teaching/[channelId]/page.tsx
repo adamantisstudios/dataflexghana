@@ -7,7 +7,7 @@ import { TeacherChannelDashboard } from "@/components/teaching/TeacherChannelDas
 import { MemberChannelView } from "@/components/teaching/MemberChannelView"
 import { ChannelChatWidget } from "@/components/teaching/ChannelChatWidget"
 import { BackToTop } from "@/components/back-to-top"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -21,7 +21,8 @@ import { ShoppingCartIcon, Plus, Minus, Trash2, CreditCard, Wallet, AlertCircle,
 import { generatePaymentReferenceCode } from "@/lib/reference-code-generator"
 import { Copy, CheckCircle2 } from "lucide-react"
 import type { WholesaleProduct } from "@/lib/wholesale"
-import type { Agent } from "@/lib/supabase"
+import type { Agent  } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import OrderProcessHeroSlider from "./OrderProcessHeroSlider"
 
 interface CartItem {

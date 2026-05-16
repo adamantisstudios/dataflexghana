@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -14,7 +14,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { supabase, type Referral } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Referral } from "@/lib/supabase";
 import { MessageCircle, Search, Filter, Trash2 } from "lucide-react"
 
 interface ReferralsTabProps {

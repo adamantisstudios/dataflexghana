@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
+  import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -20,7 +20,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { supabase, type Agent, type Referral, type DataOrder } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent, Referral, DataOrder } from "@/lib/supabase";
 import { ArrowLeft, Banknote, Clock, CheckCircle, Trash2, RefreshCw, AlertTriangle, Info } from "lucide-react"
 import Link from "next/link"
 import { getStoredAgent } from "@/lib/unified-auth-system"
@@ -61,10 +62,12 @@ export default function WithdrawPage() {
 
     setRefreshing(true)
     try {
+      const { getAgentDisplayBalances } = await import("@/lib/agent-display-balances")
       const { getAgentCommissionSummary } = await import("@/lib/commission-earnings")
+      const balances = await getAgentDisplayBalances(agent.id)
       const commissionSummary = await getAgentCommissionSummary(agent.id)
 
-      const availableForWithdrawal = commissionSummary.availableForWithdrawal || 0
+      const availableForWithdrawal = balances.commission_balance
       setAvailableBalance(availableForWithdrawal)
 
       const breakdown = [
@@ -122,18 +125,20 @@ export default function WithdrawPage() {
     try {
       let commissionSummary
       try {
+        const { getAgentDisplayBalances } = await import("@/lib/agent-display-balances")
         const { getAgentCommissionSummary } = await import("@/lib/commission-earnings")
-        commissionSummary = await getAgentCommissionSummary(agentId)
+        const balances = await getAgentDisplayBalances(agentId)
+        const breakdownSummary = await getAgentCommissionSummary(agentId)
+        commissionSummary = {
+          ...breakdownSummary,
+          availableForWithdrawal: balances.commission_balance,
+          availableCommissions: balances.commission_balance,
+        }
 
-        console.log("✅ Agent Withdrawal using unified commission system:", {
+        console.log("✅ Agent Withdrawal using Agents tab balance method:", {
           agentId,
-          totalCommissions: commissionSummary.totalCommissions,
-          availableCommissions: commissionSummary.availableCommissions,
-          pendingPayout: commissionSummary.pendingPayout,
-          totalPaidOut: commissionSummary.totalPaidOut,
-          referralCommissions: commissionSummary.referralCommissions,
-          dataOrderCommissions: commissionSummary.dataOrderCommissions,
-          wholesaleCommissions: commissionSummary.wholesaleCommissions,
+          availableForWithdrawal: balances.commission_balance,
+          wallet_balance: balances.wallet_balance,
         })
       } catch (error) {
         console.error("Failed to load unified commission system, using fallback:", error)

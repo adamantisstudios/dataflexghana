@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { supabase, type DataBundle } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { DataBundle } from "@/lib/supabase";
 import { generatePaymentPIN } from "@/lib/pin-generator"
 import { Wifi, CreditCard, CheckCircle, AlertCircle } from "lucide-react"
 import { toast } from "sonner"

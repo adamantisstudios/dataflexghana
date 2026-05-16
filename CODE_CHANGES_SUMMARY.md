@@ -236,7 +236,7 @@ const handleManualComplete = async () => {
 
 **BEFORE**:
 ```typescript
-import { supabase, hashPassword } from "@/lib/supabase"
+import { supabase, hashPassword } import { supabase } from "@/lib/supabase-client""
 import { getPlatformName } from "@/lib/config"
 import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { 
@@ -248,7 +248,7 @@ import {
 
 **AFTER**:
 ```typescript
-import { supabase, hashPassword } from "@/lib/supabase"
+import { supabase, hashPassword } import { supabase } from "@/lib/supabase-client""
 import { getPlatformName } from "@/lib/config"
 import { clearPaymentGate } from "@/lib/payment-gate"  // ← NEW
 import { FloatingAudioPlayer } from "@/components/floating-audio-player"

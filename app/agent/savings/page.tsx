@@ -1,9 +1,10 @@
 "use client"
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, TrendingUp, PiggyBank, Plus } from 'lucide-react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase-client'
 import { BackToTop } from '@/components/back-to-top'
 import SavingsProgressTracker from '@/components/agent/savings/SavingsProgressTracker'
 import { Button } from '@/components/ui/button'

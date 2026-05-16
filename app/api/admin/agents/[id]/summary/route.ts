@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getAdminClient } from '@/lib/supabase-base'
 
 export async function GET(
   request: NextRequest,
@@ -18,6 +18,7 @@ export async function GET(
     }
 
     // Verify agent exists - handle all necessary columns safely
+    const supabase = getAdminClient()
     const { data: agent, error: agentError } = await supabase
       .from('agents')
       .select('id, full_name, phone_number, wallet_balance, created_at, can_publish_products')

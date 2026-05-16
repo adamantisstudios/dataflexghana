@@ -7,7 +7,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
+  import {
   ChevronLeft,
   MapPin,
   Clock,
@@ -23,7 +23,8 @@ import {
   Zap,
   TrendingUp,
 } from "lucide-react" // ✅ removed DollarSign
-import { supabaseJobs } from "@/lib/supabase-client-jobs"
+import { supabase } from "@/lib/supabase-client";
+import { fetchJobByIdFromApi } from "@/lib/jobs-api";
 import { Footer } from "@/components/footer"
 
 // ========== TYPE DEFINITIONS ==========
@@ -139,13 +140,9 @@ export default function JobDetailsPage() {
     const fetchJob = async () => {
       setIsLoading(true)
       try {
-        const { data, error: fetchError } = await supabaseJobs
-          .from("jobs")
-          .select("*")
-          .eq("id", jobId)
-          .single()
+        const data = await fetchJobByIdFromApi(jobId)
 
-        if (fetchError || !data) {
+        if (!data) {
           setError("Job not found")
         } else {
           setJob(data)
@@ -161,19 +158,8 @@ export default function JobDetailsPage() {
 
     fetchJob()
 
-    const channel = supabaseJobs
-      .getClient()
-      .channel("public:jobs")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "jobs", filter: `id=eq.${jobId}` },
-        () => fetchJob()
-      )
-      .subscribe()
-
-    return () => {
-      supabaseJobs.getClient().removeChannel(channel)
-    }
+    const refreshInterval = setInterval(fetchJob, 60_000)
+    return () => clearInterval(refreshInterval)
   }, [jobId, isAuthenticating])
 
   // Build job URL when job loads

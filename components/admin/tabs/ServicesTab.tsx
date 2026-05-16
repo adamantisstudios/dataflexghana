@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -16,7 +16,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { supabase, type Service } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Service } from "@/lib/supabase";
 import { Plus, Edit, Trash2, Search, Filter, Upload, X } from "lucide-react"
 import { ImageModal } from "@/components/ui/image-modal"
 import { Badge } from "@/components/ui/badge"

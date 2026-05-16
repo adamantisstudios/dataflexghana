@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
+  import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -18,11 +18,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { supabase, type Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
 import { cleanOrdersData, getBundleDisplayName } from "@/lib/bundle-data-handler"
-import { getAgentCommissionSummary, calculateCorrectWalletBalance } from "@/lib/commission-earnings"
-import {
+import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
+  import {
   ArrowLeft,
   Smartphone,
   Filter,
@@ -101,8 +102,7 @@ export default function DataOrdersPage() {
     }
     setAgent(currentAgent)
 
-    loadWalletBalance(currentAgent.id)
-    loadUnifiedCommissionData(currentAgent.id)
+    loadDisplayBalances(currentAgent.id)
 
     loadOrders(currentAgent.id)
     setupRealTimeUpdates(currentAgent.id)
@@ -120,32 +120,17 @@ export default function DataOrdersPage() {
     }
   }, [router])
 
-  const loadWalletBalance = async (agentId: string) => {
+  const loadDisplayBalances = async (agentId: string) => {
     try {
-      console.log("[v0] Loading wallet balance using unified calculation for agent:", agentId)
-      const { balance } = await calculateCorrectWalletBalance(agentId)
-      console.log("[v0] Wallet balance calculated:", balance)
-      setWalletBalance(balance)
-    } catch (error: any) {
-      console.error("[v0] Error loading wallet balance:", error)
-      console.error("[v0] Error message:", error?.message || "Unknown error")
-      setWalletBalance(0)
-    }
-  }
-
-  const loadUnifiedCommissionData = async (agentId: string) => {
-    try {
-      const commissionSummary = await getAgentCommissionSummary(agentId)
+      const balances = await getAgentDisplayBalances(agentId)
+      setWalletBalance(balances.wallet_balance)
       setCommissionData({
-        totalAvailableCommissions: commissionSummary.availableForWithdrawal || 0,
-        totalDataOrderCommissions: commissionSummary.dataOrderCommissions || 0,
+        totalAvailableCommissions: balances.commission_balance,
+        totalDataOrderCommissions: balances.commission_balance,
       })
-      console.log("✅ Data-orders page using unified commission calculation:", {
-        availableForWithdrawal: commissionSummary.availableForWithdrawal,
-        dataOrderCommissions: commissionSummary.dataOrderCommissions,
-      })
-    } catch (error) {
-      console.error("Error loading unified commission data:", error)
+    } catch (error: unknown) {
+      console.error("Error loading display balances:", error)
+      setWalletBalance(0)
       setCommissionData({
         totalAvailableCommissions: 0,
         totalDataOrderCommissions: 0,
@@ -180,7 +165,7 @@ export default function DataOrdersPage() {
           },
           () => {
             loadOrders(agentId)
-            loadUnifiedCommissionData(agentId)
+            loadDisplayBalances(agentId)
           },
         )
         .subscribe((status) => {
@@ -201,7 +186,7 @@ export default function DataOrdersPage() {
           },
           (payload) => {
             console.log("Wallet transaction changed, refreshing balance:", payload)
-            loadWalletBalance(agentId)
+            loadDisplayBalances(agentId)
           },
         )
         .subscribe((status) => {
@@ -222,7 +207,7 @@ export default function DataOrdersPage() {
           },
           (payload) => {
             console.log("Commission changed, refreshing commission data:", payload)
-            loadUnifiedCommissionData(agentId)
+            loadDisplayBalances(agentId)
           },
         )
         .subscribe((status) => {
@@ -328,7 +313,7 @@ export default function DataOrdersPage() {
   const refreshOrders = async () => {
     if (agent) {
       await loadOrders(agent.id)
-      await loadUnifiedCommissionData(agent.id)
+      await loadDisplayBalances(agent.id)
     }
   }
 

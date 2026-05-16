@@ -6,14 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
+  import {
   Search,
   Filter,
   Package,
@@ -33,7 +33,8 @@ import {
   RefreshCw,
 } from "lucide-react"
 import { WholesaleOrder, getWholesaleOrdersByAgent } from "@/lib/wholesale"
-import { Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import { Agent } from "@/lib/supabase";
 
 interface OrderHistoryProps {
   agent: Agent | null

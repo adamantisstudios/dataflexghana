@@ -1,4 +1,4 @@
-import { enhancedSupabase } from './supabase-enhanced'
+import { supabase } from './supabase-enhanced'
 import { sessionManager } from './session-manager'
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
@@ -92,7 +92,7 @@ export class RealtimeManager {
       const channelName = `${subscription.table}_${subscription.id}_${Date.now()}`
       console.log(`🔗 Creating channel: ${channelName}`)
       
-      const channel = enhancedSupabase.channel(channelName)
+      const channel = supabase.channel(channelName)
 
       // Configure the channel based on filter
       let channelConfig = channel.on(

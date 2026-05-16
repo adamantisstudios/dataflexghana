@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://dataflex.com"

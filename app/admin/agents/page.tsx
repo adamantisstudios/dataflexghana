@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   CheckCircle,
   XCircle,
   Search,
@@ -21,11 +21,11 @@ import {
   Settings,
   FileText,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
-import type { Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent  } from "@/lib/supabase"
 import Link from "next/link"
 import { toast } from "sonner"
-import { batchCalculateAgentEarnings, type EarningsData } from "@/lib/earnings-calculator"
+import { getAgentDisplayBalances, type AgentDisplayBalances } from "@/lib/agent-display-balances"
 import { useAgentsCache } from "@/hooks/use-agents-cache"
 import { AgentDashboardSkeleton } from "@/components/admin/agents/agent-dashboard-skeleton"
 import { LazyAutomationDashboard } from "@/components/admin/agents/lazy-automation-dashboard"
@@ -66,7 +66,7 @@ export default function AdminAgentsPage() {
   const [automationStats, setAutomationStats] = useState<AutomationStats | null>(null)
   const [agentsAtRisk, setAgentsAtRisk] = useState<AgentAtRisk[]>([])
   const [runningAutomation, setRunningAutomation] = useState(false)
-  const [agentEarnings, setAgentEarnings] = useState<Map<string, EarningsData>>(new Map())
+  const [agentEarnings, setAgentEarnings] = useState<Map<string, AgentDisplayBalances>>(new Map())
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(500)
   const { invalidateCache } = useAgentsCache()
@@ -82,23 +82,29 @@ export default function AdminAgentsPage() {
       setAgentsAtRisk(dashboardData.atRisk)
 
       if (dashboardData.agents && dashboardData.agents.length > 0) {
-        const agentIds = dashboardData.agents.map((agent) => agent.id)
-        const earningsMap = await batchCalculateAgentEarnings(agentIds)
-        setAgentEarnings(earningsMap)
-
-        const agentsWithUnifiedEarnings = dashboardData.agents.map((agent) => {
-          const earnings = earningsMap.get(agent.id)
+        const enriched = await Promise.all(
+          dashboardData.agents.map(async (agent) => {
+            const balances = await getAgentDisplayBalances(agent.id)
+            return {
+              agent,
+              balances,
+            }
+          })
+        )
+        const earningsMap = new Map<string, AgentDisplayBalances>()
+        const agentsWithUnifiedEarnings = enriched.map(({ agent, balances }) => {
+          earningsMap.set(agent.id, balances)
           return {
             ...agent,
-            totalCommission: earnings?.totalCommission || 0,
-            wallet_balance: earnings?.walletBalance || 0,
-            available_balance: earnings?.availableBalance || 0,
-            totalPaidOut: earnings?.totalPaidOut || 0,
-            pendingPayout: earnings?.pendingPayout || 0,
-            totalEarnings: earnings?.totalEarnings || 0,
+            totalCommission: balances.total_commission_earned,
+            wallet_balance: balances.wallet_balance,
+            available_balance: balances.available_balance,
+            totalPaidOut: balances.total_paid_out,
+            pendingPayout: balances.pending_payout,
+            totalEarnings: balances.total_commission_earned,
           }
         })
-
+        setAgentEarnings(earningsMap)
         setAgents(agentsWithUnifiedEarnings)
       }
     } catch (error) {

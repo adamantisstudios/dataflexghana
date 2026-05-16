@@ -1,4 +1,5 @@
-import { getAdminClient } from "@/lib/supabase-base"
+import { supabase } from "@/lib/supabase-client";
+import { getAdminClient } from "@/lib/supabase-base";
 import { NextRequest, NextResponse } from "next/server"
 
 export async function PUT(

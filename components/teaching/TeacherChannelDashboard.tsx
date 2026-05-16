@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { Users, FileText, CheckCircle2, Trash2, Plus, Eye, MessageSquare, Play } from "lucide-react"
 import { toast } from "sonner"
 import { ImagePicker } from "./media/ImagePicker"
@@ -46,7 +46,7 @@ import { VideoPostDisplay } from "./VideoPostDisplay"
 import { DetailedMathExampleModal } from "./media/DetailedMathExampleModal"
 import { YouTubeVideoCreator } from "./youtube/YouTubeVideoCreator"
 import { YouTubeVideoDisplay } from "./youtube/YouTubeVideoDisplay"
-import {
+  import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,

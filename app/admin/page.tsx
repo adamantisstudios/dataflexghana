@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
+  import {
   Users,
   Package,
   Database,
@@ -51,7 +51,7 @@ import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
 import { BackToTop } from "@/components/back-to-top"
 import { UnreadNotification } from "@/components/unread-notification"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { connectionManager } from "@/lib/connection-manager"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -254,7 +254,7 @@ export default function AdminDashboard() {
           supabase.from("referrals").select("id, status", { count: "exact" }),
           supabase.from("data_orders").select("id, status", { count: "exact" }),
           supabase.from("withdrawals").select("id, status", { count: "exact" }),
-          supabase.from("jobs").select("id, is_active", { count: "exact" }),
+          fetch("/api/jobs/stats").then((r) => (r.ok ? r.json() : { total: 0, active: 0 })),
           supabase
             .from("data_orders")
             .select("id")
@@ -321,8 +321,8 @@ export default function AdminDashboard() {
             completedDataOrders: ordersData.data?.filter((o) => o.status === "completed").length || 0,
             totalWithdrawals: withdrawalsData.count || 0,
             pendingWithdrawals: withdrawalsData.data?.filter((w) => w.status === "pending" || w.status === "requested").length || 0,
-            totalJobs: jobsData.count || 0,
-            activeJobs: jobsData.data?.filter((j) => j.is_active).length || 0,
+            totalJobs: jobsData.total || 0,
+            activeJobs: jobsData.active || 0,
             todayOrders: dailyOrdersData.data?.length || 0,
             pendingAlerts: withdrawalsData.data?.filter((w) => w.status === "pending" || w.status === "requested").length || 0,
             wholesaleProducts: wholesaleStats.totalProducts || 0,

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -13,7 +13,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import {
+  import {
   Users,
   GraduationCap,
   MessageCircle,
@@ -24,7 +24,7 @@ import {
   ArrowRight,
   MessageSquare,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import Link from "next/link"
 import DomesticWorkersHeroSlider from "@/components/public/domestic-workers/DomesticWorkersHeroSlider"

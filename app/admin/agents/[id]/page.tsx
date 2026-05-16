@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import {
+  import {
   ArrowLeft,
   User,
   Phone,
@@ -18,7 +18,7 @@ import {
   RotateCcw,
   AlertTriangle,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client"
 import type { Agent } from "@/lib/supabase"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

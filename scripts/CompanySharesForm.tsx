@@ -124,7 +124,7 @@ export default function CompanySharesForm({ onSubmitSuccess }: CompanySharesForm
 
   const handleSubmit = () => {
     const message = formatWhatsAppMessage(formData, "Company Limited by Shares")
-    const whatsappUrl = `https://wa.me/233242799990?text=${encodeURIComponent(message)}`
+    const whatsappUrl = `https://wa.me/233246827049?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, "_blank")
     setTimeout(() => {
       onSubmitSuccess()

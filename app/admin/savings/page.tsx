@@ -1,8 +1,9 @@
 "use client"
 
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase-client'
 import SavingsTab from '@/components/admin/tabs/SavingsTab'
 
 export default function AdminSavingsPage() {

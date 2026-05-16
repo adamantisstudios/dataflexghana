@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getCurrentSupabaseUser } from "@/lib/supabase-hybrid-auth"
+import { supabase } from "@/lib/supabase-client";
+import { getCurrentSupabaseUser } from "@/lib/supabase-hybrid-auth";
 import type { User } from "@supabase/supabase-js"
 
 interface AuthContextType {

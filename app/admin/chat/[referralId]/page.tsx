@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { supabase, type Referral, type ProjectChat } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Referral, ProjectChat } from "@/lib/supabase";
 import { ArrowLeft, Send, Upload, ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"

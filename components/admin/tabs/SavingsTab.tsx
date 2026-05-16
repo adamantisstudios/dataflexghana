@@ -1,7 +1,7 @@
 "use client"
 import type React from "react"
 import { useState, useEffect } from "react"
-import {
+  import {
   Card,
   CardContent,
   CardDescription,
@@ -13,36 +13,36 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import {
+  import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/components/ui/tabs"
-import {
+  } from "@/components/ui/tabs"
+  import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import {
+  } from "@/components/ui/table"
+  import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import {
+  } from "@/components/ui/select"
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import {
+  } from "@/components/ui/dialog"
+  import {
   PiggyBank,
   TrendingUp,
   Users,
@@ -55,7 +55,7 @@ import {
   Search,
   Settings,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 
 interface SavingsPlan {

@@ -35,7 +35,7 @@ import {
   formatTimeRemaining,
   SPECIAL_TEST_PHONE,
   type MaintenanceMode,
-  type MaintenanceLog
+  type MaintenanceLog,
 } from '@/lib/maintenance-mode'
 
 interface AdminMaintenanceControlProps {

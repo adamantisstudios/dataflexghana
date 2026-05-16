@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2, Eye, MessageSquare, ThumbsUp, MoreVertical, Download, Share2 } from 'lucide-react';
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner";
-import {
+  import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,

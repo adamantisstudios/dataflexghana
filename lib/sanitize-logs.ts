@@ -1,3 +1,4 @@
+import { supabase } from "./supabase";
 /**
  * New utility for sanitizing sensitive information from logs
  * Prevents exposure of file paths, API keys, URLs, and other sensitive data

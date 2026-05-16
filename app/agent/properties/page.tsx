@@ -11,7 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Building2, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react"
 
 import { getCurrentAgent } from "@/lib/auth"
-import { type Agent, supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent } from "@/lib/supabase";
 import { BackToTop } from "@/components/back-to-top"
 
 import PropertyBrowser from "@/components/agent/properties/PropertyBrowser"
@@ -70,8 +71,9 @@ export default function PropertiesPage() {
       setAgent(cached)
 
       try {
-        const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-        const balance = await calculateWalletBalance(cached.id)
+        const { getAgentDisplayBalances } = await import("@/lib/agent-display-balances")
+        const balances = await getAgentDisplayBalances(cached.id)
+        const balance = balances.wallet_balance
 
         const { data, error } = await supabase.from("agents").select("*").eq("id", cached.id).single()
 

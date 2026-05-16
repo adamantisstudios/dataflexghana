@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase";
 import { BlogPost } from "@/components/public/blog/BlogPost"
 import { RelatedPosts } from "@/components/public/blog/RelatedPosts"
 import { BlogCategories } from "@/components/public/blog/BlogCategories"

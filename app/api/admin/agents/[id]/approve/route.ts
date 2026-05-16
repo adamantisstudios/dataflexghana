@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { createAdminAdjustment } from "@/lib/earnings-calculator"
 
 // PATCH - Approve a new agent and credit 5 cedis to their wallet

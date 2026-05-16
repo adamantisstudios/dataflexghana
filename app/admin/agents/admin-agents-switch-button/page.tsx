@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 // CRITICAL FIX: Import unified auth system instead of direct Supabase auth
 import { getCurrentAdmin, isAdminLoggedIn } from "@/lib/unified-auth-system"
 import type { User } from "@supabase/supabase-js"

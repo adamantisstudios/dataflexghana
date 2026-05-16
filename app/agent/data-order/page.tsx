@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
+  import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -22,15 +22,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  supabase,
-  generatePaymentReference,
-  calculateDataBundleCommission,
-  type Agent,
-  type DataBundle,
-} from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import { generatePaymentReference, calculateDataBundleCommission } from "@/lib/supabase";
+import type { Agent, DataBundle } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
-import {
+  import {
   ArrowLeft,
   Smartphone,
   CheckCircle,
@@ -228,9 +224,9 @@ export default function DataOrderPage() {
   // Refresh wallet balance
   const refreshWalletBalance = async (agentId: string) => {
     try {
-      const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-      const approvedWalletBalance = await calculateWalletBalance(agentId)
-      setWalletBalance(approvedWalletBalance)
+      const { getAgentDisplayBalances } = await import("@/lib/agent-display-balances")
+      const balances = await getAgentDisplayBalances(agentId)
+      setWalletBalance(balances.wallet_balance)
     } catch (error) {
       console.error("Error refreshing wallet balance:", error)
     }
@@ -249,11 +245,11 @@ export default function DataOrderPage() {
 
       if (bundlesError) throw bundlesError
 
-      const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-      const approvedWalletBalance = await calculateWalletBalance(agentId)
+      const { getAgentDisplayBalances } = await import("@/lib/agent-display-balances")
+      const balances = await getAgentDisplayBalances(agentId)
 
       setDataBundles(bundlesData || [])
-      setWalletBalance(approvedWalletBalance)
+      setWalletBalance(balances.wallet_balance)
 
       const saved = loadDataOrderState()
       if (saved) {
@@ -265,9 +261,9 @@ export default function DataOrderPage() {
             setRecipientPhone(saved.recipientPhone)
             setPaymentMethod(saved.paymentMethod)
             setGeneratedReference(saved.generatedReference)
-            if (saved.paymentMethod === "wallet" && approvedWalletBalance < bundle.price) {
+            if (saved.paymentMethod === "wallet" && balances.wallet_balance < bundle.price) {
               setError(
-                `Insufficient wallet balance. You need GH₵ ${bundle.price.toFixed(2)} but have GH₵ ${approvedWalletBalance.toFixed(2)}`,
+                `Insufficient wallet balance. You need GH₵ ${bundle.price.toFixed(2)} but have GH₵ ${balances.wallet_balance.toFixed(2)}`,
               )
             }
           }
@@ -398,16 +394,16 @@ export default function DataOrderPage() {
     setSubmitting(true)
     try {
       if (paymentMethod === "wallet") {
-        const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-        const approvedWalletBalance = await calculateWalletBalance(agent.id)
+        const { getAgentDisplayBalances } = await import("@/lib/agent-display-balances")
+        const balances = await getAgentDisplayBalances(agent.id)
 
-        if (approvedWalletBalance < selectedBundle.price) {
+        if (balances.wallet_balance < selectedBundle.price) {
           throw new Error(
             "Insufficient approved wallet balance. Please ensure your wallet top-up has been approved by admin.",
           )
         }
 
-        const newBalance = approvedWalletBalance - selectedBundle.price
+        const newBalance = balances.wallet_balance - selectedBundle.price
 
         const { data: deductionTransaction, error: deductionError } = await supabase
           .from("wallet_transactions")

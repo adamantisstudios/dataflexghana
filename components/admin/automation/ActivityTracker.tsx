@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Activity, Search, Calendar, Users, AlertTriangle, CheckCircle, XCircle } from "lucide-react"
-import { supabase, type Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent } from "@/lib/supabase";
 import { toast } from "sonner"
 
 interface ActivityData extends Agent {

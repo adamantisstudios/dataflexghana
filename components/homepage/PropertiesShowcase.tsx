@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Building2, MapPin, Bed, Bath, Square, ArrowRight, Home, MessageCircle, Phone } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import Link from "next/link"
 

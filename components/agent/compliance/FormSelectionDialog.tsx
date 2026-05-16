@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FileText, Building2, Baby, CreditCard, Handshake, Wallet, X } from "lucide-react"
-import type { ComplianceForm } from "@/lib/supabase"
+import type { ComplianceForm  } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 
 interface FormSelectionDialogProps {
   open: boolean

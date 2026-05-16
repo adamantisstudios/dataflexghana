@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -16,9 +16,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { supabase, hashPassword, type Agent } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase-client";
+import { hashPassword } from "@/lib/supabase";
+import type { Agent } from "@/lib/supabase";
 import { getCurrentAdmin } from "@/lib/auth";
-import {
+  import {
   Check,
   Trash2,
   RotateCcw,
@@ -33,8 +35,7 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
-import { getAgentCommissionSummary } from "@/lib/commission-earnings";
-import { calculateWalletBalance } from "@/lib/earnings-calculator";
+import { getAgentDisplayBalances } from "@/lib/agent-display-balances";
 import { exportAgentsToCsv, fetchAllAgentsWithPagination } from "@/lib/csv-export";
 import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton";
 import { connectionManager } from "@/lib/connection-manager";
@@ -101,17 +102,15 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       try {
         for (const agent of agentsNeedingEarnings) {
           try {
-            const liveWalletBalance = await calculateWalletBalance(agent.id);
-            const commissionSummary = await getAgentCommissionSummary(agent.id);
-            const availableCommissions = commissionSummary.availableForWithdrawal;
+            const balances = await getAgentDisplayBalances(agent.id);
 
             setAgents((prev) => {
               const updated = prev.map((a) =>
                 a.id === agent.id
                   ? {
                       ...a,
-                      wallet_balance: liveWalletBalance,
-                      commission_balance: availableCommissions,
+                      wallet_balance: balances.wallet_balance,
+                      commission_balance: balances.commission_balance,
                     }
                   : a
               );
@@ -294,8 +293,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
         const agentsForExport = await Promise.all(
           allAgents.map(async (agent) => {
             try {
-              const walletBalance = await calculateWalletBalance(agent.id);
-              const commissionSummary = await getAgentCommissionSummary(agent.id);
+              const balances = await getAgentDisplayBalances(agent.id);
               return {
                 id: agent.id,
                 full_name: agent.full_name || "N/A",
@@ -304,8 +302,8 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                 region: agent.region || "N/A",
                 created_at: agent.created_at,
                 isapproved: agent.isapproved,
-                wallet_balance: walletBalance,
-                commission_balance: commissionSummary.availableForWithdrawal || 0,
+                wallet_balance: balances.wallet_balance,
+                commission_balance: balances.commission_balance,
               };
             } catch (err) {
               console.warn("Error fetching balances for agent:", agent.id, err);

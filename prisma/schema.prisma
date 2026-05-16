@@ -1,0 +1,11 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Run `npx prisma db pull` when DATABASE_URL points at your Supabase Postgres
+// to generate full models. The generic /api/db/[table] route maps table names
+// to Prisma delegates (snake_case model names matching table names).

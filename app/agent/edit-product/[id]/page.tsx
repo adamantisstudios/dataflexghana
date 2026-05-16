@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { getStoredAgent } from "@/lib/agent-auth"
 import { WHOLESALE_CATEGORIES } from "@/lib/wholesale"
 import { uploadWholesaleProductImage } from "@/lib/wholesale-image-upload"

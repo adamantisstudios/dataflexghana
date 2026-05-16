@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogOut, AlertCircle, MessageSquare, Eye, Users } from "lucide-react"
 import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { BackToTop } from "@/components/back-to-top"
 import { CommentThread } from "@/components/teaching/CommentThread"
 import { WhatsAppPromoNotification } from "@/components/teaching/whatsapp-promo-notification"
 import { toast } from "sonner"
-import {
+  import {
   checkChannelMembership,
   logMembershipDiagnostic,
   getChannelPostsForMember,

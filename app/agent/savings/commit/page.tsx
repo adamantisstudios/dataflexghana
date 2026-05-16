@@ -5,11 +5,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, PiggyBank } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { BackToTop } from "@/components/back-to-top"
 import SavingsCommitmentForm from "@/components/agent/savings/SavingsCommitmentForm"
 import { getStoredAgent, type Agent } from "@/lib/unified-auth-system"
-import { calculateWalletBalance } from "@/lib/earnings-calculator"
+import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
 import { toast } from "sonner"
 
 interface SavingsPlan {
@@ -55,7 +55,8 @@ export default function SavingsCommitPage() {
         }
 
         try {
-          const balance = await calculateWalletBalance(storedAgent.id)
+          const balances = await getAgentDisplayBalances(storedAgent.id)
+          const balance = balances.wallet_balance
           setRealTimeWalletBalance(balance)
         } catch (err) {
           console.error("Error calculating wallet balance:", err)

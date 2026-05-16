@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge"
 import { RichTextRenderer } from "@/components/ui/rich-text-renderer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { supabase, type Service, type DataBundle, type Job } from "@/lib/supabase"
-import {
+import { supabase } from "@/lib/supabase-client";
+import type { Service, DataBundle, Job } from "@/lib/supabase";
+  import {
   PLATFORM_CONFIG,
   getJoiningFeeFormatted,
   getPlatformName,
@@ -19,8 +20,8 @@ import { WhatsAppWidget } from "@/components/whatsapp-widget"
 import { BackToTop } from "@/components/back-to-top"
 import { HeroSlider } from "@/components/hero-slider"
 import WholesaleProductSlider from "@/components/WholesaleProductSlider"
-import { ProtectedLink } from "@/components/protected-link"
-import {
+import { ProtectedLink } from "@/components/protected-link";
+  import {
   Users,
   Shield,
   Clock,
@@ -178,15 +179,14 @@ export default function HomePage() {
 
   const loadData = async () => {
     try {
-      const { supabaseJobs } = await import("@/lib/supabase-client-jobs")
-      const [servicesData, jobsData] = await Promise.all([
+      const { fetchJobsFromApi } = await import("@/lib/jobs-api")
+      const [servicesData, jobsList] = await Promise.all([
         supabase.from("services").select("*").order("created_at", { ascending: false }),
-        supabaseJobs.from("jobs").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(5),
+        fetchJobsFromApi({ active: true, limit: 5 }),
       ])
       // @ts-ignore
       setServices(servicesData.data || [])
-      // @ts-ignore
-      setJobs(jobsData.data || [])
+      setJobs(jobsList)
     } catch (error) {
       console.error("Error loading data:", error)
     } finally {

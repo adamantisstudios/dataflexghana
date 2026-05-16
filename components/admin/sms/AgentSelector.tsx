@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
+  import {
   Select,
   SelectContent,
   SelectItem,
@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Search, Filter, ChevronDown, ChevronUp, Edit2 } from "lucide-react"
-import { supabase, type Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent } from "@/lib/supabase";   // keep original type import if that's where it was
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface SelectedAgentWithPhone extends Agent {

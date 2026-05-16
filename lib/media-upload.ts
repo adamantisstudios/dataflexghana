@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { getStoredAgent } from "@/lib/agent-auth"
 
 export interface UploadProgress {

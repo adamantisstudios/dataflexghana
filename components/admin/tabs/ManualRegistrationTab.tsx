@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
-import {
+  import {
   UserPlus,
   CheckCircle,
   AlertTriangle,
@@ -24,7 +24,8 @@ import {
   Settings,
   X,
 } from "lucide-react"
-import { supabase, hashPassword } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import { hashPassword } from "@/lib/supabase";
 
 const regions = [
   "Greater Accra",

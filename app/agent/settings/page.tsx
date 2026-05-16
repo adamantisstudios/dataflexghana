@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,7 +17,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { supabase, hashPassword, verifyPassword, type Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import { hashPassword, verifyPassword } from "@/lib/supabase";
+import type { Agent } from "@/lib/supabase";
 import { ArrowLeft, Eye, EyeOff, Trash2, Key, User, Shield, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 

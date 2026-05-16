@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { X, MessageCircle, Heart, Share2, Bookmark } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 
 interface YouTubeVideoPreviewModalProps {

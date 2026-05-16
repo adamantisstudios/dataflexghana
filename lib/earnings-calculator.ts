@@ -1,5 +1,10 @@
-import { supabase } from "./supabase"
+import { getAdminClient } from "./supabase-base"
 import { calculateExactCommission } from "./commission-calculator"
+
+/** Server-side DB access for earnings (service role). */
+function getDb() {
+  return getAdminClient()
+}
 
 /**
  * UNIFIED EARNINGS CALCULATION UTILITIES - ENHANCED FIXED VERSION
@@ -56,6 +61,20 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
     return 0
   }
 
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch(
+        `/api/admin/wallet?agent_id=${encodeURIComponent(agentId)}&action=summary`,
+        { cache: "no-store" }
+      )
+      const json = await res.json()
+      if (!json.success) return 0
+      return Number(json.data?.balance ?? 0)
+    } catch {
+      return 0
+    }
+  }
+
   try {
     console.log(`🔍 Calculating APPROVED SPENDABLE wallet balance for agent: ${agentId}`)
 
@@ -65,7 +84,7 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
 
     try {
       // CRITICAL FIX: Only get APPROVED transactions, explicitly exclude pending/rejected
-      const { data: transactions, error } = await supabase
+      const { data: transactions, error } = await getDb()
         .from("wallet_transactions")
         .select("transaction_type, amount, status")
         .eq("agent_id", agentId)
@@ -149,7 +168,7 @@ async function calculateWalletBalanceDirectQuery(agentId: string): Promise<numbe
     console.log("Using direct table query for wallet balance calculation")
 
     // CRITICAL FIX: Direct query to calculate balance from transactions
-    const { data: transactions, error } = await supabase
+    const { data: transactions, error } = await getDb()
       .from("wallet_transactions")
       .select("transaction_type, amount, status")
       .eq("agent_id", agentId)
@@ -213,7 +232,7 @@ async function calculateWalletBalanceComprehensiveFallback(agentId: string): Pro
     console.log("Using comprehensive fallback calculation for wallet balance")
 
     // CRITICAL FIX: Get all wallet transactions for the agent
-    const { data: transactions, error: transactionsError } = await supabase
+    const { data: transactions, error: transactionsError } = await getDb()
       .from("wallet_transactions")
       .select("*")
       .eq("agent_id", agentId)
@@ -281,7 +300,7 @@ async function calculateWalletBalanceManualFallback(agentId: string): Promise<nu
     console.log("Using manual fallback calculation for wallet balance")
 
     // CRITICAL FIX: Try to get balance from agent record first
-    const { data: agentData, error: agentError } = await supabase
+    const { data: agentData, error: agentError } = await getDb()
       .from("agents")
       .select("wallet_balance")
       .eq("id", agentId)
@@ -294,7 +313,7 @@ async function calculateWalletBalanceManualFallback(agentId: string): Promise<nu
     }
 
     // CRITICAL FIX: If agent record doesn't have balance, calculate from basic transactions
-    const { data: basicTransactions, error: basicError } = await supabase
+    const { data: basicTransactions, error: basicError } = await getDb()
       .from("wallet_transactions")
       .select("amount, transaction_type")
       .eq("agent_id", agentId)
@@ -354,7 +373,7 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
     const walletBalance = await calculateWalletBalance(agentId)
 
     // CRITICAL FIX: Get transaction summary with better error handling
-    const { data: transactions, error: transactionsError } = await supabase
+    const { data: transactions, error: transactionsError } = await getDb()
       .from("wallet_transactions")
       .select("*")
       .eq("agent_id", agentId)
@@ -460,7 +479,7 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
 export async function calculateAgentCommission(agentId: string) {
   try {
     // Get all data orders for the agent
-    const { data: dataOrders, error: dataOrdersError } = await supabase
+    const { data: dataOrders, error: dataOrdersError } = await getDb()
       .from("data_orders")
       .select(`
         *,
@@ -475,7 +494,7 @@ export async function calculateAgentCommission(agentId: string) {
     }
 
     // Get all referrals for the agent
-    const { data: referrals, error: referralsError } = await supabase
+    const { data: referrals, error: referralsError } = await getDb()
       .from("referrals")
       .select(`
         *,
@@ -541,7 +560,7 @@ export async function calculateWithdrawalAmounts(agentId: string): Promise<{
   totalPaidOut: number
 }> {
   try {
-    const { data: withdrawals, error } = await supabase
+    const { data: withdrawals, error } = await getDb()
       .from("withdrawals")
       .select("amount, status")
       .eq("agent_id", agentId)
@@ -647,19 +666,19 @@ export async function calculateMonthlyStatistics(agentId: string) {
 
     // Get counts for this month (for display purposes)
     const [referralsCount, dataOrdersCount, wholesaleCount] = await Promise.all([
-      supabase
+      getDb()
         .from("referrals")
         .select("id", { count: "exact" })
         .eq("agent_id", agentId)
         .gte("created_at", startOfMonth.toISOString())
         .lte("created_at", endOfMonth.toISOString()),
-      supabase
+      getDb()
         .from("data_orders")
         .select("id", { count: "exact" })
         .eq("agent_id", agentId)
         .gte("created_at", startOfMonth.toISOString())
         .lte("created_at", endOfMonth.toISOString()),
-      supabase
+      getDb()
         .from("wholesale_orders")
         .select("id", { count: "exact" })
         .eq("agent_id", agentId)
@@ -716,7 +735,7 @@ export async function getUnifiedTransactionHistory(agentId: string, limit = 50):
 
   try {
     // Get wallet transactions with better error handling
-    const { data: walletTransactions, error: walletError } = await supabase
+    const { data: walletTransactions, error: walletError } = await getDb()
       .from("wallet_transactions")
       .select("*")
       .eq("agent_id", agentId)
@@ -762,6 +781,26 @@ export async function batchCalculateAgentEarnings(agentIds: string[]): Promise<M
   if (!agentIds || agentIds.length === 0) {
     console.log("No agent IDs provided for batch calculation")
     return earningsMap
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/admin/agents/batch-earnings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentIds }),
+      })
+      const json = await res.json()
+      if (json.earnings) {
+        Object.entries(json.earnings as Record<string, EarningsData>).forEach(([id, data]) => {
+          earningsMap.set(id, data)
+        })
+      }
+      return earningsMap
+    } catch (error) {
+      console.error("Batch earnings API error:", error)
+      return earningsMap
+    }
   }
 
   console.log(`🔄 Batch calculating earnings for ${agentIds.length} agents`)
@@ -842,7 +881,7 @@ export async function createWithdrawalDeduction(
     console.log(`🔄 Creating withdrawal deduction for agent ${agentId}: ${amount}`)
 
     // Create a withdrawal deduction transaction
-    const { data, error } = await supabase
+    const { data, error } = await getDb()
       .from("wallet_transactions")
       .insert({
         agent_id: agentId,
@@ -902,7 +941,7 @@ export async function createAdminReversal(
     console.log(`🔄 Creating admin reversal for agent ${agentId}, original transaction: ${originalTransactionId}`)
 
     // Get the original transaction details
-    const { data: originalTransaction, error: fetchError } = await supabase
+    const { data: originalTransaction, error: fetchError } = await getDb()
       .from("wallet_transactions")
       .select("*")
       .eq("id", originalTransactionId)
@@ -923,7 +962,7 @@ export async function createAdminReversal(
     }
 
     // Create the reversal transaction
-    const { data, error } = await supabase
+    const { data, error } = await getDb()
       .from("wallet_transactions")
       .insert({
         agent_id: agentId,
@@ -986,7 +1025,7 @@ export async function createAdminAdjustment(
     console.log(`🔄 Creating admin adjustment for agent ${agentId}: ${isPositive ? "+" : "-"}${amount}`)
 
     // Create the adjustment transaction
-    const { data, error } = await supabase
+    const { data, error } = await getDb()
       .from("wallet_transactions")
       .insert({
         agent_id: agentId,

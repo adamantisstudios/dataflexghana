@@ -8,10 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { supabase, type Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent } from "@/lib/supabase";
 import { createSafeWalletTransactionWithRef } from "@/lib/wallet-transaction-types"
 import { getStoredAdmin } from "@/lib/auth"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -19,7 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -27,7 +28,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import {
+  import {
   Wallet,
   Search,
   Filter,
@@ -1220,7 +1221,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                             {transaction.transaction_type === "topup" || transaction.transaction_type === "refund"
                               ? "+"
                               : "-"}
-                            GH₵ {transaction.amount.toFixed(2)}
+                            {"GH₵ "}
+                            {transaction.amount.toFixed(2)}
                           </span>
                         </p>
                         <p className="text-emerald-600">

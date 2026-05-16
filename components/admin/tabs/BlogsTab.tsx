@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
+  import {
   FileText,
   Plus,
   Edit,
@@ -32,7 +32,7 @@ import {
   Heading2,
   Heading3,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 import { toast } from "sonner"
 

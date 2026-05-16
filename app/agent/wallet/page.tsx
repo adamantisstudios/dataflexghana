@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -19,9 +19,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { supabase, type Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
-import { calculateWalletBalance } from "@/lib/earnings-calculator"
+import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
+import { getUnifiedTransactionHistory } from "@/lib/earnings-calculator"
 
 // Extend Window interface for timeout property
 declare global {
@@ -198,23 +200,11 @@ export default function WalletPage() {
     try {
       console.log("[v0] Loading wallet data for agent:", agentId)
 
-      const { getAgentCommissionSummary } = await import("@/lib/commission-earnings")
-      const { calculateWalletBalance, getUnifiedTransactionHistory } = await import("@/lib/earnings-calculator")
-
-      // CRITICAL FIX: Use the same calculation method as dashboard and withdraw pages
-      const [commissionSummary, walletBalance, transactionHistory] = await Promise.allSettled([
-        getAgentCommissionSummary(agentId),
-        calculateWalletBalance(agentId),
+      const [balancesResult, transactionHistory] = await Promise.allSettled([
+        getAgentDisplayBalances(agentId),
         getUnifiedTransactionHistory(agentId),
       ])
 
-      console.log("[v0] Promise.allSettled results:", {
-        commissionSummaryStatus: commissionSummary.status,
-        walletBalanceStatus: walletBalance.status,
-        transactionHistoryStatus: transactionHistory.status,
-      })
-
-      // Process results with validation
       let finalBalance = 0
       let finalSummary = {
         walletBalance: 0,
@@ -227,43 +217,22 @@ export default function WalletPage() {
         lastTransactionDate: null,
       }
 
-      if (commissionSummary.status === "fulfilled") {
-        const summary = commissionSummary.value
+      if (balancesResult.status === "fulfilled") {
+        const balances = balancesResult.value
+        finalBalance = balances.wallet_balance
         finalSummary = {
-          walletBalance: walletBalance.status === "fulfilled" ? walletBalance.value : 0,
+          walletBalance: balances.wallet_balance,
           totalTopups: 0,
-          totalCommissions: summary.totalCommissions || 0,
-          availableCommissions: summary.availableForWithdrawal || 0,
-          totalWithdrawals: summary.totalPaidOut || 0,
+          totalCommissions: balances.total_commission_earned,
+          availableCommissions: balances.commission_balance,
+          totalWithdrawals: balances.total_paid_out,
           totalDeductions: 0,
-          pendingTransactions: summary.pendingPayout || 0,
+          pendingTransactions: balances.pending_payout,
           lastTransactionDate: null,
         }
-        finalBalance = finalSummary.walletBalance
-        console.log("[v0] Wallet data synchronized:", finalSummary)
+        console.log("[v0] Wallet data synchronized (Agents tab method):", finalSummary)
       } else {
-        console.warn("[v0] Commission summary failed, using fallback:", commissionSummary.reason)
-        // Try fallback method
-        try {
-          const { data: agentData, error: agentError } = await supabase
-            .from("agents")
-            .select("wallet_balance, totalcommissions, totalpaidout")
-            .eq("id", agentId)
-            .single()
-
-          if (!agentError && agentData) {
-            finalBalance = Number(agentData.wallet_balance) || 0
-            finalSummary.walletBalance = finalBalance
-            finalSummary.totalCommissions = Number(agentData.totalcommissions) || 0
-            finalSummary.availableCommissions = Math.max(
-              (Number(agentData.totalcommissions) || 0) - (Number(agentData.totalpaidout) || 0),
-              0,
-            )
-            console.log("[v0] Using stored agent data fallback:", finalSummary)
-          }
-        } catch (fallbackError) {
-          console.warn("[v0] Fallback failed:", fallbackError)
-        }
+        console.warn("[v0] Display balances failed:", balancesResult.reason)
       }
 
       let finalTransactionHistory: any[] = []
@@ -344,7 +313,7 @@ export default function WalletPage() {
       console.log("[v0] Fallback loaded", transactions.length, "transactions")
       setTransactions(transactions)
 
-      const balance = await calculateWalletBalance(agentId).catch(() => {
+      const balance = await getAgentDisplayBalances(agentId).then((b) => b.wallet_balance).catch(() => {
         let manualBalance = 0
         transactions.forEach((transaction) => {
           if (transaction.status === "approved") {
@@ -411,23 +380,17 @@ export default function WalletPage() {
     if (!agent) return
 
     try {
-      const { getAgentCommissionSummary } = await import("@/lib/commission-earnings")
-      const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
+      const balances = await getAgentDisplayBalances(agent.id)
 
-      const [commissionSummary, walletBalance] = await Promise.all([
-        getAgentCommissionSummary(agent.id),
-        calculateWalletBalance(agent.id),
-      ])
-
-      setWalletBalance(walletBalance)
+      setWalletBalance(balances.wallet_balance)
       setWalletSummary({
-        walletBalance: walletBalance,
+        walletBalance: balances.wallet_balance,
         totalTopups: 0,
-        totalCommissions: commissionSummary.totalCommissions,
-        availableCommissions: commissionSummary.availableForWithdrawal, // Use availableForWithdrawal for accurate withdrawal amount display
-        totalWithdrawals: commissionSummary.totalPaidOut,
+        totalCommissions: balances.total_commission_earned,
+        availableCommissions: balances.commission_balance,
+        totalWithdrawals: balances.total_paid_out,
         totalDeductions: 0,
-        pendingTransactions: commissionSummary.pendingPayout,
+        pendingTransactions: balances.pending_payout,
         lastTransactionDate: null,
       })
     } catch (error) {

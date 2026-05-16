@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
-import {
+import { supabase } from "@/lib/supabase-client";
+  import {
   CreditCard,
   CheckCircle,
   AlertCircle,
@@ -132,7 +132,7 @@ Reference Code: *${manualCode}*
 
 Thank you!`;
 
-      window.open(`https://wa.me/233242799990?text=${encodeURIComponent(message)}`, "_blank");
+      window.open(`https://wa.me/233246827049?text=${encodeURIComponent(message)}`, "_blank");
       setShowManualDialog(false);
       toast.success("✅ WhatsApp opened! Admin will register your account. Check back soon to login.");
 

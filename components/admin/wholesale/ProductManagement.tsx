@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-import { supabase } from "@/lib/supabase" // Declare the supabase variable here
-
 import { useState, useEffect, useCallback } from "react"
+import { supabase } from "@/lib/supabase-client";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -23,7 +22,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { ImageModal } from "@/components/ui/image-modal"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
@@ -33,7 +32,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { Plus, Edit, Trash2, Package, Star, Search, Filter, Upload, X, CheckCircle, AlertCircle, Download } from "lucide-react"
-import {
+  import {
   type WholesaleProduct,
   WHOLESALE_CATEGORIES,
   createWholesaleProduct,

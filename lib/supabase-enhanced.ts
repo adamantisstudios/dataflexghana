@@ -304,10 +304,7 @@ class EnhancedSupabaseClient {
 }
 
 // Export enhanced client instance using singleton pattern
-export const enhancedSupabase = EnhancedSupabaseClient.getInstance()
-
-// Export the client directly for backward compatibility
-export const supabase = enhancedSupabase
+export const supabase = EnhancedSupabaseClient.getInstance()
 
 // Export the class for advanced usage
 export { EnhancedSupabaseClient }

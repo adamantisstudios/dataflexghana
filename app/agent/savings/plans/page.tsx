@@ -7,7 +7,7 @@ import Link from "next/link"
 import { BackToTop } from "@/components/back-to-top"
 import SavingsPlansSelector from "@/components/agent/savings/SavingsPlansSelector"
 import { getStoredAgent, type Agent } from "@/lib/unified-auth-system"
-import { calculateWalletBalance } from "@/lib/earnings-calculator"
+import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
 
 export default function SavingsPlansPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -29,7 +29,8 @@ export default function SavingsPlansPage() {
         setAgent(storedAgent)
 
         try {
-          const balance = await calculateWalletBalance(storedAgent.id)
+          const balances = await getAgentDisplayBalances(storedAgent.id)
+          const balance = balances.wallet_balance
           setRealTimeWalletBalance(balance)
         } catch (error) {
           console.error("Error calculating wallet balance:", error)

@@ -8,10 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { FileText, Eye, RefreshCw, Package, Loader2, Download, Copy, FileJson, User, Clock, CreditCard } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { realtimeManager } from "@/lib/realtime-manager"
 import { toast } from "sonner"
-import {
+  import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,

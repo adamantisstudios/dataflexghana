@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Eye, Clock, CheckCircle, Truck, AlertCircle, FileText, Download, MessageSquare, Send } from "lucide-react"
-import { supabase, type FormSubmission } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { FormSubmission } from "@/lib/supabase";
 import { format } from "date-fns"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"

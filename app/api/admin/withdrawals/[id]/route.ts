@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { completeWithdrawal, cancelWithdrawal } from "@/lib/commission-earnings"
 import { authenticateAdmin } from "@/lib/api-auth"
 

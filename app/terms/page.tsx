@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import {
+  import {
   ShieldCheck,
   FileText,
   Lock,
@@ -51,7 +51,7 @@ import {
   Twitter,
   Instagram,
   MapPin,
-} from "lucide-react";
+} from "lucide-react"
 import Image from "next/image";
 import Link from "next/link"
 import { ProtectedLink } from "@/components/protected-link";

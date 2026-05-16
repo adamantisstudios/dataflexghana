@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { withAdminAuth } from "@/lib/api-auth" // added admin auth
 
 export const GET = withAdminAuth(async (request: NextRequest, admin: any) => {

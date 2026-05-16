@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -13,7 +13,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import {
+  import {
   Building2,
   MapPin,
   Bed,
@@ -30,8 +30,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
-import type { Agent } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
+import type { Agent  } from "@/lib/supabase"
 import type { Property } from "../../../app/agent/properties/page"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { PropertyDescription } from "@/components/ui/property-description"

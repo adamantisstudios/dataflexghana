@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -13,7 +13,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 import { Search, Filter, Phone, Mail, Clock, CheckCircle, XCircle, User, Home } from "lucide-react"
 

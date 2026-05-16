@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase-client";
 import { getAdminClient } from "./supabase-base"
 
 // Utility functions for URL detection and validation

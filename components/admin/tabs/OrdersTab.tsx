@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
+  import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import {
+  import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -23,16 +23,16 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { supabase, type DataOrder } from "@/lib/supabase"
-import { enhancedSupabase } from "@/lib/supabase-enhanced"
-import { useOptimisticOrderUpdate } from "@/hooks/use-optimistic-updates"
+import { supabase } from "@/lib/supabase-client";
+import type { DataOrder } from "@/lib/supabase";
+import { useOptimisticOrderUpdate } from "@/hooks/use-optimistic-updates"	
 import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton"
 import { realtimeManager } from "@/lib/realtime-manager"
 import { connectionManager } from "@/lib/connection-manager"
 import { getStoredAdmin } from "@/lib/auth"
 import OrderCleanupDialog from "@/components/admin/OrderCleanupDialog"
 import { safeCommissionDisplay } from "@/lib/commission-calculator"
-import {
+  import {
   Search,
   Filter,
   MessageCircle,
@@ -223,7 +223,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         try {
           let result
           try {
-            result = await enhancedSupabase
+            result = await supabase
               .from("data_orders")
               .select(
                 `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
@@ -232,7 +232,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
               .order("created_at", { ascending: false })
           } catch (columnError) {
             console.warn("admin_hidden column not found, querying without filter:", columnError)
-            result = await enhancedSupabase
+            result = await supabase
               .from("data_orders")
               .select(
                 `*, agents (full_name, phone_number), data_bundles!fk_data_orders_bundle_id (name, provider, size_gb, price, commission_rate, validity_days)`,
@@ -407,7 +407,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       }
       let error
       try {
-        const result = await enhancedSupabase.from("data_orders").delete().eq("id", orderId)
+        const result = await supabase.from("data_orders").delete().eq("id", orderId)
         error = result.error
       } catch (enhancedError) {
         console.warn("Enhanced Supabase client failed for delete, falling back to regular client:", enhancedError)
@@ -444,7 +444,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       }
       let error
       try {
-        const result = await enhancedSupabase
+        const result = await supabase
           .from("data_orders")
           .update({ admin_message: adminMessage.trim() })
           .eq("id", selectedOrder.id)

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client";
 import { useAuth } from "@/hooks/use-auth"
 import { ArrowLeft, AlertCircle, Check, Lock, DollarSign } from "lucide-react"
 import { toast } from "sonner"

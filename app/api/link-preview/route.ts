@@ -1,9 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { isBlockedIP, CACHE_CONFIG } from "@/lib/link-preview-cache"
-import { supabaseAdmin } from "@/lib/supabase-admin"
-
-// Use singleton admin client for server-side link preview caching
-const supabase = supabaseAdmin
+import { supabaseAdmin as supabase } from "@/lib/supabase-admin";
 
 interface CachedPreview {
   id: string
