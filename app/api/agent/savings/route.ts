@@ -5,6 +5,7 @@ import { calculateWalletBalance } from "@/lib/earnings-calculator"
 
 // GET - Fetch agent's savings accounts
 export const GET = withUnifiedAuth(async (request: NextRequest, user: any) => {
+  const supabase = getAdminClient()
   try {
     const { searchParams } = new URL(request.url)
     const agentId = searchParams.get("agentId")

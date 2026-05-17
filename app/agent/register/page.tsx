@@ -220,7 +220,18 @@ export default function RegisterPage() {
         }
 
         if (referralCode) {
-          // ... (referral processing code unchanged)
+          try {
+            await fetch("/api/agent/referral/link-registration", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                referred_agent_id: newAgent.id,
+                referral_code: referralCode,
+              }),
+            })
+          } catch (referralErr) {
+            console.error("Referral link on registration:", referralErr)
+          }
         }
 
         // Clear payment verification and redirect to login for Paystack users

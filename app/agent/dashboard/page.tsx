@@ -228,7 +228,6 @@ export default function AgentDashboard() {
   const [dataBundlesFilter, setDataBundlesFilter] = useState("All Networks")
   const [jobSearchTerm, setJobSearchTerm] = useState("")
   const [jobsFilterAgent, setJobsFilterAgent] = useState("All Jobs")
-  const [showAgentDeactivationAlert, setShowAgentDeactivationAlert] = useState(false)
   const [showAgentPerformance, setShowAgentPerformance] = useState(false)
   const menuSectionRef = useRef<HTMLDivElement>(null)
   const smartWalletRef = useRef<HTMLDivElement>(null)
@@ -374,38 +373,6 @@ export default function AgentDashboard() {
     if (!shouldTruncateReferralDescription(text)) return text
     return expandedReferrals.has(referralId) ? text : getTruncatedReferralDescription(text)
   }
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout | null = null
-    const checkDeactivationStatus = async () => {
-      if (!agent?.id) return
-      try {
-        const { data: agentRow } = await supabase
-          .from("agents")
-          .select("auto_deactivated_at")
-          .eq("id", agent.id)
-          .single()
-        if (agentRow?.auto_deactivated_at) {
-          const lastShownKey = `deactivation_alert_shown_${agent.id}`
-          const lastShownDate = localStorage.getItem(lastShownKey)
-          const today = new Date().toDateString()
-          if (lastShownDate !== today) {
-            setShowAgentDeactivationAlert(true)
-            localStorage.setItem(lastShownKey, today)
-            timer = setTimeout(() => {
-              setShowAgentDeactivationAlert(false)
-            }, 8000)
-          }
-        }
-      } catch (error) {
-        console.error("Error checking agent status:", error)
-      }
-    }
-    checkDeactivationStatus()
-    return () => {
-      if (timer) clearTimeout(timer)
-    }
-  }, [agent?.id])
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -978,7 +945,7 @@ DataFlex Ghana Agent 🇬🇭`
     <div className="min-h-screen bg-slate-50 pb-20">
       <InactivityNotificationManager agentId={agent?.id} />
       <DashboardLoginNotification />
-      <AgentDashboardNotification />
+      <AgentDashboardNotification agentId={agent?.id} />
       {showDashboardAudioPlayer && (
         <FloatingAudioPlayer
           audioSrc="/agent_dashboard_intro.mp3"
@@ -988,22 +955,6 @@ DataFlex Ghana Agent 🇬🇭`
         />
       )}
       {showWhatsAppPopup && <WhatsAppChannelPopup onClose={() => setShowWhatsAppPopup(false)} />}
-      <Dialog open={showAgentDeactivationAlert} onOpenChange={setShowAgentDeactivationAlert}>
-        <DialogContent className="sm:max-w-md bg-amber-50 border-2 border-amber-200">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-900">
-              <AlertCircle className="h-5 w-5 text-amber-600" />
-              Account Status Update
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <p className="text-sm text-amber-800">
-              Your account has been deactivated due to inactivity. Place an order or buy a data bundle to reactivate
-              your account.
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
       {/* START: HERO SECTION WITH ADMIN PORTAL ACCESS - MOBILE OPTIMIZED */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg border-b border-slate-700">
         <div className="w-full max-w-full px-3 sm:px-4 py-3">

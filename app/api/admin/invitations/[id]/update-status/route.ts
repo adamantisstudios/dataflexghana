@@ -1,16 +1,8 @@
-import { createClient } from "@supabase/supabase-js"
 import { type NextRequest, NextResponse } from "next/server"
+import { getAdminClient } from "@/lib/supabase-base"
+import { creditReferringAgentForReferral } from "@/lib/referral-agent-program"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error("Missing Supabase environment variables")
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-})
+export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -20,31 +12,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (!status || !admin_id) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Status and admin_id are required",
-        },
+        { success: false, error: "Status and admin_id are required" },
         { status: 400 },
       )
     }
 
-    console.log("[v0] Updating invitation status:", id, "to", status, "by admin:", admin_id)
+    const db = getAdminClient()
 
-    const { data: existingCredit, error: fetchError } = await supabase
+    const { data: existingCredit, error: fetchError } = await db
       .from("referral_credits")
       .select("*")
       .eq("id", id)
       .single()
 
     if (fetchError || !existingCredit) {
-      console.error("[v0] Error fetching referral credit:", fetchError)
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Referral credit not found",
-        },
-        { status: 404 },
-      )
+      return NextResponse.json({ success: false, error: "Referral credit not found" }, { status: 404 })
     }
 
     const validTransitions: Record<string, string[]> = {
@@ -57,49 +39,59 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const allowedNextStatuses = validTransitions[existingCredit.status as string] || []
     if (!allowedNextStatuses.includes(status)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Cannot transition from ${existingCredit.status} to ${status}`,
-        },
+        { success: false, error: `Cannot transition from ${existingCredit.status} to ${status}` },
         { status: 400 },
       )
     }
 
-    const updateData: any = {
-      status: status,
+    if (status === "credited") {
+      const creditResult = await creditReferringAgentForReferral(id, admin_id)
+      if (!creditResult.success) {
+        return NextResponse.json({ success: false, error: creditResult.message }, { status: 500 })
+      }
+
+      const { data: updated } = await db.from("referral_credits").select("*").eq("id", id).single()
+
+      try {
+        await db.from("invitation_audit_log").insert({
+          admin_id,
+          referral_id: id,
+          action: "status_changed_to_credited",
+          created_at: new Date().toISOString(),
+        })
+      } catch {
+        /* audit optional */
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: updated,
+        message: creditResult.message,
+      })
     }
 
+    const updateData: Record<string, string> = { status }
     if (status === "confirmed") {
       updateData.confirmed_at = new Date().toISOString()
-    } else if (status === "credited") {
-      updateData.credited_at = new Date().toISOString()
     } else if (status === "paid_out") {
       updateData.paid_out_at = new Date().toISOString()
     }
 
-    const { data, error } = await supabase
-      .from("referral_credits")
-      .update(updateData)
-      .eq("id", id)
-      .select()
+    const { data, error } = await db.from("referral_credits").update(updateData).eq("id", id).select()
 
     if (error) {
-      console.error("[v0] Error updating referral credit:", error)
       throw error
     }
 
-    console.log("[v0] Invitation status updated successfully:", data)
-
     try {
-      await supabase.from("invitation_audit_log").insert({
+      await db.from("invitation_audit_log").insert({
         admin_id,
         referral_id: id,
         action: `status_changed_to_${status}`,
         created_at: new Date().toISOString(),
       })
-    } catch (logError) {
-      console.warn("[v0] Failed to create audit log:", logError)
-      // Don't fail the entire request if audit log fails
+    } catch {
+      /* audit optional */
     }
 
     return NextResponse.json({
@@ -108,12 +100,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       message: `Invitation status updated to ${status}`,
     })
   } catch (error) {
-    console.error("[v0] Error updating invitation:", error)
+    console.error("Error updating invitation:", error)
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to update invitation",
-      },
+      { success: false, error: error instanceof Error ? error.message : "Failed to update invitation" },
       { status: 500 },
     )
   }

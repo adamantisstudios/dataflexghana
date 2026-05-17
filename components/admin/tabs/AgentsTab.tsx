@@ -240,17 +240,30 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
   };
 
   const approveAgent = async (agentId: string) => {
+    const admin = getCurrentAdmin();
+    if (!admin?.id) {
+      alert("Admin session required. Please log in again.");
+      return;
+    }
     try {
-      const { error } = await supabase.from("agents").update({ isapproved: true }).eq("id", agentId);
-      if (error) throw error;
+      const response = await fetch(`/api/admin/agents/${agentId}/approve`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ admin_id: admin.id }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to approve agent");
+      }
       const updatedAgents = agents.map((agent) =>
-        agent.id === agentId ? { ...agent, isapproved: true } : agent
+        agent.id === agentId ? { ...agent, isapproved: true } : agent,
       );
       setAgents(updatedAgents);
       setCachedData?.(updatedAgents);
+      toast.success(result.data?.message || "Agent approved and credited ₵5");
     } catch (error) {
       console.error("Error approving agent:", error);
-      alert("Failed to approve agent");
+      alert(error instanceof Error ? error.message : "Failed to approve agent");
     }
   };
 

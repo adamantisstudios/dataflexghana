@@ -16,9 +16,11 @@ import {
   Download,
   RefreshCw,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  DollarSign,
 } from 'lucide-react'
 import Link from 'next/link'
+import { getAgentAuthHeaders } from '@/lib/agent-api-headers'
 
 interface SavingsAccount {
   id: string
@@ -31,12 +33,12 @@ interface SavingsAccount {
   progress: number
   daysRemaining: number
   isMatured: boolean
-  savings_plans: {
+  savings_plans?: {
     name: string
     description: string
     interest_rate: number
     duration_months: number
-  }
+  } | null
 }
 
 interface Transaction {
@@ -72,7 +74,9 @@ export default function SavingsProgressTracker({ savingsId, agentId }: SavingsPr
   const fetchSavingsDetails = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/agent/savings?agentId=${agentId}`)
+      const response = await fetch(`/api/agent/savings?agentId=${agentId}`, {
+        headers: getAgentAuthHeaders(),
+      })
       const data = await response.json()
 
       if (!response.ok) {
@@ -95,7 +99,10 @@ export default function SavingsProgressTracker({ savingsId, agentId }: SavingsPr
   const fetchTransactions = async () => {
     try {
       setTransactionsLoading(true)
-      const response = await fetch(`/api/agent/savings/transactions?agentId=${agentId}&savingsId=${savingsId}`)
+      const response = await fetch(
+        `/api/agent/savings/transactions?agentId=${agentId}&savingsId=${savingsId}`,
+        { headers: getAgentAuthHeaders() },
+      )
       const data = await response.json()
 
       if (!response.ok) {
@@ -119,13 +126,15 @@ export default function SavingsProgressTracker({ savingsId, agentId }: SavingsPr
 
   const calculateDailyInterest = () => {
     if (!savings) return 0
-    const dailyRate = savings.savings_plans.interest_rate / 100 / 365
+    const rate = savings.savings_plans?.interest_rate ?? 0
+    const dailyRate = rate / 100 / 365
     return savings.current_balance * dailyRate
   }
 
   const calculateMonthlyProjection = () => {
     if (!savings) return 0
-    const monthlyRate = savings.savings_plans.interest_rate / 100 / 12
+    const rate = savings.savings_plans?.interest_rate ?? 0
+    const monthlyRate = rate / 100 / 12
     return savings.current_balance * monthlyRate
   }
 
@@ -187,8 +196,8 @@ export default function SavingsProgressTracker({ savingsId, agentId }: SavingsPr
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{savings.savings_plans.name}</h1>
-          <p className="text-muted-foreground">{savings.savings_plans.description}</p>
+          <h1 className="text-2xl font-bold">{savings.savings_plans?.name ?? "Savings Plan"}</h1>
+          <p className="text-muted-foreground">{savings.savings_plans?.description ?? ""}</p>
         </div>
         <Badge className={getStatusColor(savings.status)}>
           {savings.status === 'active' ? 'Active' : 
@@ -220,7 +229,7 @@ export default function SavingsProgressTracker({ savingsId, agentId }: SavingsPr
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{formatCurrency(savings.interest_earned)}</div>
             <p className="text-xs text-muted-foreground">
-              {savings.savings_plans.interest_rate}% p.a.
+              {savings.savings_plans?.interest_rate ?? 0}% p.a.
             </p>
           </CardContent>
         </Card>
@@ -281,7 +290,7 @@ export default function SavingsProgressTracker({ savingsId, agentId }: SavingsPr
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-700">Days Elapsed</p>
                 <p className="text-2xl font-bold text-blue-900">
-                  {Math.round((100 - savings.progress) / 100 * (savings.savings_plans.duration_months * 30))}
+                  {Math.round((100 - savings.progress) / 100 * ((savings.savings_plans?.duration_months ?? 0) * 30))}
                 </p>
               </div>
               <div className="text-center p-4 bg-green-50 rounded-lg">
