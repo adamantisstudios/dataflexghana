@@ -36,6 +36,7 @@ import { AgentBenefitsSlideup } from "@/components/no-registration/agent-benefit
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 
 export default function NoRegistrationPage() {
   const searchParams = useSearchParams();
@@ -736,6 +737,7 @@ export default function NoRegistrationPage() {
       </section>
 
       <Footer />
+      <PwaInstallPrompt variant="dataflex" />
     </main>
   );
 }

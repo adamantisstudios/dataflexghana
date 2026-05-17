@@ -60,6 +60,7 @@ import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
 import { AgentMenuCards } from "@/components/agent/AgentMenuCards"
 import { SecurityNoticeBanner, LegalFooterLinks } from "@/components/legal/SecurityNotice"
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
   import {
   Dialog,
   DialogContent,
@@ -3035,6 +3036,8 @@ DataFlex Ghana Agent 🇬🇭`
         onIndexChange={handleModalIndexChange}
         alt={modalImageAlt}
       />
+
+      <PwaInstallPrompt variant="dataflex" />
     </div>
   )
 }

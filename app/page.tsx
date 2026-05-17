@@ -18,6 +18,7 @@ import type { Service, DataBundle, Job } from "@/lib/supabase";
 import { Footer } from "@/components/footer"
 import { WhatsAppWidget } from "@/components/whatsapp-widget"
 import { BackToTop } from "@/components/back-to-top"
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 import { HeroSlider } from "@/components/hero-slider"
 import WholesaleProductSlider from "@/components/WholesaleProductSlider"
 import { ProtectedLink } from "@/components/protected-link";
@@ -1843,6 +1844,7 @@ export default function HomePage() {
       <Footer />
       <WhatsAppWidget />
       <BackToTop />
+      <PwaInstallPrompt variant="dataflex" />
     </div>
   )
 }

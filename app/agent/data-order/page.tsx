@@ -40,6 +40,8 @@ import { getCurrentAgent } from "@/lib/auth"
   X,
   Clock,
   AlertCircle,
+  Plus,
+  Trash2,
 } from "lucide-react"
 import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence"
 import { useDataOrderPersistence } from "@/hooks/use-data-order-persistence"
@@ -78,6 +80,14 @@ export default function DataOrderPage() {
   const [persistedOrder, setPersistedOrder] = useState<DataOrderState | null>(null)
   const [showDuplicateNotification, setShowDuplicateNotification] = useState(false)
   const [duplicateCheckResult, setDuplicateCheckResult] = useState<DuplicateCheckResult | null>(null)
+
+  const [orderMode, setOrderMode] = useState<"single" | "bulk">("single")
+  type BulkCartLine = { lineId: string; bundle: DataBundle; recipientPhone: string }
+  const [bulkCart, setBulkCart] = useState<BulkCartLine[]>([])
+  const [bulkPickBundleId, setBulkPickBundleId] = useState<string | null>(null)
+  const [bulkRecipientPhone, setBulkRecipientPhone] = useState("")
+  const [bulkSubmitting, setBulkSubmitting] = useState(false)
+  const [bulkSuccess, setBulkSuccess] = useState("")
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -511,12 +521,201 @@ export default function DataOrderPage() {
     }, 100)
   }
 
-  // Group bundles by provider
-  const groupedBundles = dataBundles.reduce((acc: Record<string, DataBundle[]>, bundle) => {
-    if (!acc[bundle.provider]) acc[bundle.provider] = []
-    acc[bundle.provider].push(bundle)
-    return acc
-  }, {})
+  const bulkCartTotal = useMemo(
+    () => bulkCart.reduce((sum, line) => sum + Number(line.bundle.price), 0),
+    [bulkCart],
+  )
+
+  const bulkPickBundle = useMemo(
+    () => dataBundles.find((b) => b.id === bulkPickBundleId) ?? null,
+    [dataBundles, bulkPickBundleId],
+  )
+
+  const addToBulkCart = () => {
+    if (!bulkPickBundle) {
+      setError("Select a data bundle to add")
+      return
+    }
+    const cleanPhoneNumber = bulkRecipientPhone.replace(/\D/g, "").slice(0, 10)
+    if (cleanPhoneNumber.length !== 10) {
+      setError("Enter a valid 10-digit recipient phone number")
+      return
+    }
+
+    const duplicateCheck = checkForDuplicateOrder(
+      bulkPickBundle.id,
+      cleanPhoneNumber,
+      "wallet",
+      bulkPickBundle.name,
+    )
+    if (duplicateCheck.isDuplicate) {
+      setDuplicateCheckResult(duplicateCheck)
+      setShowDuplicateNotification(true)
+      setError("")
+      return
+    }
+
+    setBulkCart((prev) => [
+      ...prev,
+      {
+        lineId: `bulk-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        bundle: bulkPickBundle,
+        recipientPhone: cleanPhoneNumber,
+      },
+    ])
+    setError("")
+    setBulkPickBundleId(null)
+    setBulkRecipientPhone("")
+  }
+
+  const removeFromBulkCart = (lineId: string) => {
+    setBulkCart((prev) => prev.filter((line) => line.lineId !== lineId))
+  }
+
+  const placeAllBulkOrders = async () => {
+    if (!agent || bulkCart.length === 0) return
+    setBulkSubmitting(true)
+    setError("")
+    setBulkSuccess("")
+
+    try {
+      const res = await fetch("/api/agent/data-orders/bulk-wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent_id: agent.id,
+          items: bulkCart.map((line) => ({
+            bundle_id: line.bundle.id,
+            recipient_phone: line.recipientPhone,
+          })),
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        if (res.status === 402 || data.code === "INSUFFICIENT_BALANCE") {
+          setError(
+            data.error ||
+              `Insufficient wallet balance. You need GH₵ ${Number(data.required ?? bulkCartTotal).toFixed(2)} but have GH₵ ${Number(data.available ?? walletBalance).toFixed(2)}.`,
+          )
+          return
+        }
+        throw new Error(data.error || "Failed to place bulk orders")
+      }
+
+      for (const line of bulkCart) {
+        addToOrderHistory(line.bundle.id, line.recipientPhone, "wallet")
+      }
+
+      setBulkSuccess(
+        `Successfully placed ${data.orders_placed} order${data.orders_placed === 1 ? "" : "s"} (GH₵ ${Number(data.total_paid).toFixed(2)} deducted from wallet).`,
+      )
+      setBulkCart([])
+      setWalletBalance(Number(data.remaining_balance ?? walletBalance - bulkCartTotal))
+      await refreshWalletBalance(agent.id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to place bulk orders")
+    } finally {
+      setBulkSubmitting(false)
+    }
+  }
+
+  const renderBundleTabs = (
+    selectedId: string | null,
+    onSelect: (bundleId: string) => void,
+    highlightSelected: boolean,
+  ) => (
+    <Tabs defaultValue="MTN" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm shadow-lg border border-emerald-200 p-1 rounded-xl gap-1 h-auto">
+        {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
+          const bundleCount = dataBundles.filter((bundle) => bundle.provider === provider).length
+          return (
+            <TabsTrigger
+              key={provider}
+              value={provider}
+              className="text-xs sm:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg p-2 sm:p-3 flex items-center justify-center gap-2 h-auto"
+            >
+              <img
+                src={
+                  provider === "MTN"
+                    ? "/images/mtn.jpg"
+                    : provider === "AirtelTigo"
+                      ? "/images/airteltigo.jpg"
+                      : "/images/telecel.jpg"
+                }
+                alt={`${provider} logo`}
+                className="w-4 h-4 sm:w-5 sm:h-5 rounded object-cover flex-shrink-0"
+              />
+              <div className="flex flex-col items-center">
+                <span className="hidden sm:inline">{provider}</span>
+                <span className="sm:hidden text-xs">{provider.slice(0, 3)}</span>
+                <span className="text-xs opacity-75">({bundleCount})</span>
+              </div>
+            </TabsTrigger>
+          )
+        })}
+      </TabsList>
+
+      {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
+        const providerBundles = dataBundles.filter((bundle) => bundle.provider === provider)
+        return (
+          <TabsContent key={provider} value={provider} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg sm:text-xl font-semibold text-emerald-700 flex items-center gap-3">
+                <span className="hidden sm:inline">{provider} Data Bundles</span>
+                <span className="sm:hidden">{provider}</span>
+              </h3>
+              <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                {providerBundles.length} bundles
+              </Badge>
+            </div>
+
+            {providerBundles.length === 0 ? (
+              <Card className="border-red-100 bg-white/90 backdrop-blur-sm">
+                <CardContent className="pt-6 text-center">
+                  <p className="font-bold text-red-600">This data bundle is out of stock</p>
+                  <Button asChild size="sm" className="mt-3 bg-indigo-600 hover:bg-indigo-700 text-white">
+                    <Link href="/no-registration">View Alternatives</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {providerBundles.map((bundle) => (
+                  <div
+                    key={bundle.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all duration-300 ${
+                      highlightSelected && selectedId === bundle.id
+                        ? "border-emerald-500 bg-emerald-50 shadow-md transform scale-[1.02]"
+                        : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50 hover:shadow-sm"
+                    }`}
+                    onClick={() => onSelect(bundle.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{bundle.name}</p>
+                        <p className="text-sm text-gray-600">
+                          {bundle.size_gb}GB • {bundle.validity_months} months
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-emerald-600">GH₵ {bundle.price.toFixed(2)}</p>
+                        <p className="text-xs text-gray-500">
+                          Commission: GH₵{" "}
+                          {calculateDataBundleCommission(bundle.price, bundle.commission_rate).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        )
+      })}
+    </Tabs>
+  )
 
   // Render loading state
   if (loading) {
@@ -555,6 +754,49 @@ export default function DataOrderPage() {
           </div>
         </div>
 
+        {(error || bulkSuccess) && orderMode === "bulk" && (
+          <div className="mb-4 space-y-2">
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            {bulkSuccess && (
+              <Alert className="border-emerald-200 bg-emerald-50">
+                <CheckCircle className="h-4 w-4 text-emerald-600" />
+                <AlertDescription className="text-emerald-800">{bulkSuccess}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+        )}
+
+        <Tabs
+          value={orderMode}
+          onValueChange={(v) => {
+            setOrderMode(v as "single" | "bulk")
+            if (v === "single") setBulkSuccess("")
+            else setError("")
+          }}
+          className="space-y-4"
+        >
+          <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/80 shadow-md border border-emerald-200 p-1 rounded-xl h-auto">
+            <TabsTrigger
+              value="single"
+              className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white"
+            >
+              Single manual order
+            </TabsTrigger>
+            <TabsTrigger
+              value="bulk"
+              className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white"
+            >
+              <Wallet className="h-4 w-4 mr-1.5 inline" />
+              Bulk wallet cart
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="single" className="mt-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Bundle Selection */}
           <Card className="border-emerald-100 shadow-lg">
@@ -702,6 +944,12 @@ export default function DataOrderPage() {
             </CardHeader>
             <CardContent className="pt-6">
               <form onSubmit={placeOrder} className="space-y-6">
+                {error && orderMode === "single" && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
                 <div>
                   <Label htmlFor="recipientPhone" className="text-gray-700 font-medium">
                     Recipient Phone Number *
@@ -837,6 +1085,162 @@ export default function DataOrderPage() {
             </CardContent>
           </Card>
         </div>
+          </TabsContent>
+
+          <TabsContent value="bulk" className="mt-0 space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+              <Card className="border-emerald-100 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b border-emerald-100">
+                  <CardTitle className="text-emerald-800 flex items-center gap-2">
+                    <Smartphone className="h-5 w-5" />
+                    Select bundles
+                  </CardTitle>
+                  <CardDescription className="text-emerald-600">
+                    Pick a network and bundle, then add each recipient to your cart
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {renderBundleTabs(bulkPickBundleId, setBulkPickBundleId, true)}
+                </CardContent>
+              </Card>
+
+              <Card className="border-emerald-100 shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b border-emerald-100">
+                  <CardTitle className="text-emerald-800 flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    Bulk wallet cart
+                  </CardTitle>
+                  <CardDescription className="text-emerald-600">
+                    Pay for all items from your approved wallet balance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/80 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="h-5 w-5 text-emerald-600" />
+                      <span className="font-medium text-emerald-900">Wallet balance</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        className={
+                          walletBalance >= bulkCartTotal || bulkCart.length === 0
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }
+                      >
+                        GH₵ {walletBalance.toFixed(2)}
+                      </Badge>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefreshBalance}
+                        disabled={refreshing}
+                      >
+                        {refreshing ? "…" : "Refresh"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="bulkRecipientPhone" className="text-gray-700 font-medium">
+                      Recipient phone for selected bundle *
+                    </Label>
+                    <Input
+                      id="bulkRecipientPhone"
+                      type="tel"
+                      value={bulkRecipientPhone}
+                      onChange={(e) =>
+                        setBulkRecipientPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                      }
+                      placeholder="e.g., 0241234567"
+                      maxLength={10}
+                      className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                    disabled={!bulkPickBundle}
+                    onClick={addToBulkCart}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add to Cart
+                    {bulkPickBundle ? ` · ${bulkPickBundle.name}` : ""}
+                  </Button>
+
+                  {bulkCart.length > 0 ? (
+                    <>
+                      <ul className="space-y-2 max-h-56 overflow-y-auto border border-emerald-100 rounded-lg p-2">
+                        {bulkCart.map((line) => (
+                          <li
+                            key={line.lineId}
+                            className="flex items-start gap-2 rounded-lg bg-slate-50 border border-slate-100 p-3 text-sm"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-900">{line.bundle.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {line.bundle.provider} · {line.bundle.size_gb}GB · {line.recipientPhone}
+                              </p>
+                              <p className="text-sm font-semibold text-emerald-600 mt-1">
+                                GH₵ {line.bundle.price.toFixed(2)}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="shrink-0 text-red-600 hover:bg-red-50"
+                              aria-label="Remove from cart"
+                              onClick={() => removeFromBulkCart(line.lineId)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div className="flex justify-between items-center pt-2 border-t border-emerald-200 font-semibold text-emerald-900">
+                        <span>Cart total ({bulkCart.length} items)</span>
+                        <span>GH₵ {bulkCartTotal.toFixed(2)}</span>
+                      </div>
+
+                      {walletBalance < bulkCartTotal && (
+                        <Alert className="border-amber-200 bg-amber-50">
+                          <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          <AlertDescription className="text-amber-800 text-sm">
+                            Insufficient wallet balance. Remove items or{" "}
+                            <Link href="/agent/wallet" className="underline font-medium">
+                              top up your wallet
+                            </Link>{" "}
+                            before placing orders.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      <Button
+                        type="button"
+                        className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 py-3 text-lg font-semibold"
+                        disabled={bulkSubmitting || bulkCart.length === 0}
+                        onClick={placeAllBulkOrders}
+                      >
+                        {bulkSubmitting
+                          ? "Placing orders…"
+                          : `Place All Orders · GH₵ ${bulkCartTotal.toFixed(2)}`}
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-lg">
+                      Your cart is empty. Select a bundle and add phone numbers above.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Quick Actions */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">

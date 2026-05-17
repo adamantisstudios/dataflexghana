@@ -10,13 +10,26 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Phone, MessageCircle, Wifi, X, Search, ChevronLeft, ChevronRight, Clock } from "lucide-react"
+import {
+  Phone,
+  MessageCircle,
+  Wifi,
+  X,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Plus,
+  Trash2,
+  ShoppingCart,
+} from "lucide-react"
 import {
   normalizeGhanaPhoneNumber,
   toTelHref,
   toWhatsAppHref,
 } from "@/lib/phone-utils"
 import { StorefrontWhatsAppWidget } from "@/components/storefront/StorefrontWhatsAppWidget"
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 
 interface DataBundle {
   id: string
@@ -62,6 +75,16 @@ function normalizeProvider(p: string): string {
   return p
 }
 
+type CartLine = {
+  lineId: string
+  bundle: DataBundle
+  phone: string
+}
+
+function newLineId() {
+  return `line-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
 export default function PublicAgentStorefront() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -73,7 +96,10 @@ export default function PublicAgentStorefront() {
   const [services, setServices] = useState<ReferralService[]>([])
   const [customerPhone, setCustomerPhone] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
-  const [payingId, setPayingId] = useState<string | null>(null)
+  const [addPhone, setAddPhone] = useState("")
+  const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null)
+  const [cart, setCart] = useState<CartLine[]>([])
+  const [checkingOut, setCheckingOut] = useState(false)
   const [networkTab, setNetworkTab] = useState<string>("MTN")
   const [mainTab, setMainTab] = useState<"bundles" | "services">("bundles")
   const [serviceSearch, setServiceSearch] = useState("")
@@ -81,8 +107,19 @@ export default function PublicAgentStorefront() {
   const [showDeliveryNotice, setShowDeliveryNotice] = useState(true)
 
   useEffect(() => {
-    if (searchParams.get("payment") === "success") {
-      toast.success("Payment successful! Your bundle order is being processed.")
+    const paymentStatus = searchParams.get("payment")
+    const whatsappUrl = searchParams.get("whatsapp_url")
+
+    if (paymentStatus === "success") {
+      toast.success("Payment successful! Your bundle orders are being processed.")
+      setCart([])
+
+      if (whatsappUrl) {
+        const timeout = setTimeout(() => {
+          window.open(whatsappUrl, "_blank", "noopener,noreferrer")
+        }, 600)
+        return () => clearTimeout(timeout)
+      }
     }
   }, [searchParams])
 
@@ -179,6 +216,10 @@ export default function PublicAgentStorefront() {
   }, [filteredServices, servicePage])
 
   useEffect(() => {
+    setSelectedBundleId(null)
+  }, [networkTab])
+
+  useEffect(() => {
     setServicePage(1)
   }, [serviceSearch])
 
@@ -186,13 +227,55 @@ export default function PublicAgentStorefront() {
     if (servicePage > serviceTotalPages) setServicePage(serviceTotalPages)
   }, [servicePage, serviceTotalPages])
 
-  const buyBundle = async (bundle: DataBundle) => {
-    if (!customerPhone.trim()) {
-      toast.error("Enter your phone number for delivery")
+  const cartTotal = useMemo(
+    () => cart.reduce((sum, line) => sum + Number(line.bundle.retail_price), 0),
+    [cart],
+  )
+
+  const selectedBundle = useMemo(() => {
+    const list = bundlesByNetwork[networkTab] || []
+    return list.find((b) => b.id === selectedBundleId) ?? null
+  }, [bundlesByNetwork, networkTab, selectedBundleId])
+
+  const addToCart = () => {
+    if (!selectedBundle) {
+      toast.error("Select a data bundle first")
       return
     }
-    const email = customerEmail.trim() || `${customerPhone.replace(/\D/g, "")}@storefront.local`
-    setPayingId(bundle.id)
+    const phone = (addPhone || customerPhone).trim()
+    if (!phone) {
+      toast.error("Enter the phone number to receive this bundle")
+      return
+    }
+
+    setCart((prev) => [
+      ...prev,
+      {
+        lineId: newLineId(),
+        bundle: selectedBundle,
+        phone,
+      },
+    ])
+    toast.success("Added to your order")
+    setAddPhone(customerPhone.trim() || phone)
+    setSelectedBundleId(null)
+  }
+
+  const removeFromCart = (lineId: string) => {
+    setCart((prev) => prev.filter((line) => line.lineId !== lineId))
+  }
+
+  const checkoutCart = async () => {
+    if (cart.length === 0) {
+      toast.error("Add at least one bundle to your order")
+      return
+    }
+
+    const fallbackPhone = cart[0].phone.replace(/\D/g, "")
+    const email =
+      customerEmail.trim() || `${fallbackPhone || "customer"}@storefront.local`
+
+    setCheckingOut(true)
     try {
       const res = await fetch("/api/paystack/storefront/initialize", {
         method: "POST",
@@ -200,16 +283,19 @@ export default function PublicAgentStorefront() {
         body: JSON.stringify({
           email,
           agent_id: agentId,
-          data_bundle_id: bundle.id,
-          customer_phone: customerPhone,
+          store_name: displayProfile.store_name || "Data Store",
+          items: cart.map((line) => ({
+            data_bundle_id: line.bundle.id,
+            customer_phone: line.phone,
+          })),
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) throw new Error(data.error || "Could not start payment")
       window.location.href = data.authorizationUrl
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not start payment")
-      setPayingId(null)
+      setCheckingOut(false)
     }
   }
 
@@ -293,13 +379,19 @@ export default function PublicAgentStorefront() {
         <Card className="shadow-lg border-0 rounded-2xl overflow-hidden">
           <CardContent className="pt-6 grid gap-4 sm:grid-cols-2">
             <div>
-              <Label className="text-slate-700 font-medium">Your phone (for data delivery)</Label>
+              <Label className="text-slate-700 font-medium">Default phone (optional)</Label>
               <Input
                 className="mt-1.5 rounded-lg"
                 placeholder="024XXXXXXX"
                 value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
+                onChange={(e) => {
+                  setCustomerPhone(e.target.value)
+                  if (!addPhone) setAddPhone(e.target.value)
+                }}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Prefills the number when adding bundles. Each line can use a different number.
+              </p>
             </div>
             <div>
               <Label className="text-slate-700 font-medium">Email (for Paystack receipt)</Label>
@@ -313,6 +405,67 @@ export default function PublicAgentStorefront() {
             </div>
           </CardContent>
         </Card>
+
+        {cart.length > 0 && (
+          <Card
+            className="shadow-lg border-0 rounded-2xl overflow-hidden border-l-4"
+            style={{ borderLeftColor: accent }}
+          >
+            <CardContent className="p-4 sm:p-5 space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" style={{ color: accent }} />
+                  Order summary
+                  <Badge variant="secondary" className="text-xs">
+                    {cart.length} {cart.length === 1 ? "item" : "items"}
+                  </Badge>
+                </h2>
+                <p className="text-lg font-bold tabular-nums" style={{ color: accent }}>
+                  ₵{cartTotal.toFixed(2)}
+                </p>
+              </div>
+              <ul className="space-y-2 max-h-64 overflow-y-auto">
+                {cart.map((line) => (
+                  <li
+                    key={line.lineId}
+                    className="flex items-start gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900">
+                        {normalizeProvider(line.bundle.provider)} · {line.bundle.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {line.bundle.size_gb} GB · {line.phone}
+                      </p>
+                      <p className="text-sm font-semibold mt-1" style={{ color: accent }}>
+                        ₵{Number(line.bundle.retail_price).toFixed(2)}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      aria-label="Remove item"
+                      onClick={() => removeFromCart(line.lineId)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                type="button"
+                className="w-full text-white rounded-xl h-11 font-semibold"
+                style={{ backgroundColor: accent }}
+                disabled={checkingOut}
+                onClick={checkoutCart}
+              >
+                {checkingOut ? "Redirecting to Paystack…" : `Proceed to Pay · ₵${cartTotal.toFixed(2)}`}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "bundles" | "services")}>
           <TabsList className="w-full h-auto grid grid-cols-2 p-1 rounded-xl bg-slate-100 shadow-inner">
@@ -385,8 +538,25 @@ export default function PublicAgentStorefront() {
                 </TabsList>
                 {NETWORK_TABS.map((n) => (
                   <TabsContent key={n.key} value={n.key} className="space-y-3 mt-3">
-                    {(bundlesByNetwork[n.key] || []).map((b) => (
-                      <Card key={b.id} className="border-0 shadow-md rounded-xl overflow-hidden">
+                    {(bundlesByNetwork[n.key] || []).map((b) => {
+                      const isSelected = networkTab === n.key && selectedBundleId === b.id
+                      return (
+                      <Card
+                        key={b.id}
+                        role="button"
+                        tabIndex={0}
+                        className={`border-0 shadow-md rounded-xl overflow-hidden cursor-pointer transition-all ${
+                          isSelected ? "ring-2 ring-offset-2" : ""
+                        }`}
+                        style={isSelected ? { ringColor: accent } : undefined}
+                        onClick={() => setSelectedBundleId(b.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            setSelectedBundleId(b.id)
+                          }
+                        }}
+                      >
                         <CardContent className="p-4 flex gap-4 items-center">
                           {b.image_url ? (
                             <Image
@@ -407,23 +577,51 @@ export default function PublicAgentStorefront() {
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-slate-900 truncate">{b.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {b.size_gb} GB · {b.provider}
+                              {b.size_gb} GB · {normalizeProvider(b.provider)}
                             </p>
                             <p className="text-lg font-bold mt-1" style={{ color: accent }}>
                               ₵{Number(b.retail_price).toFixed(2)}
                             </p>
                           </div>
-                          <Button
-                            className="shrink-0 text-white rounded-lg px-4"
-                            style={{ backgroundColor: accent }}
-                            disabled={payingId === b.id}
-                            onClick={() => buyBundle(b)}
-                          >
-                            {payingId === b.id ? "…" : "Buy"}
-                          </Button>
+                          {isSelected && (
+                            <Badge className="shrink-0 text-white" style={{ backgroundColor: accent }}>
+                              Selected
+                            </Badge>
+                          )}
                         </CardContent>
                       </Card>
-                    ))}
+                    )})}
+
+                    {(bundlesByNetwork[n.key] || []).length > 0 && networkTab === n.key && (
+                      <Card className="border border-dashed border-slate-200 shadow-sm rounded-xl">
+                        <CardContent className="p-4 space-y-3">
+                          <p className="text-sm font-medium text-slate-800">
+                            {selectedBundle
+                              ? `Add ${selectedBundle.name} to your order`
+                              : "Select a bundle above, then enter the recipient number"}
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Input
+                              className="rounded-lg flex-1"
+                              placeholder="Phone number for this bundle"
+                              value={addPhone}
+                              onChange={(e) => setAddPhone(e.target.value)}
+                            />
+                            <Button
+                              type="button"
+                              className="text-white rounded-lg shrink-0"
+                              style={{ backgroundColor: accent }}
+                              disabled={!selectedBundle}
+                              onClick={addToCart}
+                            >
+                              <Plus className="h-4 w-4 mr-1.5" />
+                              Add to Order
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {!bundlesByNetwork[n.key]?.length && (
                       <p className="text-sm text-muted-foreground text-center py-8">
                         No {n.label} bundles listed.
@@ -557,6 +755,8 @@ export default function PublicAgentStorefront() {
         storeName={displayProfile.store_name || "Data Store"}
         accentColor={accent}
       />
+
+      <PwaInstallPrompt variant="storefront" />
     </div>
   )
 }

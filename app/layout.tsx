@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "sonner"
 import { DevConsoleDetector } from "@/components/dev-console-detector"
 import { MenuScrollHandler } from "@/components/menu-scroll-handler"
-import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 
 // ==============================
 // 🔥 FULL SEO KEYWORD ARRAY – covering every service + “gh” variants
@@ -1192,7 +1191,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Toaster />
           <SonnerToaster position="top-right" richColors closeButton />
           <DevConsoleDetector />
-          <PwaInstallPrompt />
         </ThemeProvider>
       </body>
     </html>

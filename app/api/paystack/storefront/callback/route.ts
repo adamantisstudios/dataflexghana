@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { creditStorefrontCommission } from "@/lib/storefront-server"
+import {
+  buildStorefrontAdminWhatsAppUrl,
+  formatStorefrontAdminWhatsAppMessage,
+  parseStorefrontItemsFromMetadata,
+} from "@/lib/storefront-order-whatsapp"
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
 
@@ -24,13 +29,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/store/payment-failed?reference=${reference}`)
     }
 
-    const meta = verifyData.data.metadata || {}
-    const agentId = meta.agent_id
-    const dataBundleId = meta.data_bundle_id
-    const customerPhone = meta.customer_phone
-    const baseCost = Number(meta.base_cost ?? 0)
-    const agentMarkup = Number(meta.agent_markup ?? 0)
-    const totalPaid = Number(meta.total_paid ?? verifyData.data.amount / 100)
+    const meta = (verifyData.data.metadata || {}) as Record<string, unknown>
+    const agentId = String(meta.agent_id || "")
+    const items = parseStorefrontItemsFromMetadata(meta)
+    const cartTotal = Number(meta.cart_total ?? verifyData.data.amount / 100)
+    const storeName = String(meta.store_name || "Store")
+
+    if (!agentId || items.length === 0) {
+      console.error("storefront callback: missing agent or items", meta)
+      return NextResponse.redirect(`${appUrl}/store/payment-failed?reference=${reference}`)
+    }
 
     const db = getAdminClient()
 
@@ -38,30 +46,51 @@ export async function GET(request: NextRequest) {
       .from("storefront_orders")
       .select("id")
       .eq("paystack_reference", reference)
-      .maybeSingle()
+      .limit(1)
 
-    if (!existing) {
-      const { error: insertError } = await db.from("storefront_orders").insert({
+    if (!existing?.length) {
+      const rows = items.map((item) => ({
         agent_id: agentId,
-        data_bundle_id: dataBundleId,
-        customer_phone: customerPhone,
+        data_bundle_id: item.data_bundle_id,
+        customer_phone: item.customer_phone,
         paystack_reference: reference,
-        base_cost: baseCost,
-        agent_markup: agentMarkup,
-        total_paid: totalPaid,
+        base_cost: item.base_cost,
+        agent_markup: item.agent_markup,
+        total_paid: item.total_paid,
         status: "Pending",
-      })
+      }))
+
+      const { error: insertError } = await db.from("storefront_orders").insert(rows)
 
       if (insertError) {
         console.error("storefront order insert:", insertError)
-      } else if (agentMarkup > 0) {
-        await creditStorefrontCommission(agentId, agentMarkup)
+      } else {
+        const totalMarkup = items.reduce((sum, item) => sum + item.agent_markup, 0)
+        if (totalMarkup > 0) {
+          await creditStorefrontCommission(agentId, totalMarkup)
+        }
       }
     }
 
-    return NextResponse.redirect(
-      `${appUrl}/public-agent-sandbox/${agentId}?payment=success&ref=${reference}`,
-    )
+    const whatsappMessage = formatStorefrontAdminWhatsAppMessage({
+      storeName,
+      items: items.map((item) => ({
+        network: item.network,
+        bundle_name: item.bundle_name,
+        size_gb: item.size_gb,
+        customer_phone: item.customer_phone,
+        total_paid: item.total_paid,
+      })),
+      cartTotal,
+      reference,
+    })
+
+    const redirectUrl = new URL(`${appUrl}/public-agent-sandbox/${agentId}`)
+    redirectUrl.searchParams.set("payment", "success")
+    redirectUrl.searchParams.set("ref", reference)
+    redirectUrl.searchParams.set("whatsapp_url", buildStorefrontAdminWhatsAppUrl(whatsappMessage))
+
+    return NextResponse.redirect(redirectUrl.toString())
   } catch (error) {
     console.error("storefront callback:", error)
     return NextResponse.redirect(`${appUrl}/store/payment-failed?reference=${reference}`)

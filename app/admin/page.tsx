@@ -657,18 +657,18 @@ export default function AdminDashboard() {
           />
         )}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <div className="w-full overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
-            <TabsList className="inline-flex h-auto w-max min-w-full gap-1 bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl">
-              {visibleTabs.map(({ id, label, icon: Icon }) => {
+          <div className="w-full overflow-x-auto">
+            <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
+              {visibleTabs.slice(0, 10).map(({ id, label, icon: Icon }) => {
                 const alertCount = getTabAlertCount(id)
                 return (
                   <TabsTrigger
                     key={id}
                     value={id}
-                    className="flex items-center shrink-0 px-3 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap relative"
+                    className="flex items-center justify-center px-3 py-2 text-xs lg:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap flex-1 relative"
                     onClick={() => loadTab(id)}
                   >
-                    <Icon className="h-4 w-4 mr-1.5 shrink-0" />
+                    <Icon className="h-4 w-4 mr-2" />
                     {label}
                     {(alertCount > 0 || (id === "referrals" && adminUnreadCount > 0)) && (
                       <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center p-0 animate-pulse">
@@ -680,9 +680,8 @@ export default function AdminDashboard() {
               })}
             </TabsList>
           </div>
-          {/* removed duplicate tab row */}
-          <div className="hidden">
-            <TabsList>
+          <div className="w-full overflow-x-auto">
+            <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
               {visibleTabs.slice(10).map(({ id, label, icon: Icon }) => {
                 const alertCount = getTabAlertCount(id)
                 return (

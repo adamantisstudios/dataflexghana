@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table"
 import { toast } from "sonner"
 import { getCurrentAdmin } from "@/lib/auth"
-import { RefreshCw, Store, Search } from "lucide-react"
+import { RefreshCw, Store, Search, Copy, Check } from "lucide-react"
 
 interface StorefrontOrder {
   id: string
@@ -53,6 +53,7 @@ export default function StorefrontManagerTab() {
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [profilesLoading, setProfilesLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [copiedPhoneNumbers, setCopiedPhoneNumbers] = useState<Set<string>>(new Set())
 
   const [ordersPage, setOrdersPage] = useState(1)
   const [ordersTotalPages, setOrdersTotalPages] = useState(1)
@@ -143,6 +144,51 @@ export default function StorefrontManagerTab() {
       setProcessingId(null)
     }
   }
+
+  const handleCopyCustomerPhone = async (phoneNumber: string) => {
+    try {
+      await navigator.clipboard.writeText(phoneNumber)
+      setCopiedPhoneNumbers((prev) => new Set([...prev, phoneNumber]))
+      toast.success("Customer phone number copied!")
+      setTimeout(() => {
+        setCopiedPhoneNumbers((prev) => {
+          const next = new Set(prev)
+          next.delete(phoneNumber)
+          return next
+        })
+      }, 2000)
+    } catch {
+      toast.error("Failed to copy customer phone number")
+    }
+  }
+
+  const renderCustomerPhone = (phone: string) => (
+    <span className="inline-flex items-center gap-0.5">
+      <span>{phone}</span>
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        onClick={() => handleCopyCustomerPhone(phone)}
+        className={`h-7 w-7 p-0 shrink-0 ${
+          copiedPhoneNumbers.has(phone)
+            ? "text-green-600 hover:bg-green-100 cursor-not-allowed"
+            : "text-gray-600 hover:bg-gray-100"
+        }`}
+        disabled={copiedPhoneNumbers.has(phone)}
+        title={
+          copiedPhoneNumbers.has(phone) ? "Copied" : "Copy customer phone number"
+        }
+        aria-label={copiedPhoneNumbers.has(phone) ? "Copied" : "Copy customer phone number"}
+      >
+        {copiedPhoneNumbers.has(phone) ? (
+          <Check className="h-3 w-3" />
+        ) : (
+          <Copy className="h-3 w-3" />
+        )}
+      </Button>
+    </span>
+  )
 
   const markCashoutPaid = async (agentId: string) => {
     if (!confirm("Mark MoMo cashout as paid and reset storefront commission balance to ₵0?")) return
@@ -345,7 +391,7 @@ export default function StorefrontManagerTab() {
                             {o.data_bundles?.provider} {o.data_bundles?.size_gb}GB
                           </span>
                         </TableCell>
-                        <TableCell>{o.customer_phone}</TableCell>
+                        <TableCell>{renderCustomerPhone(o.customer_phone)}</TableCell>
                         <TableCell className="font-semibold">₵{Number(o.total_paid).toFixed(2)}</TableCell>
                         <TableCell>
                           <Select
@@ -384,7 +430,7 @@ export default function StorefrontManagerTab() {
                       </div>
                       <p className="font-semibold shrink-0">₵{Number(o.total_paid).toFixed(2)}</p>
                     </div>
-                    <p className="text-sm">{o.customer_phone}</p>
+                    <p className="text-sm">{renderCustomerPhone(o.customer_phone)}</p>
                     <Select
                       value={o.status}
                       onValueChange={(v) => updateStatus(o.id, v)}
