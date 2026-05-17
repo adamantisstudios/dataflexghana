@@ -11,6 +11,11 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { Phone, MessageCircle, Wifi } from "lucide-react"
+import {
+  normalizeGhanaPhoneNumber,
+  toTelHref,
+  toWhatsAppHref,
+} from "@/lib/phone-utils"
 
 interface DataBundle {
   id: string
@@ -114,6 +119,19 @@ export default function PublicAgentStorefront() {
 
   const accent = displayProfile.primary_color || "#3B82F6"
 
+  const callPhone = useMemo(
+    () => normalizeGhanaPhoneNumber(displayProfile.phone_number),
+    [displayProfile.phone_number],
+  )
+
+  const whatsappPhone = useMemo(
+    () =>
+      normalizeGhanaPhoneNumber(
+        displayProfile.whatsapp_number || displayProfile.phone_number,
+      ),
+    [displayProfile.whatsapp_number, displayProfile.phone_number],
+  )
+
   const bundlesByNetwork = useMemo(() => {
     const map: Record<string, DataBundle[]> = { MTN: [], Telecel: [], AirtelTigo: [] }
     for (const b of bundles) {
@@ -154,10 +172,8 @@ export default function PublicAgentStorefront() {
     }
   }
 
-  const whatsappLink = (message: string) => {
-    const num = (displayProfile.whatsapp_number || displayProfile.phone_number || "").replace(/\D/g, "")
-    return `https://wa.me/${num}?text=${encodeURIComponent(message)}`
-  }
+  const whatsappLink = (message: string) =>
+    toWhatsAppHref(whatsappPhone, message) ?? "#"
 
   if (loading) {
     return (
@@ -255,7 +271,7 @@ export default function PublicAgentStorefront() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button variant="outline" className="w-full" asChild>
-                        <a href={`tel:${displayProfile.phone_number || ""}`}>
+                        <a href={toTelHref(callPhone) ?? "#"}>
                           <Phone className="h-4 w-4 mr-2" />
                           Call Agent
                         </a>

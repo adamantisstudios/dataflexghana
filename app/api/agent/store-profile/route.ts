@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { upsertStoreProfile, getStoreProfile, checkStoreSlugAvailable } from "@/lib/storefront-server"
+import { normalizeGhanaPhoneNumber } from "@/lib/phone-utils"
 
 export const dynamic = "force-dynamic"
 
@@ -34,11 +35,21 @@ export const PUT = withUnifiedAuth(async (request: NextRequest, user) => {
       store_slug = null
     }
 
+    const phone_number =
+      body.phone_number != null && String(body.phone_number).trim() !== ""
+        ? normalizeGhanaPhoneNumber(String(body.phone_number))
+        : body.phone_number ?? null
+
+    const whatsapp_number =
+      body.whatsapp_number != null && String(body.whatsapp_number).trim() !== ""
+        ? normalizeGhanaPhoneNumber(String(body.whatsapp_number))
+        : body.whatsapp_number ?? null
+
     const profile = await upsertStoreProfile(agentId, {
       store_name: body.store_name,
       store_slug,
-      whatsapp_number: body.whatsapp_number,
-      phone_number: body.phone_number,
+      whatsapp_number,
+      phone_number,
       primary_color: body.primary_color,
       business_info: body.business_info,
     })
