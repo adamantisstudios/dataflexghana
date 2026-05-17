@@ -1,46 +1,41 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from "next/server"
+import { getAdminClient } from "@/lib/supabase-base"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+export const dynamic = "force-dynamic"
 
-
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { data, error } = await supabase
-      .from('salon_categories')
-      .select('*')
-      .order('name');
+    const supabase = getAdminClient()
+    const { data, error } = await supabase.from("salon_categories").select("*").order("name")
 
-    if (error) throw error;
+    if (error) {
+      throw error
+    }
 
-    return NextResponse.json({ categories: data || [] });
+    return NextResponse.json({ success: true, data: data || [], categories: data || [] })
   } catch (error) {
-    console.error('Categories API Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });
+    console.error("Categories API Error:", error)
+    return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json()
+    const supabase = getAdminClient()
 
     const { data, error } = await supabase
-      .from('salon_categories')
+      .from("salon_categories")
       .insert([{ name: body.name, description: body.description }])
-      .select();
+      .select()
 
-    if (error) throw error;
+    if (error) {
+      throw error
+    }
 
-    return NextResponse.json({ data: data[0] });
+    return NextResponse.json({ data: data?.[0] })
   } catch (error) {
-    console.error('Category Creation Error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create category' },
-      { status: 400 }
-    );
+    console.error("Category Creation Error:", error)
+    return NextResponse.json({ success: false, error: "Failed to create category" }, { status: 400 })
   }
 }

@@ -81,6 +81,7 @@ const LinkCacheManagementTab = lazy(() => import("@/components/admin/tabs/LinkCa
 const ProfessionalWritingTab = lazy(() => import("@/components/admin/tabs/ProfessionalWritingTab"))
 const InvitationManagementTab = lazy(() => import("@/components/admin/tabs/InvitationManagementTab"))
 const AgentNotificationsTab = lazy(() => import("@/components/admin/tabs/AgentNotificationsTab"))
+const StorefrontManagerTab = lazy(() => import("@/components/admin/tabs/StorefrontManagerTab"))
 const BulkOrderManagementTab = lazy(() => import("@/components/admin/tabs/BulkOrderManagementTab"))
 const OnlineCoursesTab = lazy(() => import("@/components/admin/tabs/OnlineCoursesTab"))
 const DataBundleOrdersLogTab = lazy(() => import("@/components/admin/tabs/DataBundleOrdersLogTab"))
@@ -163,6 +164,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "settings", label: "Settings", icon: Settings, component: null },
   { id: "invitation-management", label: "Invitation Management", icon: Mail, component: InvitationManagementTab },
   { id: "agent-notifications", label: "Agent Notifications", icon: Bell, component: AgentNotificationsTab },
+  { id: "storefront-manager", label: "Storefront Manager", icon: ShoppingBag, component: StorefrontManagerTab },
   { id: "online-courses", label: "Online Courses", icon: BookOpen, component: OnlineCoursesTab },
   { id: "fashion-avenue", label: "Fashion Avenue", icon: Shirt, component: FashionAvenueTab },
   { id: "fashion-project-requests", label: "Fashion Requests", icon: MessageCircle, component: FashionProjectRequestsTab },

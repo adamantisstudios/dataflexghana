@@ -1,25 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server"
+import { getAdminClient } from "@/lib/supabase-base"
 
-// Mock categories - replace with actual database queries
-const mockCategories = [
-  { id: 1, name: 'Traditional Wear', description: 'Traditional and cultural fashion designs' },
-  { id: 2, name: 'Casual Wear', description: 'Casual and everyday fashion designs' },
-  { id: 3, name: 'Evening Wear', description: 'Formal and evening fashion designs' },
-  { id: 4, name: 'Accessories', description: 'Fashion accessories and add-ons' },
-  { id: 5, name: 'Custom Design', description: 'Custom designed fashion pieces' },
-];
+export const dynamic = "force-dynamic"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
+    const supabase = getAdminClient()
+    const { data, error } = await supabase.from("fashion_categories").select("*").order("name")
+
+    if (error) {
+      throw error
+    }
+
     return NextResponse.json({
       success: true,
-      data: mockCategories,
-    });
+      data: data || [],
+    })
   } catch (error) {
-    console.error('Error fetching categories:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch categories' },
-      { status: 500 }
-    );
+    console.error("Error fetching fashion categories:", error)
+    return NextResponse.json({ success: false, error: "Failed to fetch categories" }, { status: 500 })
   }
 }

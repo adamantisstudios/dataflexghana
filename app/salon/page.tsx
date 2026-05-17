@@ -213,7 +213,7 @@ export default function SalonPage() {
 
         if (categoriesRes.ok) {
           const data = await categoriesRes.json();
-          setCategories(data.data || []);
+          setCategories(data.categories || data.data || []);
         }
       } catch (error) {
         console.error('Failed to load data:', error);

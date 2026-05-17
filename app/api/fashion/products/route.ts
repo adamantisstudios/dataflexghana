@@ -1,187 +1,92 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from "next/server"
+import { getAdminClient } from "@/lib/supabase-base"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+export const dynamic = "force-dynamic"
 
-// Fallback mock data for development
-const mockProducts = [
-  {
-    id: 1,
-    product_name: 'Classic Evening Dress',
-    product_code: 'DRESS-001',
-    description: 'Elegant evening dress perfect for formal occasions',
-    category_id: 3,
-    category_name: 'Evening Wear',
-    base_price: 250,
-    fabric_cost_included: true,
-    completion_time: '14 days',
-    express_charge: 50,
-    commission_amount: 25,
-    image_paths: ['/fashion-images/evening-dress-1.jpg'],
-    status: 'active',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    product_name: 'Traditional Kente Design',
-    product_code: 'KENTE-001',
-    description: 'Beautiful traditional kente cloth design',
-    category_id: 1,
-    category_name: 'Traditional Wear',
-    base_price: 200,
-    fabric_cost_included: false,
-    completion_time: '21 days',
-    express_charge: 75,
-    commission_amount: 20,
-    image_paths: ['/fashion-images/kente-1.jpg'],
-    status: 'active',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    product_name: 'Casual Shirt',
-    product_code: 'SHIRT-001',
-    description: 'Comfortable casual shirt for everyday wear',
-    category_id: 2,
-    category_name: 'Casual Wear',
-    base_price: 80,
-    fabric_cost_included: true,
-    completion_time: '10 days',
-    express_charge: 30,
-    commission_amount: 8,
-    image_paths: ['/fashion-images/casual-shirt-1.jpg'],
-    status: 'active',
-    created_at: new Date().toISOString(),
-  },
-];
+function formatProduct(p: Record<string, unknown>) {
+  let timelineDays = (p.estimated_timeline_days as number) || 0
+  if (!timelineDays && p.completion_time) {
+    const match = String(p.completion_time).match(/\d+/)
+    timelineDays = match ? parseInt(match[0], 10) : 0
+  }
 
-const mockCategories = [
-  { id: 1, name: 'Traditional Wear', description: 'Traditional and cultural fashion designs' },
-  { id: 2, name: 'Casual Wear', description: 'Casual and everyday fashion designs' },
-  { id: 3, name: 'Evening Wear', description: 'Formal and evening fashion designs' },
-  { id: 4, name: 'Accessories', description: 'Fashion accessories and add-ons' },
-  { id: 5, name: 'Custom Design', description: 'Custom designed fashion pieces' },
-];
+  const categories = p.fashion_categories as { name?: string } | null
+
+  return {
+    id: p.id,
+    product_name: p.title,
+    product_code: p.product_code || `PROD-${p.id}`,
+    description: p.description,
+    category_id: p.category_id,
+    category_name: categories?.name || "Unknown",
+    base_price: parseFloat(String(p.base_price)),
+    fabric_cost_included: p.include_fabric_cost,
+    completion_time: `${timelineDays} days`,
+    estimated_timeline_days: timelineDays,
+    express_charge: parseFloat(String(p.express_sewing_charge || p.express_charge || 0)),
+    commission_amount: parseFloat(String(p.commission_amount || 0)),
+    image_urls: (p.image_urls as string[]) || [],
+    image_paths: (p.image_paths as string[]) || [],
+    status: p.status,
+    created_at: p.created_at,
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const id = searchParams.get('id');
-    const search = searchParams.get('search') || '';
-    const category = searchParams.get('category') || '';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '12');
+    const searchParams = request.nextUrl.searchParams
+    const id = searchParams.get("id")
+    const search = searchParams.get("search") || ""
+    const category = searchParams.get("category") || ""
+    const page = parseInt(searchParams.get("page") || "1", 10)
+    const limit = parseInt(searchParams.get("limit") || "12", 10)
 
-    // Helper function to format a single product
-    const formatProduct = (p: any) => {
-      let timelineDays = p.estimated_timeline_days || 0;
-      if (!timelineDays && p.completion_time) {
-        const match = String(p.completion_time).match(/\d+/);
-        timelineDays = match ? parseInt(match[0], 10) : 0;
-      }
-      
-      return {
-        id: p.id,
-        product_name: p.title,
-        product_code: p.product_code || `PROD-${p.id}`,
-        description: p.description,
-        category_id: p.category_id,
-        category_name: p.fashion_categories?.name || 'Unknown',
-        base_price: parseFloat(p.base_price),
-        fabric_cost_included: p.include_fabric_cost,
-        completion_time: `${timelineDays} days`,
-        estimated_timeline_days: timelineDays,
-        express_charge: parseFloat(p.express_sewing_charge || p.express_charge || 0),
-        commission_amount: parseFloat(p.commission_amount || 0),
-        image_urls: p.image_urls || [],
-        status: p.status,
-        created_at: p.created_at,
-      };
-    };
+    const supabase = getAdminClient()
 
-    // **SINGLE PRODUCT FETCH** - When id parameter is provided
     if (id) {
-      const productId = parseInt(id);
-      if (isNaN(productId)) {
-        return NextResponse.json(
-          { success: false, error: 'Invalid product ID' },
-          { status: 400 }
-        );
+      const productId = parseInt(id, 10)
+      if (Number.isNaN(productId)) {
+        return NextResponse.json({ success: false, error: "Invalid product ID" }, { status: 400 })
       }
 
       const { data: product, error } = await supabase
-        .from('fashion_products')
-        .select(
-          `
-          *,
-          fashion_categories(name)
-        `
-        )
-        .eq('id', productId)
-        .eq('status', 'active')
-        .single();
+        .from("fashion_products")
+        .select(`*, fashion_categories(name)`)
+        .eq("id", productId)
+        .eq("status", "active")
+        .single()
 
-      if (error) {
-        console.error('Error fetching single product:', error);
-        return NextResponse.json(
-          { success: false, error: 'Product not found' },
-          { status: 404 }
-        );
+      if (error || !product) {
+        return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 })
       }
 
-      if (!product) {
-        return NextResponse.json(
-          { success: false, error: 'Product not found' },
-          { status: 404 }
-        );
-      }
-
-      const formatted = formatProduct(product);
-      return NextResponse.json({
-        success: true,
-        data: formatted,
-      });
+      return NextResponse.json({ success: true, data: formatProduct(product) })
     }
 
-    // **PRODUCTS LIST FETCH** - When id parameter is NOT provided (existing behavior)
     let query = supabase
-      .from('fashion_products')
-      .select(
-        `
-        *,
-        fashion_categories(name)
-      `,
-        { count: 'exact' }
-      )
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
+      .from("fashion_products")
+      .select(`*, fashion_categories(name)`, { count: "exact" })
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
 
-    // Add search filter if provided
     if (search) {
-      query = query.or(
-        `title.ilike.%${search}%,description.ilike.%${search}%`
-      );
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
     }
 
-    // Add category filter if provided
     if (category) {
-      query = query.eq('category_id', parseInt(category));
+      query = query.eq("category_id", parseInt(category, 10))
     }
 
-    // Add pagination
-    const offset = (page - 1) * limit;
-    query = query.range(offset, offset + limit - 1);
+    const offset = (page - 1) * limit
+    query = query.range(offset, offset + limit - 1)
 
-    const { data: products, count, error } = await query;
+    const { data: products, count, error } = await query
 
     if (error) {
-      throw error;
+      throw error
     }
 
-    const formatted = products?.map(formatProduct) || [];
+    const formatted = (products || []).map((p) => formatProduct(p))
 
     return NextResponse.json({
       success: true,
@@ -192,12 +97,10 @@ export async function GET(request: NextRequest) {
         total: count || 0,
         totalPages: Math.ceil((count || 0) / limit),
       },
-    });
-  } catch (error: any) {
-    console.error('Error fetching products:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch products' },
-      { status: 500 }
-    );
+    })
+  } catch (error: unknown) {
+    console.error("Error fetching products:", error)
+    const message = error instanceof Error ? error.message : "Failed to fetch products"
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }

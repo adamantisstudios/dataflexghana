@@ -3,6 +3,23 @@ import { NextResponse } from 'next/server'
 export async function proxy(request) {
   const { pathname } = request.nextUrl
 
+  // Storefront subdomain routing (also handled in middleware.ts when present)
+  const hostname = request.headers.get('host') || ''
+  const isStorefrontDomain = hostname.includes('referralpowerhouse.vercel.app')
+  if (isStorefrontDomain) {
+    if (pathname === '/' || pathname.startsWith('/admin') || pathname.startsWith('/agent')) {
+      return NextResponse.redirect(new URL('/store/invalid-agent', request.url))
+    }
+    const storefrontMatch = pathname.match(/^\/store\/([^/]+)/)
+    if (storefrontMatch) {
+      const agentId = storefrontMatch[1]
+      const remainder = pathname.replace(`/store/${agentId}`, '') || ''
+      return NextResponse.rewrite(
+        new URL(`/public-agent-sandbox/${agentId}${remainder}${request.nextUrl.search}`, request.url)
+      )
+    }
+  }
+
   // Skip maintenance check for admin routes, agent login, registration pages, API routes, and static assets
   if (
     pathname.startsWith('/admin') ||

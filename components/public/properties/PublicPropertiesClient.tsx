@@ -30,7 +30,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
   ChevronRight,
   Home,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase-client";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { PropertyDescription } from "@/components/ui/property-description"
 import Link from "next/link"
@@ -115,28 +114,16 @@ export default function PublicPropertiesClient() {
   const [modalImageIndex, setModalImageIndex] = useState(0)
   const [modalImageAlt, setModalImageAlt] = useState("")
 
-  // Load properties
+  // Load properties via public API (service role)
   useEffect(() => {
     const loadProperties = async () => {
       try {
-        console.log("[v0] PublicPropertiesClient: Loading properties from database...")
-
-        const { data, error } = await supabase
-          .from("properties")
-          .select("*")
-          .in("status", ["Published", "Featured"])
-          .eq("is_approved", true)  // CRITICAL: Only show approved properties
-          .order("created_at", { ascending: false })
-
-        if (error) {
-          console.error("[v0] PublicPropertiesClient: Database error loading properties:", error)
-          throw error
+        const res = await fetch("/api/public/properties", { cache: "no-store" })
+        const json = await res.json()
+        if (!res.ok) {
+          throw new Error(json.error || "Failed to load properties")
         }
-
-        console.log("[v0] PublicPropertiesClient: Properties loaded from database:", data?.length || 0)
-        console.log("[v0] PublicPropertiesClient: Sample properties:", data?.slice(0, 2))
-
-        setProperties(data || [])
+        setProperties(json.properties || [])
       } catch (error) {
         console.error("Error loading properties:", error)
       } finally {
