@@ -17,9 +17,9 @@ interface DataBundle {
   name: string
   provider: string
   size_gb: number
-  price: number
+  base_price: number
   custom_margin: number
-  final_price: number
+  retail_price: number
   image_url?: string | null
 }
 
@@ -59,7 +59,6 @@ export default function PublicAgentStorefront() {
   const agentId = params.agentId as string
 
   const [loading, setLoading] = useState(true)
-  const [notFound, setNotFound] = useState(false)
   const [profile, setProfile] = useState<StoreProfile | null>(null)
   const [bundles, setBundles] = useState<DataBundle[]>([])
   const [services, setServices] = useState<ReferralService[]>([])
@@ -79,23 +78,21 @@ export default function PublicAgentStorefront() {
       try {
         const res = await fetch(`/api/storefront/public/${agentId}`, { cache: "no-store" })
         const data = await res.json()
-        if (res.status === 404) {
-          setNotFound(true)
-          return
-        }
         if (!res.ok) throw new Error(data.error || "Store unavailable")
-        setProfile(
-          data.profile || {
-            store_name: "Data Store",
-            whatsapp_number: null,
-            phone_number: null,
-            primary_color: "#3B82F6",
-            business_info: null,
-          },
+
+        const apiBundles: DataBundle[] = (data.bundles || []).map(
+          (b: DataBundle & { final_price?: number }) => ({
+            ...b,
+            retail_price: Number(b.retail_price ?? b.final_price ?? 0),
+          }),
         )
-        setBundles(data.dataBundles || [])
-        setServices(data.referralServices || [])
-        const providers = (data.dataBundles || []).map((b: DataBundle) => normalizeProvider(b.provider))
+        const apiServices: ReferralService[] = data.services || []
+
+        setProfile(data.profile ?? null)
+        setBundles(apiBundles)
+        setServices(apiServices)
+
+        const providers = apiBundles.map((b) => normalizeProvider(b.provider))
         if (providers.includes("MTN")) setNetworkTab("MTN")
         else if (providers[0]) setNetworkTab(normalizeProvider(providers[0]))
       } catch (e) {
@@ -107,7 +104,15 @@ export default function PublicAgentStorefront() {
     if (agentId) load()
   }, [agentId])
 
-  const accent = profile?.primary_color || "#3B82F6"
+  const displayProfile: StoreProfile = profile ?? {
+    store_name: "Data Store",
+    whatsapp_number: null,
+    phone_number: null,
+    primary_color: "#3B82F6",
+    business_info: null,
+  }
+
+  const accent = displayProfile.primary_color || "#3B82F6"
 
   const bundlesByNetwork = useMemo(() => {
     const map: Record<string, DataBundle[]> = { MTN: [], Telecel: [], AirtelTigo: [] }
@@ -150,7 +155,7 @@ export default function PublicAgentStorefront() {
   }
 
   const whatsappLink = (message: string) => {
-    const num = (profile?.whatsapp_number || profile?.phone_number || "").replace(/\D/g, "")
+    const num = (displayProfile.whatsapp_number || displayProfile.phone_number || "").replace(/\D/g, "")
     return `https://wa.me/${num}?text=${encodeURIComponent(message)}`
   }
 
@@ -162,13 +167,15 @@ export default function PublicAgentStorefront() {
     )
   }
 
-  if (notFound || !profile) {
+  const hasStoreContent = Boolean(profile) || bundles.length > 0 || services.length > 0
+
+  if (!hasStoreContent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-center">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">Store Not Available</h1>
-          <p className="text-muted-foreground mt-2 text-sm">
-            This storefront is not available or the agent store could not be loaded.
+          <h1 className="text-xl font-bold text-slate-800">Store not available yet</h1>
+          <p className="text-muted-foreground mt-2 text-sm max-w-sm mx-auto">
+            This storefront has not been set up yet. Please check back later.
           </p>
         </div>
       </div>
@@ -179,10 +186,10 @@ export default function PublicAgentStorefront() {
     <div className="min-h-screen bg-slate-50 pb-12">
       <header className="text-white px-4 py-10 shadow-lg" style={{ backgroundColor: accent }}>
         <div className="max-w-3xl mx-auto text-center sm:text-left">
-          <h1 className="text-3xl font-bold tracking-tight">{profile.store_name || "Data Store"}</h1>
-          {profile.business_info && (
+          <h1 className="text-3xl font-bold tracking-tight">{displayProfile.store_name || "Data Store"}</h1>
+          {displayProfile.business_info && (
             <p className="text-white/90 text-sm mt-3 max-w-xl whitespace-pre-wrap leading-relaxed">
-              {profile.business_info}
+              {displayProfile.business_info}
             </p>
           )}
         </div>
@@ -248,7 +255,7 @@ export default function PublicAgentStorefront() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button variant="outline" className="w-full" asChild>
-                        <a href={`tel:${profile.phone_number || ""}`}>
+                        <a href={`tel:${displayProfile.phone_number || ""}`}>
                           <Phone className="h-4 w-4 mr-2" />
                           Call Agent
                         </a>
@@ -317,7 +324,7 @@ export default function PublicAgentStorefront() {
                           <p className="font-semibold truncate">{b.name}</p>
                           <p className="text-xs text-muted-foreground">{b.size_gb} GB · {b.provider}</p>
                           <p className="text-lg font-bold mt-1" style={{ color: accent }}>
-                            ₵{Number(b.final_price).toFixed(2)}
+                            ₵{Number(b.retail_price).toFixed(2)}
                           </p>
                         </div>
                         <Button
