@@ -17,6 +17,7 @@ import { StorefrontOrdersSection } from "@/components/agent/referralhub/Storefro
 import { buildStorefrontUrl } from "@/lib/storefront-utils"
 import Link from "next/link"
 import { ArrowLeft, Store, Loader2, Check, X } from "lucide-react"
+import { ReferralHubSkeleton } from "@/components/agent/referralhub/ReferralHubSkeleton"
 
 interface AgentSession {
   id: string
@@ -210,23 +211,33 @@ export default function ReferralHubPage() {
 
       <main className="max-w-5xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          </div>
+          <ReferralHubSkeleton />
         ) : (
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="w-full h-auto flex overflow-x-auto justify-start gap-1 p-1 scrollbar-thin">
-              <TabsTrigger value="profile" className="shrink-0 px-3 sm:px-4">
+            <TabsList className="w-full h-auto grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl bg-white border shadow-sm">
+              <TabsTrigger
+                value="profile"
+                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+              >
                 Profile
               </TabsTrigger>
-              <TabsTrigger value="marketplace" className="shrink-0 px-3 sm:px-4">
+              <TabsTrigger
+                value="marketplace"
+                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+              >
                 Marketplace
               </TabsTrigger>
-              <TabsTrigger value="orders" className="shrink-0 px-3 sm:px-4">
+              <TabsTrigger
+                value="orders"
+                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+              >
                 Orders
               </TabsTrigger>
-              <TabsTrigger value="qr" className="shrink-0 px-3 sm:px-4">
-                QR
+              <TabsTrigger
+                value="qr"
+                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+              >
+                QR code
               </TabsTrigger>
             </TabsList>
 

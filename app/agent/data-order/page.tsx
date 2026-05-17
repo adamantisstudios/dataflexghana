@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import type React from "react"
 
 import { useRouter, useSearchParams } from "next/navigation"
@@ -84,8 +84,25 @@ export default function DataOrderPage() {
   const paymentSectionRef = useRef<HTMLDivElement>(null)
   const channelsRef = useRef<any[]>([])
 
-  // Initialize persistence hook
-  const { saveOrderState, restoreOrderState, clearOrderState } = useDataOrderPersistence()
+  const orderPersistenceData = useMemo(() => {
+    if (!selectedBundle && !recipientPhone.trim() && !orderDetails) return null
+    return {
+      selectedBundle,
+      recipientPhone,
+      paymentMethod,
+      generatedReference,
+      orderDetails,
+    }
+  }, [
+    selectedBundle,
+    recipientPhone,
+    paymentMethod,
+    generatedReference,
+    orderDetails,
+  ])
+
+  const { saveOrderState, restoreOrderState, clearOrderState } =
+    useDataOrderPersistence(orderPersistenceData)
 
   // Load agent and data bundles
   useEffect(() => {
@@ -138,33 +155,42 @@ export default function DataOrderPage() {
     }
   }, [searchParams, dataBundles])
 
-  // Restore persisted order state
+  // Restore persisted order state (e.g. after leaving to pay via mobile money)
   useEffect(() => {
     const restored = restoreOrderState()
-    if (restored) {
-      setSelectedBundle(restored.selectedBundle)
-      setRecipientPhone(restored.recipientPhone)
-      setPaymentMethod(restored.paymentMethod)
-      setGeneratedReference(restored.generatedReference)
-      setOrderDetails(restored.orderDetails)
-      setShowConfirmDialog(true)
+    if (!restored) return
 
-      setShowSuccessNotification(true)
-      setSuccessNotificationData({
-        bundleName: restored.selectedBundle?.name || "Your Order",
-        recipientPhone: restored.recipientPhone,
-        amount: restored.selectedBundle?.price || 0,
-        paymentMethod: restored.paymentMethod === "wallet" ? "Wallet Balance" : "Manual Payment",
-        reference: restored.paymentMethod === "manual" ? restored.generatedReference : undefined,
-        deliveryTime: "10-45 minutes",
-      })
-
-      setTimeout(() => {
-        setShowSuccessNotification(false)
-        setSuccessNotificationData(null)
-      }, 5000)
+    if (restored.selectedBundle) {
+      setSelectedBundle(restored.selectedBundle as DataBundle)
     }
-  }, [restoreOrderState])
+    if (restored.recipientPhone) {
+      setRecipientPhone(restored.recipientPhone)
+    }
+    if (restored.paymentMethod) {
+      setPaymentMethod(restored.paymentMethod)
+    }
+    if (restored.generatedReference) {
+      setGeneratedReference(restored.generatedReference)
+    }
+    if (restored.orderDetails) {
+      setOrderDetails(restored.orderDetails)
+    }
+
+    if (
+      restored.paymentMethod === "manual" &&
+      restored.orderDetails &&
+      restored.generatedReference
+    ) {
+      setShowPaymentModal(true)
+    } else if (
+      restored.paymentMethod === "wallet" &&
+      restored.orderDetails &&
+      restored.selectedBundle
+    ) {
+      setShowConfirmDialog(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- restore once on mount
+  }, [])
 
   // Set up wallet balance listener
   const setupWalletBalanceListener = (agentId: string) => {

@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
-import { Loader2, Search } from "lucide-react"
+import { Search } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface ReferralService {
   id: string
@@ -113,8 +114,16 @@ export function MarketplaceServicesSection({ agentId, settings, onSettingsChange
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+          <div className="flex flex-col gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-3 border rounded-lg p-4">
+                <Skeleton className="h-16 w-16 rounded-lg shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : services.length === 0 ? (
           <p className="text-sm text-muted-foreground">No services found.</p>
@@ -126,15 +135,15 @@ export function MarketplaceServicesSection({ agentId, settings, onSettingsChange
               return (
                 <div
                   key={svc.id}
-                  className="flex flex-col sm:flex-row gap-3 border rounded-lg p-4 w-full"
+                  className="flex flex-row gap-3 border rounded-lg p-4 w-full items-start bg-white shadow-sm"
                 >
-                  <div className="relative w-full sm:w-20 sm:h-20 aspect-square shrink-0 mx-auto sm:mx-0 max-w-[120px]">
+                  <div className="relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border bg-slate-50">
                     <Image
                       src={img}
                       alt={svc.title}
                       fill
-                      className="rounded-lg object-cover border"
-                      sizes="(max-width: 640px) 100vw, 80px"
+                      className="object-cover"
+                      sizes="64px"
                     />
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:justify-between gap-2">

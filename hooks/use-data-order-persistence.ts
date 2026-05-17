@@ -1,31 +1,24 @@
 "use client"
 
 import { useEffect, useCallback } from "react"
-import { saveDataOrderState, loadDataOrderState, clearDataOrderState } from "@/lib/data-order-persistence"
+import {
+  saveDataOrderState,
+  loadDataOrderState,
+  clearDataOrderState,
+  type DataOrderState,
+} from "@/lib/data-order-persistence"
 
-export function useDataOrderPersistence(data: any) {
-  // Load persisted data on mount
+export function useDataOrderPersistence(data: DataOrderState | null | undefined) {
   useEffect(() => {
-    const loadedData = loadDataOrderState()
-    if (loadedData) {
-      // Call the restoreOrderState function instead of directly using onLoad
-      restoreOrderState()
-    }
-  }, [])
-
-  // Auto-save data when it changes
-  useEffect(() => {
-    if (data) {
-      const timeoutId = setTimeout(() => {
-        saveOrderState(data)
-      }, 500) // Debounce saves
-
-      return () => clearTimeout(timeoutId)
-    }
+    if (!data) return
+    const timeoutId = setTimeout(() => {
+      saveDataOrderState(data)
+    }, 400)
+    return () => clearTimeout(timeoutId)
   }, [data])
 
-  const saveOrderState = useCallback((data: any) => {
-    saveDataOrderState(data)
+  const saveOrderState = useCallback((payload: DataOrderState) => {
+    saveDataOrderState(payload)
   }, [])
 
   const restoreOrderState = useCallback(() => {

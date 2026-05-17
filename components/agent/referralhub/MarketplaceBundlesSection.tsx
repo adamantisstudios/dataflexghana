@@ -16,7 +16,8 @@ import {
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { BUNDLE_NETWORKS, type BundleNetwork } from "@/lib/storefront-utils"
-import { Loader2, Trash2 } from "lucide-react"
+import { Trash2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface DataBundle {
   id: string
@@ -175,8 +176,17 @@ export function MarketplaceBundlesSection({
           {!network ? (
             <p className="text-sm text-muted-foreground">Select a network to browse bundles.</p>
           ) : loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <div className="flex flex-col gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3 border rounded-lg p-4">
+                  <Skeleton className="h-14 w-14 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-9 w-32" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : bundles.length === 0 ? (
             <p className="text-sm text-muted-foreground">No bundles for this network.</p>
@@ -188,17 +198,25 @@ export function MarketplaceBundlesSection({
                 return (
                   <div
                     key={b.id}
-                    className="flex flex-col sm:flex-row gap-3 border rounded-lg p-4 w-full"
+                    className="flex flex-row gap-3 border rounded-lg p-4 w-full items-start bg-white shadow-sm"
                   >
-                    {b.image_url && (
-                      <Image
-                        src={b.image_url}
-                        alt={b.name}
-                        width={56}
-                        height={56}
-                        className="rounded object-cover shrink-0 self-start"
-                      />
-                    )}
+                    <div className="relative h-14 w-14 shrink-0 rounded-lg overflow-hidden bg-slate-100 border">
+                      {b.image_url ? (
+                        <Image
+                          src={b.image_url}
+                          alt={b.name}
+                          fill
+                          className="object-cover"
+                          sizes="56px"
+                        />
+                      ) : (
+                        <div
+                          className="h-full w-full flex items-center justify-center text-xs font-bold text-slate-500"
+                        >
+                          {b.size_gb}G
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0 space-y-2">
                       <p className="font-medium">{b.name}</p>
                       <p className="text-xs text-muted-foreground">
@@ -265,17 +283,23 @@ export function MarketplaceBundlesSection({
               return (
                 <div
                   key={s.item_id}
-                  className="flex flex-col sm:flex-row gap-3 border rounded-lg p-4"
+                  className="flex flex-row gap-3 border rounded-lg p-4 items-start bg-white shadow-sm"
                 >
-                  {b?.image_url && (
-                    <Image
-                      src={b.image_url}
-                      alt={b.name}
-                      width={56}
-                      height={56}
-                      className="rounded object-cover shrink-0"
-                    />
-                  )}
+                  <div className="relative h-14 w-14 shrink-0 rounded-lg overflow-hidden bg-slate-100 border">
+                    {b?.image_url ? (
+                      <Image
+                        src={b.image_url}
+                        alt={b.name}
+                        fill
+                        className="object-cover"
+                        sizes="56px"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-xs text-slate-500">
+                        {b?.size_gb ?? "?"}G
+                      </div>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0 space-y-2">
                     <p className="font-medium">{b?.name || s.item_id.slice(0, 8)}</p>
                     {b && (
