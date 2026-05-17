@@ -286,6 +286,11 @@ export function CommentThread({
     }
   }
 
+  const authorInitials = (name?: string) => {
+    const parts = (name || "?").trim().split(/\s+/).filter(Boolean)
+    return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "?"
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     const now = new Date()
@@ -359,18 +364,23 @@ export function CommentThread({
         ) : (
           comments.map((comment) => (
             <div key={comment.id} className="space-y-2">
-              <Card className="border-gray-200 bg-white/80">
-                <CardContent className="pt-4">
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-gray-800">{comment.author_name}</p>
-                        <p className="text-xs text-gray-500">{formatDate(comment.created_at)}</p>
+              <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
+                <CardContent className="pt-4 pb-3">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 justify-between">
+                      <div className="flex gap-3 min-w-0 flex-1">
+                        <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs font-bold shrink-0">
+                          {authorInitials(comment.author_name)}
+                        </div>
+                        <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 text-sm">{comment.author_name || "Member"}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{formatDate(comment.created_at)}</p>
                         {comment.is_edited && (
                           <Badge variant="secondary" className="text-xs mt-1">
                             Edited {comment.edited_at && `• ${formatDate(comment.edited_at)}`}
                           </Badge>
                         )}
+                        </div>
                       </div>
                       {(comment.author_id === currentUserId || isTeacher) && (
                         <div className="flex gap-1">

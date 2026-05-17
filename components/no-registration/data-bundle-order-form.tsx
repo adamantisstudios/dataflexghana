@@ -12,6 +12,10 @@ import type { DataBundle } from "@/lib/supabase";
 import { generatePaymentPIN } from "@/lib/pin-generator"
 import { Wifi, CreditCard, CheckCircle, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
+import {
+  buildAdminWhatsAppUrl,
+  formatNoRegistrationDataBundleMessage,
+} from "@/lib/no-registration-order-whatsapp"
 
 interface OrderFormData {
   beneficiaryNumber: string
@@ -159,7 +163,11 @@ export function DataBundleOrderForm() {
               amount: Math.round(totalAmount * 100),
               phone: formData.phoneNumber,
               reference: referenceCode,
-              service: `Data Bundle: ${selectedBundle.name} (${selectedNetwork})`,
+              service: `${selectedNetwork} ${selectedBundle.name}`,
+              source: "no_registration_data_bundle",
+              order_type: "no_registration",
+              orderNetwork: selectedNetwork,
+              orderDataBundle: selectedBundle.name,
             }),
           });
 
@@ -183,8 +191,15 @@ export function DataBundleOrderForm() {
         }
       } else {
         // Manual payment - Open WhatsApp for payment confirmation with reference code
-        const whatsappMessage = `I want to order ${formData.quantity}x ${selectedBundle.name} for ₵${totalAmount.toFixed(2)}. Reference Code: ${referenceCode}`;
-        const whatsappUrl = `https://wa.me/233246827049?text=${encodeURIComponent(whatsappMessage)}`;
+        const whatsappMessage = formatNoRegistrationDataBundleMessage({
+          phone: formData.phoneNumber.trim(),
+          network: selectedNetwork,
+          bundle: selectedBundle.name,
+          amount: totalAmount,
+          reference: referenceCode,
+          paymentMethod: "manual",
+        });
+        const whatsappUrl = buildAdminWhatsAppUrl(whatsappMessage);
         window.open(whatsappUrl, "_blank");
       }
 

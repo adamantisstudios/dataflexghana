@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -39,24 +39,83 @@ import Image from "next/image";
 
 export default function NoRegistrationPage() {
   const searchParams = useSearchParams();
+  const [paymentSuccess, setPaymentSuccess] = useState<{
+    whatsappUrl: string;
+    phone: string;
+    network: string;
+    bundle: string;
+    reference: string;
+    amount: string;
+  } | null>(null);
+
+  const openWhatsApp = useCallback((url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, []);
 
   useEffect(() => {
     const paymentStatus = searchParams.get("payment");
     const whatsappUrl = searchParams.get("whatsapp_url");
 
-    if (paymentStatus === "success" && whatsappUrl) {
-      const timeout = setTimeout(() => {
-        console.log("[v0] Opening WhatsApp with payment confirmation");
-        window.open(decodeURIComponent(whatsappUrl), "_blank");
-      }, 500);
-      return () => clearTimeout(timeout);
-    }
-  }, [searchParams]);
+    if (paymentStatus !== "success" || !whatsappUrl) return;
+
+    const details = {
+      whatsappUrl,
+      phone: searchParams.get("phone") || "",
+      network: searchParams.get("network") || "",
+      bundle: searchParams.get("bundle") || searchParams.get("service") || "",
+      reference: searchParams.get("reference") || "",
+      amount: searchParams.get("amount") || "",
+    };
+
+    setPaymentSuccess(details);
+
+    const timeout = setTimeout(() => {
+      openWhatsApp(whatsappUrl);
+    }, 600);
+
+    return () => clearTimeout(timeout);
+  }, [searchParams, openWhatsApp]);
 
   return (
     <main className="min-h-screen">
       <AgentBenefitsSlideup />
       <Header />
+
+      {paymentSuccess && (
+        <div className="container mx-auto px-4 pt-4 max-w-3xl">
+          <div
+            className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 sm:p-5 shadow-md"
+            role="status"
+          >
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-6 w-6 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0 space-y-2">
+                <p className="font-semibold text-emerald-900">Payment successful</p>
+                <p className="text-sm text-emerald-800">
+                  Send your order details to our team on WhatsApp so we can process your data bundle.
+                </p>
+                {(paymentSuccess.network || paymentSuccess.bundle) && (
+                  <ul className="text-sm text-emerald-900/90 space-y-0.5">
+                    {paymentSuccess.phone && <li>Phone: {paymentSuccess.phone}</li>}
+                    {paymentSuccess.network && <li>Network: {paymentSuccess.network}</li>}
+                    {paymentSuccess.bundle && <li>Bundle: {paymentSuccess.bundle}</li>}
+                    {paymentSuccess.amount && <li>Amount: GHS {paymentSuccess.amount}</li>}
+                    {paymentSuccess.reference && <li>Ref: {paymentSuccess.reference}</li>}
+                  </ul>
+                )}
+                <Button
+                  type="button"
+                  className="mt-2 bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => openWhatsApp(paymentSuccess.whatsappUrl)}
+                >
+                  Open WhatsApp to confirm order
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <NoRegistrationSlider />
 
       <section className="py-12 bg-white">

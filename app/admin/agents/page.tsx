@@ -160,81 +160,60 @@ export default function AdminAgentsPage() {
 
   const toggleAgentApproval = async (agentId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase.from("agents").update({ isapproved: !currentStatus }).eq("id", agentId)
-
-      if (error) throw error
+      if (!currentStatus) {
+        const res = await fetch(`/api/admin/agents/${agentId}/approve`, { method: "POST" })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Approve failed")
+      } else {
+        const { error } = await supabase
+          .from("agents")
+          .update({ isapproved: false })
+          .eq("id", agentId)
+        if (error) throw error
+      }
 
       setAgents(agents.map((agent) => (agent.id === agentId ? { ...agent, isapproved: !currentStatus } : agent)))
       invalidateCache()
       toast.success(`Agent ${!currentStatus ? "approved" : "suspended"} successfully`)
     } catch (error) {
       console.error("Error updating agent:", error)
-      toast.error("Failed to update agent status")
+      toast.error(error instanceof Error ? error.message : "Failed to update agent status")
     }
   }
 
   const reactivateAgent = async (agentId: string, agentName: string) => {
     try {
-      const { data, error } = await supabase.rpc("reactivate_agent", {
-        p_agent_id: agentId,
-        p_admin_notes: `Manually reactivated by admin on ${new Date().toISOString()}`,
-      })
+      const res = await fetch(`/api/admin/agents/${agentId}/reactivate`, { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Reactivation failed")
 
-      if (error) throw error
-
-      if (data) {
-        toast.success(`Agent ${agentName} has been reactivated successfully`)
-        invalidateCache()
-        fetchAgents()
-      } else {
-        toast.error("Agent could not be reactivated")
-      }
+      toast.success(`Agent ${agentName} has been reactivated successfully`)
+      invalidateCache()
+      fetchAgents(currentPage)
     } catch (error) {
       console.error("Error reactivating agent:", error)
-      toast.error("Failed to reactivate agent")
+      toast.error(error instanceof Error ? error.message : "Failed to reactivate agent")
     }
   }
 
   const runAutomationManually = async () => {
     try {
       setRunningAutomation(true)
-
-      const { error: connectionError } = await supabase.from("agents").select("count", { count: "exact", head: true })
-
-      if (connectionError) {
-        throw new Error(`Database connection failed: ${connectionError.message}`)
-      }
-
-      const { data, error } = await supabase.rpc("run_agent_deactivation_automation", {
-        p_run_type: "manual",
+      const res = await fetch("/api/admin/automation/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run_type: "manual" }),
       })
-
-      if (error) {
-        console.error("Error running automation:", error)
-
-        if (error.code === "PGRST202") {
-          toast.error("Automation function not found. Please check if the database function exists.")
-          return
-        } else if (error.code === "PGRST301") {
-          toast.error("Automation function execution failed. Please check function permissions.")
-          return
-        } else {
-          throw error
-        }
+      const data = await res.json()
+      if (!res.ok || data.success === false) {
+        throw new Error(data.message || data.error || "Automation failed")
       }
-
-      let message = "Automation process completed successfully"
-      if (data && typeof data === "object" && data.message) {
-        message = data.message
-      }
-
-      toast.success(message)
+      toast.success(data.message || "Automation process completed successfully")
       invalidateCache()
-      fetchAgents()
+      fetchAgents(currentPage)
     } catch (error) {
       console.error("Error running automation:", error)
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-      toast.error(`Failed to run automation process: ${errorMessage}`)
+      toast.error(error instanceof Error ? error.message : "Failed to run automation process")
     } finally {
       setRunningAutomation(false)
     }
@@ -545,6 +524,34 @@ export default function AdminAgentsPage() {
                                     <Eye className="h-3 w-3" />
                                   </Link>
                                 </Button>
+                                {!agent.isapproved && !agent.auto_deactivated_at && (
+                                  <Button
+                                    size="sm"
+                                    className="text-xs px-2 py-1 h-auto bg-green-600 hover:bg-green-700"
+                                    onClick={() => toggleAgentApproval(agent.id, false)}
+                                  >
+                                    Approve
+                                  </Button>
+                                )}
+                                {agent.isapproved && !agent.auto_deactivated_at && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs px-2 py-1 h-auto"
+                                    onClick={() => toggleAgentApproval(agent.id, true)}
+                                  >
+                                    Suspend
+                                  </Button>
+                                )}
+                                {agent.auto_deactivated_at && (
+                                  <Button
+                                    size="sm"
+                                    className="text-xs px-2 py-1 h-auto bg-orange-600 hover:bg-orange-700"
+                                    onClick={() => reactivateAgent(agent.id, agent.full_name)}
+                                  >
+                                    Reactivate
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>

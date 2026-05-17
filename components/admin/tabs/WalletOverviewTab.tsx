@@ -15,9 +15,6 @@ import { Badge } from "@/components/ui/badge"
   PieChart,
   AlertCircle,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase-client";
-import { calculateWalletBalance } from "@/lib/earnings-calculator"
-import { getAgentCommissionSummary } from "@/lib/commission-earnings"
 
 interface WalletStats {
   totalBalance: number
@@ -71,90 +68,25 @@ export default function WalletOverviewTab({ getCachedData, setCachedData }: Wall
         setRefreshing(true)
         setError(null)
 
-        // COST-OPTIMIZED: Single batch query that gets all agent IDs and total count
-        const [totalAgentsResult, agentsDataResult] = await Promise.allSettled([
-          supabase.from("agents").select("*", { count: "exact", head: true }),
-          supabase.from("agents").select("id"),
-        ])
-
-        const totalAgents = totalAgentsResult.status === "fulfilled" ? totalAgentsResult.value.count || 0 : 0
-        const agentsIds =
-          agentsDataResult.status === "fulfilled" && agentsDataResult.value.data
-            ? agentsDataResult.value.data.map((a) => a.id)
-            : []
-
-        // COST-OPTIMIZED: Batch load all agent balances in parallel
-        // This is much more efficient than sequential loading
-        let totalBalance = 0
-        let totalCommissionBalance = 0
-        let agentsWithBalance = 0
-        let agentsWithCommission = 0
-        let averageBalance = 0
-        let averageCommission = 0
-        let highestBalance = 0
-        let highestCommission = 0
-        let lowestBalance = 0
-
-        if (agentsIds.length > 0) {
-          console.log(`[v0] Loading ${agentsIds.length} agents in parallel batches`)
-
-          // Load all wallet balances in parallel
-          const walletResults = await Promise.allSettled(agentsIds.map((id) => calculateWalletBalance(id)))
-
-          // Load all commission summaries in parallel
-          const commissionResults = await Promise.allSettled(
-            agentsIds.map((id) => getAgentCommissionSummary(id)),
-          )
-
-          const walletBalances: number[] = []
-          const commissionBalances: number[] = []
-
-          // Process wallet results
-          for (let i = 0; i < walletResults.length; i++) {
-            const balance =
-              walletResults[i].status === "fulfilled" ? walletResults[i].value : 0
-            walletBalances.push(balance)
-            totalBalance += balance
-            if (balance > 0) agentsWithBalance++
-            highestBalance = Math.max(highestBalance, balance)
-          }
-
-          // Process commission results
-          for (let i = 0; i < commissionResults.length; i++) {
-            const commission =
-              commissionResults[i].status === "fulfilled"
-                ? commissionResults[i].value.availableForWithdrawal
-                : 0
-            commissionBalances.push(commission)
-            totalCommissionBalance += commission
-            if (commission > 0) agentsWithCommission++
-            highestCommission = Math.max(highestCommission, commission)
-          }
-
-          if (walletBalances.length > 0) {
-            lowestBalance = Math.min(...walletBalances)
-            averageBalance = totalBalance / agentsIds.length
-          }
-
-          if (commissionBalances.length > 0) {
-            averageCommission = totalCommissionBalance / agentsIds.length
-          }
-
-          console.log(`[v0] Loaded ${agentsIds.length} agents - Balance: ${totalBalance}, Commissions: ${totalCommissionBalance}`)
+        const res = await fetch("/api/admin/wallet-overview", { cache: "no-store" })
+        const json = await res.json()
+        if (!res.ok || !json.success) {
+          throw new Error(json.error || "Failed to load wallet overview")
         }
 
+        const s = json.stats
         const newStats: WalletStats = {
-          totalBalance: Math.max(totalBalance, 0),
-          totalCommissionBalance: Math.max(totalCommissionBalance, 0),
-          totalAgents,
-          agentsWithBalance,
-          agentsWithCommission,
-          averageBalance: Math.max(averageBalance, 0),
-          averageCommission: Math.max(averageCommission, 0),
-          highestBalance: Math.max(highestBalance, 0),
-          lowestBalance: Math.max(lowestBalance, 0),
-          highestCommission: Math.max(highestCommission, 0),
-          lastUpdated: new Date().toISOString(),
+          totalBalance: Math.max(Number(s.totalBalance) || 0, 0),
+          totalCommissionBalance: Math.max(Number(s.totalCommissionBalance) || 0, 0),
+          totalAgents: Number(s.totalAgents) || 0,
+          agentsWithBalance: Number(s.agentsWithBalance) || 0,
+          agentsWithCommission: Number(s.agentsWithCommission) || 0,
+          averageBalance: Math.max(Number(s.averageBalance) || 0, 0),
+          averageCommission: Math.max(Number(s.averageCommission) || 0, 0),
+          highestBalance: Math.max(Number(s.highestBalance) || 0, 0),
+          lowestBalance: Math.max(Number(s.lowestBalance) || 0, 0),
+          highestCommission: Math.max(Number(s.highestCommission) || 0, 0),
+          lastUpdated: s.lastUpdated || new Date().toISOString(),
           isLoading: false,
         }
 

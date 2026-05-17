@@ -397,7 +397,7 @@ export function PartnershipForm({ agentId, onComplete, onCancel }: PartnershipFo
         "Partnership form submitted successfully! Your application will be processed within 14 working days.",
         { duration: 6000 },
       )
-      onComplete()
+      onComplete({ cost: 1440, formName: "Partnership Registration" })
     } catch (error: any) {
       console.error("[v0] Error submitting form:", error)
       const errorMessage = error?.message || "Unknown error occurred"

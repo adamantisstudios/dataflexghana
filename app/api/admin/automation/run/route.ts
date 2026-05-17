@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-client";
+import { getAdminClient } from "@/lib/supabase-base"
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] Starting automation run...")
+    const supabase = getAdminClient()
+    console.log("[automation/run] Starting automation run...")
 
-    // Test database connection first
     const { error: connectionError } = await supabase.from("agents").select("count", { count: "exact", head: true })
 
     if (connectionError) {

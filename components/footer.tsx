@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useState, useCallback } from "react"
 import { Separator } from "@/components/ui/separator"
 import { Shield, Mail, Phone, MapPin, Facebook, Twitter, Instagram, HelpCircle } from "lucide-react"
+import { SecurityNoticeFooter } from "@/components/legal/SecurityNotice"
+import { FOOTER_SECURITY_LINE } from "@/lib/security-notice"
 import { useRouter } from "next/navigation"
 
 export function Footer() {
@@ -137,7 +139,11 @@ export function Footer() {
           </div>
         </div>
 
+        <SecurityNoticeFooter />
+
         <Separator className="my-6 lg:my-8 bg-gray-700" />
+
+        <p className="text-center text-xs text-gray-500 mb-4">{FOOTER_SECURITY_LINE}</p>
 
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="text-gray-400 text-sm">© 2026 Dataflexghana.com. All rights reserved.</div>
@@ -146,7 +152,7 @@ export function Footer() {
               Privacy Policy
             </Link>
             <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
-              Terms of Service
+              Terms &amp; Conditions
             </Link>
             <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
               Cookie Policy

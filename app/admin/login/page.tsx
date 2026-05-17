@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Shield, ArrowLeft, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { loginAdmin } from "@/lib/unified-auth-system"
+import { SecurityNoticeLogin } from "@/components/legal/SecurityNotice"
 
 export default function AdminLoginPage() {
   const [formData, setFormData] = useState({
@@ -61,6 +62,8 @@ export default function AdminLoginPage() {
           <h1 className="text-3xl font-bold text-white mb-2">DataFlex Admin</h1>
           <p className="text-blue-200">Secure access to management panel</p>
         </div>
+
+        <SecurityNoticeLogin />
 
         <Card className="shadow-2xl border-0">
           <CardHeader className="space-y-1">

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronDown, MessageCircle, Mail, ArrowUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 import { ProtectedLink } from "@/components/protected-link"
+import { Footer } from "@/components/footer"
 
 interface FAQItem {
   id: string
@@ -386,18 +387,86 @@ const faqData: FAQItem[] = [
     answer:
       "View referral status in your Dashboard > Referral Stats section. You'll see: Total referrals, Confirmed referrals, Credited referrals, Paid out commissions, and conversion rate. Click on individual referrals to see their complete journey from pending to credited to paid out. Export detailed reports for record-keeping.",
   },
+  {
+    id: "data-1",
+    category: "Data Bundles",
+    question: "How do I order MTN, Telecel, or AirtelTigo data bundles?",
+    answer:
+      "Open Data Bundles in your dashboard, choose the network tab, select a bundle, enter the recipient phone number, and pay via wallet or manual MoMo using the reference shown. Delivery usually takes 5 minutes to 1 hour when the network is stable.",
+  },
+  {
+    id: "data-2",
+    category: "Data Bundles",
+    question: "What are agent data bundle prices?",
+    answer:
+      "Agent prices are lower than public retail and shown in your dashboard before you place each order. Prices may change when networks update tariffs—we always display the current price before you confirm.",
+  },
+  {
+    id: "store-1",
+    category: "Storefront & Referral Hub",
+    question: "What is the Referral Hub / storefront?",
+    answer:
+      "Referral Hub lets you run a branded public store with your own URL slug, QR code, data bundles, and referral services. Customers buy bundles via Paystack; you earn storefront commissions tracked in the hub.",
+  },
+  {
+    id: "store-2",
+    category: "Storefront & Referral Hub",
+    question: "How do I share my store link?",
+    answer:
+      "In Referral Hub, copy your store link or download your QR code from the QR tab. Share on WhatsApp, social media, or print the QR for physical marketing.",
+  },
+  {
+    id: "savings-1",
+    category: "Savings Plans",
+    question: "How do DataFlex savings plans work?",
+    answer:
+      "Agents can join savings plans from the Savings section, make scheduled deposits, track progress, and withdraw according to plan rules. Terms for each plan are shown before you commit.",
+  },
+  {
+    id: "security-1",
+    category: "Security & Account Safety",
+    question: "How does DataFlex protect my data?",
+    answer:
+      "We use encrypted connections, secure authentication, and activity logging (IP, device, timestamps) to detect fraud. Never share your password. Only use official DataFlex URLs and payment numbers shown in your dashboard.",
+  },
+  {
+    id: "security-2",
+    category: "Security & Account Safety",
+    question: "What should I do if I suspect unauthorized access?",
+    answer:
+      "Change your password immediately, contact support on WhatsApp 0246827049, and report suspicious transactions. We can review logs and secure your account. Do not share OTPs or passwords with anyone claiming to be support.",
+  },
+  {
+    id: "delivery-1",
+    category: "Payments & Delivery",
+    question: "What are typical delivery times?",
+    answer:
+      "Data bundles: often 5–60 minutes. Digital vouchers: usually instant. Compliance and registration services: days to weeks depending on government processing. Storefront bundle orders follow the same data delivery timelines after Paystack payment.",
+  },
+  {
+    id: "delivery-2",
+    category: "Payments & Delivery",
+    question: "What is the refund policy?",
+    answer:
+      "Digital products delivered successfully are generally non-refundable. Failed undelivered orders may be refunded or reprocessed after verification. Commission already paid is reversed if the underlying sale is refunded. See /terms for full details.",
+  },
 ]
 
 const categories = [
   "Getting Started",
   "Referral Program",
+  "Data Bundles",
+  "Storefront & Referral Hub",
   "GES Approved Books & Education",
   "Job Placement & Referrals",
   "Business Registration & Compliance",
   "Wholesale Shopping",
   "Digital Vouchers & Products",
   "Teaching Platform & Mentorship",
+  "Savings Plans",
   "Wallet & Payments",
+  "Payments & Delivery",
+  "Security & Account Safety",
   "Support & Help",
   "Legal & Terms",
 ]
@@ -409,15 +478,11 @@ export default function FAQPage() {
 
   const filteredFAQ = faqData.filter((item) => item.category === selectedCategory)
 
-  const handleScroll = () => {
-    if (typeof window !== "undefined") {
-      setShowBackToTop(window.scrollY > 300)
-    }
-  }
-
-  if (typeof window !== "undefined") {
-    window.addEventListener("scroll", handleScroll)
-  }
+  useEffect(() => {
+    const handleScroll = () => setShowBackToTop(window.scrollY > 300)
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   const scrollToCategory = (category: string) => {
     setSelectedCategory(category)
@@ -579,6 +644,7 @@ export default function FAQPage() {
           <ArrowUp className="w-6 h-6" />
         </button>
       )}
+      <Footer />
     </main>
   )
 }

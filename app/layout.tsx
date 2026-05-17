@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "sonner"
 import { DevConsoleDetector } from "@/components/dev-console-detector"
 import { MenuScrollHandler } from "@/components/menu-scroll-handler"
+import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 
 // ==============================
 // 🔥 FULL SEO KEYWORD ARRAY – covering every service + “gh” variants
@@ -840,7 +841,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#10b981" />
+        <meta name="theme-color" content="#059669" />
+        <link rel="manifest" href="/manifest.json" />
         <meta name="msapplication-TileColor" content="#10b981" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -1190,6 +1192,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Toaster />
           <SonnerToaster position="top-right" richColors closeButton />
           <DevConsoleDetector />
+          <PwaInstallPrompt />
         </ThemeProvider>
       </body>
     </html>

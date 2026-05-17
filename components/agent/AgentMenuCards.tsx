@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
   BookOpen,
   Upload,
   Store,
+  Ticket,
 } from "lucide-react";
 
 interface MenuCard {
@@ -123,6 +124,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       gradient: "linear-gradient(135deg, #3B82F6, #1E40AF)",
       buttonText: "EXPLORE CHANNELS",
       onClick: () => handleMenuCardClick("Channels"), // Fixed
+    },
+    {
+      id: "voucher",
+      title: "Voucher",
+      description: "Vouchers, routers & digital products",
+      icon: <Ticket className="h-12 w-12" />,
+      image: "/images/voucher.png",
+      gradient: "linear-gradient(135deg, #F97316, #EA580C)",
+      buttonText: "OPEN VOUCHER",
+      onClick: () => router.push("/voucher"),
     },
     {
       id: "referral-program",

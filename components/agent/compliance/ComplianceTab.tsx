@@ -31,6 +31,12 @@ import { BankAccountForm } from "./forms/BankAccountForm"
 import { AssociationForm } from "./forms/AssociationForm"
 import { CompanySharesForm } from "./forms/CompanySharesForm"
 import { PassportForm } from "./forms/PassportForm"
+import { CompliancePaymentAlert } from "./CompliancePaymentAlert"
+
+export type ComplianceFormCompletePayload = {
+  cost?: number
+  formName?: string
+}
 
 interface ComplianceTabProps {
   agentId: string
@@ -124,6 +130,7 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
   const [loading, setLoading] = useState(true)
   const [showFormDialog, setShowFormDialog] = useState(false)
   const [activeFormId, setActiveFormId] = useState<string | null>(null)
+  const [paymentAlert, setPaymentAlert] = useState<{ amount: number; formName: string } | null>(null)
 
   const loadSubmissions = async () => {
     if (!agentId || agentId === "" || agentId === "undefined" || agentId === "null") {
@@ -158,10 +165,18 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
     setActiveFormId(formId)
   }
 
-  const handleFormComplete = () => {
+  const handleFormComplete = (payload?: ComplianceFormCompletePayload) => {
+    const formName =
+      payload?.formName ||
+      getFormName(activeFormId || "") ||
+      "Compliance form"
+    const cost = Number(payload?.cost ?? 0)
     setActiveFormId(null)
     loadSubmissions()
-    toast.success("Form submitted!")
+    toast.success("Form submitted successfully!")
+    if (cost > 0) {
+      setPaymentAlert({ amount: cost, formName })
+    }
   }
 
   const handleFormCancel = () => {
@@ -300,25 +315,35 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
         </Card>
       </div>
 
+      <CompliancePaymentAlert
+        open={Boolean(paymentAlert)}
+        amount={paymentAlert?.amount ?? 0}
+        formName={paymentAlert?.formName ?? "Compliance form"}
+        onAcknowledge={() => setPaymentAlert(null)}
+      />
+
       <Dialog open={showFormDialog} onOpenChange={setShowFormDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Select Form</DialogTitle>
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2 shrink-0 border-b">
+            <DialogTitle className="text-lg font-bold tracking-tight">Select a form</DialogTitle>
+            <p className="text-sm text-muted-foreground">Choose the compliance service you need</p>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-3 mt-4">
+          <div className="grid grid-cols-1 gap-2.5 p-4 overflow-y-auto max-h-[calc(85vh-5rem)]">
             {AVAILABLE_FORMS.map((form) => {
               const Icon = form.icon
               return (
                 <Card
                   key={form.id}
-                  className={`border-2 transition-all cursor-pointer p-3 ${form.color}`}
+                  className={`border-2 transition-all cursor-pointer p-3.5 hover:shadow-md active:scale-[0.99] ${form.color}`}
                   onClick={() => handleFormSelect(form.id)}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`h-8 w-8 ${form.iconColor}`} />
-                    <div>
-                      <h3 className="font-medium text-sm">{form.form_name}</h3>
-                      <p className="text-xs text-gray-500">{form.form_description}</p>
+                    <div className="rounded-lg p-2 bg-white/80 shrink-0">
+                      <Icon className={`h-7 w-7 ${form.iconColor}`} />
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <h3 className="font-semibold text-sm text-slate-900 leading-snug">{form.form_name}</h3>
+                      <p className="text-xs text-slate-600 mt-0.5">{form.form_description}</p>
                     </div>
                   </div>
                 </Card>

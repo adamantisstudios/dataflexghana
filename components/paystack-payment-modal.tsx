@@ -75,6 +75,7 @@ export function PaystackPaymentModal({
           reference: paymentReference,
           service: orderSummary.service,
           source: "no_registration_data_bundle",
+          order_type: "no_registration",
           orderNetwork: orderMetadata?.network,
           orderDataBundle: orderMetadata?.dataBundle ?? orderSummary.service,
         }),

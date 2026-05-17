@@ -12,7 +12,17 @@ if (!PAYSTACK_SECRET_KEY) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, amount, phone, reference, service, source, orderNetwork, orderDataBundle } = body
+    const {
+      email,
+      amount,
+      phone,
+      reference,
+      service,
+      source,
+      order_type,
+      orderNetwork,
+      orderDataBundle,
+    } = body
 
     if (!email || !amount || !phone || !reference || !service) {
       return NextResponse.json(
@@ -23,21 +33,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const metadata: Record<string, any> = {
-      phone,
-      reference,
-      service,
+    const metadata: Record<string, string> = {
+      phone: String(phone),
+      reference: String(reference),
+      service: String(service),
       timestamp: new Date().toISOString(),
     }
 
     if (source) {
-      metadata.source = source
+      metadata.source = String(source)
+      metadata.order_type = metadata.order_type || "no_registration"
+    }
+    if (order_type) {
+      metadata.order_type = String(order_type)
     }
     if (orderNetwork) {
-      metadata.orderNetwork = orderNetwork
+      metadata.orderNetwork = String(orderNetwork)
     }
     if (orderDataBundle) {
-      metadata.orderDataBundle = orderDataBundle
+      metadata.orderDataBundle = String(orderDataBundle)
     }
 
     // Initialize payment with Paystack

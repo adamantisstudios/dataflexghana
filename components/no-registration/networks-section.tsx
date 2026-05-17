@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { generateWhatsAppLink } from "@/utils/whatsapp";
+import {
+  buildAdminWhatsAppUrl,
+  formatNoRegistrationDataBundleMessage,
+} from "@/lib/no-registration-order-whatsapp";
 import { PaystackPaymentModal, type PaymentCompletedData } from "@/components/paystack-payment-modal";
 import { generatePaymentReferenceCode } from "@/lib/reference-code-generator";
 import { Phone, CheckCircle, Zap } from "lucide-react";
@@ -174,7 +177,6 @@ export function NetworksSection() {
   const handlePaymentCompleted = (paymentData: PaymentCompletedData) => {
     const [size, priceStr] = selectedPlan.split(" - ₵");
     const now = new Date();
-    const timeString = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
 
     if (paymentData.paymentMethod === "paystack") {
       toast.success("Payment successful! Check your WhatsApp for order confirmation.");
@@ -199,30 +201,17 @@ export function NetworksSection() {
       });
     })();
 
-    const message = `DATA BUNDLE ORDER
+    const message = formatNoRegistrationDataBundleMessage({
+      phone: phoneNumber.trim(),
+      network: networkName,
+      bundle: `${networkName} ${size} Data Bundle`,
+      amount: Number.isNaN(amount) ? paymentData.amount : amount,
+      reference: paymentReference,
+      timestamp: now,
+      paymentMethod: "manual",
+    });
 
-Network: ${networks[activeNetwork].name}
-Plan: ${size}
-Price: ₵${priceStr}
-Phone Number: ${phoneNumber}
-
-💳 PAYMENT REFERENCE: ${paymentReference}
-
-✅ PAYMENT CONFIRMED
-Customer has confirmed payment to:
-Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
-Payment Line: 0557943392
-
-⏱️ ORDER PLACED AT: ${timeString}
-🏢 CLOSING TIME: 9:30 PM
-
-🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
-
-⏱️ PROCESSING TIME: Data processing and delivery takes 10-30 minutes after payment confirmation.
-
-Please process this order using the payment reference above.`;
-
-    const whatsappUrl = generateWhatsAppLink(message);
+    const whatsappUrl = buildAdminWhatsAppUrl(message);
     window.open(whatsappUrl, "_blank");
 
     setSelectedPlan("");

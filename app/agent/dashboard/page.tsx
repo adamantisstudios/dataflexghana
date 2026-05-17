@@ -59,6 +59,7 @@ import type { Job  } from "@/lib/supabase"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
 import { AgentMenuCards } from "@/components/agent/AgentMenuCards"
+import { SecurityNoticeBanner, LegalFooterLinks } from "@/components/legal/SecurityNotice"
   import {
   Dialog,
   DialogContent,
@@ -1003,6 +1004,8 @@ DataFlex Ghana Agent 🇬🇭`
       </div>
       {/* END: HERO SECTION WITH ADMIN PORTAL ACCESS */}
       <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        <SecurityNoticeBanner />
+
         <Suspense fallback={<div className="h-24 w-full animate-pulse bg-indigo-100 rounded-xl" />}>
 
         </Suspense>
@@ -1030,6 +1033,7 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         )}
         <AgentMenuCards activeTab={activeTab} onTabChange={handleTabChange} />
+        <LegalFooterLinks className="py-2" />
         <div className="w-full max-w-full px-4 sm:px-6 py-6 sm:py-8">
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-6 sm:p-10 shadow-2xl">
             {/* soft glow overlay */}

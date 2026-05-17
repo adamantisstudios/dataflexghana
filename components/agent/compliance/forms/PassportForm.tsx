@@ -261,7 +261,7 @@ export function PassportForm({ agentId, onComplete, onCancel }: PassportFormProp
         "Form submitted successfully! Your passport application has been received and will be processed.",
         { duration: 5000 }
       )
-      onComplete()
+      onComplete({ cost: selectedCostTier?.cost ?? 0, formName: "Passport" })
     } catch (error) {
       console.error("Error submitting form:", error)
       toast.error("Failed to submit form. Please try again.")

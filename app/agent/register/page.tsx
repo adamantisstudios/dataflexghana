@@ -154,7 +154,7 @@ export default function RegisterPage() {
     }
 
     if (!formData.agreeToTerms) {
-      setError("Please agree to the terms and conditions")
+      setError("Please confirm you have read and agree to the Terms & Conditions and FAQ")
       setLoading(false)
       return
     }
@@ -695,15 +695,16 @@ export default function RegisterPage() {
                     required
                   />
                   <Label htmlFor="terms" className="text-xs sm:text-sm leading-relaxed cursor-pointer">
-                    By registering, I have accepted to be bound by the{" "}
-                    <Link href="/terms" className="text-emerald-600 hover:underline font-medium">
-                      Terms and Conditions
+                    I have read and agree to the{" "}
+                    <Link href="/terms" target="_blank" className="text-emerald-600 hover:underline font-medium">
+                      Terms &amp; Conditions
                     </Link>{" "}
-                    of the platform. I have fully read and agree to the{" "}
-                    <Link href="/terms" className="text-emerald-600 hover:underline font-medium">
-                      Terms and Conditions
-                    </Link>{" "}
-                    and understand that my account requires approval before activation. <span className="text-red-500">*</span>
+                    and{" "}
+                    <Link href="/faq" target="_blank" className="text-emerald-600 hover:underline font-medium">
+                      FAQ
+                    </Link>
+                    . I understand my account requires approval before activation.{" "}
+                    <span className="text-red-500">*</span>
                   </Label>
                 </div>
 
@@ -721,7 +722,7 @@ export default function RegisterPage() {
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 shadow-lg h-10 sm:h-12 text-sm sm:text-base font-medium"
-                  disabled={loading}
+                  disabled={loading || !formData.agreeToTerms}
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">

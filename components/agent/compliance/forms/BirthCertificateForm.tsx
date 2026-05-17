@@ -311,7 +311,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
         "Form submitted successfully! Your Birth Certificate application has been received and will be processed.",
         { duration: 5000 }
       )
-      onComplete()
+      onComplete({ cost: selectedCostTier?.cost ?? 0, formName: "Birth Certificate" })
     } catch (error) {
       console.error("Error submitting form:", error)
       toast.error("Failed to submit form. Please try again.")

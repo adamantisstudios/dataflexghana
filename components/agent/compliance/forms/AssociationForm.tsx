@@ -196,7 +196,7 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
         body: formDataToSubmit,
       })
       if (response.ok) {
-        onComplete()
+        onComplete({ cost: 1444, formName: "Association Registration" })
       } else {
         alert("Error submitting form. Please try again.")
       }

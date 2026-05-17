@@ -1,9 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-client";
+import { NextResponse } from "next/server"
+import { getAdminClient } from "@/lib/supabase-base"
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Test database connection first
+    const supabase = getAdminClient()
     const { error: connectionError } = await supabase.from("agents").select("count", { count: "exact", head: true })
 
     if (connectionError) {

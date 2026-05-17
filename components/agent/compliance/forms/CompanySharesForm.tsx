@@ -400,7 +400,7 @@ export function CompanySharesForm({ agentId, onComplete, onCancel }: CompanyShar
         "Form submitted successfully! Your Company Limited by Shares application will be processed within 14 working days.",
         { duration: 6000 },
       )
-      onComplete()
+      onComplete({ cost: 1930, formName: "Company Limited By Shares" })
     } catch (error: any) {
       console.error("Error submitting form:", error)
       toast.error(`Failed to submit form: ${error?.message || "Unknown error"}`)

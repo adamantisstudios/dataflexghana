@@ -1,18 +1,43 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { logAuditFromRequest } from "@/lib/audit-logger"
+import {
+  buildAdminWhatsAppUrl,
+  extractOrderDetailsFromPaystackMetadata,
+  formatNoRegistrationDataBundleMessage,
+  isNoRegistrationPaystackMetadata,
+} from "@/lib/no-registration-order-whatsapp"
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co"
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || ""
 
-interface PaystackMetadata {
-  phone: string
-  reference: string
-  service: string
-  timestamp: string
+type PaystackMetadata = Record<string, unknown> & {
+  phone?: string
+  reference?: string
+  service?: string
+  timestamp?: string
   source?: string
+  order_type?: string
   orderNetwork?: string
   orderDataBundle?: string
+  registration_type?: string
+}
+
+function flattenPaystackMetadata(raw: unknown): PaystackMetadata {
+  if (!raw || typeof raw !== "object") return {}
+  const meta = { ...(raw as PaystackMetadata) }
+
+  const customFields = (raw as { custom_fields?: Array<{ variable_name?: string; value?: string }> })
+    .custom_fields
+  if (Array.isArray(customFields)) {
+    for (const field of customFields) {
+      if (field.variable_name && field.value != null && meta[field.variable_name] == null) {
+        meta[field.variable_name] = field.value
+      }
+    }
+  }
+
+  return meta
 }
 
 export async function GET(request: NextRequest) {
@@ -36,7 +61,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Verify payment with Paystack
     const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, {
       method: "GET",
       headers: {
@@ -66,12 +90,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const metadata = (data.data.metadata || {}) as PaystackMetadata & {
-      registration_type?: string
-    }
-    const amount = data.data.amount / 100 // Convert from pesewas to cedis
+    const metadata = flattenPaystackMetadata(data.data.metadata || {})
+    const amount = data.data.amount / 100
 
-    // Agent registration payment → registration form
     if (metadata.registration_type === "agent_registration") {
       await logAuditFromRequest(request, {
         actorType: "system",
@@ -88,11 +109,16 @@ export async function GET(request: NextRequest) {
       const registerUrl = new URL("/agent/register", request.url)
       registerUrl.searchParams.set("payment", "success")
       registerUrl.searchParams.set("reference", reference)
-      if (metadata.phone) registerUrl.searchParams.set("phone", metadata.phone)
+      if (metadata.phone) registerUrl.searchParams.set("phone", String(metadata.phone))
       return NextResponse.redirect(registerUrl, 302)
     }
 
-    // Store payment record in database
+    const isNoRegistrationOrder =
+      isNoRegistrationPaystackMetadata(metadata) ||
+      String(metadata.service || "")
+        .toLowerCase()
+        .includes("data bundle")
+
     try {
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -107,7 +133,7 @@ export async function GET(request: NextRequest) {
           service: metadata.service,
           status: "completed",
           paystack_reference: data.data.reference,
-          paystack_customer_code: data.data.customer.customer_code,
+          paystack_customer_code: data.data.customer?.customer_code,
           metadata: metadata,
           created_at: new Date().toISOString(),
         },
@@ -115,37 +141,30 @@ export async function GET(request: NextRequest) {
 
       if (insertError) {
         console.error("Error storing payment record:", insertError)
-        // Continue anyway - payment was successful
       }
 
-      // Also log data bundle order for no-registration data bundle payments
-      if (metadata.source === "no_registration_data_bundle") {
-        const network =
-          metadata.orderNetwork ||
-          (metadata.service ? metadata.service.split(" ")[0] : "Unknown")
-
-        const dataBundle = metadata.orderDataBundle || metadata.service || "Data Bundle"
+      if (isNoRegistrationOrder) {
+        const orderDetails = extractOrderDetailsFromPaystackMetadata(metadata, reference, amount)
+        const network = orderDetails.network
+        const dataBundle = orderDetails.bundle
 
         const { error: dataOrderError } = await supabase.from("data_orders_log").insert([
           {
             network,
             data_bundle: dataBundle,
             amount,
-            phone_number: metadata.phone,
-            reference_code: metadata.reference,
+            phone_number: orderDetails.phone,
+            reference_code: String(metadata.reference || reference),
             payment_method: "paystack",
           },
         ])
 
         if (dataOrderError) {
           console.error("Error storing data bundle order log:", dataOrderError)
-        } else {
-          console.log("Data bundle order logged successfully from Paystack callback")
         }
       }
     } catch (dbError) {
       console.error("Database error:", dbError)
-      // Continue - payment was still successful
     }
 
     await logAuditFromRequest(request, {
@@ -158,44 +177,30 @@ export async function GET(request: NextRequest) {
         phone: metadata.phone,
         service: metadata.service,
         source: metadata.source,
+        order_type: metadata.order_type,
       },
     })
 
-    // Prepare WhatsApp message with payment details
-    const timeString = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
-    const whatsappMessage = `DATA BUNDLE ORDER
-
-${metadata.service}
-Phone Number: ${metadata.phone}
-
-💳 PAYMENT REFERENCE: ${reference}
-
-✅ PAYMENT CONFIRMED via Paystack
-Amount Paid: ₵${amount.toFixed(2)}
-
-⏱️ ORDER PLACED AT: ${timeString}
-🏢 CLOSING TIME: 9:30 PM
-
-🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
-
-⏱️ PROCESSING TIME: Data processing and delivery takes 10-30 minutes after payment confirmation.
-
-Please process this order.`
-
-    const encodedMessage = encodeURIComponent(whatsappMessage)
-    const whatsappNumber = "233246827049" // WhatsApp number
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
-
-    // Encode WhatsApp URL to pass it as a parameter
     const redirectUrl = new URL("/no-registration", request.url)
     redirectUrl.searchParams.set("payment", "success")
-    redirectUrl.searchParams.set("whatsapp_url", whatsappUrl)
-    redirectUrl.searchParams.set("service", metadata.service)
-    redirectUrl.searchParams.set("phone", metadata.phone)
     redirectUrl.searchParams.set("reference", reference)
     redirectUrl.searchParams.set("amount", amount.toFixed(2))
 
-    // Redirect to no-registration page with payment success params
+    if (isNoRegistrationOrder) {
+      const orderDetails = extractOrderDetailsFromPaystackMetadata(metadata, reference, amount)
+      const whatsappMessage = formatNoRegistrationDataBundleMessage(orderDetails)
+      const whatsappUrl = buildAdminWhatsAppUrl(whatsappMessage)
+
+      redirectUrl.searchParams.set("whatsapp_url", whatsappUrl)
+      redirectUrl.searchParams.set("phone", orderDetails.phone)
+      redirectUrl.searchParams.set("network", orderDetails.network)
+      redirectUrl.searchParams.set("bundle", orderDetails.bundle)
+      redirectUrl.searchParams.set("service", orderDetails.bundle)
+    } else if (metadata.phone) {
+      redirectUrl.searchParams.set("phone", String(metadata.phone))
+      if (metadata.service) redirectUrl.searchParams.set("service", String(metadata.service))
+    }
+
     return NextResponse.redirect(redirectUrl)
   } catch (error) {
     console.error("Paystack callback error:", error)

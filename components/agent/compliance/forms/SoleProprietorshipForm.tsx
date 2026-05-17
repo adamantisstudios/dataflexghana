@@ -529,7 +529,7 @@ return (
         isOpen={showPaymentReminder}
         onClose={() => {
           setShowPaymentReminder(false)
-          onComplete()
+          onComplete({ cost: 580, formName: "Sole Proprietorship" })
         }}
         fee="580 GHS"
         serviceName="Sole Proprietorship Registration"

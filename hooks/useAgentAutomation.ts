@@ -98,7 +98,7 @@ export function useAgentAutomation() {
       const result = await response.json()
 
       if (result.success) {
-        setAgentsAtRisk(result.agents || [])
+        setAgentsAtRisk(result.agents || result.data || [])
       } else {
         throw new Error(result.error || "Failed to fetch agents at risk")
       }

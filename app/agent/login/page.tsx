@@ -13,6 +13,7 @@ import { getPlatformName } from "@/lib/config"
 import { ArrowLeft, LogIn, Eye, EyeOff, Phone, Lock, AlertTriangle, UserCheck } from "lucide-react"
 import Link from "next/link"
 import { ProtectedLink } from "@/components/protected-link"
+import { SecurityNoticeLogin } from "@/components/legal/SecurityNotice"
 
 export default function AgentLoginPage() {
   const [formData, setFormData] = useState({
@@ -122,6 +123,8 @@ export default function AgentLoginPage() {
             Sign in to access your agent dashboard and continue earning
           </p>
         </div>
+
+        <SecurityNoticeLogin />
 
         {/* Login Form */}
         <Card className="border-blue-100 shadow-lg mb-6">

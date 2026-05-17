@@ -56,6 +56,7 @@ import { connectionManager } from "@/lib/connection-manager"
 import { toast } from "sonner"
 import Link from "next/link"
 import { PendingAlertsCard } from "@/components/admin/pending-alerts-card"
+import { SecurityNoticeBanner } from "@/components/legal/SecurityNotice"
 
 // Lazy load tab components
 const AgentsTab = lazy(() => import("@/components/admin/tabs/AgentsTab"))
@@ -90,6 +91,7 @@ const FashionAvenueTab = lazy(() => import("@/components/admin/tabs/FashionAvenu
 const FashionProjectRequestsTab = lazy(() => import("@/components/admin/tabs/FashionProjectRequestsTab"))
 const FashionReferralsTab = lazy(() => import("@/components/admin/tabs/FashionReferralsTab"))
 const SalonTab = lazy(() => import("@/components/admin/tabs/SalonTab"))
+const MaintenancePanelTab = lazy(() => import("@/components/admin/tabs/MaintenancePanelTab"))
 
 // Type definition for tab configuration
 interface TabConfigItem {
@@ -645,6 +647,8 @@ export default function AdminDashboard() {
         </div>
       </div>
       <div className="container mx-auto px-4 py-8">
+        <SecurityNoticeBanner />
+
         {showNotification && (
           <UnreadNotification
             unreadCount={adminUnreadCount}
@@ -653,18 +657,18 @@ export default function AdminDashboard() {
           />
         )}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <div className="w-full overflow-x-auto">
-            <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
-              {visibleTabs.slice(0, 10).map(({ id, label, icon: Icon }) => {
+          <div className="w-full overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+            <TabsList className="inline-flex h-auto w-max min-w-full gap-1 bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl">
+              {visibleTabs.map(({ id, label, icon: Icon }) => {
                 const alertCount = getTabAlertCount(id)
                 return (
                   <TabsTrigger
                     key={id}
                     value={id}
-                    className="flex items-center justify-center px-3 py-2 text-xs lg:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap flex-1 relative"
+                    className="flex items-center shrink-0 px-3 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap relative"
                     onClick={() => loadTab(id)}
                   >
-                    <Icon className="h-4 w-4 mr-2" />
+                    <Icon className="h-4 w-4 mr-1.5 shrink-0" />
                     {label}
                     {(alertCount > 0 || (id === "referrals" && adminUnreadCount > 0)) && (
                       <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center p-0 animate-pulse">
@@ -676,9 +680,9 @@ export default function AdminDashboard() {
               })}
             </TabsList>
           </div>
-          {/* Additional tabs row for mobile */}
-          <div className="w-full overflow-x-auto">
-            <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
+          {/* removed duplicate tab row */}
+          <div className="hidden">
+            <TabsList>
               {visibleTabs.slice(10).map(({ id, label, icon: Icon }) => {
                 const alertCount = getTabAlertCount(id)
                 return (
@@ -920,16 +924,17 @@ export default function AdminDashboard() {
                 Control site-wide maintenance mode and manage user access during system updates.
               </p>
               <div className="space-y-4">
-                <Button
-                  asChild
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
-                >
-                  <Link href="/admin/maintenance">
-                    <Wrench className="h-4 w-4 mr-2" />
-                    Open Maintenance Control Panel
+                {loadedTabs.has("maintenance") && (
+                  <Suspense fallback={<TabLoadingSkeleton />}>
+                    <MaintenancePanelTab />
+                  </Suspense>
+                )}
+                <p className="text-sm text-center pt-2">
+                  <Link href="/admin/maintenance" className="text-blue-600 underline">
+                    Full-screen maintenance page
                   </Link>
-                </Button>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                </p>
+                <div className="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 bg-blue-50 rounded-lg">
                     <h3 className="font-semibold text-blue-800 mb-2">Quick Actions</h3>
                     <ul className="text-sm text-blue-600 space-y-1">
