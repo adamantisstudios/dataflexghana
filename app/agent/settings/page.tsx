@@ -79,7 +79,13 @@ export default function AgentSettingsPage() {
 
       // Hash new password and update
       const newPasswordHash = await hashPassword(passwordForm.newPassword)
-      const { error } = await supabase.from("agents").update({ password_hash: newPasswordHash }).eq("id", agent.id)
+      const { error } = await supabase
+        .from("agents")
+        .update({
+          password_hash: newPasswordHash,
+          password_changed_at: new Date().toISOString(),
+        })
+        .eq("id", agent.id)
 
       if (error) throw error
 

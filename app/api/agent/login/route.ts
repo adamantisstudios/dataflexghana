@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase-base";
 import { verifyPassword } from "@/lib/supabase";
+import { logAuditFromRequest, getClientIp } from "@/lib/audit-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
 
+    const clientIp = getClientIp(request);
+    if (clientIp) {
+      await supabase
+        .from("agents")
+        .update({ last_ip: clientIp, updated_at: new Date().toISOString() })
+        .eq("id", agent.id);
+    }
+
     const { password_hash: _removed, ...safeAgent } = agent;
+
+    await logAuditFromRequest(request, {
+      actorId: agent.id,
+      actorType: "agent",
+      action: "agent_login",
+      targetTable: "agents",
+      targetId: agent.id,
+    });
+
     return NextResponse.json({ agent: safeAgent });
   } catch (error) {
     console.error("[api/agent/login] error:", error);

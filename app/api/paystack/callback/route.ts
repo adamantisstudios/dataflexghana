@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { logAuditFromRequest } from "@/lib/audit-logger"
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co"
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || ""
@@ -72,6 +73,18 @@ export async function GET(request: NextRequest) {
 
     // Agent registration payment → registration form
     if (metadata.registration_type === "agent_registration") {
+      await logAuditFromRequest(request, {
+        actorType: "system",
+        action: "payment_received",
+        targetTable: "paystack_payments",
+        targetId: reference,
+        newData: {
+          amount,
+          phone: metadata.phone,
+          registration_type: "agent_registration",
+        },
+      })
+
       const registerUrl = new URL("/agent/register", request.url)
       registerUrl.searchParams.set("payment", "success")
       registerUrl.searchParams.set("reference", reference)
@@ -134,6 +147,19 @@ export async function GET(request: NextRequest) {
       console.error("Database error:", dbError)
       // Continue - payment was still successful
     }
+
+    await logAuditFromRequest(request, {
+      actorType: "system",
+      action: "payment_received",
+      targetTable: "paystack_payments",
+      targetId: reference,
+      newData: {
+        amount,
+        phone: metadata.phone,
+        service: metadata.service,
+        source: metadata.source,
+      },
+    })
 
     // Prepare WhatsApp message with payment details
     const timeString = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })

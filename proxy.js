@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server'
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isUuid(value) {
+  return UUID_RE.test(value)
+}
+
 export async function proxy(request) {
   const { pathname } = request.nextUrl
 
@@ -13,7 +20,17 @@ export async function proxy(request) {
     const storefrontMatch = pathname.match(/^\/store\/([^/]+)/)
     if (storefrontMatch) {
       const segment = storefrontMatch[1]
-      let agentId = segment
+      const remainder = pathname.replace(`/store/${segment}`, '') || ''
+
+      if (isUuid(segment)) {
+        return NextResponse.rewrite(
+          new URL(
+            `/public-agent-sandbox/${segment}${remainder}${request.nextUrl.search}`,
+            request.url,
+          ),
+        )
+      }
+
       try {
         const resolveUrl = new URL(
           `/api/storefront/resolve-slug?slug=${encodeURIComponent(segment)}`,
@@ -23,19 +40,25 @@ export async function proxy(request) {
           headers: { 'Cache-Control': 'no-store' },
           signal: AbortSignal.timeout(4000),
         })
+        if (resolveRes.status === 404) {
+          return NextResponse.rewrite(new URL('/store/not-available', request.url))
+        }
         if (resolveRes.ok) {
           const data = await resolveRes.json()
-          if (data.found && data.agentId) {
-            agentId = data.agentId
+          if (data.agentId) {
+            return NextResponse.rewrite(
+              new URL(
+                `/public-agent-sandbox/${data.agentId}${remainder}${request.nextUrl.search}`,
+                request.url,
+              ),
+            )
           }
         }
       } catch (err) {
         console.error('storefront slug resolve failed:', err)
       }
-      const remainder = pathname.replace(`/store/${segment}`, '') || ''
-      return NextResponse.rewrite(
-        new URL(`/public-agent-sandbox/${agentId}${remainder}${request.nextUrl.search}`, request.url)
-      )
+
+      return NextResponse.rewrite(new URL('/store/not-available', request.url))
     }
   }
 

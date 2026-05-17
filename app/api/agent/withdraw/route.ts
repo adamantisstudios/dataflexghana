@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { getAgentCommissionSummary, processWithdrawalRequest } from "@/lib/commission-earnings"
+import { logAuditFromRequest } from "@/lib/audit-logger"
+
+const PASSWORD_CHANGE_COOLDOWN_MS = 48 * 60 * 60 * 1000
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -51,6 +54,30 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
     }
 
     const db = getAdminClient()
+
+    const { data: agentSecurity, error: securityError } = await db
+      .from("agents")
+      .select("password_changed_at")
+      .eq("id", targetAgentId)
+      .maybeSingle()
+
+    if (securityError) {
+      console.error("Error checking password change cooldown:", securityError)
+      return NextResponse.json({ error: "Failed to validate withdrawal request" }, { status: 500 })
+    }
+
+    if (agentSecurity?.password_changed_at) {
+      const changedAt = new Date(agentSecurity.password_changed_at).getTime()
+      if (Date.now() - changedAt < PASSWORD_CHANGE_COOLDOWN_MS) {
+        return NextResponse.json(
+          {
+            error:
+              "Withdrawals are temporarily blocked for 48 hours after a password change. Please try again later.",
+          },
+          { status: 403 },
+        )
+      }
+    }
 
     const { data: existingRequests, error: requestError } = await db
       .from("withdrawals")
@@ -160,6 +187,18 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       .from("agents")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", targetAgentId)
+
+    await logAuditFromRequest(request, {
+      actorId: targetAgentId,
+      actorType: user.role === "admin" ? "admin" : "agent",
+      action: "withdrawal_requested",
+      targetTable: "withdrawals",
+      targetId: withdrawalRequest.id,
+      newData: {
+        amount: withdrawalAmount,
+        momo_number,
+      },
+    })
 
     return NextResponse.json({
       success: true,

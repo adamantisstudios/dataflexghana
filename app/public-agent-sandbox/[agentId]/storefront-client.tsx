@@ -59,6 +59,7 @@ export default function PublicAgentStorefront() {
   const agentId = params.agentId as string
 
   const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
   const [profile, setProfile] = useState<StoreProfile | null>(null)
   const [bundles, setBundles] = useState<DataBundle[]>([])
   const [services, setServices] = useState<ReferralService[]>([])
@@ -78,8 +79,20 @@ export default function PublicAgentStorefront() {
       try {
         const res = await fetch(`/api/storefront/public/${agentId}`, { cache: "no-store" })
         const data = await res.json()
+        if (res.status === 404) {
+          setNotFound(true)
+          return
+        }
         if (!res.ok) throw new Error(data.error || "Store unavailable")
-        setProfile(data.profile)
+        setProfile(
+          data.profile || {
+            store_name: "Data Store",
+            whatsapp_number: null,
+            phone_number: null,
+            primary_color: "#3B82F6",
+            business_info: null,
+          },
+        )
         setBundles(data.dataBundles || [])
         setServices(data.referralServices || [])
         const providers = (data.dataBundles || []).map((b: DataBundle) => normalizeProvider(b.provider))
@@ -149,10 +162,15 @@ export default function PublicAgentStorefront() {
     )
   }
 
-  if (!profile) {
+  if (notFound || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-center">
-        <p className="text-slate-600">This storefront is not available.</p>
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Store Not Available</h1>
+          <p className="text-muted-foreground mt-2 text-sm">
+            This storefront is not available or the agent store could not be loaded.
+          </p>
+        </div>
       </div>
     )
   }
@@ -194,6 +212,14 @@ export default function PublicAgentStorefront() {
             </div>
           </CardContent>
         </Card>
+
+        {bundles.length === 0 && services.length === 0 && (
+          <Card className="shadow-lg border-0">
+            <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              This store has not listed any products yet. Check back soon.
+            </CardContent>
+          </Card>
+        )}
 
         {services.length > 0 && (
           <section>

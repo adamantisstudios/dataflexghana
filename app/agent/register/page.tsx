@@ -8,8 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { supabase } from "@/lib/supabase-client";
-import { hashPassword } from "@/lib/supabase";
 import { getPlatformName } from "@/lib/config"
 import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { 
@@ -162,44 +160,29 @@ export default function RegisterPage() {
     }
 
     try {
-      const { data: existingAgent } = await supabase
-        .from("agents")
-        .select("id, phone_number")
-        .eq("phone_number", formData.phoneNumber)
-        .maybeSingle()
+      const registerRes = await fetch("/api/agent/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber,
+          paymentLine: formData.paymentLine,
+          region: formData.region,
+          password: formData.password,
+          referralCode: referralCode || null,
+        }),
+      })
 
-      if (existingAgent) {
-        setError("An agent with this phone number already exists")
+      const registerData = await registerRes.json()
+
+      if (!registerRes.ok) {
+        setError(registerData.error || "Registration failed. Please try again.")
         setLoading(false)
         return
       }
 
-      const passwordHash = await hashPassword(formData.password)
-      const { data, error: insertError } = await supabase
-        .from("agents")
-        .insert([
-          {
-            full_name: formData.fullName,
-            agent_name: formData.fullName,
-            phone_number: formData.phoneNumber,
-            momo_number: formData.paymentLine,
-            region: formData.region,
-            password_hash: passwordHash,
-            isapproved: false,
-            referral_code: referralCode || null,
-          },
-        ])
-        .select()
-
-      if (insertError) {
-        console.error("Registration error:", insertError)
-        setError("Registration failed. Please try again.")
-        setLoading(false)
-        return
-      }
-
-      if (data && data[0]) {
-        const newAgent = data[0]
+      const newAgent = registerData.agent
+      if (newAgent) {
         const agentName = formData.fullName || "New Agent"
 
         localStorage.setItem(
@@ -211,7 +194,6 @@ export default function RegisterPage() {
           }),
         )
 
-        // Clear payment verification flag after successful registration
         try {
           localStorage.removeItem("payment_verified")
           localStorage.removeItem("payment_reference")
@@ -234,14 +216,10 @@ export default function RegisterPage() {
           }
         }
 
-        // Clear payment verification and redirect to login for Paystack users
-        // Manual payment users were already redirected to login after WhatsApp
-        const paymentMethod = localStorage.getItem("payment_method")
         localStorage.removeItem("payment_verified")
         localStorage.removeItem("payment_reference")
         localStorage.removeItem("payment_method")
-        
-        // Redirect to login
+
         router.push(`/agent/login`)
       }
     } catch (error) {

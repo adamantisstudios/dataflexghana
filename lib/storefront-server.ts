@@ -145,6 +145,20 @@ export async function upsertStoreSetting(
   return data
 }
 
+export async function getStorefrontPageMetadata(agentId: string) {
+  const db = getAdminClient()
+  const [profile, agentRow] = await Promise.all([
+    getStoreProfile(agentId),
+    db.from("agents").select("id, full_name").eq("id", agentId).maybeSingle(),
+  ])
+  if (!agentRow.data) return null
+  return {
+    storeName: profile?.store_name || agentRow.data.full_name || "Data Store",
+    businessInfo: profile?.business_info || null,
+    storeSlug: profile?.store_slug || null,
+  }
+}
+
 export async function getPublicStorefrontPayload(agentId: string) {
   const db = getAdminClient()
 

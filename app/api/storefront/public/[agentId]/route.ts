@@ -15,7 +15,12 @@ export async function GET(
       return NextResponse.json({ error: "Store not found or unavailable" }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true, ...payload })
+    return NextResponse.json({
+      success: true,
+      profile: payload.profile,
+      dataBundles: payload.dataBundles,
+      referralServices: payload.referralServices,
+    })
   } catch (error) {
     console.error("public storefront:", error)
     return NextResponse.json({ error: "Failed to load store" }, { status: 500 })

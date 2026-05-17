@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base";
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { calculateWalletBalance } from "@/lib/earnings-calculator"
+import { logAuditFromRequest } from "@/lib/audit-logger"
+
+const MIN_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000
 
 // GET - Fetch agent's savings accounts
 export const GET = withUnifiedAuth(async (request: NextRequest, user: any) => {
@@ -84,7 +87,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
     // Use authenticated user's ID if no agentId provided, or allow admin to specify
     const targetAgentId = agentId || user.id
 
-    if (!targetAgentId || !savingsPlanId || !amount) {
+    if (!targetAgentId || !savingsPlanId || amount == null) {
       return NextResponse.json(
         {
           error: "Savings plan ID and amount are required",
@@ -93,12 +96,43 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       )
     }
 
-    const currentWalletBalance = await calculateWalletBalance(targetAgentId)
-
-    if (currentWalletBalance < amount) {
+    const depositAmount = Number(amount)
+    if (!Number.isFinite(depositAmount) || depositAmount <= 0) {
       return NextResponse.json(
         {
-          error: `Insufficient wallet balance. Available: ₵${currentWalletBalance.toFixed(2)}, Required: ₵${amount.toFixed(2)}`,
+          error: "Initial deposit must be greater than zero to activate savings.",
+        },
+        { status: 400 },
+      )
+    }
+
+    const { data: agentRecord, error: agentLookupError } = await supabase
+      .from("agents")
+      .select("created_at")
+      .eq("id", targetAgentId)
+      .single()
+
+    if (agentLookupError || !agentRecord?.created_at) {
+      return NextResponse.json({ error: "Agent account not found" }, { status: 404 })
+    }
+
+    const accountAgeMs = Date.now() - new Date(agentRecord.created_at).getTime()
+    if (accountAgeMs < MIN_ACCOUNT_AGE_MS) {
+      return NextResponse.json(
+        {
+          error:
+            "Savings can only be activated at least 24 hours after account registration. Please try again later.",
+        },
+        { status: 403 },
+      )
+    }
+
+    const currentWalletBalance = await calculateWalletBalance(targetAgentId)
+
+    if (currentWalletBalance < depositAmount) {
+      return NextResponse.json(
+        {
+          error: `Insufficient wallet balance. Available: ₵${currentWalletBalance.toFixed(2)}, Required: ₵${depositAmount.toFixed(2)}`,
         },
         { status: 400 },
       )
@@ -117,7 +151,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
     }
 
     // Validate amount
-    if (amount < plan.minimum_amount || (plan.maximum_amount && amount > plan.maximum_amount)) {
+    if (depositAmount < plan.minimum_amount || (plan.maximum_amount && depositAmount > plan.maximum_amount)) {
       return NextResponse.json(
         {
           error: `Amount must be between ₵${plan.minimum_amount} and ₵${plan.maximum_amount || "unlimited"}`,
@@ -136,8 +170,8 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       .insert({
         agent_id: targetAgentId,
         savings_plan_id: savingsPlanId,
-        principal_amount: amount,
-        current_balance: amount,
+        principal_amount: depositAmount,
+        current_balance: depositAmount,
         start_date: startDate.toISOString(),
         maturity_date: maturityDate.toISOString(),
         status: "active",
@@ -153,7 +187,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
     const { error: walletTransactionError } = await supabase.from("wallet_transactions").insert({
       agent_id: targetAgentId,
       transaction_type: "deduction",
-      amount: amount,
+      amount: depositAmount,
       description: `Savings commitment to ${plan.name}`,
       reference_code: `SAV-${Date.now()}-${newSaving.id.slice(0, 8)}`,
       status: "approved",
@@ -186,8 +220,8 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
     const { error: transactionError } = await supabase.from("savings_transactions").insert({
       agent_savings_id: newSaving.id,
       transaction_type: "deposit",
-      amount: amount,
-      balance_after: amount,
+      amount: depositAmount,
+      balance_after: depositAmount,
       description: `Initial deposit for ${plan.name}`,
       reference_number: `DEP-${Date.now()}-${newSaving.id.slice(0, 8)}`,
     })
@@ -199,11 +233,24 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
 
     console.log("✅ Savings commitment processed:", {
       agentId: targetAgentId,
-      amount,
+      amount: depositAmount,
       planName: plan.name,
       walletBalanceBeforeDeduction: currentWalletBalance,
       walletBalanceAfterDeduction: newWalletBalance,
       savingsId: newSaving.id,
+    })
+
+    await logAuditFromRequest(request, {
+      actorId: targetAgentId,
+      actorType: user.role === "admin" ? "admin" : "agent",
+      action: "savings_activated",
+      targetTable: "agent_savings",
+      targetId: newSaving.id,
+      newData: {
+        savings_plan_id: savingsPlanId,
+        amount: depositAmount,
+        plan_name: plan.name,
+      },
     })
 
     return NextResponse.json({
