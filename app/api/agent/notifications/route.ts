@@ -16,13 +16,26 @@ export const GET = withUnifiedAuth(async (request: NextRequest, user: any) => {
     const db = getAdminClient()
     const nowIso = new Date().toISOString()
 
-    const { data: notifications, error } = await db
+    let { data: notifications, error } = await db
       .from("agent_notifications")
       .select("*")
       .eq("is_active", true)
       .lte("start_date", nowIso)
       .gte("end_date", nowIso)
+      .or(`target_agent_id.is.null,target_agent_id.eq.${agentId}`)
       .order("created_at", { ascending: false })
+
+    if (error?.message?.includes("target_agent_id")) {
+      const fallback = await db
+        .from("agent_notifications")
+        .select("*")
+        .eq("is_active", true)
+        .lte("start_date", nowIso)
+        .gte("end_date", nowIso)
+        .order("created_at", { ascending: false })
+      notifications = fallback.data
+      error = fallback.error
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

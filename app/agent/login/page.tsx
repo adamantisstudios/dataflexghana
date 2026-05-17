@@ -22,11 +22,13 @@ export default function AgentLoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
+  const [banReason, setBanReason] = useState<string | null>(null)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setBanReason(null)
     setLoading(true)
 
     try {
@@ -42,12 +44,20 @@ export default function AgentLoginPage() {
       const loginJson = await loginRes.json()
 
       if (!loginRes.ok) {
-        setError(
-          loginJson.error ||
-            (loginRes.status === 404
-              ? "Agent not found. Please check your phone number or register first."
-              : "Login failed. Please try again.")
-        )
+        if (loginJson.banned && loginJson.auto_deactivation_reason) {
+          setBanReason(loginJson.auto_deactivation_reason)
+          setError(
+            loginJson.error ||
+              "Your account has been deactivated and you cannot access the dashboard.",
+          )
+        } else {
+          setError(
+            loginJson.error ||
+              (loginRes.status === 404
+                ? "Agent not found. Please check your phone number or register first."
+                : "Login failed. Please try again."),
+          )
+        }
         setLoading(false)
         return
       }
@@ -167,11 +177,35 @@ export default function AgentLoginPage() {
               </div>
 
               {/* Error Display */}
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <p className="text-red-600 text-sm">{error}</p>
+              {(error || banReason) && (
+                <div
+                  className={`rounded-lg p-4 border ${
+                    banReason ? "bg-amber-50 border-amber-300" : "bg-red-50 border-red-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle
+                      className={`h-5 w-5 shrink-0 mt-0.5 ${
+                        banReason ? "text-amber-700" : "text-red-600"
+                      }`}
+                    />
+                    <div className="space-y-2 text-sm">
+                      {error && (
+                        <p className={banReason ? "text-amber-900 font-medium" : "text-red-600"}>
+                          {error}
+                        </p>
+                      )}
+                      {banReason && (
+                        <div className="text-amber-900">
+                          <p className="font-semibold">Reason for deactivation</p>
+                          <p className="mt-1 whitespace-pre-wrap leading-relaxed">{banReason}</p>
+                          <p className="mt-2 text-xs text-amber-800">
+                            Your public storefront may still be available to customers. Contact
+                            support to appeal this decision.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

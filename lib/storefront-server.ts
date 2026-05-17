@@ -168,7 +168,7 @@ export async function getPublicStorefrontPayload(agentId: string) {
     db.from("agents").select("id, full_name, phone_number, momo_number, isapproved, isbanned").eq("id", agentId).maybeSingle(),
   ])
 
-  if (!agentRow.data || agentRow.data.isbanned || !agentRow.data.isapproved) {
+  if (!agentRow.data || !agentRow.data.isapproved) {
     return null
   }
 

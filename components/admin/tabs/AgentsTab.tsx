@@ -44,6 +44,9 @@ import { toast } from "sonner";
 interface AgentWithWallet extends Agent {
   wallet_balance?: number;
   commission_balance?: number;
+  isbanned?: boolean;
+  auto_deactivated_at?: string | null;
+  auto_deactivation_reason?: string | null;
 }
 
 interface AgentsTabProps {
@@ -237,6 +240,44 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       " - " +
       date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
+  };
+
+  const reactivateAgent = async (agent: AgentWithWallet) => {
+    const adminUser = getCurrentAdmin();
+    if (!adminUser?.id) {
+      toast.error("Admin session required. Please log in again.");
+      return;
+    }
+    if (!confirm(`Reactivate ${agent.full_name}? They will regain dashboard access.`)) return;
+
+    try {
+      const response = await fetch(`/api/admin/agents/${agent.id}/reactivate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ admin_id: adminUser.id }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to reactivate agent");
+      }
+      const updatedAgents = agents.map((a) =>
+        a.id === agent.id
+          ? {
+              ...a,
+              isbanned: false,
+              auto_deactivated_at: undefined,
+              auto_deactivation_reason: undefined,
+              isapproved: true,
+            }
+          : a,
+      );
+      setAgents(updatedAgents);
+      setCachedData?.(updatedAgents);
+      toast.success(result.message || "Agent reactivated");
+    } catch (error) {
+      console.error("Error reactivating agent:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to reactivate agent");
+    }
   };
 
   const approveAgent = async (agentId: string) => {
@@ -612,12 +653,18 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                 <h3 className="text-base font-semibold text-gray-900">{agent.full_name}</h3>
                 <Badge
                   className={
-                    agent.isapproved
-                      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                      : "bg-amber-100 text-amber-700 border-amber-200"
+                    agent.isbanned && agent.auto_deactivated_at
+                      ? "bg-orange-100 text-orange-800 border-orange-200"
+                      : agent.isapproved
+                        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                        : "bg-amber-100 text-amber-700 border-amber-200"
                   }
                 >
-                  {agent.isapproved ? "Approved" : "Pending"}
+                  {agent.isbanned && agent.auto_deactivated_at
+                    ? "Auto-Deactivated"
+                    : agent.isapproved
+                      ? "Approved"
+                      : "Pending"}
                 </Badge>
               </div>
 
@@ -666,8 +713,24 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                 </div>
               </div>
 
+              {agent.isbanned && agent.auto_deactivated_at && agent.auto_deactivation_reason && (
+                <p className="text-xs text-orange-800 bg-orange-50 border border-orange-100 rounded-md p-2 mb-3">
+                  {agent.auto_deactivation_reason}
+                </p>
+              )}
+
               {/* Action Buttons - 2x2 grid on mobile, 4 in a row on larger screens */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-gray-100">
+                {agent.isbanned && agent.auto_deactivated_at && (
+                  <Button
+                    size="sm"
+                    onClick={() => reactivateAgent(agent)}
+                    className="w-full col-span-2 sm:col-span-4 bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    Reactivate
+                  </Button>
+                )}
                 <Link href={`/admin/agents/${agent.id}`} passHref>
                   <Button
                     size="sm"

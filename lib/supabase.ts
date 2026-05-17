@@ -27,6 +27,8 @@ export interface Agent {
   region: string
   password_hash?: string
   isapproved: boolean
+  isbanned?: boolean
+  status?: string
   wallet_balance?: number
   commission?: number
   created_at: string
@@ -35,6 +37,8 @@ export interface Agent {
   last_activity_at?: string
   auto_deactivation_reason?: string
   auto_deactivated_at?: string
+  warned_at?: string
+  deleted_at?: string
   referral_id?: string
   can_publish_products?: boolean
   can_update_products?: boolean

@@ -24,6 +24,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
+    if (agent.isbanned === true) {
+      return NextResponse.json(
+        {
+          error: "Your account has been deactivated and you cannot sign in.",
+          banned: true,
+          auto_deactivation_reason:
+            agent.auto_deactivation_reason ||
+            "Your account was deactivated. Contact support if you believe this is an error.",
+        },
+        { status: 403 },
+      );
+    }
+
     if (!agent.isapproved) {
       return NextResponse.json({ error: "Account pending approval" }, { status: 403 });
     }

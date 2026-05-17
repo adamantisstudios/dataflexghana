@@ -54,16 +54,21 @@ export async function GET(
 
     const { data: agent, error: agentError } = await db
       .from("agents")
-      .select("id, isbanned")
+      .select("id, deleted_at")
       .eq("id", agentId)
       .maybeSingle()
 
     if (agentError) {
-      console.error("public storefront agent lookup:", agentError)
+      if (agentError.message?.includes("deleted_at")) {
+        const { data: agentOnly } = await db.from("agents").select("id").eq("id", agentId).maybeSingle()
+        if (!agentOnly) return NextResponse.json(EMPTY_RESPONSE)
+      } else {
+        console.error("public storefront agent lookup:", agentError)
+        return NextResponse.json(EMPTY_RESPONSE)
+      }
+    } else if (!agent) {
       return NextResponse.json(EMPTY_RESPONSE)
-    }
-
-    if (!agent || agent.isbanned) {
+    } else if (agent.deleted_at) {
       return NextResponse.json(EMPTY_RESPONSE)
     }
 
