@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { authenticateAdmin } from "@/lib/api-auth"
+import { fetchEnrichedStorefrontOrders } from "@/lib/storefront-orders"
 
 export const dynamic = "force-dynamic"
 
@@ -10,24 +11,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: 401 })
   }
 
-  const db = getAdminClient()
-  const { data, error } = await db
-    .from("storefront_orders")
-    .select(`*, data_bundles (name, provider, size_gb), agents (full_name, phone_number)`)
-    .order("created_at", { ascending: false })
+  try {
+    const { searchParams } = request.nextUrl
+    const page = parseInt(searchParams.get("page") || "1", 10)
+    const limit = parseInt(searchParams.get("limit") || "20", 10)
+    const status = searchParams.get("status") || "all"
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const result = await fetchEnrichedStorefrontOrders({
+      includeAgents: true,
+      page,
+      limit,
+      status: status === "all" ? undefined : status,
+    })
+
+    return NextResponse.json({ success: true, ...result })
+  } catch (error) {
+    console.error("admin storefront-orders GET:", error)
+    const message = error instanceof Error ? error.message : "Failed to fetch orders"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
-
-  const { data: profiles } = await db
-    .from("agent_store_profiles")
-    .select("agent_id, store_name, storefront_commission_balance")
-
-  return NextResponse.json({
-    orders: data || [],
-    profiles: profiles || [],
-  })
 }
 
 export async function PATCH(request: NextRequest) {

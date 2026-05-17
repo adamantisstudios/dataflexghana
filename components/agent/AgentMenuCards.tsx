@@ -1,6 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
   import {
   Users,
   Smartphone,
@@ -14,6 +15,7 @@ import Image from "next/image";
   FileText,
   BookOpen,
   Upload,
+  Store,
 } from "lucide-react";
 
 interface MenuCard {
@@ -33,6 +35,7 @@ interface AgentMenuCardsProps {
 }
 
 export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) {
+  const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const demoTimerRef = useRef<number | null>(null);
   const announceTimerRef = useRef<number | null>(null);
@@ -41,6 +44,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
   const [announceMessage, setAnnounceMessage] = useState("");
 
   const menuCards: MenuCard[] = [
+    {
+      id: "referral-hub",
+      title: "Referral Hub",
+      description: "Your white-label storefront & QR",
+      icon: <Store className="h-12 w-12" />,
+      image: "/images/referral-hub.png",
+      gradient: "linear-gradient(135deg, #0EA5E9, #0369A1)",
+      buttonText: "OPEN HUB",
+      onClick: () => router.push("/agent/referralhub"),
+    },
     {
       id: "data-bundles",
       title: "Data Bundles",

@@ -1,7 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { getAdminClient } from "@/lib/supabase-base"
-import { getStoreSettings, upsertStoreSetting, type StoreItemType } from "@/lib/storefront-server"
+import {
+  getStoreSettings,
+  upsertStoreSetting,
+  deleteStoreSetting,
+  type StoreItemType,
+} from "@/lib/storefront-server"
 
 export const dynamic = "force-dynamic"
 
@@ -11,22 +16,29 @@ export const GET = withUnifiedAuth(async (request: NextRequest, user) => {
     return NextResponse.json({ error: "Access denied" }, { status: 403 })
   }
 
-  const db = getAdminClient()
-  const [settings, bundles, services] = await Promise.all([
-    getStoreSettings(agentId),
-    db
+  const settings = await getStoreSettings(agentId)
+  const bundleIds = settings.filter((s) => s.item_type === "data_bundle").map((s) => s.item_id)
+
+  let savedBundles: Record<string, unknown>[] = []
+  if (bundleIds.length > 0) {
+    const db = getAdminClient()
+    const { data } = await db
       .from("data_bundles")
-      .select("id, name, provider, size_gb, price, validity_months, image_url, is_active")
-      .eq("is_active", true)
-      .order("provider")
-      .order("size_gb"),
-    db.from("services").select("id, title, description, commission_amount, product_cost, image_url").order("title"),
-  ])
+      .select("id, name, provider, size_gb, price, image_url")
+      .in("id", bundleIds)
+    savedBundles = data || []
+  }
+
+  const profileRes = await getAdminClient()
+    .from("agent_store_profiles")
+    .select("storefront_commission_balance")
+    .eq("agent_id", agentId)
+    .maybeSingle()
 
   return NextResponse.json({
     settings,
-    dataBundles: bundles.data || [],
-    referralServices: services.data || [],
+    savedBundles,
+    storefront_commission_balance: Number(profileRes.data?.storefront_commission_balance ?? 0),
   })
 })
 
@@ -59,5 +71,27 @@ export const PUT = withUnifiedAuth(async (request: NextRequest, user) => {
   } catch (error) {
     console.error("store-settings PUT:", error)
     return NextResponse.json({ error: "Failed to save setting" }, { status: 500 })
+  }
+})
+
+export const DELETE = withUnifiedAuth(async (request: NextRequest, user) => {
+  try {
+    const body = await request.json()
+    const agentId = body.agentId || user.id
+
+    if (user.role === "agent" && agentId !== user.id) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 })
+    }
+
+    const { item_id, item_type } = body as { item_id: string; item_type: StoreItemType }
+    if (!item_id || !item_type) {
+      return NextResponse.json({ error: "item_id and item_type required" }, { status: 400 })
+    }
+
+    await deleteStoreSetting(agentId, item_id, item_type)
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("store-settings DELETE:", error)
+    return NextResponse.json({ error: "Failed to remove" }, { status: 500 })
   }
 })

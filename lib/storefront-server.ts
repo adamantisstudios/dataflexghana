@@ -1,4 +1,5 @@
 import { getAdminClient } from "@/lib/supabase-base"
+import { isUuid, isValidStoreSlug, normalizeStoreSlug } from "@/lib/storefront-utils"
 
 export type StoreItemType = "data_bundle" | "referral_service"
 
@@ -14,11 +15,66 @@ export interface StoreSettingRow {
 export interface StoreProfileRow {
   agent_id: string
   store_name: string | null
+  store_slug: string | null
   whatsapp_number: string | null
   phone_number: string | null
   primary_color: string | null
   business_info: string | null
   storefront_commission_balance: number
+}
+
+export async function resolveStoreSegmentToAgentId(segment: string): Promise<string | null> {
+  if (!segment?.trim()) return null
+  const trimmed = segment.trim()
+  if (isUuid(trimmed)) {
+    const db = getAdminClient()
+    const { data } = await db.from("agents").select("id").eq("id", trimmed).maybeSingle()
+    return data?.id ?? null
+  }
+  const slug = normalizeStoreSlug(trimmed)
+  const db = getAdminClient()
+  const { data } = await db
+    .from("agent_store_profiles")
+    .select("agent_id")
+    .eq("store_slug", slug)
+    .maybeSingle()
+  return data?.agent_id ?? null
+}
+
+export async function checkStoreSlugAvailable(
+  slug: string,
+  excludeAgentId?: string,
+): Promise<{ available: boolean; normalized: string; reason?: string }> {
+  const normalized = normalizeStoreSlug(slug)
+  if (!isValidStoreSlug(normalized)) {
+    return { available: false, normalized, reason: "Use 3–40 characters: lowercase letters, numbers, hyphens only" }
+  }
+  const db = getAdminClient()
+  const { data: existing } = await db
+    .from("agent_store_profiles")
+    .select("agent_id")
+    .eq("store_slug", normalized)
+    .maybeSingle()
+
+  if (existing && existing.agent_id !== excludeAgentId) {
+    return { available: false, normalized, reason: "This store URL is already taken" }
+  }
+  return { available: true, normalized }
+}
+
+export async function deleteStoreSetting(
+  agentId: string,
+  itemId: string,
+  itemType: StoreItemType,
+): Promise<void> {
+  const db = getAdminClient()
+  const { error } = await db
+    .from("agent_store_settings")
+    .delete()
+    .eq("agent_id", agentId)
+    .eq("item_id", itemId)
+    .eq("item_type", itemType)
+  if (error) throw error
 }
 
 export async function getStoreProfile(agentId: string): Promise<StoreProfileRow | null> {
@@ -113,8 +169,9 @@ export async function getPublicStorefrontPayload(agentId: string) {
 
   const { data: services } = await db
     .from("services")
-    .select("id, title, description, commission_amount, product_cost, image_url, image_urls")
-    .order("created_at", { ascending: false })
+    .select("id, title, description, commission_amount, product_cost, image_url, image_urls, service_type")
+    .eq("service_type", "referral")
+    .order("title", { ascending: true })
 
   const visibleBundles = (bundles || [])
     .map((b) => {
@@ -138,8 +195,12 @@ export async function getPublicStorefrontPayload(agentId: string) {
       const setting = settingsMap.get(key)
       const visible = setting ? setting.is_visible : false
       if (!visible) return null
+      const images = (s.image_urls as string[] | null) || []
+      const image_url =
+        (s.image_url as string | null) || images[0] || null
       return {
         ...s,
+        image_url,
         cost: Number(s.product_cost ?? s.commission_amount ?? 0),
         custom_margin: 0,
       }
@@ -151,6 +212,7 @@ export async function getPublicStorefrontPayload(agentId: string) {
     profile: profile || {
       agent_id: agentId,
       store_name: agentRow.data.full_name,
+      store_slug: null,
       whatsapp_number: agentRow.data.momo_number || agentRow.data.phone_number,
       phone_number: agentRow.data.phone_number,
       primary_color: "#3B82F6",

@@ -3,47 +3,33 @@
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { StorefrontQrCard } from "@/components/agent/referralhub/StorefrontQrCard"
+import { MarketplaceBundlesSection } from "@/components/agent/referralhub/MarketplaceBundlesSection"
+import { MarketplaceServicesSection } from "@/components/agent/referralhub/MarketplaceServicesSection"
+import { StorefrontOrdersSection } from "@/components/agent/referralhub/StorefrontOrdersSection"
+import { buildStorefrontUrl } from "@/lib/storefront-utils"
 import Link from "next/link"
-import { ArrowLeft, Store, Copy } from "lucide-react"
+import { ArrowLeft, Store, Loader2, Check, X } from "lucide-react"
 
 interface AgentSession {
   id: string
   full_name?: string
-  phone_number?: string
-  momo_number?: string
 }
 
 interface StoreProfile {
   store_name: string | null
+  store_slug: string | null
   whatsapp_number: string | null
   phone_number: string | null
   primary_color: string | null
   business_info: string | null
-}
-
-interface DataBundle {
-  id: string
-  name: string
-  provider: string
-  size_gb: number
-  price: number
-}
-
-interface ReferralService {
-  id: string
-  title: string
-  description: string
-  product_cost?: number
-  commission_amount?: number
 }
 
 interface StoreSetting {
@@ -53,31 +39,34 @@ interface StoreSetting {
   custom_margin: number
 }
 
-interface StorefrontOrder {
+interface DataBundle {
   id: string
-  customer_phone: string
-  total_paid: number
-  agent_markup: number
-  status: string
-  created_at: string
-  data_bundles?: { name: string; provider: string }
+  name: string
+  provider: string
+  size_gb: number
+  price: number
+  image_url?: string | null
 }
 
 export default function ReferralHubPage() {
   const router = useRouter()
   const [agent, setAgent] = useState<AgentSession | null>(null)
+  const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<StoreProfile>({
     store_name: "",
+    store_slug: "",
     whatsapp_number: "",
     phone_number: "",
     primary_color: "#3B82F6",
     business_info: "",
   })
-  const [bundles, setBundles] = useState<DataBundle[]>([])
-  const [services, setServices] = useState<ReferralService[]>([])
   const [settings, setSettings] = useState<StoreSetting[]>([])
-  const [orders, setOrders] = useState<StorefrontOrder[]>([])
+  const [savedBundles, setSavedBundles] = useState<DataBundle[]>([])
+  const [commissionBalance, setCommissionBalance] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [slugInput, setSlugInput] = useState("")
+  const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "ok" | "bad">("idle")
+  const [slugMessage, setSlugMessage] = useState("")
 
   useEffect(() => {
     const raw = localStorage.getItem("agent")
@@ -88,58 +77,107 @@ export default function ReferralHubPage() {
     setAgent(JSON.parse(raw))
   }, [router])
 
-  const settingKey = (itemId: string, itemType: string) => `${itemType}:${itemId}`
-
-  const getSetting = (itemId: string, itemType: string) =>
-    settings.find((s) => s.item_id === itemId && s.item_type === itemType)
-
-  const loadProfile = useCallback(async (agentId: string) => {
-    const res = await fetch(`/api/agent/store-profile?agentId=${agentId}`, { headers: getAgentAuthHeaders() })
-    const data = await res.json()
-    if (data.profile) {
-      setProfile({
-        store_name: data.profile.store_name || "",
-        whatsapp_number: data.profile.whatsapp_number || "",
-        phone_number: data.profile.phone_number || "",
-        primary_color: data.profile.primary_color || "#3B82F6",
-        business_info: data.profile.business_info || "",
-      })
-    }
+  const loadSettings = useCallback(async (agentId: string) => {
+    const headers = getAgentAuthHeaders()
+    const marketRes = await fetch(`/api/agent/store-settings?agentId=${agentId}`, { headers })
+    const marketData = await marketRes.json()
+    if (!marketRes.ok) throw new Error(marketData.error)
+    setSettings(marketData.settings || [])
+    setSavedBundles(marketData.savedBundles || [])
+    setCommissionBalance(Number(marketData.storefront_commission_balance ?? 0))
   }, [])
 
-  const loadMarketplace = useCallback(async (agentId: string) => {
-    const res = await fetch(`/api/agent/store-settings?agentId=${agentId}`, { headers: getAgentAuthHeaders() })
-    const data = await res.json()
-    setBundles(data.dataBundles || [])
-    setServices(data.referralServices || [])
-    setSettings(data.settings || [])
-  }, [])
-
-  const loadOrders = useCallback(async (agentId: string) => {
-    const res = await fetch(`/api/agent/storefront-orders?agentId=${agentId}`, { headers: getAgentAuthHeaders() })
-    const data = await res.json()
-    setOrders(data.orders || [])
-  }, [])
+  const loadAll = useCallback(
+    async (agentId: string) => {
+      setLoading(true)
+      try {
+        const headers = getAgentAuthHeaders()
+        const profileRes = await fetch(`/api/agent/store-profile?agentId=${agentId}`, { headers })
+        const profileData = await profileRes.json()
+        if (profileData.profile) {
+          setProfile({
+            store_name: profileData.profile.store_name || "",
+            store_slug: profileData.profile.store_slug || "",
+            whatsapp_number: profileData.profile.whatsapp_number || "",
+            phone_number: profileData.profile.phone_number || "",
+            primary_color: profileData.profile.primary_color || "#3B82F6",
+            business_info: profileData.profile.business_info || "",
+          })
+          setSlugInput(profileData.profile.store_slug || "")
+        }
+        await loadSettings(agentId)
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Failed to load hub data")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [loadSettings],
+  )
 
   useEffect(() => {
-    if (!agent?.id) return
-    loadProfile(agent.id)
-    loadMarketplace(agent.id)
-    loadOrders(agent.id)
-  }, [agent?.id, loadProfile, loadMarketplace, loadOrders])
+    if (agent?.id) loadAll(agent.id)
+  }, [agent?.id, loadAll])
+
+  useEffect(() => {
+    if (!agent?.id || !slugInput.trim()) {
+      setSlugStatus("idle")
+      setSlugMessage("")
+      return
+    }
+    if (slugInput === profile.store_slug) {
+      setSlugStatus("ok")
+      setSlugMessage("Current slug")
+      return
+    }
+    const t = setTimeout(async () => {
+      setSlugStatus("checking")
+      try {
+        const headers = getAgentAuthHeaders()
+        const res = await fetch(
+          `/api/agent/store-profile/check-slug?slug=${encodeURIComponent(slugInput)}&agentId=${agent.id}`,
+          { headers },
+        )
+        const data = await res.json()
+        if (data.available) {
+          setSlugStatus("ok")
+          setSlugMessage("Available")
+        } else {
+          setSlugStatus("bad")
+          setSlugMessage(data.reason || "Unavailable")
+        }
+      } catch {
+        setSlugStatus("bad")
+        setSlugMessage("Could not verify")
+      }
+    }, 500)
+    return () => clearTimeout(t)
+  }, [slugInput, agent?.id, profile.store_slug])
 
   const saveProfile = async () => {
     if (!agent?.id) return
+    if (slugInput.trim() && slugStatus === "bad") {
+      toast.error(slugMessage || "Fix store URL slug before saving")
+      return
+    }
     setSaving(true)
     try {
       const res = await fetch("/api/agent/store-profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
-        body: JSON.stringify({ agentId: agent.id, ...profile }),
+        body: JSON.stringify({
+          agentId: agent.id,
+          ...profile,
+          store_slug: slugInput.trim() || null,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      toast.success("Store profile saved")
+      if (data.profile) {
+        setProfile((p) => ({ ...p, store_slug: data.profile.store_slug }))
+        setSlugInput(data.profile.store_slug || "")
+      }
+      toast.success("Profile saved")
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed")
     } finally {
@@ -147,245 +185,180 @@ export default function ReferralHubPage() {
     }
   }
 
-  const saveSetting = async (
-    itemId: string,
-    itemType: "data_bundle" | "referral_service",
-    fields: { is_visible?: boolean; custom_margin?: number },
-  ) => {
-    if (!agent?.id) return
-    try {
-      const res = await fetch("/api/agent/store-settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
-        body: JSON.stringify({ agentId: agent.id, item_id: itemId, item_type: itemType, ...fields }),
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error)
-      }
-      await loadMarketplace(agent.id)
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to update")
-    }
-  }
-
-  const storeUrl =
-    typeof window !== "undefined" && agent?.id
-      ? `${window.location.origin}/public-agent-sandbox/${agent.id}`
-      : ""
-
-  const copyStoreLink = () => {
-    if (!storeUrl) return
-    navigator.clipboard.writeText(storeUrl)
-    toast.success("Store link copied")
-  }
-
   if (!agent) return null
+
+  const storeUrl = buildStorefrontUrl(agent.id, profile.store_slug)
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
-      <div className="bg-slate-900 text-white px-4 py-4 flex items-center gap-3">
-        <Link href="/agent/dashboard">
-          <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-lg font-bold flex items-center gap-2">
-            <Store className="h-5 w-5" />
-            Referral Hub & Storefront
-          </h1>
-          <p className="text-slate-300 text-xs">Design your white-label store and manage listings</p>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <Card className="mb-6">
-          <CardContent className="pt-4 flex flex-wrap gap-2 items-center justify-between">
-            <p className="text-sm text-muted-foreground truncate flex-1">{storeUrl}</p>
-            <Button size="sm" variant="outline" onClick={copyStoreLink}>
-              <Copy className="h-4 w-4 mr-1" />
-              Copy store link
+      <header className="bg-slate-900 text-white px-4 py-4 sticky top-0 z-10 shadow-md">
+        <div className="max-w-5xl mx-auto flex items-center gap-3">
+          <Link href="/agent/dashboard">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 shrink-0">
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-          </CardContent>
-        </Card>
+          </Link>
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold flex items-center gap-2">
+              <Store className="h-5 w-5 shrink-0" />
+              Referral Hub
+            </h1>
+            <p className="text-slate-300 text-xs truncate">Storefront profile, marketplace, orders & QR</p>
+          </div>
+        </div>
+      </header>
 
-        <Tabs defaultValue="profile">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="profile">Store Profile</TabsTrigger>
-            <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
-            <TabsTrigger value="orders">Order Logs</TabsTrigger>
-          </TabsList>
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        ) : (
+          <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="w-full h-auto flex overflow-x-auto justify-start gap-1 p-1 scrollbar-thin">
+              <TabsTrigger value="profile" className="shrink-0 px-3 sm:px-4">
+                Profile
+              </TabsTrigger>
+              <TabsTrigger value="marketplace" className="shrink-0 px-3 sm:px-4">
+                Marketplace
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="shrink-0 px-3 sm:px-4">
+                Orders
+              </TabsTrigger>
+              <TabsTrigger value="qr" className="shrink-0 px-3 sm:px-4">
+                QR
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Storefront profile</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label>Store name</Label>
-                  <Input
-                    value={profile.store_name || ""}
-                    onChange={(e) => setProfile({ ...profile, store_name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Accent color</Label>
-                  <Input
-                    type="color"
-                    value={profile.primary_color || "#3B82F6"}
-                    onChange={(e) => setProfile({ ...profile, primary_color: e.target.value })}
-                    className="h-10 w-20"
-                  />
-                </div>
-                <div>
-                  <Label>WhatsApp number</Label>
-                  <Input
-                    value={profile.whatsapp_number || ""}
-                    onChange={(e) => setProfile({ ...profile, whatsapp_number: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Phone number</Label>
-                  <Input
-                    value={profile.phone_number || ""}
-                    onChange={(e) => setProfile({ ...profile, phone_number: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Bio / business info</Label>
-                  <Textarea
-                    rows={4}
-                    value={profile.business_info || ""}
-                    onChange={(e) => setProfile({ ...profile, business_info: e.target.value })}
-                  />
-                </div>
-                <Button onClick={saveProfile} disabled={saving}>
-                  {saving ? "Saving…" : "Save profile"}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="marketplace" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Data bundles</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {bundles.map((b) => {
-                  const s = getSetting(b.id, "data_bundle")
-                  return (
-                    <div key={b.id} className="border rounded-lg p-4 space-y-3">
-                      <div className="flex justify-between items-start gap-2">
-                        <div>
-                          <p className="font-medium">{b.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {b.provider} · {b.size_gb}GB · Base ₵{Number(b.price).toFixed(2)}
-                          </p>
-                        </div>
-                        <Switch
-                          checked={s?.is_visible ?? false}
-                          onCheckedChange={(v) => saveSetting(b.id, "data_bundle", { is_visible: v })}
-                        />
-                      </div>
-                      <div>
-                        <Label>Custom margin (₵)</Label>
+            <TabsContent value="profile" className="mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Storefront profile</CardTitle>
+                  <CardDescription>Branding shown on your public store</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="w-full">
+                    <Label>Store name</Label>
+                    <Input
+                      className="w-full"
+                      value={profile.store_name || ""}
+                      onChange={(e) => setProfile({ ...profile, store_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="w-full space-y-1">
+                    <Label>Store URL slug</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1 flex items-center gap-0 min-w-0">
+                        <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">
+                          …/store/
+                        </span>
                         <Input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          disabled={!s?.is_visible}
-                          value={s?.custom_margin ?? 0}
-                          onChange={(e) =>
-                            setSettings((prev) => {
-                              const next = [...prev]
-                              const idx = next.findIndex(
-                                (x) => x.item_id === b.id && x.item_type === "data_bundle",
-                              )
-                              const val = parseFloat(e.target.value) || 0
-                              if (idx >= 0) next[idx] = { ...next[idx], custom_margin: val }
-                              else
-                                next.push({
-                                  item_id: b.id,
-                                  item_type: "data_bundle",
-                                  is_visible: true,
-                                  custom_margin: val,
-                                })
-                              return next
-                            })
-                          }
-                          onBlur={(e) =>
-                            saveSetting(b.id, "data_bundle", {
-                              custom_margin: parseFloat(e.target.value) || 0,
-                              is_visible: s?.is_visible ?? true,
-                            })
-                          }
+                          className="w-full"
+                          placeholder="my-store"
+                          value={slugInput}
+                          onChange={(e) => setSlugInput(e.target.value.toLowerCase())}
                         />
                       </div>
+                      {slugStatus === "checking" && (
+                        <Loader2 className="h-5 w-5 animate-spin self-center text-muted-foreground" />
+                      )}
+                      {slugStatus === "ok" && slugInput.trim() && (
+                        <Check className="h-5 w-5 text-emerald-600 self-center" />
+                      )}
+                      {slugStatus === "bad" && slugInput.trim() && (
+                        <X className="h-5 w-5 text-red-600 self-center" />
+                      )}
                     </div>
-                  )
-                })}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Referral services</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {services.map((svc) => {
-                  const s = getSetting(svc.id, "referral_service")
-                  return (
-                    <div key={svc.id} className="border rounded-lg p-4 flex justify-between items-start gap-2">
-                      <div>
-                        <p className="font-medium">{svc.title}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{svc.description}</p>
-                        <Badge variant="secondary" className="mt-1">
-                          Margin locked at ₵0.00
-                        </Badge>
-                      </div>
-                      <Switch
-                        checked={s?.is_visible ?? false}
-                        onCheckedChange={(v) => saveSetting(svc.id, "referral_service", { is_visible: v })}
+                    {slugMessage && (
+                      <p
+                        className={`text-xs ${slugStatus === "bad" ? "text-red-600" : "text-muted-foreground"}`}
+                      >
+                        {slugMessage}
+                      </p>
+                    )}
+                    <p className="text-xs font-mono break-all text-muted-foreground">{storeUrl}</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-end gap-4 w-full">
+                    <div className="w-full sm:w-auto">
+                      <Label>Accent color</Label>
+                      <Input
+                        type="color"
+                        className="h-11 w-full sm:w-24 cursor-pointer"
+                        value={profile.primary_color || "#3B82F6"}
+                        onChange={(e) => setProfile({ ...profile, primary_color: e.target.value })}
                       />
                     </div>
-                  )
-                })}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    <div
+                      className="h-11 flex-1 rounded-lg border min-w-0"
+                      style={{ backgroundColor: profile.primary_color || "#3B82F6" }}
+                    />
+                  </div>
+                  <div className="w-full">
+                    <Label>WhatsApp</Label>
+                    <Input
+                      className="w-full"
+                      value={profile.whatsapp_number || ""}
+                      onChange={(e) => setProfile({ ...profile, whatsapp_number: e.target.value })}
+                    />
+                  </div>
+                  <div className="w-full">
+                    <Label>Phone</Label>
+                    <Input
+                      className="w-full"
+                      value={profile.phone_number || ""}
+                      onChange={(e) => setProfile({ ...profile, phone_number: e.target.value })}
+                    />
+                  </div>
+                  <div className="w-full">
+                    <Label>Business bio</Label>
+                    <Textarea
+                      className="w-full"
+                      rows={4}
+                      value={profile.business_info || ""}
+                      onChange={(e) => setProfile({ ...profile, business_info: e.target.value })}
+                    />
+                  </div>
+                  <Button onClick={saveProfile} disabled={saving} className="w-full sm:w-auto">
+                    {saving ? "Saving…" : "Save profile"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <CardTitle>Storefront orders</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {orders.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No orders yet.</p>
-                ) : (
-                  orders.map((o) => (
-                    <div key={o.id} className="border rounded-lg p-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="font-medium">{o.data_bundles?.name || "Bundle"}</span>
-                        <Badge>{o.status}</Badge>
-                      </div>
-                      <p className="text-muted-foreground">{o.customer_phone}</p>
-                      <p>
-                        Paid ₵{Number(o.total_paid).toFixed(2)} · Your markup ₵
-                        {Number(o.agent_markup).toFixed(2)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{new Date(o.created_at).toLocaleString()}</p>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+            <TabsContent value="marketplace" className="mt-4 space-y-6">
+              {agent?.id && (
+                <>
+                  <MarketplaceBundlesSection
+                    agentId={agent.id}
+                    settings={settings}
+                    savedBundles={savedBundles}
+                    onSettingsChange={() => loadSettings(agent.id)}
+                  />
+                  <MarketplaceServicesSection
+                    agentId={agent.id}
+                    settings={settings}
+                    onSettingsChange={() => loadSettings(agent.id)}
+                  />
+                </>
+              )}
+            </TabsContent>
+
+            <TabsContent value="orders" className="mt-4">
+              {agent?.id && (
+                <StorefrontOrdersSection agentId={agent.id} commissionBalance={commissionBalance} />
+              )}
+            </TabsContent>
+
+            <TabsContent value="qr" className="mt-4">
+              <StorefrontQrCard
+                agentId={agent.id}
+                storeSlug={profile.store_slug}
+                storeName={profile.store_name || agent.full_name}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
+      </main>
     </div>
   )
 }
