@@ -417,7 +417,7 @@ export async function POST(request: NextRequest) {
             .from('wallet_transactions')
             .select('id')
             .eq('source_id', transaction_id)
-            .eq('transaction_type', 'admin_reversal')
+            .in('transaction_type', ['debit', 'admin_reversal'])
             .single()
 
           if (!reversalCheckError && existingReversal) {

@@ -687,6 +687,11 @@ export async function calculateCorrectWalletBalance(agentId: string): Promise<{
           breakdown.refunds += amount
           break
 
+        case "adjustment":
+        case "credit":
+        case "deposit":
+        case "interest":
+        case "payment_completed":
         case "admin_adjustment":
           balance += amount
           breakdown.adminAdjustments += amount
@@ -702,14 +707,16 @@ export async function calculateCorrectWalletBalance(agentId: string): Promise<{
           breakdown.withdrawalDeductions += amount
           break
 
+        case "debit":
+        case "withdrawal":
+        case "penalty":
         case "admin_reversal":
           balance -= amount
           breakdown.adminReversals += amount
           break
 
-        // CRITICAL: commission_deposit should NOT affect wallet balance
-        // Commissions are separate from spendable wallet money
         case "commission_deposit":
+        case "commission":
           // Do nothing - commissions don't go into spendable wallet
           break
 
@@ -818,6 +825,9 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
               totalWithdrawals += amount
               break
             case "deduction":
+            case "debit":
+            case "withdrawal":
+            case "penalty":
             case "admin_reversal":
               totalDeductions += amount
               break

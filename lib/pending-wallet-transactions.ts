@@ -112,7 +112,11 @@ export async function calculatePendingWalletAmount(agentId: string): Promise<num
       const amount = Number(transaction.amount) || 0
 
       // Only count positive pending transactions (topups, refunds, adjustments)
-      if (["topup", "refund", "admin_adjustment"].includes(transaction.transaction_type)) {
+      if (
+        ["topup", "refund", "adjustment", "credit", "deposit", "interest", "payment_completed", "admin_adjustment"].includes(
+          transaction.transaction_type,
+        )
+      ) {
         pendingAmount += amount
       }
     }
@@ -325,15 +329,27 @@ export async function getAllWalletTransactionsWithStatus(
       switch (tx.status) {
         case "approved":
           approved.push(formattedTx)
-          if (["topup", "refund", "admin_adjustment"].includes(tx.transaction_type)) {
+          if (
+            ["topup", "refund", "adjustment", "credit", "deposit", "interest", "payment_completed", "admin_adjustment"].includes(
+              tx.transaction_type,
+            )
+          ) {
             totalApprovedAmount += formattedTx.amount
-          } else if (["deduction", "withdrawal_deduction", "admin_reversal"].includes(tx.transaction_type)) {
+          } else if (
+            ["deduction", "withdrawal_deduction", "debit", "withdrawal", "penalty", "admin_reversal"].includes(
+              tx.transaction_type,
+            )
+          ) {
             totalApprovedAmount -= formattedTx.amount
           }
           break
         case "pending":
           pending.push(formattedTx)
-          if (["topup", "refund", "admin_adjustment"].includes(tx.transaction_type)) {
+          if (
+            ["topup", "refund", "adjustment", "credit", "deposit", "interest", "payment_completed", "admin_adjustment"].includes(
+              tx.transaction_type,
+            )
+          ) {
             totalPendingAmount += formattedTx.amount
           }
           break

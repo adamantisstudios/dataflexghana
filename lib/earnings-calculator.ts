@@ -122,19 +122,26 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
         switch (transaction.transaction_type) {
           case "topup":
           case "refund":
+          case "adjustment":
+          case "credit":
+          case "deposit":
+          case "interest":
+          case "payment_completed":
           case "admin_adjustment":
-            // CRITICAL: Only these types add to SPENDABLE wallet balance
             spendableBalance += amount
             console.log(`💰 Added to spendable balance: ${amount} (${transaction.transaction_type})`)
             break
           case "deduction":
           case "withdrawal_deduction":
+          case "debit":
+          case "withdrawal":
+          case "penalty":
           case "admin_reversal":
-            // These reduce spendable balance
             spendableBalance -= amount
             console.log(`💸 Deducted from spendable balance: ${amount} (${transaction.transaction_type})`)
             break
           case "commission_deposit":
+          case "commission":
             // CRITICAL FIX: Commission deposits do NOT add to spendable wallet balance
             // They should only be available for withdrawal, not for spending
             console.log(`🚫 Commission deposit EXCLUDED from spendable balance: ${amount}`)
@@ -197,17 +204,24 @@ async function calculateWalletBalanceDirectQuery(agentId: string): Promise<numbe
       switch (transaction.transaction_type) {
         case "topup":
         case "refund":
+        case "adjustment":
+        case "credit":
+        case "deposit":
+        case "interest":
+        case "payment_completed":
         case "admin_adjustment":
-          // CRITICAL: Only these types add to SPENDABLE wallet balance
           balance += amount
           break
         case "deduction":
         case "withdrawal_deduction":
+        case "debit":
+        case "withdrawal":
+        case "penalty":
         case "admin_reversal":
           balance -= amount
           break
         case "commission_deposit":
-          // CRITICAL FIX: Commission deposits do NOT add to spendable wallet balance
+        case "commission":
           console.log(`🚫 Commission deposit EXCLUDED from spendable balance: ${amount}`)
           break
         default:
@@ -265,17 +279,24 @@ async function calculateWalletBalanceComprehensiveFallback(agentId: string): Pro
       switch (transaction.transaction_type) {
         case "topup":
         case "refund":
+        case "adjustment":
+        case "credit":
+        case "deposit":
+        case "interest":
+        case "payment_completed":
         case "admin_adjustment":
-          // CRITICAL: Only these types add to SPENDABLE wallet balance
           balance += amount
           break
         case "deduction":
         case "withdrawal_deduction":
+        case "debit":
+        case "withdrawal":
+        case "penalty":
         case "admin_reversal":
           balance -= amount
           break
         case "commission_deposit":
-          // CRITICAL FIX: Commission deposits do NOT add to spendable wallet balance
+        case "commission":
           console.log(`🚫 Commission deposit EXCLUDED from spendable balance: ${amount}`)
           break
         default:
@@ -330,12 +351,19 @@ async function calculateWalletBalanceManualFallback(agentId: string): Promise<nu
     for (const tx of basicTransactions) {
       if (tx && typeof tx.amount === "number") {
         const amount = tx.amount
-        if (["topup", "refund", "admin_adjustment"].includes(tx.transaction_type)) {
-          // CRITICAL: Only these types add to SPENDABLE wallet balance
+        if (
+          ["topup", "refund", "adjustment", "credit", "deposit", "interest", "payment_completed", "admin_adjustment"].includes(
+            tx.transaction_type,
+          )
+        ) {
           balance += amount
-        } else if (["deduction", "withdrawal_deduction", "admin_reversal"].includes(tx.transaction_type)) {
+        } else if (
+          ["deduction", "withdrawal_deduction", "debit", "withdrawal", "penalty", "admin_reversal"].includes(
+            tx.transaction_type,
+          )
+        ) {
           balance -= amount
-        } else if (tx.transaction_type === "commission_deposit") {
+        } else if (tx.transaction_type === "commission_deposit" || tx.transaction_type === "commission") {
           // CRITICAL FIX: Commission deposits do NOT add to spendable wallet balance
           console.log(`🚫 Commission deposit EXCLUDED from spendable balance: ${amount}`)
         }
@@ -435,6 +463,9 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
               totalWithdrawals += amount
               break
             case "deduction":
+            case "debit":
+            case "withdrawal":
+            case "penalty":
             case "admin_reversal":
               totalDeductions += amount
               break
@@ -967,7 +998,7 @@ export async function createAdminReversal(
       .from("wallet_transactions")
       .insert({
         agent_id: agentId,
-        transaction_type: "admin_reversal",
+        transaction_type: "debit",
         amount: originalTransaction.amount,
         status: "approved",
         description: `Admin reversal of transaction ${originalTransactionId} - ${reason}`,
@@ -1042,7 +1073,7 @@ export async function createAdminAdjustment(
       .from("wallet_transactions")
       .insert({
         agent_id: agentId,
-        transaction_type: "admin_adjustment",
+        transaction_type: isPositive ? "adjustment" : "debit",
         amount: amount,
         status: "approved",
         description: `Admin ${isPositive ? "credit" : "debit"} adjustment - ${reason}`,

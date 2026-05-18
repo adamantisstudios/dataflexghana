@@ -63,9 +63,15 @@ const getTransactionTypeLabel = (transaction: any): string => {
     case "commission_deposit":
       return "Commission Deposit"
     case "withdrawal_deduction":
+    case "withdrawal":
       return "Withdrawal"
+    case "adjustment":
+    case "credit":
     case "admin_adjustment":
       return "Admin Adjustment"
+    case "debit":
+    case "admin_reversal":
+      return "Admin Debit"
     default:
       const description = transaction.description?.toLowerCase() || ""
       if (description.includes("top-up") || description.includes("topup")) return "Wallet Top-up"
@@ -91,9 +97,15 @@ const getTransactionTypeIcon = (transaction: any) => {
     case "commission_deposit":
       return <DollarSign className="h-5 w-5 text-emerald-600" />
     case "withdrawal_deduction":
+    case "withdrawal":
       return <TrendingUp className="h-5 w-5 text-red-600 rotate-180" />
+    case "adjustment":
+    case "credit":
     case "admin_adjustment":
       return <TrendingUp className="h-5 w-5 text-gray-600" />
+    case "debit":
+    case "admin_reversal":
+      return <TrendingUp className="h-5 w-5 text-orange-600 rotate-180" />
     default:
       return <Wallet className="h-5 w-5 text-gray-600" />
   }
@@ -806,7 +818,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         return "Refund"
       case "withdrawal_deduction":
         return "Mobile Money"
-      case "admin_adjustment":
+      case "adjustment":
+    case "admin_adjustment":
         return "Admin Action"
       default:
         return paymentMethod || "Unknown"

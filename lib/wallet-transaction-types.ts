@@ -2,23 +2,64 @@ import { supabase } from "./supabase";
 /**
  * Wallet Transaction Types and Validation
  *
- * This file defines the valid transaction types for wallet transactions
- * and provides validation functions to ensure data integrity.
+ * Types must match the database CHECK constraint wallet_transactions_transaction_type_check.
  */
 
-// Valid transaction types that match the database enum
-export const VALID_TRANSACTION_TYPES = [
-  "topup",
-  "deduction",
+/** Allowed values in PostgreSQL wallet_transactions.transaction_type */
+export const DB_TRANSACTION_TYPES = [
+  "credit",
+  "debit",
   "refund",
-  "commission", // FIXED: Changed from "commission_deposit" to "commission"
-  "commission_deposit", // ADDED: Keep for backward compatibility
+  "adjustment",
+  "deduction",
+  "topup",
+  "withdrawal",
+  "deposit",
+  "penalty",
+  "interest",
+  "commission_deposit",
   "withdrawal_deduction",
-  "admin_reversal",
+  "payment_completed",
+] as const
+
+export type DbTransactionType = (typeof DB_TRANSACTION_TYPES)[number]
+
+/** Legacy types still present in historical rows */
+export const LEGACY_TRANSACTION_TYPES = ["admin_adjustment", "admin_reversal", "commission"] as const
+
+export const VALID_TRANSACTION_TYPES = [...DB_TRANSACTION_TYPES, ...LEGACY_TRANSACTION_TYPES] as const
+
+export type ValidTransactionType = (typeof VALID_TRANSACTION_TYPES)[number]
+
+/** Types that increase spendable wallet balance */
+export const WALLET_CREDIT_TYPES = [
+  "topup",
+  "refund",
+  "adjustment",
+  "credit",
+  "deposit",
+  "interest",
+  "payment_completed",
   "admin_adjustment",
 ] as const
 
-export type ValidTransactionType = (typeof VALID_TRANSACTION_TYPES)[number]
+/** Types that decrease spendable wallet balance */
+export const WALLET_DEBIT_TYPES = [
+  "deduction",
+  "withdrawal_deduction",
+  "debit",
+  "withdrawal",
+  "penalty",
+  "admin_reversal",
+] as const
+
+export function isWalletCreditType(type: string): boolean {
+  return (WALLET_CREDIT_TYPES as readonly string[]).includes(type)
+}
+
+export function isWalletDebitType(type: string): boolean {
+  return (WALLET_DEBIT_TYPES as readonly string[]).includes(type)
+}
 
 // Valid transaction statuses
 export const VALID_TRANSACTION_STATUSES = ["pending", "approved", "rejected"] as const
@@ -31,10 +72,17 @@ export const VALID_PAYMENT_METHODS = ["manual", "auto"] as const
 export type ValidPaymentMethod = (typeof VALID_PAYMENT_METHODS)[number]
 
 /**
- * Validates if a transaction type is valid
+ * Validates if a transaction type is valid for new inserts (DB constraint only).
+ */
+export function isValidDbTransactionType(type: string): type is DbTransactionType {
+  return (DB_TRANSACTION_TYPES as readonly string[]).includes(type)
+}
+
+/**
+ * Validates if a transaction type is valid (includes legacy values for reads/UI).
  */
 export function isValidTransactionType(type: string): type is ValidTransactionType {
-  return VALID_TRANSACTION_TYPES.includes(type as ValidTransactionType)
+  return (VALID_TRANSACTION_TYPES as readonly string[]).includes(type)
 }
 
 /**
@@ -72,10 +120,9 @@ export function validateWalletTransaction(transaction: WalletTransactionInput): 
 } {
   const errors: string[] = []
 
-  // Validate transaction type
-  if (!isValidTransactionType(transaction.transaction_type)) {
+  if (!isValidDbTransactionType(transaction.transaction_type)) {
     errors.push(
-      `Invalid transaction_type: "${transaction.transaction_type}". Valid types are: ${VALID_TRANSACTION_TYPES.join(", ")}`,
+      `Invalid transaction_type: "${transaction.transaction_type}". Valid types are: ${DB_TRANSACTION_TYPES.join(", ")}`,
     )
   }
 
@@ -111,8 +158,7 @@ export function validateWalletTransaction(transaction: WalletTransactionInput): 
 }
 
 /**
- * FIXED: Creates a safe wallet transaction object with validated fields
- * Now properly handles reference_code and includes all necessary fields
+ * Creates a safe wallet transaction object with validated fields
  */
 export function createSafeWalletTransaction(input: WalletTransactionInput): WalletTransactionInput {
   const validation = validateWalletTransaction(input)
@@ -121,10 +167,9 @@ export function createSafeWalletTransaction(input: WalletTransactionInput): Wall
     throw new Error(`Invalid wallet transaction: ${validation.errors.join(", ")}`)
   }
 
-  // Build result with all fields, let database handle reference_code generation if not provided
   const result: WalletTransactionInput = {
     agent_id: input.agent_id.trim(),
-    transaction_type: input.transaction_type, // Keep the exact transaction_type from input
+    transaction_type: input.transaction_type,
     amount: Number(input.amount),
     description: input.description.trim(),
     status: input.status as ValidTransactionStatus,
@@ -143,9 +188,6 @@ export function createSafeWalletTransaction(input: WalletTransactionInput): Wall
   return result
 }
 
-/**
- * ADDED: Helper function to generate a reference code if needed
- */
 export function generateReferenceCode(transactionType: string, agentId: string): string {
   const timestamp = Date.now().toString(36).toUpperCase()
   const agentPrefix = agentId.substring(0, 8).toUpperCase()
@@ -153,12 +195,7 @@ export function generateReferenceCode(transactionType: string, agentId: string):
   return `${typePrefix}-${agentPrefix}-${timestamp}`
 }
 
-/**
- * Generate a safe reference code for transactions
- * This is an alias for generateReferenceCode with additional safety checks
- * Modified to generate 5-digit numeric codes for easy memorization and reduced errors
- */
-export function generateSafeReferenceCode(transactionType: string, agentId?: string): string {
+export function generateSafeReferenceCode(_transactionType?: string, _agentId?: string): string {
   try {
     const chars = "0123456789"
     let code = ""
@@ -174,13 +211,9 @@ export function generateSafeReferenceCode(transactionType: string, agentId?: str
   }
 }
 
-/**
- * ADDED: Enhanced transaction creation with automatic reference code generation
- */
 export function createSafeWalletTransactionWithRef(input: WalletTransactionInput): WalletTransactionInput {
   const transaction = createSafeWalletTransaction(input)
 
-  // Generate reference code if not provided
   if (!transaction.reference_code) {
     transaction.reference_code = generateReferenceCode(transaction.transaction_type, transaction.agent_id)
   }
@@ -188,20 +221,11 @@ export function createSafeWalletTransactionWithRef(input: WalletTransactionInput
   return transaction
 }
 
-/**
- * ADDED: Commission calculation utilities with proper rounding and validation
- */
-
-// Minimum commission threshold - skip transactions below this amount
 export const MINIMUM_COMMISSION_THRESHOLD = 0.01
 
-/**
- * Calculate commission amount with proper rounding to avoid floating-point precision errors
- */
 export function calculateCommission(bundlePrice: number, commissionRate: number): number {
   const { getCalculatedCommission } = require("./commission-calculation")
 
-  // Validate inputs
   if (typeof bundlePrice !== "number" || bundlePrice <= 0) {
     throw new Error(`Invalid bundle price: ${bundlePrice}. Must be a positive number.`)
   }
@@ -210,48 +234,37 @@ export function calculateCommission(bundlePrice: number, commissionRate: number)
     throw new Error(`Invalid commission rate: ${commissionRate}. Must be between 0 and 100.`)
   }
 
-  // Convert percentage to decimal if rate > 1
   const rate = commissionRate > 1 ? commissionRate / 100 : commissionRate
   return getCalculatedCommission(bundlePrice, rate)
 }
 
-/**
- * Check if commission amount meets minimum threshold
- */
 export function isCommissionAboveThreshold(amount: number): boolean {
   return amount >= MINIMUM_COMMISSION_THRESHOLD
 }
 
-/**
- * Create commission transaction with validation and proper error handling
- */
 export function createCommissionTransaction(
   orderId: string,
   agentId: string,
   bundlePrice: number,
-  commissionRate = 10, // Default 10% commission rate
+  commissionRate = 10,
 ): { success: boolean; transaction?: WalletTransactionInput; skipped?: boolean; error?: string } {
   try {
-    // Calculate commission with proper rounding
     const commissionAmount = calculateCommission(bundlePrice, commissionRate)
 
-    // Check minimum threshold
     if (!isCommissionAboveThreshold(commissionAmount)) {
       console.log(`Skipping commission transaction for order ${orderId} - amount too small: $${commissionAmount}`)
       return { success: true, skipped: true }
     }
 
-    // Create transaction input
     const transactionInput: WalletTransactionInput = {
       agent_id: agentId,
-      transaction_type: "commission", // Use correct transaction type
+      transaction_type: "commission_deposit",
       amount: commissionAmount,
       description: `Order completion commission - Order #${orderId}`,
       status: "approved",
       admin_notes: `Auto-generated commission for completed order ${orderId}. Rate: ${commissionRate}%, Bundle: $${bundlePrice}`,
     }
 
-    // Create safe transaction with reference code
     const transaction = createSafeWalletTransactionWithRef(transactionInput)
 
     return { success: true, transaction }
@@ -262,24 +275,18 @@ export function createCommissionTransaction(
   }
 }
 
-/**
- * Create refund transaction with validation
- */
 export function createRefundTransaction(
   orderId: string,
   agentId: string,
   refundAmount: number,
 ): { success: boolean; transaction?: WalletTransactionInput; error?: string } {
   try {
-    // Validate refund amount
     if (typeof refundAmount !== "number" || refundAmount <= 0) {
       throw new Error(`Invalid refund amount: ${refundAmount}. Must be a positive number.`)
     }
 
-    // Round to 2 decimal places
     const roundedAmount = Math.round(refundAmount * 100) / 100
 
-    // Create transaction input
     const transactionInput: WalletTransactionInput = {
       agent_id: agentId,
       transaction_type: "refund",
@@ -289,7 +296,6 @@ export function createRefundTransaction(
       admin_notes: `Auto-generated refund for cancelled order ${orderId}`,
     }
 
-    // Create safe transaction with reference code
     const transaction = createSafeWalletTransactionWithRef(transactionInput)
 
     return { success: true, transaction }
@@ -300,9 +306,6 @@ export function createRefundTransaction(
   }
 }
 
-/**
- * Create withdrawal deduction transaction with validation
- */
 export function createWithdrawalTransaction(
   agentId: string,
   withdrawalAmount: number,
@@ -310,26 +313,22 @@ export function createWithdrawalTransaction(
   momoNumber: string,
 ): { success: boolean; transaction?: WalletTransactionInput; error?: string } {
   try {
-    // Validate withdrawal amount
     if (typeof withdrawalAmount !== "number" || withdrawalAmount <= 0) {
       throw new Error(`Invalid withdrawal amount: ${withdrawalAmount}. Must be a positive number.`)
     }
 
-    // Round to 2 decimal places
     const roundedAmount = Math.round(withdrawalAmount * 100) / 100
 
-    // Create transaction input
     const transactionInput: WalletTransactionInput = {
       agent_id: agentId,
       transaction_type: "withdrawal_deduction",
       amount: roundedAmount,
       description: `Withdrawal deduction - Request #${withdrawalId}`,
-      status: "approved", // Immediately approve the deduction
-      payment_method: "manual", // Ensure payment_method is set
+      status: "approved",
+      payment_method: "manual",
       admin_notes: `Withdrawal to mobile money: ${momoNumber}. Withdrawal ID: ${withdrawalId}`,
     }
 
-    // Create safe transaction with reference code
     const transaction = createSafeWalletTransactionWithRef(transactionInput)
 
     return { success: true, transaction }
@@ -340,9 +339,6 @@ export function createWithdrawalTransaction(
   }
 }
 
-/**
- * Create reversal transaction with validation
- */
 export function createReversalTransaction(
   agentId: string,
   originalTransactionId: string,
@@ -351,32 +347,24 @@ export function createReversalTransaction(
   originalDescription?: string,
 ): { success: boolean; transaction?: WalletTransactionInput; error?: string } {
   try {
-    // Validate reversal amount
     if (typeof reversalAmount !== "number" || reversalAmount <= 0) {
       throw new Error(`Invalid reversal amount: ${reversalAmount}. Must be a positive number.`)
     }
 
-    // Round to 2 decimal places
     const roundedAmount = Math.round(reversalAmount * 100) / 100
 
-    // Create transaction input with all required fields
     const transactionInput: WalletTransactionInput = {
       agent_id: agentId,
-      transaction_type: "admin_reversal", // Explicitly set to valid enum value
+      transaction_type: "debit",
       amount: roundedAmount,
       description: `Reversal of transaction ${originalTransactionId}${originalDescription ? ` - Original: ${originalDescription}` : ""}`,
-      status: "approved", // Immediately approve the reversal
-      payment_method: "manual", // Ensure payment_method is set
+      status: "approved",
+      payment_method: "manual",
       admin_notes: `Reversal processed by admin ${adminId}. Original transaction: ${originalTransactionId}`,
       admin_id: adminId,
     }
 
-    console.log("[v0] Creating reversal transaction with input:", JSON.stringify(transactionInput, null, 2))
-
-    // Create safe transaction with reference code
     const transaction = createSafeWalletTransactionWithRef(transactionInput)
-
-    console.log("[v0] Safe reversal transaction created:", JSON.stringify(transaction, null, 2))
 
     return { success: true, transaction }
   } catch (error) {
@@ -387,14 +375,12 @@ export function createReversalTransaction(
 }
 
 /**
- * Calculate the correct wallet balance by summing all approved transactions
+ * Calculate spendable wallet balance from approved transactions
  */
 export async function calculateCorrectWalletBalance(agentId: string): Promise<{ balance: number; error?: string }> {
   try {
-    // Import supabase here to avoid circular dependencies
     const { supabase } = await import("@/lib/supabase")
 
-    // Get all approved transactions for this agent
     const { data: transactions, error } = await supabase
       .from("wallet_transactions")
       .select("transaction_type, amount")
@@ -411,34 +397,24 @@ export async function calculateCorrectWalletBalance(agentId: string): Promise<{ 
       return { balance: 0 }
     }
 
-    // Calculate balance based on transaction types
     let balance = 0
 
     for (const transaction of transactions) {
       const amount = Number(transaction.amount) || 0
+      const type = transaction.transaction_type
 
-      switch (transaction.transaction_type) {
-        case "topup":
-        case "refund":
-        case "commission":
-        case "commission_deposit":
-        case "admin_reversal":
-          // Add to balance
-          balance += amount
-          break
-        case "deduction":
-        case "withdrawal_deduction":
-        case "admin_adjustment":
-          // Subtract from balance
-          balance -= amount
-          break
-        default:
-          console.warn(`Unknown transaction type: ${transaction.transaction_type}`)
-          break
+      if (type === "commission_deposit" || type === "commission") {
+        continue
+      }
+      if (isWalletCreditType(type)) {
+        balance += amount
+      } else if (isWalletDebitType(type)) {
+        balance -= amount
+      } else {
+        console.warn(`Unknown transaction type: ${type}`)
       }
     }
 
-    // Round to 2 decimal places to avoid floating-point precision issues
     balance = Math.round(balance * 100) / 100
 
     return { balance }

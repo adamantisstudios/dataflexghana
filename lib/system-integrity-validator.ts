@@ -320,9 +320,17 @@ async function validateCommissionWalletSeparation(): Promise<IntegrityCategoryRe
             let calculatedBalance = 0
             for (const tx of walletTxs) {
               const amount = Number(tx.amount) || 0
-              if (['topup', 'refund', 'admin_adjustment'].includes(tx.transaction_type)) {
+              if (
+                ['topup', 'refund', 'adjustment', 'credit', 'deposit', 'interest', 'payment_completed', 'admin_adjustment'].includes(
+                  tx.transaction_type,
+                )
+              ) {
                 calculatedBalance += amount
-              } else if (['deduction', 'withdrawal_deduction', 'admin_reversal'].includes(tx.transaction_type)) {
+              } else if (
+                ['deduction', 'withdrawal_deduction', 'debit', 'withdrawal', 'penalty', 'admin_reversal'].includes(
+                  tx.transaction_type,
+                )
+              ) {
                 calculatedBalance -= amount
               }
               // Note: commission_deposit should NOT affect wallet balance
