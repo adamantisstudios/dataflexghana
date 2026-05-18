@@ -28,6 +28,7 @@ import type { Agent, DataBundle } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
   import {
   ArrowLeft,
+  ArrowUp,
   Smartphone,
   CheckCircle,
   AlertTriangle,
@@ -43,6 +44,13 @@ import { getCurrentAgent } from "@/lib/auth"
   Plus,
   Trash2,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence"
 import { useDataOrderPersistence } from "@/hooks/use-data-order-persistence"
 import { checkForDuplicateOrder, addToOrderHistory, type DuplicateCheckResult } from "@/lib/order-history"
@@ -87,11 +95,17 @@ export default function DataOrderPage() {
   const [bulkPickBundleId, setBulkPickBundleId] = useState<string | null>(null)
   const [bulkRecipientPhone, setBulkRecipientPhone] = useState("")
   const [bulkSubmitting, setBulkSubmitting] = useState(false)
-  const [bulkSuccess, setBulkSuccess] = useState("")
+  const [bulkAddError, setBulkAddError] = useState("")
+  const [showBulkSuccessModal, setShowBulkSuccessModal] = useState(false)
+  const [showBulkInsufficientModal, setShowBulkInsufficientModal] = useState(false)
+  const [bulkInsufficientMessage, setBulkInsufficientMessage] = useState("")
+  const [scrollFabVisible, setScrollFabVisible] = useState(false)
+  const [scrollFabAtTop, setScrollFabAtTop] = useState(true)
 
   const router = useRouter()
   const searchParams = useSearchParams()
   const paymentSectionRef = useRef<HTMLDivElement>(null)
+  const bundleSectionRef = useRef<HTMLDivElement>(null)
   const channelsRef = useRef<any[]>([])
 
   const orderPersistenceData = useMemo(() => {
@@ -533,12 +547,12 @@ export default function DataOrderPage() {
 
   const addToBulkCart = () => {
     if (!bulkPickBundle) {
-      setError("Select a data bundle to add")
+      setBulkAddError("Select a data bundle to add")
       return
     }
     const cleanPhoneNumber = bulkRecipientPhone.replace(/\D/g, "").slice(0, 10)
     if (cleanPhoneNumber.length !== 10) {
-      setError("Enter a valid 10-digit recipient phone number")
+      setBulkAddError("Enter a valid 10-digit recipient phone number")
       return
     }
 
@@ -551,7 +565,7 @@ export default function DataOrderPage() {
     if (duplicateCheck.isDuplicate) {
       setDuplicateCheckResult(duplicateCheck)
       setShowDuplicateNotification(true)
-      setError("")
+      setBulkAddError("")
       return
     }
 
@@ -563,9 +577,22 @@ export default function DataOrderPage() {
         recipientPhone: cleanPhoneNumber,
       },
     ])
-    setError("")
+    setBulkAddError("")
     setBulkPickBundleId(null)
     setBulkRecipientPhone("")
+  }
+
+  const handleOrderModeChange = (value: string) => {
+    const mode = value as "single" | "bulk"
+    setOrderMode(mode)
+    if (mode === "single") {
+      setBulkAddError("")
+    } else {
+      setError("")
+      requestAnimationFrame(() => {
+        bundleSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      })
+    }
   }
 
   const removeFromBulkCart = (lineId: string) => {
@@ -575,8 +602,7 @@ export default function DataOrderPage() {
   const placeAllBulkOrders = async () => {
     if (!agent || bulkCart.length === 0) return
     setBulkSubmitting(true)
-    setError("")
-    setBulkSuccess("")
+    setBulkAddError("")
 
     try {
       const res = await fetch("/api/agent/data-orders/bulk-wallet", {
@@ -595,10 +621,11 @@ export default function DataOrderPage() {
 
       if (!res.ok) {
         if (res.status === 402 || data.code === "INSUFFICIENT_BALANCE") {
-          setError(
+          setBulkInsufficientMessage(
             data.error ||
               `Insufficient wallet balance. You need GH₵ ${Number(data.required ?? bulkCartTotal).toFixed(2)} but have GH₵ ${Number(data.available ?? walletBalance).toFixed(2)}.`,
           )
+          setShowBulkInsufficientModal(true)
           return
         }
         throw new Error(data.error || "Failed to place bulk orders")
@@ -608,16 +635,33 @@ export default function DataOrderPage() {
         addToOrderHistory(line.bundle.id, line.recipientPhone, "wallet")
       }
 
-      setBulkSuccess(
-        `Successfully placed ${data.orders_placed} order${data.orders_placed === 1 ? "" : "s"} (GH₵ ${Number(data.total_paid).toFixed(2)} deducted from wallet).`,
-      )
       setBulkCart([])
       setWalletBalance(Number(data.remaining_balance ?? walletBalance - bulkCartTotal))
       await refreshWalletBalance(agent.id)
+      setShowBulkSuccessModal(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to place bulk orders")
+      setBulkInsufficientMessage(err instanceof Error ? err.message : "Failed to place bulk orders")
+      setShowBulkInsufficientModal(true)
     } finally {
       setBulkSubmitting(false)
+    }
+  }
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrollFabAtTop(window.scrollY < 80)
+      setScrollFabVisible(true)
+    }
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  const handleScrollFabClick = () => {
+    if (scrollFabAtTop) {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" })
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" })
     }
   }
 
@@ -625,6 +669,7 @@ export default function DataOrderPage() {
     selectedId: string | null,
     onSelect: (bundleId: string) => void,
     highlightSelected: boolean,
+    quickAddMode = false,
   ) => (
     <Tabs defaultValue="MTN" className="space-y-6">
       <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm shadow-lg border border-emerald-200 p-1 rounded-xl gap-1 h-auto">
@@ -690,7 +735,10 @@ export default function DataOrderPage() {
                         ? "border-emerald-500 bg-emerald-50 shadow-md transform scale-[1.02]"
                         : "border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50 hover:shadow-sm"
                     }`}
-                    onClick={() => onSelect(bundle.id)}
+                    onClick={() => {
+                      onSelect(bundle.id)
+                      if (quickAddMode) setBulkAddError("")
+                    }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -707,6 +755,38 @@ export default function DataOrderPage() {
                         </p>
                       </div>
                     </div>
+                    {quickAddMode && selectedId === bundle.id && (
+                      <div
+                        className="mt-3 pt-3 border-t border-emerald-200 space-y-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Label htmlFor={`bulk-phone-${bundle.id}`} className="text-xs text-gray-700">
+                          Recipient phone
+                        </Label>
+                        <Input
+                          id={`bulk-phone-${bundle.id}`}
+                          type="tel"
+                          value={bulkRecipientPhone}
+                          onChange={(e) =>
+                            setBulkRecipientPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                          }
+                          placeholder="e.g., 0241234567"
+                          maxLength={10}
+                          className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
+                          autoFocus
+                        />
+                        {bulkAddError && <p className="text-xs text-red-600">{bulkAddError}</p>}
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700"
+                          onClick={addToBulkCart}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add to Cart
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -754,52 +834,8 @@ export default function DataOrderPage() {
           </div>
         </div>
 
-        {(error || bulkSuccess) && orderMode === "bulk" && (
-          <div className="mb-4 space-y-2">
-            {error && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            {bulkSuccess && (
-              <Alert className="border-emerald-200 bg-emerald-50">
-                <CheckCircle className="h-4 w-4 text-emerald-600" />
-                <AlertDescription className="text-emerald-800">{bulkSuccess}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-        )}
-
-        <Tabs
-          value={orderMode}
-          onValueChange={(v) => {
-            setOrderMode(v as "single" | "bulk")
-            if (v === "single") setBulkSuccess("")
-            else setError("")
-          }}
-          className="space-y-4"
-        >
-          <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/80 shadow-md border border-emerald-200 p-1 rounded-xl h-auto">
-            <TabsTrigger
-              value="single"
-              className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white"
-            >
-              Single manual order
-            </TabsTrigger>
-            <TabsTrigger
-              value="bulk"
-              className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white"
-            >
-              <Wallet className="h-4 w-4 mr-1.5 inline" />
-              Bulk wallet cart
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="single" className="mt-0">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-          {/* Bundle Selection */}
-          <Card className="border-emerald-100 shadow-lg">
+        <div className="flex flex-col gap-6">
+          <Card ref={bundleSectionRef} className="border-emerald-100 shadow-lg">
             <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b border-emerald-100">
               <CardTitle className="text-emerald-800 flex items-center gap-2">
                 <Smartphone className="h-5 w-5" />
@@ -810,6 +846,7 @@ export default function DataOrderPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
+              {orderMode === "single" ? (
               <Tabs defaultValue="MTN" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm shadow-lg border border-emerald-200 p-1 rounded-xl gap-1 h-auto">
                   {["MTN", "AirtelTigo", "Telecel"].map((provider) => {
@@ -925,10 +962,31 @@ export default function DataOrderPage() {
                   )
                 })}
               </Tabs>
+              ) : (
+                renderBundleTabs(bulkPickBundleId, setBulkPickBundleId, true, true)
+              )}
             </CardContent>
           </Card>
 
-          {/* Order Form */}
+          <Tabs value={orderMode} onValueChange={handleOrderModeChange} className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2 bg-white/80 shadow-md border border-emerald-200 p-1 rounded-xl h-auto mx-auto">
+              <TabsTrigger
+                value="single"
+                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white"
+              >
+                Single manual order
+              </TabsTrigger>
+              <TabsTrigger
+                value="bulk"
+                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-500 data-[state=active]:text-white"
+              >
+                <Wallet className="h-4 w-4 mr-1.5 inline" />
+                Bulk wallet cart
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          {orderMode === "single" && (
           <Card
             ref={paymentSectionRef}
             className={`border-emerald-100 shadow-lg transition-all duration-500 ${
@@ -1084,27 +1142,10 @@ export default function DataOrderPage() {
               </form>
             </CardContent>
           </Card>
-        </div>
-          </TabsContent>
+          )}
 
-          <TabsContent value="bulk" className="mt-0 space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-              <Card className="border-emerald-100 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b border-emerald-100">
-                  <CardTitle className="text-emerald-800 flex items-center gap-2">
-                    <Smartphone className="h-5 w-5" />
-                    Select bundles
-                  </CardTitle>
-                  <CardDescription className="text-emerald-600">
-                    Pick a network and bundle, then add each recipient to your cart
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  {renderBundleTabs(bulkPickBundleId, setBulkPickBundleId, true)}
-                </CardContent>
-              </Card>
-
-              <Card className="border-emerald-100 shadow-lg">
+          {orderMode === "bulk" && (
+              <Card className="border-emerald-100 shadow-lg max-w-3xl mx-auto w-full">
                 <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b border-emerald-100">
                   <CardTitle className="text-emerald-800 flex items-center gap-2">
                     <ShoppingCart className="h-5 w-5" />
@@ -1141,35 +1182,6 @@ export default function DataOrderPage() {
                       </Button>
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bulkRecipientPhone" className="text-gray-700 font-medium">
-                      Recipient phone for selected bundle *
-                    </Label>
-                    <Input
-                      id="bulkRecipientPhone"
-                      type="tel"
-                      value={bulkRecipientPhone}
-                      onChange={(e) =>
-                        setBulkRecipientPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
-                      }
-                      placeholder="e.g., 0241234567"
-                      maxLength={10}
-                      className="border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500"
-                    />
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full border-emerald-300 text-emerald-800 hover:bg-emerald-50"
-                    disabled={!bulkPickBundle}
-                    onClick={addToBulkCart}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add to Cart
-                    {bulkPickBundle ? ` · ${bulkPickBundle.name}` : ""}
-                  </Button>
 
                   {bulkCart.length > 0 ? (
                     <>
@@ -1233,14 +1245,80 @@ export default function DataOrderPage() {
                     </>
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-lg">
-                      Your cart is empty. Select a bundle and add phone numbers above.
+                      Your cart is empty. Tap a bundle above, enter a phone number, and add to cart.
                     </p>
                   )}
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
+
+        <Button
+          type="button"
+          onClick={handleScrollFabClick}
+          size="icon"
+          aria-label={scrollFabAtTop ? "Scroll to bottom" : "Scroll to top"}
+          className={`fixed bottom-4 right-4 z-40 h-12 w-12 rounded-full bg-emerald-600 hover:bg-emerald-700 shadow-lg transition-all duration-300 hover:scale-110 max-sm:bottom-20 ${
+            scrollFabVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
+          }`}
+        >
+          {scrollFabAtTop ? (
+            <ArrowDown className="h-5 w-5 text-white" />
+          ) : (
+            <ArrowUp className="h-5 w-5 text-white" />
+          )}
+        </Button>
+
+        <Dialog open={showBulkSuccessModal} onOpenChange={setShowBulkSuccessModal}>
+          <DialogContent className="sm:max-w-md text-center">
+            <button
+              type="button"
+              onClick={() => setShowBulkSuccessModal(false)}
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <DialogHeader className="items-center space-y-3">
+              <DialogTitle className="text-xl">✅ Orders Placed Successfully</DialogTitle>
+              <DialogDescription className="text-base text-gray-600">
+                Your data orders have been submitted. Check their status on the Data Orders page.
+              </DialogDescription>
+            </DialogHeader>
+            <Button
+              className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+              onClick={() => {
+                setShowBulkSuccessModal(false)
+                router.push("/agent/data-orders")
+              }}
+            >
+              Check Order Status
+            </Button>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showBulkInsufficientModal} onOpenChange={setShowBulkInsufficientModal}>
+          <DialogContent className="sm:max-w-md">
+            <button
+              type="button"
+              onClick={() => setShowBulkInsufficientModal(false)}
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-700">
+                <AlertTriangle className="h-5 w-5" />
+                Unable to place orders
+              </DialogTitle>
+              <DialogDescription className="text-base pt-2">{bulkInsufficientMessage}</DialogDescription>
+            </DialogHeader>
+            <Button variant="outline" className="w-full" onClick={() => setShowBulkInsufficientModal(false)}>
+              Dismiss
+            </Button>
+          </DialogContent>
+        </Dialog>
 
         {/* Quick Actions */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
