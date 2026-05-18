@@ -1,7 +1,11 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const supabase = getAdminClient()
     console.log("[automation/run] Starting automation run...")

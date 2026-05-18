@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { supabase } from "@/lib/supabase-client";
+import { supabase } from "@/lib/supabase-client"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import type { DataBundle } from "@/lib/supabase";
 import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 import { Database, Plus, Edit, Trash2, AlertCircle } from "lucide-react"
@@ -256,9 +257,7 @@ export default function DataTab() {
         // Update existing bundle via API
         response = await fetch("/api/admin/data-bundles", {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAdminAuthHeaders(),
           body: JSON.stringify({
             id: editingBundle.id,
             ...bundleData,
@@ -268,9 +267,7 @@ export default function DataTab() {
         // Create new bundle via API
         response = await fetch("/api/admin/data-bundles", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAdminAuthHeaders(),
           body: JSON.stringify(bundleData),
         })
       }

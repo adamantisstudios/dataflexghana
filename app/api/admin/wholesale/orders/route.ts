@@ -1,8 +1,12 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase-client";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     console.log("🔄 Admin API: Fetching all wholesale orders...")
 
@@ -43,6 +47,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     console.log("🔄 Admin API PUT: Request received")
 
@@ -187,6 +194,9 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const { searchParams } = new URL(request.url)
     const orderId = searchParams.get("orderId")

@@ -1,7 +1,11 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const supabase = getAdminClient()
     const { error: connectionError } = await supabase.from("agents").select("count", { count: "exact", head: true })

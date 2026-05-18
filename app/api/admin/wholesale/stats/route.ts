@@ -1,7 +1,11 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase-base'
 
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   const supabase = getAdminClient()
   try {
     // Get all stats in parallel for better performance

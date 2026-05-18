@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { FileText, Eye, RefreshCw, Package, Loader2, Download, Copy, FileJson, User, Clock, CreditCard } from "lucide-react"
-import { supabase } from "@/lib/supabase-client";
+import { supabase } from "@/lib/supabase-client"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { realtimeManager } from "@/lib/realtime-manager"
 import { toast } from "sonner"
   import {
@@ -187,7 +188,9 @@ export default function BulkOrderManagementTab() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/bulk-orders-data?status=${statusFilter}`)
+      const response = await fetch(`/api/admin/bulk-orders-data?status=${statusFilter}`, {
+        headers: getAdminAuthHeaders(),
+      })
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || "Failed to fetch data")
@@ -240,7 +243,7 @@ export default function BulkOrderManagementTab() {
     try {
       const response = await fetch("/api/admin/afa/update-status", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ id: afaId, status: newStatus }),
       })
       if (!response.ok) {
@@ -265,7 +268,7 @@ export default function BulkOrderManagementTab() {
     try {
       const response = await fetch("/api/admin/bulk-orders/update-status", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ id: bulkOrderId, status: newStatus }),
       })
       if (!response.ok) {
@@ -295,7 +298,7 @@ export default function BulkOrderManagementTab() {
     try {
       const response = await fetch("/api/admin/afa/delete", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ id: afaId }),
       })
       if (!response.ok) {
@@ -321,7 +324,7 @@ export default function BulkOrderManagementTab() {
     try {
       const response = await fetch("/api/admin/afa/verify-payment", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ registration_id: afaId, verified }),
       })
       if (!response.ok) {
@@ -361,7 +364,7 @@ export default function BulkOrderManagementTab() {
     try {
       const response = await fetch("/api/admin/bulk-orders/verify-payment", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ order_id: orderId, verified }),
       })
       if (!response.ok) {
@@ -406,7 +409,7 @@ export default function BulkOrderManagementTab() {
     try {
       const response = await fetch("/api/admin/bulk-orders/delete", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ id: bulkOrderId }),
       })
       if (!response.ok) {

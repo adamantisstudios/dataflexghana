@@ -1,7 +1,11 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase-base'
 
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   const supabase = getAdminClient()
   try {
     const { action, agentId, adminNotes } = await request.json()
@@ -234,6 +238,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')

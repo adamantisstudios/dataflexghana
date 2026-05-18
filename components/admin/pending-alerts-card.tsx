@@ -1,5 +1,6 @@
 "use client"
 
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -47,7 +48,7 @@ export function PendingAlertsCard() {
 
   const loadAlerts = async () => {
     try {
-      const response = await fetch("/api/admin/dashboard/pending-alerts")
+      const response = await fetch("/api/admin/dashboard/pending-alerts", { headers: getAdminAuthHeaders() })
       if (response.ok) {
         const data = await response.json()
         setAlerts(data)

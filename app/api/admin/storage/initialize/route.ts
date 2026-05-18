@@ -1,8 +1,12 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(

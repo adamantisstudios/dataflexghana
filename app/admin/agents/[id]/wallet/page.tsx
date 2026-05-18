@@ -1,5 +1,6 @@
 "use client"
 
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
@@ -269,7 +270,7 @@ export default function AdminAgentWalletPage() {
 
       const response = await fetch("/api/admin/wallet", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({
           action: "reverse_transaction",
           agent_id: agentId,
@@ -312,7 +313,7 @@ export default function AdminAgentWalletPage() {
 
       const response = await fetch("/api/admin/wallet", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({
           action: "adjustment",
           agent_id: agentId,

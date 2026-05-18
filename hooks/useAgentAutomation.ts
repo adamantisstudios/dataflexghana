@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { toast } from "sonner"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 
 // Service role operations should only happen server-side via API routes
 
@@ -51,9 +52,7 @@ export function useAgentAutomation() {
 
       const response = await fetch("/api/admin/automation/stats", {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAdminAuthHeaders(),
       })
 
       if (!response.ok) {
@@ -86,9 +85,7 @@ export function useAgentAutomation() {
 
       const response = await fetch("/api/admin/automation/agents-at-risk", {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAdminAuthHeaders(),
       })
 
       if (!response.ok) {
@@ -122,9 +119,7 @@ export function useAgentAutomation() {
     try {
       const response = await fetch("/api/admin/automation/run", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({
           run_type: "manual",
         }),
@@ -184,9 +179,7 @@ export function useAgentAutomation() {
       try {
         const response = await fetch("/api/admin/automation/reactivate", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAdminAuthHeaders(),
           body: JSON.stringify({
             agent_id: agentId,
             admin_notes: adminNotes || `Manually reactivated by admin on ${new Date().toISOString()}`,

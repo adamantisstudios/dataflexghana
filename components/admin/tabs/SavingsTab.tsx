@@ -1,4 +1,5 @@
 "use client"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import type React from "react"
 import { useState, useEffect } from "react"
   import {
@@ -395,7 +396,7 @@ export default function SavingsTab() {
 
   const exportData = async (type: "plans" | "withdrawals" | "reports") => {
     try {
-      const response = await fetch(`/api/admin/savings/export?type=${type}`)
+      const response = await fetch(`/api/admin/savings/export?type=${type}`, { headers: getAdminAuthHeaders() })
       if (!response.ok) throw new Error("Export failed")
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)

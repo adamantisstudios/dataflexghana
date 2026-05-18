@@ -1,5 +1,6 @@
 "use client"
 
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useEffect, useState, useMemo } from "react"
 import { BarChart3, TrendingUp, AlertTriangle } from "lucide-react"
 import { useAdminCache } from "@/lib/admin-cache-manager"
@@ -24,7 +25,7 @@ export default function StorageAdminPage() {
   const { fetchData } = useAdminCache(
     "admin:storage:summary",
     async () => {
-      const response = await fetch("/api/admin/storage/summary")
+      const response = await fetch("/api/admin/storage/summary", { headers: getAdminAuthHeaders() })
       if (!response.ok) throw new Error("Failed to fetch storage summary")
       return response.json()
     },

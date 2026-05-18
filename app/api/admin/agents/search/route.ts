@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
@@ -33,6 +34,9 @@ function isValidUUID(value: string) {
    POST: Search Agents
 --------------------------------------------- */
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const supabase = getSupabaseAdmin()
     const body = await request.json()

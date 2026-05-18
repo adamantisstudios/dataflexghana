@@ -1,5 +1,6 @@
 "use client"
 
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -37,7 +38,7 @@ export function AdminAgentRanking() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/admin/agents/ranking?timeframe=${tf}&limit=10`)
+      const response = await fetch(`/api/admin/agents/ranking?timeframe=${tf}&limit=10`, { headers: getAdminAuthHeaders() })
       const data: RankingResponse = await response.json()
 
       if (!data.success) {

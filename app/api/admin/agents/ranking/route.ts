@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase-client";
 import { createSupabaseAdmin } from "@/lib/supabase-query";
@@ -17,6 +18,9 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
 }
 
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   const startTime = Date.now()
 
   try {
@@ -222,6 +226,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     // This endpoint can be used to trigger manual ranking calculations
     // For now, it just returns success since we calculate rankings on-demand

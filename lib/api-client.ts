@@ -138,6 +138,19 @@ export async function agentApiCall(url: string, options: Omit<ApiOptions, 'userT
 /**
  * Helper to handle API responses with proper error handling
  */
+export class ApiResponseError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = "ApiResponseError"
+    this.status = status
+  }
+}
+
+export const DUPLICATE_AGENT_PHONE_MESSAGE =
+  "An agent with this phone number already exists. Please check the phone number or use the Agents tab to manage the existing agent."
+
 export async function handleApiResponse<T = any>(response: Response): Promise<T> {
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`
@@ -148,8 +161,12 @@ export async function handleApiResponse<T = any>(response: Response): Promise<T>
     } catch {
       // If response is not JSON, use the default error message
     }
+
+    if (response.status === 409 && /phone number already exists/i.test(errorMessage)) {
+      errorMessage = DUPLICATE_AGENT_PHONE_MESSAGE
+    }
     
-    throw new Error(errorMessage)
+    throw new ApiResponseError(errorMessage, response.status)
   }
 
   try {

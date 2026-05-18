@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -48,6 +49,9 @@ function generateProductCode(categoryId: number, timestamp: number): string {
 }
 
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const body = await request.json();
     
@@ -132,6 +136,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const { data: products, error } = await supabase
       .from('fashion_products')

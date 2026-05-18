@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase-client";
 
@@ -5,6 +6,9 @@ export const dynamic = "force-dynamic"
 
 // GET - Generate comprehensive savings reports
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const { searchParams } = new URL(request.url)
     const reportType = searchParams.get("type") || "overview"

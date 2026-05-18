@@ -1,5 +1,6 @@
 "use client"
 
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -61,7 +62,10 @@ export default function DataBundleOrdersLogTab({
     if (!confirm("Delete this order from the log? This cannot be undone.")) return
     setDeletingIds((prev) => new Set([...prev, orderId]))
     try {
-      const response = await fetch(`/api/admin/data-orders/log/${orderId}`, { method: "DELETE" })
+      const response = await fetch(`/api/admin/data-orders/log/${orderId}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+      })
       const result = await response.json()
       if (response.ok && result.success) {
         const updated = orders.filter((o) => o.id !== orderId)
@@ -99,7 +103,7 @@ export default function DataBundleOrdersLogTab({
         }
       }
 
-      const response = await fetch("/api/admin/data-orders/log-list")
+      const response = await fetch("/api/admin/data-orders/log-list", { headers: getAdminAuthHeaders() })
       if (!response.ok) {
         throw new Error("Failed to fetch data orders log")
       }

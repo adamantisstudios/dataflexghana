@@ -1,3 +1,4 @@
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { getAdminClient } from "./supabase-base"
 import { calculateExactCommission } from "./commission-calculator"
 
@@ -787,7 +788,7 @@ export async function batchCalculateAgentEarnings(agentIds: string[]): Promise<M
     try {
       const res = await fetch("/api/admin/agents/batch-earnings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ agentIds }),
       })
       const json = await res.json()
@@ -997,6 +998,15 @@ export async function createAdminReversal(
   }
 }
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function assertUuid(value: string, fieldName: string): void {
+  if (!UUID_REGEX.test(value.trim())) {
+    throw new Error(`Invalid ${fieldName}: must be a valid UUID`)
+  }
+}
+
 /**
  * Create admin adjustment transaction
  * This function creates an adjustment transaction (credit or debit) by admin
@@ -1022,9 +1032,12 @@ export async function createAdminAdjustment(
       throw new Error("Reason is required")
     }
 
+    assertUuid(agentId, "agent ID")
+    assertUuid(adminId, "admin ID")
+
     console.log(`🔄 Creating admin adjustment for agent ${agentId}: ${isPositive ? "+" : "-"}${amount}`)
 
-    // Create the adjustment transaction
+    // source_id is a UUID column when present — use DB-generated id only; track via reference_code
     const { data, error } = await getDb()
       .from("wallet_transactions")
       .insert({
@@ -1033,9 +1046,8 @@ export async function createAdminAdjustment(
         amount: amount,
         status: "approved",
         description: `Admin ${isPositive ? "credit" : "debit"} adjustment - ${reason}`,
-        reference_code: `ADJ-${isPositive ? "CR" : "DR"}-${Date.now()}`,
+        reference_code: `ADJ-${isPositive ? "CR" : "DR"}-${crypto.randomUUID().slice(0, 8)}`,
         source_type: "admin_action",
-        source_id: `adjustment-${Date.now()}`,
         admin_id: adminId,
         admin_notes: `${isPositive ? "Credit" : "Debit"} adjustment by admin. Reason: ${reason}`,
         created_at: new Date().toISOString(),

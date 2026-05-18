@@ -196,6 +196,31 @@ export function createAuthErrorResponse(error: string, status: number = 401) {
   )
 }
 
+export type AdminSessionResult =
+  | { ok: true; admin: Record<string, unknown> }
+  | { ok: false; response: NextResponse }
+
+/**
+ * Require a verified admin session for admin API routes.
+ * Returns 401 NextResponse when missing or invalid.
+ */
+export async function requireAdminSession(request: NextRequest): Promise<AdminSessionResult> {
+  const auth = await authenticateAdmin(request)
+  if (!auth.success || !auth.user) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          success: false,
+          error: auth.error || "Admin authentication required. Please log in again.",
+        },
+        { status: 401 },
+      ),
+    }
+  }
+  return { ok: true, admin: auth.user }
+}
+
 /**
  * Middleware wrapper for admin-only routes
  */

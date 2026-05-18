@@ -25,8 +25,14 @@ import { Textarea } from "@/components/ui/textarea"
   X,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
-import { adminApiCall, handleApiResponse } from "@/lib/api-client"
+import {
+  adminApiCall,
+  ApiResponseError,
+  DUPLICATE_AGENT_PHONE_MESSAGE,
+  handleApiResponse,
+} from "@/lib/api-client"
 import { getStoredAdmin } from "@/lib/unified-auth-system"
+import { toast } from "sonner"
 
 const regions = [
   "Greater Accra",
@@ -137,20 +143,25 @@ export default function ManualRegistrationTab() {
         return
       }
 
-      const result = await handleApiResponse<{ success: boolean; agent?: { full_name: string }; message?: string; error?: string }>(
-        await adminApiCall("/api/admin/agents/manual-register", {
-          method: "POST",
-          body: JSON.stringify({
-            fullName: agentFormData.fullName,
-            phoneNumber: agentFormData.phoneNumber,
-            momoNumber: agentFormData.momoNumber,
-            region: agentFormData.region,
-            password: agentFormData.password,
-            autoApprove: agentFormData.autoApprove,
-            adminNotes: agentFormData.adminNotes,
-          }),
+      const response = await adminApiCall("/api/admin/agents/manual-register", {
+        method: "POST",
+        body: JSON.stringify({
+          fullName: agentFormData.fullName,
+          phoneNumber: agentFormData.phoneNumber,
+          momoNumber: agentFormData.momoNumber,
+          region: agentFormData.region,
+          password: agentFormData.password,
+          autoApprove: agentFormData.autoApprove,
+          adminNotes: agentFormData.adminNotes,
         }),
-      )
+      })
+
+      const result = await handleApiResponse<{
+        success: boolean
+        agent?: { full_name: string }
+        message?: string
+        error?: string
+      }>(response)
 
       const message =
         result.message ||
@@ -165,7 +176,20 @@ export default function ManualRegistrationTab() {
       loadStats()
     } catch (error) {
       console.error("[v0] Agent registration error:", error)
-      setError("Registration failed. Please try again.")
+      const isDuplicatePhone =
+        error instanceof ApiResponseError &&
+        (error.status === 409 || /phone number already exists/i.test(error.message))
+      const message = isDuplicatePhone
+        ? DUPLICATE_AGENT_PHONE_MESSAGE
+        : error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again."
+      setError(message)
+      if (isDuplicatePhone) {
+        toast.error(message, { duration: 6000 })
+      } else {
+        toast.error(message)
+      }
     } finally {
       setLoading(false)
     }

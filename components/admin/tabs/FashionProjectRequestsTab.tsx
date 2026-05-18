@@ -1,5 +1,6 @@
 'use client';
 
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,7 +56,7 @@ export default function FashionProjectRequestsTab() {
   const loadRequests = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/fashion/project-requests');
+      const response = await fetch('/api/admin/fashion/project-requests', { headers: getAdminAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         setRequests(data.data || []);
@@ -71,7 +72,7 @@ export default function FashionProjectRequestsTab() {
     try {
       const response = await fetch(`/api/admin/fashion/project-requests/${requestId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -87,7 +88,7 @@ export default function FashionProjectRequestsTab() {
     try {
       const response = await fetch(`/api/admin/fashion/project-requests/${requestId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ admin_notes: adminNotes }),
       });
 
@@ -106,6 +107,7 @@ export default function FashionProjectRequestsTab() {
     try {
       const response = await fetch(`/api/admin/fashion/project-requests/${requestId}`, {
         method: 'DELETE',
+        headers: getAdminAuthHeaders(),
       });
       if (response.ok) {
         setRequests((prev) => prev.filter((r) => r.id !== requestId));

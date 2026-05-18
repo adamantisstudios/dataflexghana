@@ -1,7 +1,11 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase-client";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const resolvedParams = await params
     const agentId = resolvedParams.id

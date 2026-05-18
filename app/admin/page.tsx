@@ -1,4 +1,5 @@
 "use client"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import React, { lazy, Suspense, useState, useCallback, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -266,8 +267,8 @@ export default function AdminDashboard() {
             .select("id")
             .gte("created_at", `${today}T00:00:00.000Z`)
             .lt("created_at", `${today}T23:59:59.999Z`),
-          fetch("/api/admin/wholesale/stats").catch(() => ({ ok: false })),
-          fetch("/api/admin/dashboard/pending-alerts").catch(() => ({ ok: false })),
+          fetch("/api/admin/wholesale/stats", { headers: getAdminAuthHeaders() }).catch(() => ({ ok: false })),
+          fetch("/api/admin/dashboard/pending-alerts", { headers: getAdminAuthHeaders() }).catch(() => ({ ok: false })),
         ])
 
         let wholesaleStats = {
@@ -409,9 +410,7 @@ export default function AdminDashboard() {
       // Call the API to update the admin password
       const response = await fetch("/api/admin/update-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({
           admin_id: admin.id,
           current_password: currentPassword,

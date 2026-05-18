@@ -1,5 +1,6 @@
 'use client';
 
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,7 +111,7 @@ export default function FashionAvenueTab() {
       const [productsRes, categoriesRes, referralsRes] = await Promise.all([
         fetch('/api/fashion/products?limit=100'),
         fetch('/api/fashion/categories'),
-        fetch('/api/admin/fashion/referrals'),
+        fetch('/api/admin/fashion/referrals', { headers: getAdminAuthHeaders() }),
       ]);
 
       if (productsRes.ok) {
@@ -225,7 +226,7 @@ export default function FashionAvenueTab() {
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify(payload),
       });
 
@@ -255,7 +256,7 @@ export default function FashionAvenueTab() {
     try {
       const response = await fetch('/api/admin/fashion/categories', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ name: categoryForm.name.trim(), description: categoryForm.description.trim() }),
       });
 
@@ -276,6 +277,7 @@ export default function FashionAvenueTab() {
     try {
       const response = await fetch(`/api/admin/fashion/products/${productId}`, {
         method: 'DELETE',
+        headers: getAdminAuthHeaders(),
       });
 
       if (response.ok) {
@@ -392,6 +394,7 @@ export default function FashionAvenueTab() {
     try {
       const response = await fetch(`/api/admin/fashion/referrals/${referralId}/convert`, {
         method: 'POST',
+        headers: getAdminAuthHeaders(),
       });
 
       if (response.ok) {
@@ -409,6 +412,7 @@ export default function FashionAvenueTab() {
     try {
       const response = await fetch(`/api/admin/fashion/referrals/${referralId}/pay-commission`, {
         method: 'POST',
+        headers: getAdminAuthHeaders(),
       });
 
       if (response.ok) {

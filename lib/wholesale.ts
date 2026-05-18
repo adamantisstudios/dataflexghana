@@ -1,3 +1,4 @@
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { supabase } from "@/lib/supabase-client"
 import { getAdminClient } from "@/lib/supabase-base"
 import { getStoredAdmin } from "./auth"
@@ -878,9 +879,7 @@ export async function getWholesaleOrdersByAgentAPI(agentId: string): Promise<Who
 
     const response = await fetch(`/api/agent/wholesale/orders?agent_id=${encodeURIComponent(agentId)}`, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAdminAuthHeaders(),
     })
 
     if (!response.ok) {
@@ -1020,9 +1019,7 @@ export async function getWholesaleOrdersAdmin(): Promise<WholesaleOrder[]> {
 
     const response = await fetch("/api/admin/wholesale/orders", {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAdminAuthHeaders(),
     })
 
     if (!response.ok) {
@@ -1073,9 +1070,7 @@ export async function updateWholesaleOrderStatusAdmin(
 
     const response = await fetch("/api/admin/wholesale/orders", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAdminAuthHeaders(),
       body: JSON.stringify({
         orderId: id,
         status,
@@ -1134,9 +1129,7 @@ export async function updateWholesaleOrderCommissionPaidAdmin(id: string, paid: 
 
     const response = await fetch("/api/admin/wholesale/orders", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAdminAuthHeaders(),
       body: JSON.stringify({
         orderId: id,
         commissionPaid: paid,
@@ -1183,9 +1176,7 @@ export async function deleteWholesaleOrderAdmin(id: string): Promise<void> {
 
     const response = await fetch(`/api/admin/wholesale/orders?orderId=${encodeURIComponent(id)}`, {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAdminAuthHeaders(),
     })
 
     if (!response.ok) {

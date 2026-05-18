@@ -1,8 +1,13 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase-client";
 import bcrypt from "bcryptjs"
 
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
+
   try {
     const { admin_id, current_password, new_password } = await request.json()
 

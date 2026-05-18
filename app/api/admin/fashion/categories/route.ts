@@ -1,6 +1,10 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const body = await request.json();
 

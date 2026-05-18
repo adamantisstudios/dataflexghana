@@ -1,7 +1,11 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { getCacheStats, clearPreviewCache } from "@/lib/link-preview-cache"
 
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const action = request.nextUrl.searchParams.get("action")
 
@@ -27,6 +31,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const result = await clearPreviewCache()
     return NextResponse.json(result)

@@ -1,5 +1,6 @@
 'use client';
 
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,7 @@ export default function FashionReferralsTab() {
   const loadReferrals = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/fashion/referrals-list');
+      const response = await fetch('/api/admin/fashion/referrals-list', { headers: getAdminAuthHeaders() });
       if (response.ok) {
         const data = await response.json();
         setReferrals(data.data || []);
@@ -58,7 +59,7 @@ export default function FashionReferralsTab() {
     try {
       const response = await fetch(`/api/admin/fashion/referrals-list/${referralId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ status: newStatus }),
       });
 
@@ -103,6 +104,7 @@ export default function FashionReferralsTab() {
     try {
       const response = await fetch(`/api/admin/fashion/referrals-list/${referralId}`, {
         method: 'DELETE',
+        headers: getAdminAuthHeaders(),
       });
       if (response.ok) {
         setReferrals((prev) => prev.filter((r) => r.id !== referralId));

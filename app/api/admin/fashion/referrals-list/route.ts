@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -7,6 +8,9 @@ const supabase = createClient(
 );
 
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const { data, error } = await supabase
       .from('fashion_referrals')

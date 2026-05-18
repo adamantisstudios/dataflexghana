@@ -1,5 +1,6 @@
 "use client"
 
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -36,7 +37,7 @@ export default function WholesalePage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/wholesale/stats')
+      const response = await fetch('/api/admin/wholesale/stats', { headers: getAdminAuthHeaders() })
       if (response.ok) {
         const data = await response.json()
         setStats(data)

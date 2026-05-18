@@ -1,11 +1,13 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { supabase } from "@/lib/supabase-client";
 import { getAdminClient } from "@/lib/supabase-base";
 import { NextRequest, NextResponse } from "next/server"
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     // Properly await params in Next.js 16
     const { id } = await params

@@ -208,7 +208,7 @@ export default function AdminAgentsPage() {
       setRunningAutomation(true)
       const res = await fetch("/api/admin/automation/run", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ run_type: "manual" }),
       })
       const data = await res.json()

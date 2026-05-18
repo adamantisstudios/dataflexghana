@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase-base'
 import {
@@ -23,6 +24,9 @@ function db() {
 
 // GET - Get wallet information for an agent
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const supabase = db()
     const { searchParams } = new URL(request.url)
@@ -115,6 +119,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Admin wallet management actions
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const supabase = db()
     const body = await request.json()
@@ -672,6 +679,9 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update wallet transaction status (admin approval/rejection)
 export async function PUT(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const supabase = db()
     const body = await request.json()

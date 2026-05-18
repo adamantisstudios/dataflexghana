@@ -1,9 +1,13 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { type NextRequest, NextResponse } from "next/server"
 import { createAdminAdjustment } from "@/lib/earnings-calculator"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

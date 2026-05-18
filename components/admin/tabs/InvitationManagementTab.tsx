@@ -1,4 +1,5 @@
 "use client"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -89,7 +90,7 @@ export default function InvitationManagementTab() {
       setProcessingId(invitationId)
       const response = await fetch(`/api/admin/invitations/${invitationId}/update-status`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ admin_id: admin.id, status: newStatus }),
       })
       const result = await response.json()
@@ -125,7 +126,7 @@ export default function InvitationManagementTab() {
       setProcessingId(invitationId)
       const response = await fetch(`/api/admin/invitations/${invitationId}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
       })
       const result = await response.json()
       if (result.success) {

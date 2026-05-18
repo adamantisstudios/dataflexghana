@@ -1,8 +1,12 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase-base'
 
 // GET - Fetch all savings plans for admin
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   const supabase = getAdminClient()
   try {
     const { searchParams } = new URL(request.url)
@@ -61,6 +65,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new savings plan
 export async function POST(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   const supabase = getAdminClient()
   try {
     const body = await request.json()
@@ -112,6 +119,9 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update savings plan
 export async function PUT(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   const supabase = getAdminClient()
   try {
     const body = await request.json()
@@ -168,6 +178,9 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Delete savings plan (soft delete by setting inactive)
 export async function DELETE(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   const supabase = getAdminClient()
   try {
     const { searchParams } = new URL(request.url)

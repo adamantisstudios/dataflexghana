@@ -1,7 +1,12 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { requireAdminSession } from "@/lib/api-auth"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const { id } = await request.json()
 

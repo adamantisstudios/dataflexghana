@@ -1,4 +1,5 @@
 "use client"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,7 +26,7 @@ export function LinkCacheManagementTab() {
   const loadCacheStats = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/admin/link-preview-cache?action=stats")
+      const response = await fetch("/api/admin/link-preview-cache?action=stats", { headers: getAdminAuthHeaders() })
 
       if (!response.ok) {
         throw new Error("Failed to fetch cache stats")
@@ -50,6 +51,7 @@ export function LinkCacheManagementTab() {
       setClearing(true)
       const response = await fetch("/api/admin/link-preview-cache", {
         method: "DELETE",
+        headers: getAdminAuthHeaders(),
       })
 
       if (!response.ok) {

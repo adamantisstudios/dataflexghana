@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase-client";
 
@@ -6,6 +7,9 @@ export const dynamic = "force-dynamic"
 
 // GET - Fetch withdrawal requests for admin
 export async function GET(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const url = new URL(request.url || "", "http://localhost")
     const { searchParams } = url
@@ -79,6 +83,9 @@ export async function GET(request: NextRequest) {
 
 // PUT - Process withdrawal request (approve/reject)
 export async function PUT(request: NextRequest) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const body = await request.json()
     const { requestId, action, adminNotes, processedBy } = body

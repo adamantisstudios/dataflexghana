@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
@@ -6,10 +7,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const { id } = await params;
     const { data: product, error } = await supabase
@@ -90,10 +92,11 @@ function safeParseBoolean(value: any, defaultValue: boolean = false): boolean {
   return String(value).toLowerCase() === 'true';
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const body = await request.json();
     const { id } = await params;
@@ -217,10 +220,11 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const { id } = await params;
     const productId = parseInt(id);

@@ -1,4 +1,5 @@
 "use client"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -235,7 +236,7 @@ export default function AdminDataOrdersPage() {
     try {
       const response = await fetch(`/api/admin/data-orders/${orderId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ status, admin_message: message }),
       })
 

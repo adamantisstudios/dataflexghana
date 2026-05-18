@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/api-auth"
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { creditReferringAgentForReferral } from "@/lib/referral-agent-program"
@@ -5,6 +6,9 @@ import { creditReferringAgentForReferral } from "@/lib/referral-agent-program"
 export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const adminSession = await requireAdminSession(request)
+  if (!adminSession.ok) return adminSession.response
+
   try {
     const { id } = await params
     const body = await request.json()

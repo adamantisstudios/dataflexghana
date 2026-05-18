@@ -176,7 +176,14 @@ export default function RegisterPage() {
       const registerData = await registerRes.json()
 
       if (!registerRes.ok) {
-        setError(registerData.error || "Registration failed. Please try again.")
+        const duplicatePhone =
+          registerRes.status === 409 ||
+          /phone number already exists/i.test(registerData.error || "")
+        setError(
+          duplicatePhone
+            ? "An agent with this phone number already exists. Please sign in or contact support if you need help."
+            : registerData.error || "Registration failed. Please try again.",
+        )
         setLoading(false)
         return
       }

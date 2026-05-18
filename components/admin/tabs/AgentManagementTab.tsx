@@ -1,4 +1,5 @@
 "use client"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -223,7 +224,10 @@ export default function AgentManagementTab() {
     try {
       setOperationLoading(true)
       if (!agentId || agentId.trim() === "") return
-      const response = await fetch(`/api/admin/agents/${agentId}/summary`, { method: "GET" })
+      const response = await fetch(`/api/admin/agents/${agentId}/summary`, {
+        method: "GET",
+        headers: getAdminAuthHeaders(),
+      })
       if (!response.ok) throw new Error("Failed to fetch summary")
       const summary = await response.json()
       setAgentSummary(summary)
@@ -239,7 +243,10 @@ export default function AgentManagementTab() {
     try {
       setOperationLoading(true)
       toast.info("Preparing download...")
-      const response = await fetch(`/api/admin/agents/${agent.id}/export-csv`, { method: "GET" })
+      const response = await fetch(`/api/admin/agents/${agent.id}/export-csv`, {
+        method: "GET",
+        headers: getAdminAuthHeaders(),
+      })
       if (!response.ok) throw new Error("Export failed")
       const blob = await response.blob()
       const url = URL.createObjectURL(blob)
@@ -263,7 +270,7 @@ export default function AgentManagementTab() {
       setOperationLoading(true)
       const response = await fetch(`/api/admin/agents/${agent.id}/clear-records`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ confirm: true, agent_id: agent.id, agent_name: agent.full_name }),
       })
       if (!response.ok) throw new Error("Clear failed")
@@ -306,6 +313,7 @@ export default function AgentManagementTab() {
       setOperationLoading(true)
       const response = await fetch(`/api/admin/agents/${agent.id}/publish-permission`, {
         method: "PUT",
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ can_publish_products: newValue }),
       })
       if (!response.ok) throw new Error("Update failed")
@@ -324,6 +332,7 @@ export default function AgentManagementTab() {
       setOperationLoading(true)
       const response = await fetch(`/api/admin/agents/${agent.id}/update-permission`, {
         method: "PUT",
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ can_update_products: newValue }),
       })
       if (!response.ok) throw new Error("Update failed")
@@ -342,6 +351,7 @@ export default function AgentManagementTab() {
       setOperationLoading(true)
       const response = await fetch(`/api/admin/agents/${agent.id}/publish-property-permission`, {
         method: "PUT",
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ can_publish_properties: newValue }),
       })
       if (!response.ok) throw new Error("Update failed")
@@ -360,6 +370,7 @@ export default function AgentManagementTab() {
       setOperationLoading(true)
       const response = await fetch(`/api/admin/agents/${agent.id}/update-property-permission`, {
         method: "PUT",
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ can_update_properties: newValue }),
       })
       if (!response.ok) throw new Error("Update failed")
