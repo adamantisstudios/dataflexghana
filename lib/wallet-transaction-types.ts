@@ -2,10 +2,10 @@ import { supabase } from "./supabase";
 /**
  * Wallet Transaction Types and Validation
  *
- * Types must match the database CHECK constraint wallet_transactions_transaction_type_check.
+ * Types must match the database CHECK constraint wallet_transactions_type_check.
  */
 
-/** Allowed values in PostgreSQL wallet_transactions.transaction_type */
+/** Allowed values in PostgreSQL wallet_transactions.type / transaction_type */
 export const DB_TRANSACTION_TYPES = [
   "credit",
   "debit",
@@ -75,7 +75,29 @@ export type ValidPaymentMethod = (typeof VALID_PAYMENT_METHODS)[number]
  * Validates if a transaction type is valid for new inserts (DB constraint only).
  */
 export function isValidDbTransactionType(type: string): type is DbTransactionType {
-  return (DB_TRANSACTION_TYPES as readonly string[]).includes(type)
+  const normalized = type.trim().toLowerCase()
+  return (DB_TRANSACTION_TYPES as readonly string[]).includes(normalized)
+}
+
+/** Throws if not a DB-allowed type; returns normalized lowercase value. */
+export function assertDbTransactionType(type: string): DbTransactionType {
+  const normalized = type.trim().toLowerCase()
+  if (!isValidDbTransactionType(normalized)) {
+    throw new Error(
+      `Invalid wallet transaction type "${type}". Allowed: ${DB_TRANSACTION_TYPES.join(", ")}`,
+    )
+  }
+  return normalized
+}
+
+/** Admin wallet credit (e.g. approval bonus, referral credit). */
+export const ADMIN_WALLET_CREDIT_TYPE = "adjustment" as const satisfies DbTransactionType
+
+/** Admin wallet debit (e.g. commission reset, manual debit). */
+export const ADMIN_WALLET_DEBIT_TYPE = "debit" as const satisfies DbTransactionType
+
+export function adminAdjustmentTransactionType(isCredit: boolean): DbTransactionType {
+  return isCredit ? ADMIN_WALLET_CREDIT_TYPE : ADMIN_WALLET_DEBIT_TYPE
 }
 
 /**
@@ -167,9 +189,11 @@ export function createSafeWalletTransaction(input: WalletTransactionInput): Wall
     throw new Error(`Invalid wallet transaction: ${validation.errors.join(", ")}`)
   }
 
+  const txType = assertDbTransactionType(input.transaction_type)
+
   const result: WalletTransactionInput = {
     agent_id: input.agent_id.trim(),
-    transaction_type: input.transaction_type,
+    transaction_type: txType,
     amount: Number(input.amount),
     description: input.description.trim(),
     status: input.status as ValidTransactionStatus,
@@ -186,6 +210,44 @@ export function createSafeWalletTransaction(input: WalletTransactionInput): Wall
   }
 
   return result
+}
+
+/**
+ * Build a row for wallet_transactions INSERT.
+ * Sets both `type` and `transaction_type` (DB check is on `type`).
+ * Omits source_type unless it is itself a valid transaction type (never use e.g. admin_action).
+ */
+export function buildWalletTransactionInsertRow(
+  input: WalletTransactionInput,
+  extra?: Record<string, unknown>,
+): Record<string, unknown> {
+  const safe = createSafeWalletTransaction(input)
+  const txType = assertDbTransactionType(safe.transaction_type)
+
+  const row: Record<string, unknown> = {
+    agent_id: safe.agent_id,
+    type: txType,
+    transaction_type: txType,
+    amount: safe.amount,
+    description: safe.description,
+    status: safe.status,
+  }
+
+  if (safe.reference_code) row.reference_code = safe.reference_code
+  if (safe.payment_method) row.payment_method = safe.payment_method
+  if (safe.admin_notes) row.admin_notes = safe.admin_notes
+  if (safe.admin_id) row.admin_id = safe.admin_id
+
+  if (extra) {
+    for (const [key, value] of Object.entries(extra)) {
+      if (key === "source_type" && typeof value === "string" && !isValidDbTransactionType(value)) {
+        continue
+      }
+      row[key] = value
+    }
+  }
+
+  return row
 }
 
 export function generateReferenceCode(transactionType: string, agentId: string): string {
@@ -211,14 +273,14 @@ export function generateSafeReferenceCode(_transactionType?: string, _agentId?: 
   }
 }
 
-export function createSafeWalletTransactionWithRef(input: WalletTransactionInput): WalletTransactionInput {
+export function createSafeWalletTransactionWithRef(input: WalletTransactionInput): Record<string, unknown> {
   const transaction = createSafeWalletTransaction(input)
 
   if (!transaction.reference_code) {
     transaction.reference_code = generateReferenceCode(transaction.transaction_type, transaction.agent_id)
   }
 
-  return transaction
+  return buildWalletTransactionInsertRow(transaction)
 }
 
 export const MINIMUM_COMMISSION_THRESHOLD = 0.01

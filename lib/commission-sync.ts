@@ -140,13 +140,11 @@ export async function syncDataOrderCommission(
       throw new Error("Commission transaction was not created")
     }
 
-    // Insert the commission transaction into the database
     const { data: insertedTransaction, error: insertError } = await supabase
       .from("wallet_transactions")
       .insert([
         {
           ...commissionResult.transaction,
-          source_type: "data_order",
           source_id: orderId,
         },
       ])

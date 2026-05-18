@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createSafeWalletTransaction, generateSafeReferenceCode } from '@/lib/wallet-transaction-types'
+import { buildWalletTransactionInsertRow, generateSafeReferenceCode } from '@/lib/wallet-transaction-types'
 import {
   createWholesaleOrder,
   updateProductStock,
@@ -431,14 +431,16 @@ export async function POST(request: NextRequest) {
         try {
           await supabaseClient
             .from('wallet_transactions')
-            .insert(createSafeWalletTransaction({
-              agent_id: body.agent_id,
-              transaction_type: 'deduction',
-              amount: body.total_amount,
-              description: `Wholesale order payment - ${orders.length} items`,
-              reference_code: body.payment_reference || generateSafeReferenceCode('WHOLESALE'),
-              status: 'approved'
-            }))
+            .insert(
+              buildWalletTransactionInsertRow({
+                agent_id: body.agent_id,
+                transaction_type: 'deduction',
+                amount: body.total_amount,
+                description: `Wholesale order payment - ${orders.length} items`,
+                reference_code: body.payment_reference || generateSafeReferenceCode('WHOLESALE'),
+                status: 'approved',
+              }),
+            )
           
           console.log('📝 Wallet transaction recorded')
         } catch (transactionError) {

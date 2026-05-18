@@ -1,4 +1,9 @@
 import { getAdminAuthHeaders } from "@/lib/api-client"
+import {
+  adminAdjustmentTransactionType,
+  buildWalletTransactionInsertRow,
+  assertDbTransactionType,
+} from "@/lib/wallet-transaction-types"
 import { getAdminClient } from "./supabase-base"
 import { calculateExactCommission } from "./commission-calculator"
 
@@ -912,20 +917,22 @@ export async function createWithdrawalDeduction(
 
     console.log(`🔄 Creating withdrawal deduction for agent ${agentId}: ${amount}`)
 
-    // Create a withdrawal deduction transaction
+    const withdrawalType = assertDbTransactionType("withdrawal_deduction")
     const { data, error } = await getDb()
       .from("wallet_transactions")
-      .insert({
-        agent_id: agentId,
-        transaction_type: "withdrawal_deduction",
-        amount: amount,
-        status: "approved",
-        description: description || `Withdrawal deduction for withdrawal ${withdrawalId}`,
-        reference_code: `WD-${withdrawalId}`,
-        source_type: "withdrawal",
-        source_id: withdrawalId,
-        created_at: new Date().toISOString(),
-      })
+      .insert(
+        buildWalletTransactionInsertRow(
+          {
+            agent_id: agentId,
+            transaction_type: withdrawalType,
+            amount: amount,
+            status: "approved",
+            description: description || `Withdrawal deduction for withdrawal ${withdrawalId}`,
+            reference_code: `WD-${withdrawalId}`,
+          },
+          { source_id: withdrawalId, created_at: new Date().toISOString() },
+        ),
+      )
       .select()
       .single()
 
@@ -993,22 +1000,24 @@ export async function createAdminReversal(
       throw new Error("Transaction does not belong to the specified agent")
     }
 
-    // Create the reversal transaction
+    const reversalType = assertDbTransactionType("debit")
     const { data, error } = await getDb()
       .from("wallet_transactions")
-      .insert({
-        agent_id: agentId,
-        transaction_type: "debit",
-        amount: originalTransaction.amount,
-        status: "approved",
-        description: `Admin reversal of transaction ${originalTransactionId} - ${reason}`,
-        reference_code: `REV-${originalTransactionId}-${Date.now()}`,
-        source_type: "admin_action",
-        source_id: originalTransactionId,
-        admin_id: adminId,
-        admin_notes: `Reversal of ${originalTransaction.transaction_type} transaction. Original description: ${originalTransaction.description || "N/A"}`,
-        created_at: new Date().toISOString(),
-      })
+      .insert(
+        buildWalletTransactionInsertRow(
+          {
+            agent_id: agentId,
+            transaction_type: reversalType,
+            amount: originalTransaction.amount,
+            status: "approved",
+            description: `Admin reversal of transaction ${originalTransactionId} - ${reason}`,
+            reference_code: `REV-${originalTransactionId}-${Date.now()}`,
+            admin_id: adminId,
+            admin_notes: `Reversal of ${originalTransaction.transaction_type} transaction. Original description: ${originalTransaction.description || "N/A"}`,
+          },
+          { source_id: originalTransactionId, created_at: new Date().toISOString() },
+        ),
+      )
       .select()
       .single()
 
@@ -1068,21 +1077,25 @@ export async function createAdminAdjustment(
 
     console.log(`🔄 Creating admin adjustment for agent ${agentId}: ${isPositive ? "+" : "-"}${amount}`)
 
-    // source_id is a UUID column when present — use DB-generated id only; track via reference_code
+    const txType = adminAdjustmentTransactionType(isPositive)
+
     const { data, error } = await getDb()
       .from("wallet_transactions")
-      .insert({
-        agent_id: agentId,
-        transaction_type: isPositive ? "adjustment" : "debit",
-        amount: amount,
-        status: "approved",
-        description: `Admin ${isPositive ? "credit" : "debit"} adjustment - ${reason}`,
-        reference_code: `ADJ-${isPositive ? "CR" : "DR"}-${crypto.randomUUID().slice(0, 8)}`,
-        source_type: "admin_action",
-        admin_id: adminId,
-        admin_notes: `${isPositive ? "Credit" : "Debit"} adjustment by admin. Reason: ${reason}`,
-        created_at: new Date().toISOString(),
-      })
+      .insert(
+        buildWalletTransactionInsertRow(
+          {
+            agent_id: agentId,
+            transaction_type: txType,
+            amount: amount,
+            status: "approved",
+            description: `Admin ${isPositive ? "credit" : "debit"} adjustment - ${reason}`,
+            reference_code: `ADJ-${isPositive ? "CR" : "DR"}-${crypto.randomUUID().slice(0, 8)}`,
+            admin_id: adminId,
+            admin_notes: `${isPositive ? "Credit" : "Debit"} adjustment by admin. Reason: ${reason}`,
+          },
+          { created_at: new Date().toISOString() },
+        ),
+      )
       .select()
       .single()
 
