@@ -509,14 +509,17 @@ export default function DataOrdersPage() {
         commission: order.commission_amount,
         description: `Data Order: ${order.data_bundles?.name} to ${order.recipient_phone}`,
       })),
-      ...walletTransactions.map((tx) => ({
-        type: "wallet_transaction",
-        timestamp: tx.created_at,
-        data: tx,
-        amount: tx.transaction_type === "credit" ? tx.amount : -tx.amount,
-        commission: 0,
-        description: `${tx.transaction_type === "credit" ? "Credit" : "Debit"}: ${tx.description || tx.transaction_type}`,
-      })),
+      ...walletTransactions.map((tx) => {
+        const isCredit = ["topup", "refund", "admin_adjustment"].includes(tx.transaction_type)
+        return {
+          type: "wallet_transaction",
+          timestamp: tx.created_at,
+          data: tx,
+          amount: isCredit ? tx.amount : -tx.amount,
+          commission: 0,
+          description: `${isCredit ? "Credit" : "Debit"}: ${tx.description || tx.transaction_type}`,
+        }
+      }),
       ...commissions.map((comm) => ({
         type: "commission",
         timestamp: comm.created_at,

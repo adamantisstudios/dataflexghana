@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base";
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { calculateWalletBalance } from "@/lib/earnings-calculator"
+import { buildWalletTransactionInsertRow } from "@/lib/wallet-transaction-types"
 import { logAuditFromRequest } from "@/lib/audit-logger"
 
 const MIN_ACCOUNT_AGE_MS = 24 * 60 * 60 * 1000
@@ -184,16 +185,19 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       return NextResponse.json({ error: "Failed to create savings account" }, { status: 500 })
     }
 
-    const { error: walletTransactionError } = await supabase.from("wallet_transactions").insert({
-      agent_id: targetAgentId,
-      transaction_type: "deduction",
-      amount: depositAmount,
-      description: `Savings commitment to ${plan.name}`,
-      reference_code: `SAV-${Date.now()}-${newSaving.id.slice(0, 8)}`,
-      status: "approved",
-      source_type: "savings",
-      source_id: newSaving.id,
-    })
+    const { error: walletTransactionError } = await supabase.from("wallet_transactions").insert(
+      buildWalletTransactionInsertRow(
+        {
+          agent_id: targetAgentId,
+          transaction_type: "deduction",
+          amount: depositAmount,
+          description: `Savings commitment to ${plan.name}`,
+          reference_code: `SAV-${Date.now()}-${newSaving.id.slice(0, 8)}`,
+          status: "approved",
+        },
+        { source_id: newSaving.id },
+      ),
+    )
 
     if (walletTransactionError) {
       console.error("Error creating wallet transaction:", walletTransactionError)

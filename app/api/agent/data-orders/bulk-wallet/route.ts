@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { calculateWalletBalance } from "@/lib/earnings-calculator"
+import { buildWalletTransactionInsertRow } from "@/lib/wallet-transaction-types"
 import { getCalculatedCommission } from "@/lib/commission-calculation"
 
 export const dynamic = "force-dynamic"
@@ -113,16 +114,16 @@ export async function POST(request: NextRequest) {
 
     const bulkReference = `BULK-${Date.now()}`
 
-    const { error: walletError } = await db.from("wallet_transactions").insert({
-      agent_id: agentId,
-      transaction_type: "deduction",
-      amount: totalAmount,
-      description: `Bulk data bundle purchase (${orderRows.length} orders)`,
-      reference_code: bulkReference,
-      status: "approved",
-      source_type: "data_order",
-      source_id: null,
-    })
+    const { error: walletError } = await db.from("wallet_transactions").insert(
+      buildWalletTransactionInsertRow({
+        agent_id: agentId,
+        transaction_type: "deduction",
+        amount: totalAmount,
+        description: `Bulk data bundle purchase (${orderRows.length} orders)`,
+        reference_code: bulkReference,
+        status: "approved",
+      }),
+    )
 
     if (walletError) {
       console.error("bulk-wallet deduction:", walletError)

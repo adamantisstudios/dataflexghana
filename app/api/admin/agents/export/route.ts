@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
           id,
           agent_id,
           agents!inner(full_name),
-          type,
+          transaction_type,
           amount,
           description,
           status,

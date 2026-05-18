@@ -430,17 +430,19 @@ export function useOptimisticUpdates() {
                   // Keep only the last 2 decimal digits for refunds
                   const truncatedRefund = Math.floor(refundAmount * 100) / 100
 
-                  const refundTransaction = {
-                    agent_id: orderToUpdate.agent_id,
-                    transaction_type: "refund",
-                    amount: truncatedRefund,
-                    description: `Data order refund - Order #${orderId}`,
-                    status: "approved",
-                    reference_code: `REFUND-${orderId}-${Date.now()}`,
-                    admin_notes: `Auto-generated refund for cancelled order ${orderId}`,
-                    source_type: "data_order",
-                    source_id: orderId,
-                  }
+                  const { buildWalletTransactionInsertRow } = await import("@/lib/wallet-transaction-types")
+                  const refundTransaction = buildWalletTransactionInsertRow(
+                    {
+                      agent_id: orderToUpdate.agent_id,
+                      transaction_type: "refund",
+                      amount: truncatedRefund,
+                      description: `Data order refund - Order #${orderId}`,
+                      status: "approved",
+                      reference_code: `REFUND-${orderId}-${Date.now()}`,
+                      admin_notes: `Auto-generated refund for cancelled order ${orderId}`,
+                    },
+                    { source_id: orderId },
+                  )
 
                   const { data: txData, error: txError } = await supabase
                     .from("wallet_transactions")

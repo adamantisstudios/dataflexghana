@@ -23,6 +23,7 @@ import { supabase } from "@/lib/supabase-client";
 import type { Agent } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
+import { buildWalletTransactionInsertRow } from "@/lib/wallet-transaction-types"
 
 // Extend Window interface for timeout property
 declare global {
@@ -328,7 +329,6 @@ export default function WalletPage() {
             switch (transaction.transaction_type) {
               case "topup":
               case "refund":
-              case "commission_deposit":
               case "admin_adjustment":
                 manualBalance += Number(transaction.amount) || 0
                 break
@@ -336,6 +336,8 @@ export default function WalletPage() {
               case "withdrawal_deduction":
               case "admin_reversal":
                 manualBalance -= Number(transaction.amount) || 0
+                break
+              case "commission_deposit":
                 break
             }
           }
@@ -470,14 +472,14 @@ export default function WalletPage() {
 
       // If reference code is unique, proceed with insertion
       const { error } = await supabase.from("wallet_transactions").insert([
-        {
+        buildWalletTransactionInsertRow({
           agent_id: agent.id,
           transaction_type: "topup",
           amount: amount,
           description: `Wallet top-up of GH₵ ${amount.toFixed(2)}`,
           reference_code: trimmedReference,
           status: "pending",
-        },
+        }),
       ])
 
       if (error) {

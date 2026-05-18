@@ -174,19 +174,11 @@ export interface WalletTransaction {
   id: string
   agent_id: string
   transaction_type:
-    | "credit"
-    | "debit"
-    | "refund"
-    | "adjustment"
-    | "deduction"
     | "topup"
-    | "withdrawal"
-    | "deposit"
-    | "penalty"
-    | "interest"
+    | "deduction"
+    | "refund"
     | "commission_deposit"
     | "withdrawal_deduction"
-    | "payment_completed"
     | "admin_reversal"
     | "admin_adjustment"
   amount: number

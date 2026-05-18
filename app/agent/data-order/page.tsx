@@ -24,6 +24,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { supabase } from "@/lib/supabase-client";
 import { generatePaymentReference, calculateDataBundleCommission } from "@/lib/supabase";
+import { buildWalletTransactionInsertRow } from "@/lib/wallet-transaction-types"
 import type { Agent, DataBundle } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
   import {
@@ -457,16 +458,16 @@ export default function DataOrderPage() {
 
         const { data: deductionTransaction, error: deductionError } = await supabase
           .from("wallet_transactions")
-          .insert({
-            agent_id: agent.id,
-            transaction_type: "deduction",
-            amount: selectedBundle.price,
-            description: `Data bundle purchase: ${selectedBundle.name} for ${orderDetails.recipient_phone}`,
-            reference_code: generatedReference,
-            status: "approved",
-            source_type: "data_order",
-            source_id: null,
-          })
+          .insert(
+            buildWalletTransactionInsertRow({
+              agent_id: agent.id,
+              transaction_type: "deduction",
+              amount: selectedBundle.price,
+              description: `Data bundle purchase: ${selectedBundle.name} for ${orderDetails.recipient_phone}`,
+              reference_code: generatedReference,
+              status: "approved",
+            }),
+          )
           .select()
           .single()
 
