@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner"
 import { Bell, Plus, Pencil, Trash2, RefreshCw } from "lucide-react"
 import { getCurrentAdmin } from "@/lib/auth"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 
 type Frequency = "once_per_day" | "once_per_session" | "always"
 
@@ -45,12 +46,7 @@ const emptyForm = {
 }
 
 function adminHeaders(): HeadersInit {
-  const admin = getCurrentAdmin()
-  const headers: HeadersInit = { "Content-Type": "application/json" }
-  if (admin) {
-    headers.Authorization = `Bearer ${btoa(JSON.stringify(admin))}`
-  }
-  return headers
+  return getAdminAuthHeaders()
 }
 
 function getStatus(row: NotificationRow): string {

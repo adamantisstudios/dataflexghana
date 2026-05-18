@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
   PieChart,
   AlertCircle,
 } from "lucide-react"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 
 interface WalletStats {
   totalBalance: number
@@ -68,7 +69,10 @@ export default function WalletOverviewTab({ getCachedData, setCachedData }: Wall
         setRefreshing(true)
         setError(null)
 
-        const res = await fetch("/api/admin/wallet-overview", { cache: "no-store" })
+        const res = await fetch("/api/admin/wallet-overview", {
+          headers: getAdminAuthHeaders(),
+          cache: "no-store",
+        })
         const json = await res.json()
         if (!res.ok || !json.success) {
           throw new Error(json.error || "Failed to load wallet overview")

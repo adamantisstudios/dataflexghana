@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getAdminClient } from "./supabase-base";
+import { getAdminClient } from "./supabase-base"
+import { authenticateAdmin as authenticateAdminFromApiAuth } from "./api-auth"
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {
@@ -15,6 +16,11 @@ export interface AuthenticatedRequest extends NextRequest {
 export async function authenticateAdmin(
   request: NextRequest,
 ): Promise<{ success: boolean; user?: any; error?: string }> {
+  const apiAuth = await authenticateAdminFromApiAuth(request)
+  if (apiAuth.success) {
+    return apiAuth
+  }
+
   try {
     // Get admin ID from multiple sources (headers, cookies, or body for some requests)
     let adminId =

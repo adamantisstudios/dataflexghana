@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase-client";
 import { hashPassword } from "@/lib/supabase";
 import type { Agent } from "@/lib/supabase";
 import { getCurrentAdmin } from "@/lib/auth";
+import { getAdminAuthHeaders } from "@/lib/api-client";
   import {
   Check,
   Trash2,
@@ -253,7 +254,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
     try {
       const response = await fetch(`/api/admin/agents/${agent.id}/reactivate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ admin_id: adminUser.id }),
       });
       const result = await response.json();
@@ -289,7 +290,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
     try {
       const response = await fetch(`/api/admin/agents/${agentId}/approve`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAdminAuthHeaders(),
         body: JSON.stringify({ admin_id: admin.id }),
       });
       const result = await response.json();

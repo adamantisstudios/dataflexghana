@@ -20,82 +20,41 @@ export interface AdminSession {
   created_at: string
 }
 
-// Import the unified functions
-import { getStoredAdmin } from "./unified-auth-system"
+import {
+  getStoredAdmin,
+  setStoredAdmin,
+  clearStoredAdmin,
+  type AdminUser as UnifiedAdminUser,
+} from "./unified-auth-system"
 
 // ============ CLIENT-SIDE AUTHENTICATION ============
+// Delegate to unified-auth-system (admin_user localStorage key)
 
-/**
- * Get current admin from localStorage
- * Returns the admin object if authenticated, null otherwise
- */
-export function getCurrentAdmin(): any | null {
-  if (typeof window === "undefined") return null
-
-  try {
-    const adminData = localStorage.getItem("currentAdmin")
-    if (!adminData) return null
-
-    const admin = JSON.parse(adminData)
-
-    // Validate admin object has required fields
-    if (!admin.id || !admin.name) {
-      console.warn("Invalid admin data in localStorage")
-      localStorage.removeItem("currentAdmin")
-      return null
-    }
-
-    return admin
-  } catch (error) {
-    console.error("Error parsing admin data from localStorage:", error)
-    localStorage.removeItem("currentAdmin")
-    return null
-  }
+export function getCurrentAdmin(): UnifiedAdminUser | null {
+  return getStoredAdmin()
 }
 
-export function getAdminSession(): any | null {
-  return getCurrentAdmin()
+export function getAdminSession(): UnifiedAdminUser | null {
+  return getStoredAdmin()
 }
 
-/**
- * Set current admin in localStorage
- */
-export function setCurrentAdmin(admin: any): void {
-  if (typeof window === "undefined") return
-
-  try {
-    localStorage.setItem("currentAdmin", JSON.stringify(admin))
-  } catch (error) {
-    console.error("Error saving admin data to localStorage:", error)
-  }
+export function setCurrentAdmin(admin: UnifiedAdminUser): void {
+  setStoredAdmin(admin)
 }
 
-/**
- * Clear current admin from localStorage
- */
 export function clearCurrentAdmin(): void {
-  if (typeof window === "undefined") return
-
-  try {
-    localStorage.removeItem("currentAdmin")
-  } catch (error) {
-    console.error("Error clearing admin data from localStorage:", error)
-  }
+  clearStoredAdmin()
 }
 
 /**
  * Server-side admin authentication for API routes
- * This function works in server-side contexts where localStorage is not available
- * For Pages Router, we'll use a different approach without cookies from next/headers
+ * API routes should use authenticateAdmin from @/lib/api-auth
  */
 export async function getCurrentAdminServer(): Promise<AdminUser | null> {
-  // For Pages Router, we can't use next/headers cookies
-  // API routes should handle authentication differently
   return null
 }
 
-// Verify admin session - simplified since we're using localStorage
-export async function verifyAdminSession(token?: string): Promise<{ valid: boolean; user?: AdminUser }> {
+export async function verifyAdminSession(_token?: string): Promise<{ valid: boolean; user?: AdminUser }> {
   const admin = getStoredAdmin()
   return {
     valid: !!admin,
@@ -103,6 +62,5 @@ export async function verifyAdminSession(token?: string): Promise<{ valid: boole
   }
 }
 
-// Agent functions - now using unified system
-export const getAgentToken = () => null // No longer using tokens
-export const getAdminToken = () => null // No longer using tokens
+export const getAgentToken = () => null
+export const getAdminToken = () => null

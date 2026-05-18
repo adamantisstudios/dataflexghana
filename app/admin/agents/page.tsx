@@ -21,7 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
   Settings,
   FileText,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase-client";
+import { supabase } from "@/lib/supabase-client"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import type { Agent  } from "@/lib/supabase"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -161,7 +162,10 @@ export default function AdminAgentsPage() {
   const toggleAgentApproval = async (agentId: string, currentStatus: boolean) => {
     try {
       if (!currentStatus) {
-        const res = await fetch(`/api/admin/agents/${agentId}/approve`, { method: "POST" })
+        const res = await fetch(`/api/admin/agents/${agentId}/approve`, {
+          method: "PATCH",
+          headers: getAdminAuthHeaders(),
+        })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Approve failed")
       } else {
@@ -183,7 +187,10 @@ export default function AdminAgentsPage() {
 
   const reactivateAgent = async (agentId: string, agentName: string) => {
     try {
-      const res = await fetch(`/api/admin/agents/${agentId}/reactivate`, { method: "POST" })
+      const res = await fetch(`/api/admin/agents/${agentId}/reactivate`, {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Reactivation failed")
 

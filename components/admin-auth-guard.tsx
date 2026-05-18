@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getCurrentAdmin, getAdminToken, verifyAdminSession, clearAdminSession } from "@/lib/auth"
+import { getCurrentAdmin, verifyAdminSession, clearAdminSession } from "@/lib/auth"
 import type { AdminUser } from "@/lib/auth"
 
 interface AdminAuthGuardProps {
@@ -21,20 +21,17 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
       console.log("Checking authentication...")
 
       const currentAdmin = getCurrentAdmin()
-      const token = getAdminToken()
 
       console.log("Current admin:", currentAdmin)
-      console.log("Token exists:", !!token)
 
-      if (!currentAdmin || !token) {
-        console.log("No admin or token found, redirecting to login")
+      if (!currentAdmin) {
+        console.log("No admin session found, redirecting to login")
         setIsAuthenticated(false)
         router.push("/admin/login")
         return
       }
 
-      // Verify session with server
-      const { valid, user } = await verifyAdminSession(token)
+      const { valid, user } = await verifyAdminSession()
 
       console.log("Session verification:", { valid, user })
 

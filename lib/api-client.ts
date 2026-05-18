@@ -13,6 +13,31 @@ interface ApiOptions extends RequestInit {
 }
 
 /**
+ * Build headers for authenticated admin API requests (Bearer + x-admin-id + cookie sync)
+ */
+export function getAdminAuthHeaders(extra?: HeadersInit): Headers {
+  const headers = new Headers(extra)
+  const admin = getStoredAdmin()
+
+  if (admin?.id) {
+    headers.set(
+      'Authorization',
+      `Bearer ${btoa(JSON.stringify({ id: admin.id, email: admin.email, full_name: admin.full_name }))}`,
+    )
+    headers.set('x-admin-id', admin.id)
+    if (typeof document !== 'undefined') {
+      document.cookie = `admin_id=${admin.id}; path=/; max-age=86400; SameSite=Strict`
+    }
+  }
+
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  return headers
+}
+
+/**
  * Enhanced fetch function that automatically includes authentication headers
  */
 export async function authenticatedFetch(url: string, options: ApiOptions = {}): Promise<Response> {
@@ -29,12 +54,10 @@ export async function authenticatedFetch(url: string, options: ApiOptions = {}):
   // Add authentication headers if required
   if (requireAuth) {
     if (userType === 'admin' || !userType) {
-      const admin = getStoredAdmin()
-      if (admin) {
-        headers.set('x-admin-id', admin.id)
-        // Also set as cookie for server-side middleware
-        document.cookie = `admin_id=${admin.id}; path=/; max-age=86400; SameSite=Strict`
-      }
+      const adminHeaders = getAdminAuthHeaders()
+      adminHeaders.forEach((value, key) => {
+        headers.set(key, value)
+      })
     }
 
     if (userType === 'agent' || !userType) {

@@ -24,8 +24,9 @@ import { Textarea } from "@/components/ui/textarea"
   Settings,
   X,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase-client";
-import { hashPassword } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase-client"
+import { adminApiCall, handleApiResponse } from "@/lib/api-client"
+import { getStoredAdmin } from "@/lib/unified-auth-system"
 
 const regions = [
   "Greater Accra",
@@ -129,96 +130,39 @@ export default function ManualRegistrationTab() {
     }
 
     try {
-      console.log("[v0] Checking for existing agent with phone:", agentFormData.phoneNumber)
-
-      // Check if phone number already exists
-      const { data: existingAgent, error: checkError } = await supabase
-        .from("agents")
-        .select("id")
-        .eq("phone_number", agentFormData.phoneNumber)
-        .maybeSingle()
-
-      if (checkError) {
-        console.error("[v0] Error checking existing agent:", checkError)
-        setError("Database connection error. Please try again.")
+      const adminUser = getStoredAdmin()
+      if (!adminUser?.id) {
+        setError("Admin session required. Please log in again.")
         setLoading(false)
         return
       }
 
-      if (existingAgent) {
-        setError("An agent with this phone number already exists")
-        setLoading(false)
-        return
-      }
+      const result = await handleApiResponse<{ success: boolean; agent?: { full_name: string }; message?: string; error?: string }>(
+        await adminApiCall("/api/admin/agents/manual-register", {
+          method: "POST",
+          body: JSON.stringify({
+            fullName: agentFormData.fullName,
+            phoneNumber: agentFormData.phoneNumber,
+            momoNumber: agentFormData.momoNumber,
+            region: agentFormData.region,
+            password: agentFormData.password,
+            autoApprove: agentFormData.autoApprove,
+            adminNotes: agentFormData.adminNotes,
+          }),
+        }),
+      )
 
-      console.log("[v0] No existing agent found, proceeding with registration")
-
-      // Get current admin info
-      const adminUser = JSON.parse(localStorage.getItem("admin_user") || "{}")
-      console.log("[v0] Admin user:", adminUser)
-
-      // Hash password
-      console.log("[v0] Hashing password...")
-      const passwordHash = await hashPassword(agentFormData.password)
-      console.log("[v0] Password hashed successfully")
-
-      // Create agent
-      const agentData = {
-        full_name: agentFormData.fullName,
-        phone_number: agentFormData.phoneNumber,
-        momo_number: agentFormData.momoNumber,
-        region: agentFormData.region,
-        password_hash: passwordHash,
-        isapproved: agentFormData.autoApprove,
-        registration_source: "manual_admin",
-        registered_by_admin_id: adminUser.id || null,
-        admin_notes: agentFormData.adminNotes,
-        wallet_balance: 0,
-        commission: 0,
-      }
-
-      console.log("[v0] Inserting agent with data:", agentData)
-
-      const { data, error: insertError } = await supabase.from("agents").insert([agentData]).select()
-
-      if (insertError) {
-        console.error("[v0] Agent creation error:", insertError)
-        setError(`Failed to create agent: ${insertError.message}`)
-        setLoading(false)
-        return
-      }
-
-      console.log("[v0] Agent created successfully:", data)
-
-      if (data && data[0]) {
-        // Record the manual registration
-        console.log("[v0] Recording manual registration...")
-        const { error: registrationError } = await supabase.from("admin_agent_registrations").insert([
-          {
-            agent_id: data[0].id,
-            registered_by_admin_id: adminUser.id || null,
-            registration_method: "manual",
-            registration_notes: agentFormData.adminNotes,
-          },
-        ])
-
-        if (registrationError) {
-          console.error("[v0] Registration tracking error:", registrationError)
-          // Don't fail the whole process for this
-        }
-
-        const message = `Agent "${agentFormData.fullName}" created successfully! ${
+      const message =
+        result.message ||
+        `Agent "${result.agent?.full_name || agentFormData.fullName}" created successfully! ${
           agentFormData.autoApprove
             ? "Account is approved and ready to use."
             : "Account requires approval before activation."
         }`
-        setSuccessMessage(message)
-        setShowSuccessPopup(true)
-        resetAgentForm()
-
-        // Refresh stats
-        loadStats()
-      }
+      setSuccessMessage(message)
+      setShowSuccessPopup(true)
+      resetAgentForm()
+      loadStats()
     } catch (error) {
       console.error("[v0] Agent registration error:", error)
       setError("Registration failed. Please try again.")

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/supabase-base";
+import { authenticateAdmin } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const auth = await authenticateAdmin(request);
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: 401 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get("limit") || "100", 10);

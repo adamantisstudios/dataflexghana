@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { toast } from "sonner"
-import { getCurrentAdmin } from "@/lib/auth"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { RefreshCw, Store, Search, Copy, Check } from "lucide-react"
 
 interface StorefrontOrder {
@@ -39,12 +39,7 @@ interface StoreProfile {
 }
 
 function adminHeaders(): HeadersInit {
-  const admin = getCurrentAdmin()
-  const headers: HeadersInit = { "Content-Type": "application/json" }
-  if (admin) {
-    headers.Authorization = `Bearer ${btoa(JSON.stringify(admin))}`
-  }
-  return headers
+  return getAdminAuthHeaders()
 }
 
 export default function StorefrontManagerTab() {

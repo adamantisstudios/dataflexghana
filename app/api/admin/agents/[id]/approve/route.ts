@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
+import { authenticateAdmin } from "@/lib/api-auth"
 import { createAdminAdjustment } from "@/lib/earnings-calculator"
 import { ensureReferralCreditOnAgentApproval } from "@/lib/referral-agent-program"
 
@@ -8,25 +9,22 @@ export const dynamic = "force-dynamic"
 // PATCH - Approve a new agent and credit 5 cedis welcome bonus; queue referral reward if referred
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id: agentId } = await params
-    const body = await request.json()
-    const { admin_id } = body
+    const auth = await authenticateAdmin(request)
+    if (!auth.success || !auth.user) {
+      return NextResponse.json(
+        { success: false, error: auth.error || "Admin authentication required. Please log in again." },
+        { status: 401 },
+      )
+    }
 
-    if (!agentId || !admin_id) {
-      return NextResponse.json({ success: false, error: "Agent ID and admin ID are required" }, { status: 400 })
+    const { id: agentId } = await params
+    const admin = auth.user
+
+    if (!agentId) {
+      return NextResponse.json({ success: false, error: "Agent ID is required" }, { status: 400 })
     }
 
     const db = getAdminClient()
-
-    const { data: adminData, error: adminError } = await db
-      .from("admin_users")
-      .select("id, full_name, is_active")
-      .eq("id", admin_id)
-      .single()
-
-    if (adminError || !adminData?.is_active) {
-      return NextResponse.json({ success: false, error: "Invalid or inactive admin" }, { status: 403 })
-    }
 
     const { data: agent, error: agentError } = await db
       .from("agents")
@@ -64,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const adjustmentId = await createAdminAdjustment(
       agentId,
       5,
-      admin_id,
+      admin.id,
       "Approval credit for new agent",
       true,
     )

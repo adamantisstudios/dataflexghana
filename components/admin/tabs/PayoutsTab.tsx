@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase-client";
 import type { Withdrawal } from "@/lib/supabase";
 import { ViewDetailsDialog } from "@/components/admin/ViewDetailsDialog"
 import { getCurrentAdmin } from "@/lib/auth"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
 import { Banknote, Filter, Trash2, Eye, AlertCircle } from "lucide-react"
 
@@ -182,12 +183,10 @@ export default function PayoutsTab() {
   useEffect(() => {
     const loadWithdrawals = async () => {
       try {
-        const headers: Record<string, string> = {}
-        if (admin) {
-          headers.Authorization = `Bearer ${btoa(JSON.stringify(admin))}`
-        }
-
-        const res = await fetch("/api/admin/payouts?status=all", { headers, cache: "no-store" })
+        const res = await fetch("/api/admin/payouts?status=all", {
+          headers: getAdminAuthHeaders(),
+          cache: "no-store",
+        })
         const json = await res.json()
 
         if (!res.ok || !json.success) {

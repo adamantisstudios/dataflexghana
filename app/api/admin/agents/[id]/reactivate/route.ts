@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
+import { authenticateAdmin } from "@/lib/api-auth"
 import { logAuditFromRequest } from "@/lib/audit-logger"
 
 export const dynamic = "force-dynamic"
@@ -9,29 +10,22 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const auth = await authenticateAdmin(request)
+    if (!auth.success || !auth.user) {
+      return NextResponse.json(
+        { success: false, error: auth.error || "Admin authentication required. Please log in again." },
+        { status: 401 },
+      )
+    }
+
     const { id: agentId } = await params
-    const body = await request.json().catch(() => ({}))
-    const adminId = (body as { admin_id?: string }).admin_id
+    const adminId = auth.user.id
 
     if (!agentId) {
       return NextResponse.json({ success: false, error: "Agent ID is required" }, { status: 400 })
     }
 
-    if (!adminId) {
-      return NextResponse.json({ success: false, error: "admin_id is required" }, { status: 400 })
-    }
-
     const db = getAdminClient()
-
-    const { data: adminData, error: adminError } = await db
-      .from("admin_users")
-      .select("id, is_active")
-      .eq("id", adminId)
-      .single()
-
-    if (adminError || !adminData?.is_active) {
-      return NextResponse.json({ success: false, error: "Invalid or inactive admin" }, { status: 403 })
-    }
 
     const { data: agent, error: agentError } = await db
       .from("agents")
