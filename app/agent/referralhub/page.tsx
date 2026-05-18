@@ -18,6 +18,7 @@ import { buildStorefrontUrl } from "@/lib/storefront-utils"
 import Link from "next/link"
 import { ArrowLeft, Store, Loader2, Check, X } from "lucide-react"
 import { ReferralHubSkeleton } from "@/components/agent/referralhub/ReferralHubSkeleton"
+import { ReferralHubEarningsTip } from "@/components/agent/referralhub/ReferralHubEarningsTip"
 
 interface AgentSession {
   id: string
@@ -68,6 +69,7 @@ export default function ReferralHubPage() {
   const [slugInput, setSlugInput] = useState("")
   const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "ok" | "bad">("idle")
   const [slugMessage, setSlugMessage] = useState("")
+  const [hubTab, setHubTab] = useState("profile")
 
   useEffect(() => {
     const raw = localStorage.getItem("agent")
@@ -190,6 +192,16 @@ export default function ReferralHubPage() {
 
   const storeUrl = buildStorefrontUrl(agent.id, profile.store_slug)
 
+  const scrollToReferralServices = () => {
+    setHubTab("marketplace")
+    window.setTimeout(() => {
+      document.getElementById("referral-services-section")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      })
+    }, 200)
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
       <header className="bg-slate-900 text-white px-4 py-4 sticky top-0 z-10 shadow-md">
@@ -213,7 +225,7 @@ export default function ReferralHubPage() {
         {loading ? (
           <ReferralHubSkeleton />
         ) : (
-          <Tabs defaultValue="profile" className="w-full">
+          <Tabs value={hubTab} onValueChange={setHubTab} className="w-full">
             <TabsList className="w-full h-auto grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl bg-white border shadow-sm">
               <TabsTrigger
                 value="profile"
@@ -370,6 +382,10 @@ export default function ReferralHubPage() {
           </Tabs>
         )}
       </main>
+
+      {!loading && agent?.id && (
+        <ReferralHubEarningsTip agentId={agent.id} onLearnMore={scrollToReferralServices} />
+      )}
     </div>
   )
 }

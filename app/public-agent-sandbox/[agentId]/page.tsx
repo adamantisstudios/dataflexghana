@@ -56,7 +56,9 @@ export default function PublicAgentStorefrontPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">Loading store…</div>
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-600">
+          Loading store…
+        </div>
       }
     >
       <PublicAgentStorefront />

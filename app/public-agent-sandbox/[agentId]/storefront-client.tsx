@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type CSSProperties } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
@@ -22,6 +22,9 @@ import {
   Plus,
   Trash2,
   ShoppingCart,
+  Store,
+  Sparkles,
+  ShieldCheck,
 } from "lucide-react"
 import {
   normalizeGhanaPhoneNumber,
@@ -94,11 +97,12 @@ export default function PublicAgentStorefront() {
   const [profile, setProfile] = useState<StoreProfile | null>(null)
   const [bundles, setBundles] = useState<DataBundle[]>([])
   const [services, setServices] = useState<ReferralService[]>([])
-  const [customerPhone, setCustomerPhone] = useState("")
+  const [activeBundleId, setActiveBundleId] = useState<string | null>(null)
+  const [phoneDraft, setPhoneDraft] = useState("")
+  const [lastPhone, setLastPhone] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
-  const [addPhone, setAddPhone] = useState("")
-  const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null)
   const [cart, setCart] = useState<CartLine[]>([])
+  const [cartOpen, setCartOpen] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [networkTab, setNetworkTab] = useState<string>("MTN")
   const [mainTab, setMainTab] = useState<"bundles" | "services">("bundles")
@@ -226,7 +230,7 @@ export default function PublicAgentStorefront() {
   }, [filteredServices, servicePage])
 
   useEffect(() => {
-    setSelectedBundleId(null)
+    setActiveBundleId(null)
   }, [networkTab])
 
   useEffect(() => {
@@ -242,33 +246,31 @@ export default function PublicAgentStorefront() {
     [cart],
   )
 
-  const selectedBundle = useMemo(() => {
-    const list = bundlesByNetwork[networkTab] || []
-    return list.find((b) => b.id === selectedBundleId) ?? null
-  }, [bundlesByNetwork, networkTab, selectedBundleId])
-
-  const addToCart = () => {
-    if (!selectedBundle) {
-      toast.error("Select a data bundle first")
+  const toggleBundle = (bundleId: string) => {
+    if (activeBundleId === bundleId) {
+      setActiveBundleId(null)
       return
     }
-    const phone = (addPhone || customerPhone).trim()
+    setActiveBundleId(bundleId)
+    setPhoneDraft(lastPhone)
+  }
+
+  const addBundleToCart = (bundle: DataBundle) => {
+    const phone = phoneDraft.trim()
     if (!phone) {
-      toast.error("Enter the phone number to receive this bundle")
+      toast.error("Enter the phone number for this bundle")
       return
     }
 
     setCart((prev) => [
       ...prev,
-      {
-        lineId: newLineId(),
-        bundle: selectedBundle,
-        phone,
-      },
+      { lineId: newLineId(), bundle, phone },
     ])
-    toast.success("Added to your order")
-    setAddPhone(customerPhone.trim() || phone)
-    setSelectedBundleId(null)
+    setLastPhone(phone)
+    setActiveBundleId(null)
+    setPhoneDraft(phone)
+    toast.success("Added to cart")
+    setCartOpen(true)
   }
 
   const removeFromCart = (lineId: string) => {
@@ -310,6 +312,8 @@ export default function PublicAgentStorefront() {
   }
 
   const whatsappLink = (message: string) => toWhatsAppHref(whatsappPhone, message) ?? "#"
+  const storeTagline =
+    "Fast data bundles & trusted referral services — delivered with care."
 
   if (loading) {
     return (
@@ -341,14 +345,14 @@ export default function PublicAgentStorefront() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 pb-28">
+    <div className="min-h-screen bg-slate-100/90 pb-32">
       {showDeliveryNotice && (
         <div
           className="sticky top-0 z-40 border-b shadow-sm animate-in slide-in-from-top duration-300"
           style={{ backgroundColor: accent, borderColor: `${accent}33` }}
           role="status"
         >
-          <div className="max-w-3xl mx-auto px-4 py-3 flex items-start gap-3 text-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-start gap-3 text-white">
             <Clock className="h-5 w-5 shrink-0 mt-0.5" />
             <p className="text-sm flex-1 leading-snug">
               🕒 Data delivery takes between 5 minutes to 1 hour when network is good. Please be
@@ -367,118 +371,89 @@ export default function PublicAgentStorefront() {
       )}
 
       <header
-        className="text-white px-4 py-10 shadow-md"
-        style={{ backgroundColor: accent }}
+        className="relative overflow-hidden text-white shadow-lg"
+        style={{
+          background: `linear-gradient(135deg, ${accent} 0%, ${accent}e6 42%, #0f172a 100%)`,
+        }}
       >
-        <div className="max-w-3xl mx-auto">
-          <p className="text-white/70 text-xs uppercase tracking-wider font-medium mb-1">
-            Official store
+        <div className="absolute inset-0 opacity-25 bg-[radial-gradient(ellipse_at_top_left,white,transparent_50%)]" />
+        <button
+          type="button"
+          onClick={() => setCartOpen(true)}
+          className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors"
+          aria-label={`Open cart, ${cart.length} items`}
+        >
+          <ShoppingCart className="h-5 w-5" />
+          {cart.length > 0 && (
+            <span
+              className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+              style={{ backgroundColor: accent }}
+            >
+              {cart.length > 9 ? "9+" : cart.length}
+            </span>
+          )}
+        </button>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-14 sm:pt-12 sm:pb-16 pr-16 sm:pr-6">
+          <p className="flex items-center gap-2 text-white/75 text-xs uppercase tracking-widest font-semibold mb-3">
+            <Store className="h-4 w-4 shrink-0" />
+            Official storefront
           </p>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight max-w-3xl">
             {displayProfile.store_name || "Data Store"}
           </h1>
+          <p className="mt-3 text-white/90 text-sm sm:text-base max-w-xl leading-relaxed flex items-start gap-2">
+            <Sparkles className="h-4 w-4 shrink-0 mt-0.5 opacity-90" />
+            {storeTagline}
+          </p>
           {displayProfile.business_info && (
-            <p className="text-white/90 text-sm mt-3 max-w-xl whitespace-pre-wrap leading-relaxed">
+            <p className="mt-4 text-white/85 text-sm sm:text-[15px] max-w-2xl whitespace-pre-wrap leading-relaxed border-l-2 border-white/35 pl-4">
               {displayProfile.business_info}
             </p>
           )}
+          <div className="mt-6 flex flex-wrap gap-3">
+            {callPhone && (
+              <a
+                href={toTelHref(callPhone) ?? "#"}
+                className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm px-4 py-2.5 text-sm font-medium transition-colors"
+              >
+                <Phone className="h-4 w-4" />
+                Call us
+              </a>
+            )}
+            {whatsappPhone && (
+              <a
+                href={whatsappLink("Hello, I have a question about your store.")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-white text-slate-900 px-4 py-2.5 text-sm font-semibold shadow-md hover:shadow-lg transition-shadow"
+              >
+                <MessageCircle className="h-4 w-4" style={{ color: accent }} />
+                WhatsApp
+              </a>
+            )}
+          </div>
+          <p className="mt-6 inline-flex items-center gap-2 text-xs text-white/65">
+            <ShieldCheck className="h-4 w-4" />
+            Secure Paystack checkout · Instant order confirmation
+          </p>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 -mt-5 space-y-6 relative z-10">
-        <Card className="shadow-lg border-0 rounded-2xl overflow-hidden">
-          <CardContent className="pt-6 grid gap-4 sm:grid-cols-2">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 -mt-8 space-y-8 relative z-10">
+        <section className="space-y-4">
+          <div className="flex items-end justify-between gap-3 flex-wrap">
             <div>
-              <Label className="text-slate-700 font-medium">Default phone (optional)</Label>
-              <Input
-                className="mt-1.5 rounded-lg"
-                placeholder="024XXXXXXX"
-                value={customerPhone}
-                onChange={(e) => {
-                  setCustomerPhone(e.target.value)
-                  if (!addPhone) setAddPhone(e.target.value)
-                }}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Prefills the number when adding bundles. Each line can use a different number.
+              <h2 className="text-xl sm:text-2xl font-bold" style={{ color: accent }}>
+                Shop our catalog
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Tap a bundle, enter a phone number, add to cart — checkout when ready.
               </p>
             </div>
-            <div>
-              <Label className="text-slate-700 font-medium">Email (for Paystack receipt)</Label>
-              <Input
-                className="mt-1.5 rounded-lg"
-                type="email"
-                placeholder="you@email.com"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {cart.length > 0 && (
-          <Card
-            className="shadow-lg border-0 rounded-2xl overflow-hidden border-l-4"
-            style={{ borderLeftColor: accent }}
-          >
-            <CardContent className="p-4 sm:p-5 space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="font-semibold text-slate-900 flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" style={{ color: accent }} />
-                  Order summary
-                  <Badge variant="secondary" className="text-xs">
-                    {cart.length} {cart.length === 1 ? "item" : "items"}
-                  </Badge>
-                </h2>
-                <p className="text-lg font-bold tabular-nums" style={{ color: accent }}>
-                  ₵{cartTotal.toFixed(2)}
-                </p>
-              </div>
-              <ul className="space-y-2 max-h-64 overflow-y-auto">
-                {cart.map((line) => (
-                  <li
-                    key={line.lineId}
-                    className="flex items-start gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900">
-                        {normalizeProvider(line.bundle.provider)} · {line.bundle.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {line.bundle.size_gb} GB · {line.phone}
-                      </p>
-                      <p className="text-sm font-semibold mt-1" style={{ color: accent }}>
-                        ₵{Number(line.bundle.retail_price).toFixed(2)}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      aria-label="Remove item"
-                      onClick={() => removeFromCart(line.lineId)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-              <Button
-                type="button"
-                className="w-full text-white rounded-xl h-11 font-semibold"
-                style={{ backgroundColor: accent }}
-                disabled={checkingOut}
-                onClick={checkoutCart}
-              >
-                {checkingOut ? "Redirecting to Paystack…" : `Proceed to Pay · ₵${cartTotal.toFixed(2)}`}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+          </div>
 
         <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "bundles" | "services")}>
-          <TabsList className="w-full h-auto grid grid-cols-2 p-1 rounded-xl bg-slate-100 shadow-inner">
+          <TabsList className="w-full h-auto grid grid-cols-2 p-1 rounded-xl bg-white border border-slate-200 shadow-sm">
             <TabsTrigger
               value="bundles"
               className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:text-white transition-colors"
@@ -547,90 +522,104 @@ export default function PublicAgentStorefront() {
                   ))}
                 </TabsList>
                 {NETWORK_TABS.map((n) => (
-                  <TabsContent key={n.key} value={n.key} className="space-y-3 mt-3">
+                  <TabsContent key={n.key} value={n.key} className="mt-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {(bundlesByNetwork[n.key] || []).map((b) => {
-                      const isSelected = networkTab === n.key && selectedBundleId === b.id
+                      const isActive = networkTab === n.key && activeBundleId === b.id
                       return (
+                      <div key={b.id} className="flex flex-col gap-2 min-w-0">
                       <Card
-                        key={b.id}
                         role="button"
                         tabIndex={0}
-                        className={`border-0 shadow-md rounded-xl overflow-hidden cursor-pointer transition-all ${
-                          isSelected ? "ring-2 ring-offset-2" : ""
-                        }`}
-                        style={isSelected ? { ringColor: accent } : undefined}
-                        onClick={() => setSelectedBundleId(b.id)}
+                        onClick={() => toggleBundle(b.id)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault()
-                            setSelectedBundleId(b.id)
+                            toggleBundle(b.id)
                           }
                         }}
+                        className={`rounded-2xl border bg-white shadow-md hover:shadow-lg transition-all overflow-hidden flex flex-col cursor-pointer ${
+                          isActive ? "ring-2 ring-offset-2 border-transparent" : "border-slate-100"
+                        }`}
+                        style={
+                          isActive
+                            ? ({ "--tw-ring-color": accent } as CSSProperties)
+                            : undefined
+                        }
                       >
-                        <CardContent className="p-4 flex gap-4 items-center">
-                          {b.image_url ? (
-                            <Image
-                              src={b.image_url}
-                              alt={b.name}
-                              width={52}
-                              height={52}
-                              className="rounded-xl object-cover shrink-0"
-                            />
-                          ) : (
-                            <div
-                              className="w-[52px] h-[52px] rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0"
+                        <CardContent className="p-0 flex flex-col flex-1">
+                          <div className="relative aspect-[5/3] bg-gradient-to-br from-slate-100 to-slate-50">
+                            {b.image_url ? (
+                              <Image
+                                src={b.image_url}
+                                alt={b.name}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 640px) 100vw, 33vw"
+                              />
+                            ) : (
+                              <div
+                                className="absolute inset-0 flex items-center justify-center text-white text-2xl font-bold"
+                                style={{ backgroundColor: accent }}
+                              >
+                                {b.size_gb} GB
+                              </div>
+                            )}
+                            <Badge
+                              className="absolute top-3 left-3 text-white border-0"
                               style={{ backgroundColor: accent }}
                             >
-                              {b.size_gb}G
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-slate-900 truncate">{b.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {b.size_gb} GB · {normalizeProvider(b.provider)}
-                            </p>
-                            <p className="text-lg font-bold mt-1" style={{ color: accent }}>
+                              {normalizeProvider(b.provider)}
+                            </Badge>
+                          </div>
+                          <div className="p-4 flex flex-col flex-1">
+                            <h3 className="font-semibold text-slate-900 line-clamp-2">{b.name}</h3>
+                            <p className="text-xs text-muted-foreground mt-1">{b.size_gb} GB</p>
+                            <p className="text-2xl font-bold mt-2" style={{ color: accent }}>
                               ₵{Number(b.retail_price).toFixed(2)}
                             </p>
+                            <p className="text-xs text-muted-foreground mt-3">
+                              {isActive ? "Enter number below" : "Tap to order"}
+                            </p>
                           </div>
-                          {isSelected && (
-                            <Badge className="shrink-0 text-white" style={{ backgroundColor: accent }}>
-                              Selected
-                            </Badge>
-                          )}
                         </CardContent>
                       </Card>
-                    )})}
 
-                    {(bundlesByNetwork[n.key] || []).length > 0 && networkTab === n.key && (
-                      <Card className="border border-dashed border-slate-200 shadow-sm rounded-xl">
-                        <CardContent className="p-4 space-y-3">
-                          <p className="text-sm font-medium text-slate-800">
-                            {selectedBundle
-                              ? `Add ${selectedBundle.name} to your order`
-                              : "Select a bundle above, then enter the recipient number"}
-                          </p>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <Input
-                              className="rounded-lg flex-1"
-                              placeholder="Phone number for this bundle"
-                              value={addPhone}
-                              onChange={(e) => setAddPhone(e.target.value)}
-                            />
-                            <Button
-                              type="button"
-                              className="text-white rounded-lg shrink-0"
-                              style={{ backgroundColor: accent }}
-                              disabled={!selectedBundle}
-                              onClick={addToCart}
-                            >
-                              <Plus className="h-4 w-4 mr-1.5" />
-                              Add to Order
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                      {isActive && (
+                        <div
+                          className="rounded-xl border-2 bg-white p-3 shadow-md space-y-2 animate-in fade-in slide-in-from-top-2 duration-200"
+                          style={{ borderColor: accent }}
+                        >
+                          <Label className="text-xs font-medium text-slate-700">
+                            Recipient phone number
+                          </Label>
+                          <Input
+                            type="tel"
+                            inputMode="tel"
+                            autoComplete="tel"
+                            autoFocus
+                            className="rounded-lg h-11 text-base"
+                            placeholder="024XXXXXXX"
+                            value={phoneDraft}
+                            onChange={(e) => setPhoneDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") addBundleToCart(b)
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            className="w-full text-white rounded-lg h-11 font-semibold"
+                            style={{ backgroundColor: accent }}
+                            onClick={() => addBundleToCart(b)}
+                          >
+                            <Plus className="h-4 w-4 mr-1.5" />
+                            Add to Cart
+                          </Button>
+                        </div>
+                      )}
+                      </div>
+                    )})}
+                    </div>
 
                     {!bundlesByNetwork[n.key]?.length && (
                       <p className="text-sm text-muted-foreground text-center py-8">
@@ -665,41 +654,46 @@ export default function PublicAgentStorefront() {
                 {filteredServices.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">No matches found.</p>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {paginatedServices.map((s) => (
                       <Card
                         key={s.id}
-                        className="border-0 shadow-md rounded-2xl overflow-hidden hover:shadow-lg transition-shadow"
+                        className="border border-slate-100 bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full"
                       >
-                        <CardContent className="p-0">
-                          <div className="flex gap-0 sm:flex-col">
-                            <div className="relative w-24 sm:w-full h-24 sm:h-36 shrink-0 bg-slate-100">
+                        <CardContent className="p-0 flex flex-col flex-1">
+                          <div className="relative aspect-square w-full bg-slate-100">
                               <Image
                                 src={s.image_url || "/placeholder.svg"}
                                 alt={s.title}
                                 fill
                                 className="object-cover"
-                                sizes="(max-width: 640px) 96px, 50vw"
+                                sizes="(max-width: 640px) 100vw, 33vw"
                               />
                             </div>
-                            <div className="p-4 flex-1 flex flex-col min-w-0">
+                            <div className="p-4 flex flex-col flex-1 min-w-0">
                               <h3 className="font-semibold text-slate-900 line-clamp-2">{s.title}</h3>
-                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1 flex-1">
+                              <p className="text-sm text-muted-foreground line-clamp-3 mt-2 flex-1 leading-relaxed">
                                 {s.description}
                               </p>
-                              <p className="text-lg font-bold mt-2" style={{ color: accent }}>
+                              <p className="text-xl font-bold mt-3" style={{ color: accent }}>
                                 ₵{Number(s.cost).toFixed(2)}
                               </p>
-                              <div className="flex flex-col gap-2 mt-3">
-                                <Button variant="outline" size="sm" className="w-full rounded-lg" asChild>
+                              <div className="grid grid-cols-2 gap-2 mt-4">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-lg h-9 text-xs sm:text-sm"
+                                  asChild
+                                  disabled={!callPhone}
+                                >
                                   <a href={toTelHref(callPhone) ?? "#"}>
-                                    <Phone className="h-4 w-4 mr-2" />
-                                    Call Agent
+                                    <Phone className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                                    Call
                                   </a>
                                 </Button>
                                 <Button
                                   size="sm"
-                                  className="w-full text-white rounded-lg"
+                                  className="rounded-lg h-9 text-white text-xs sm:text-sm"
                                   style={{ backgroundColor: accent }}
                                   asChild
                                 >
@@ -710,13 +704,12 @@ export default function PublicAgentStorefront() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                   >
-                                    <MessageCircle className="h-4 w-4 mr-2" />
-                                    Contact Agent
+                                    <MessageCircle className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+                                    WhatsApp
                                   </a>
                                 </Button>
                               </div>
                             </div>
-                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -754,11 +747,124 @@ export default function PublicAgentStorefront() {
             )}
           </TabsContent>
         </Tabs>
+        </section>
 
-        <footer className="text-center text-xs text-muted-foreground pt-2 pb-4">
+        <footer className="text-center text-xs text-muted-foreground pt-2 pb-4 border-t border-slate-200/80 mt-4">
           Powered by Referral Powerhouse · Secure Paystack checkout
         </footer>
       </main>
+
+      {cartOpen && (
+        <div className="fixed inset-0 z-[60]" role="presentation">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Close cart"
+            onClick={() => setCartOpen(false)}
+          />
+          <aside
+            className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
+            role="dialog"
+            aria-label="Shopping cart"
+          >
+            <div
+              className="flex items-center justify-between gap-3 px-4 py-4 border-b text-white"
+              style={{ backgroundColor: accent }}
+            >
+              <h2 className="font-semibold flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                Your cart
+                {cart.length > 0 && (
+                  <Badge variant="secondary" className="bg-white/20 text-white border-0 text-xs">
+                    {cart.length}
+                  </Badge>
+                )}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setCartOpen(false)}
+                className="p-2 rounded-lg hover:bg-white/15 transition-colors"
+                aria-label="Close cart"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {cart.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-12">
+                  Your cart is empty. Tap a bundle, enter a phone number, and add to cart.
+                </p>
+              ) : (
+                <ul className="space-y-3">
+                  {cart.map((line) => (
+                    <li
+                      key={line.lineId}
+                      className="flex items-start gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900">
+                          {normalizeProvider(line.bundle.provider)} · {line.bundle.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {line.bundle.size_gb} GB · {line.phone}
+                        </p>
+                        <p className="text-sm font-semibold mt-1" style={{ color: accent }}>
+                          ₵{Number(line.bundle.retail_price).toFixed(2)}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        aria-label="Remove item"
+                        onClick={() => removeFromCart(line.lineId)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="border-t p-4 pb-6 space-y-3 bg-white">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-slate-700">Total</span>
+                <span className="text-xl font-bold tabular-nums" style={{ color: accent }}>
+                  ₵{cartTotal.toFixed(2)}
+                </span>
+              </div>
+              {cart.length > 0 && (
+                <div>
+                  <Label className="text-xs text-slate-600">Email (optional, for receipt)</Label>
+                  <Input
+                    type="email"
+                    className="mt-1 rounded-lg h-10"
+                    placeholder="you@email.com"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                  />
+                </div>
+              )}
+              <Button
+                type="button"
+                className="w-full text-white rounded-xl h-12 font-semibold text-base"
+                style={{ backgroundColor: accent }}
+                disabled={checkingOut || cart.length === 0}
+                onClick={checkoutCart}
+              >
+                {checkingOut
+                  ? "Redirecting to Paystack…"
+                  : cart.length === 0
+                    ? "Proceed to Pay"
+                    : `Proceed to Pay · ₵${cartTotal.toFixed(2)}`}
+              </Button>
+            </div>
+          </aside>
+        </div>
+      )}
 
       <StorefrontWhatsAppWidget
         whatsappPhone={whatsappPhone}

@@ -97,7 +97,7 @@ export function MarketplaceServicesSection({ agentId, settings, onSettingsChange
   }
 
   return (
-    <Card>
+    <Card id="referral-services-section" className="scroll-mt-24">
       <CardHeader>
         <CardTitle>Referral services</CardTitle>
         <CardDescription>Search and toggle which services appear on your store</CardDescription>

@@ -43,7 +43,9 @@ export function StorefrontWhatsAppWidget({
         >
           <div
             className="px-4 py-3 text-white flex items-center justify-between"
-            style={{ backgroundColor: "#25D366" }}
+            style={{
+              background: `linear-gradient(135deg, ${accentColor} 0%, #25D366 100%)`,
+            }}
           >
             <div className="flex items-center gap-2 min-w-0">
               <MessageCircle className="h-5 w-5 shrink-0" />
@@ -88,8 +90,10 @@ export function StorefrontWhatsAppWidget({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95"
-        style={{ backgroundColor: "#25D366" }}
+        className="h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition-transform hover:scale-105 active:scale-95 ring-4 ring-white"
+        style={{
+          background: `linear-gradient(145deg, #25D366 30%, ${accentColor} 100%)`,
+        }}
         aria-label={open ? "Close WhatsApp chat" : "Open WhatsApp chat"}
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-7 w-7" />}
