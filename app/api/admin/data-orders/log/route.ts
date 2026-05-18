@@ -1,22 +1,10 @@
-import { requireAdminSession } from "@/lib/api-auth"
-import { createClient } from "@supabase/supabase-js"
+import { getAdminClient } from "@/lib/supabase-base"
 import { type NextRequest, NextResponse } from "next/server"
 
+/** Public POST: no-registration and storefront orders log here (service role insert). */
 export async function POST(request: NextRequest) {
-  const adminSession = await requireAdminSession(request)
-  if (!adminSession.ok) return adminSession.response
-
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    )
+    const supabase = getAdminClient()
 
     const data = await request.json()
     

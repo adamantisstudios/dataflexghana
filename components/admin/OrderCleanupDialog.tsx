@@ -17,33 +17,33 @@ import { Badge } from "@/components/ui/badge"
   Alert,
   AlertDescription,
 } from "@/components/ui/alert"
-import { Calendar, Trash2, AlertTriangle, CheckCircle2, XCircle } from "lucide-react"
-import { supabase } from "@/lib/supabase-client";
+import { Calendar, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react"
+import { toast } from "sonner"
 
 interface OrderCleanupDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   orders: DataOrder[]
-  onOrdersUpdated: () => void
+  onOrdersHidden: (orderIds: string[]) => void
 }
 
 export default function OrderCleanupDialog({
   open,
   onOpenChange,
   orders,
-  onOrdersUpdated,
+  onOrdersHidden,
 }: OrderCleanupDialogProps) {
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [isHiding, setIsHiding] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [ordersToDelete, setOrdersToDelete] = useState<DataOrder[]>([])
+  const [ordersToHide, setOrdersToHide] = useState<DataOrder[]>([])
 
   // Get today's date in YYYY-MM-DD format for max date validation
   const today = new Date().toISOString().split('T')[0]
 
   // Filter orders that can be deleted (completed or canceled) within date range
-  const getOrdersToDelete = () => {
+  const getOrdersToHide = () => {
     if (!startDate || !endDate) return []
 
     const start = new Date(startDate)
@@ -53,8 +53,8 @@ export default function OrderCleanupDialog({
     return orders.filter(order => {
       const orderDate = new Date(order.created_at)
       const isInDateRange = orderDate >= start && orderDate <= end
-      const isDeletable = order.status === 'completed' || order.status === 'canceled'
-      return isInDateRange && isDeletable
+      const isHideable = order.status === "completed" || order.status === "canceled"
+      return isInDateRange && isHideable
     })
   }
 
@@ -75,50 +75,23 @@ export default function OrderCleanupDialog({
   }
 
   const handlePreviewCleanup = () => {
-    const toDelete = getOrdersToDelete()
-    setOrdersToDelete(toDelete)
+    setOrdersToHide(getOrdersToHide())
     setShowConfirmation(true)
   }
 
-  const handleConfirmCleanup = async () => {
-    if (ordersToDelete.length === 0) return
+  const handleConfirmCleanup = () => {
+    if (ordersToHide.length === 0) return
 
-    setIsDeleting(true)
+    setIsHiding(true)
     try {
-      // CRITICAL FIX: Remove problematic session check that causes "Session expired" error
-      // The session manager check was causing false positives and blocking legitimate operations
-      
-      // Delete orders directly without session validation
-      const orderIds = ordersToDelete.map(order => order.id)
-      
-      console.log(`🗑️ Deleting ${orderIds.length} orders:`, orderIds)
-
-      // Use enhanced supabase client for reliable deletion
-      const { error: deleteError } = await supabase
-        .from('data_orders')
-        .delete()
-        .in('id', orderIds)
-
-      if (deleteError) {
-        console.error('Error deleting orders:', deleteError)
-        throw new Error(`Failed to delete orders: ${deleteError.message}`)
-      }
-
-      console.log(`✅ Successfully deleted ${orderIds.length} orders`)
-
-      // Reset state and refresh data
-      setOrdersToDelete([])
+      const orderIds = ordersToHide.map((order) => order.id)
+      onOrdersHidden(orderIds)
+      toast.success(`Cleared ${orderIds.length} order(s) from admin view`)
+      setOrdersToHide([])
       setShowConfirmation(false)
-      onOrdersUpdated()
-
-      // Show success message
-      alert(`Successfully deleted ${orderIds.length} orders`)
-
-    } catch (error: any) {
-      console.error('❌ Error during order cleanup:', error)
-      alert(`Error deleting orders: ${error.message || 'Unknown error occurred'}`)
+      onOpenChange(false)
     } finally {
-      setIsDeleting(false)
+      setIsHiding(false)
     }
   }
 
@@ -126,7 +99,7 @@ export default function OrderCleanupDialog({
     setStartDate("")
     setEndDate("")
     setShowConfirmation(false)
-    setOrdersToDelete([])
+    setOrdersToHide([])
   }
 
   const handleDialogClose = (open: boolean) => {
@@ -136,7 +109,7 @@ export default function OrderCleanupDialog({
     onOpenChange(open)
   }
 
-  const ordersToDeleteCount = getOrdersToDelete().length
+  const ordersToHideCount = getOrdersToHide().length
   const protectedOrdersCount = getProtectedOrders().length
 
   return (
@@ -145,11 +118,11 @@ export default function OrderCleanupDialog({
         <DialogHeader>
           <DialogTitle className="text-emerald-800 flex items-center gap-2">
             <Trash2 className="h-5 w-5" />
-            Order Cleanup Tool
+            Clear Orders from Admin View
           </DialogTitle>
           <DialogDescription>
-            Permanently delete completed and canceled orders within a specific date range to reduce database load.
-            Pending and processing orders will remain untouched.
+            Hide completed and canceled orders in the selected date range from this dashboard only. Database records
+            are kept intact. Pending and processing orders stay visible.
           </DialogDescription>
         </DialogHeader>
 
@@ -201,10 +174,10 @@ export default function OrderCleanupDialog({
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Trash2 className="h-4 w-4 text-red-600" />
-                      <span className="font-semibold text-red-800">Will be deleted</span>
+                      <span className="font-semibold text-red-800">Will be cleared from view</span>
                     </div>
                     <div className="text-2xl font-bold text-red-800">
-                      {ordersToDeleteCount}
+                      {ordersToHideCount}
                     </div>
                     <div className="text-sm text-red-600">
                       Completed & Canceled orders
@@ -234,7 +207,7 @@ export default function OrderCleanupDialog({
                   </Alert>
                 )}
 
-                {ordersToDeleteCount === 0 && (
+                {ordersToHideCount === 0 && (
                   <Alert className="border-blue-200 bg-blue-50">
                     <AlertDescription className="text-blue-800">
                       No completed or canceled orders found in the selected date range.
@@ -250,14 +223,14 @@ export default function OrderCleanupDialog({
             <Alert className="border-red-200 bg-red-50">
               <AlertTriangle className="h-4 w-4 text-red-600" />
               <AlertDescription className="text-red-800">
-                <strong>Warning:</strong> You are about to permanently delete {ordersToDelete.length} orders. 
-                This action cannot be undone and will free up database space.
+                <strong>Note:</strong> You are about to clear {ordersToHide.length} orders from the admin dashboard.
+                Records remain in the database.
               </AlertDescription>
             </Alert>
 
             {/* Summary of orders to be deleted */}
             <div className="space-y-4">
-              <h3 className="font-semibold text-emerald-800">Orders to be deleted:</h3>
+              <h3 className="font-semibold text-emerald-800">Orders to clear from view:</h3>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="bg-gray-50 rounded-lg p-3">
@@ -269,16 +242,16 @@ export default function OrderCleanupDialog({
                 
                 <div className="bg-gray-50 rounded-lg p-3">
                   <div className="font-medium text-gray-700 mb-1">Total Orders</div>
-                  <div className="text-gray-600">{ordersToDelete.length} orders</div>
+                  <div className="text-gray-600">{ordersToHide.length} orders</div>
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <Badge className="bg-red-100 text-red-800 border-red-200">
-                  {ordersToDelete.filter(o => o.status === 'completed').length} Completed
+                  {ordersToHide.filter(o => o.status === 'completed').length} Completed
                 </Badge>
                 <Badge className="bg-red-100 text-red-800 border-red-200">
-                  {ordersToDelete.filter(o => o.status === 'canceled').length} Canceled
+                  {ordersToHide.filter(o => o.status === 'canceled').length} Canceled
                 </Badge>
               </div>
             </div>
@@ -297,7 +270,7 @@ export default function OrderCleanupDialog({
               </Button>
               <Button
                 onClick={handlePreviewCleanup}
-                disabled={!startDate || !endDate || ordersToDeleteCount === 0}
+                disabled={!startDate || !endDate || ordersToHideCount === 0}
                 className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
               >
                 Preview Cleanup
@@ -308,7 +281,7 @@ export default function OrderCleanupDialog({
               <Button
                 variant="outline"
                 onClick={() => setShowConfirmation(false)}
-                disabled={isDeleting}
+                disabled={isHiding}
                 className="border-gray-200 text-gray-700 hover:bg-gray-50 w-full sm:w-auto"
               >
                 Back
@@ -316,18 +289,18 @@ export default function OrderCleanupDialog({
               <Button
                 variant="destructive"
                 onClick={handleConfirmCleanup}
-                disabled={isDeleting}
+                disabled={isHiding}
                 className="w-full sm:w-auto"
               >
-                {isDeleting ? (
+                {isHiding ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                    Deleting...
+                    Clearing...
                   </>
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Confirm Delete {ordersToDelete.length} Orders
+                    Confirm Clear {ordersToHide.length} Orders
                   </>
                 )}
               </Button>

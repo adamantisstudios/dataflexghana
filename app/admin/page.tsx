@@ -57,7 +57,6 @@ import { connectionManager } from "@/lib/connection-manager"
 import { toast } from "sonner"
 import Link from "next/link"
 import { PendingAlertsCard } from "@/components/admin/pending-alerts-card"
-import { SecurityNoticeBanner } from "@/components/legal/SecurityNotice"
 
 // Lazy load tab components
 const AgentsTab = lazy(() => import("@/components/admin/tabs/AgentsTab"))
@@ -137,6 +136,7 @@ const TabLoadingSkeleton = () => (
 // Tab configuration - unified system
 const TAB_CONFIG: TabConfigItem[] = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, component: null },
+  { id: "storefront-manager", label: "Storefront Management", icon: ShoppingBag, component: StorefrontManagerTab },
   { id: "agents", label: "Agents", icon: Users, component: AgentsTab },
   { id: "agent-management", label: "Agent Management", icon: Shield, component: AgentManagementTab },
   { id: "sms-notifications", label: "SMS Notifications", icon: MessageCircle, component: SMSNotificationsTab },
@@ -167,7 +167,6 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "settings", label: "Settings", icon: Settings, component: null },
   { id: "invitation-management", label: "Invitation Management", icon: Mail, component: InvitationManagementTab },
   { id: "agent-notifications", label: "Agent Notifications", icon: Bell, component: AgentNotificationsTab },
-  { id: "storefront-manager", label: "Storefront Management", icon: ShoppingBag, component: StorefrontManagerTab },
   { id: "online-courses", label: "Online Courses", icon: BookOpen, component: OnlineCoursesTab },
   { id: "fashion-avenue", label: "Fashion Avenue", icon: Shirt, component: FashionAvenueTab },
   { id: "fashion-project-requests", label: "Fashion Requests", icon: MessageCircle, component: FashionProjectRequestsTab },
@@ -218,6 +217,7 @@ export default function AdminDashboard() {
     pendingDomesticWorkers: 0,
     totalPendingAlerts: 0,
     pendingOnlineCourses: 0,
+    pendingStorefrontOrders: 0,
   })
   // Settings dialog state
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -256,6 +256,7 @@ export default function AdminDashboard() {
           dailyOrdersData,
           wholesaleStatsResponse,
           alertsResponse,
+          storefrontOrdersResponse,
         ] = await Promise.all([
           supabase.from("agents").select("id, isapproved", { count: "exact" }),
           supabase.from("referrals").select("id, status", { count: "exact" }),
@@ -269,6 +270,7 @@ export default function AdminDashboard() {
             .lt("created_at", `${today}T23:59:59.999Z`),
           fetch("/api/admin/wholesale/stats", { headers: getAdminAuthHeaders() }).catch(() => ({ ok: false })),
           fetch("/api/admin/dashboard/pending-alerts", { headers: getAdminAuthHeaders() }).catch(() => ({ ok: false })),
+          fetch("/api/admin/storefront-orders?page=1&limit=1", { headers: getAdminAuthHeaders() }).catch(() => ({ ok: false })),
         ])
 
         let wholesaleStats = {
@@ -317,6 +319,16 @@ export default function AdminDashboard() {
           }
         }
 
+        let pendingStorefrontOrders = 0
+        if (storefrontOrdersResponse.ok && storefrontOrdersResponse instanceof Response) {
+          try {
+            const storefrontData = await storefrontOrdersResponse.json()
+            pendingStorefrontOrders = Number(storefrontData.pendingCount ?? 0)
+          } catch (error) {
+            console.error("Error parsing storefront orders stats:", error)
+          }
+        }
+
         if (isMounted) {
           setStats((prev) => ({
             ...prev,
@@ -353,6 +365,7 @@ export default function AdminDashboard() {
             pendingDomesticWorkers: alertsData.pendingDomesticWorkers || 0,
             totalPendingAlerts: alertsData.totalAlerts || 0,
             pendingOnlineCourses: alertsData.pendingOnlineCourses || 0,
+            pendingStorefrontOrders,
           }))
         }
       } catch (error) {
@@ -361,6 +374,7 @@ export default function AdminDashboard() {
     }
 
     loadStats()
+    const storefrontPoll = setInterval(loadStats, 30000)
 
     const connectionUnsubscribe = connectionManager.addConnectionListener(() => {
       setConnectionHealth(connectionManager.getHealthStatus())
@@ -368,8 +382,31 @@ export default function AdminDashboard() {
 
     return () => {
       isMounted = false
+      clearInterval(storefrontPoll)
       connectionUnsubscribe()
     }
+  }, [])
+
+  useEffect(() => {
+    const onStorefrontPending = (event: Event) => {
+      const detail = (event as CustomEvent<number>).detail
+      if (typeof detail === "number") {
+        setStats((prev) => ({ ...prev, pendingStorefrontOrders: detail }))
+      }
+    }
+    window.addEventListener("admin-storefront-pending", onStorefrontPending)
+    return () => window.removeEventListener("admin-storefront-pending", onStorefrontPending)
+  }, [])
+
+  useEffect(() => {
+    const onStorefrontPending = (event: Event) => {
+      const detail = (event as CustomEvent<number>).detail
+      if (typeof detail === "number") {
+        setStats((prev) => ({ ...prev, pendingStorefrontOrders: detail }))
+      }
+    }
+    window.addEventListener("admin-storefront-pending", onStorefrontPending)
+    return () => window.removeEventListener("admin-storefront-pending", onStorefrontPending)
   }, [])
 
   const handleLogout = async () => {
@@ -420,7 +457,7 @@ export default function AdminDashboard() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.message || "Failed to update password")
+        throw new Error(error.error || error.message || "Failed to update password")
       }
 
       const data = await response.json()
@@ -505,6 +542,8 @@ export default function AdminDashboard() {
         return stats.pendingDomesticWorkers
       case "online-courses":
         return stats.pendingOnlineCourses
+      case "storefront-manager":
+        return stats.pendingStorefrontOrders
       default:
         return 0
     }
@@ -646,8 +685,6 @@ export default function AdminDashboard() {
         </div>
       </div>
       <div className="container mx-auto px-4 py-8">
-        <SecurityNoticeBanner />
-
         {showNotification && (
           <UnreadNotification
             unreadCount={adminUnreadCount}

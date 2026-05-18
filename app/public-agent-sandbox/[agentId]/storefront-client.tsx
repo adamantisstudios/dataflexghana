@@ -109,19 +109,29 @@ export default function PublicAgentStorefront() {
   useEffect(() => {
     const paymentStatus = searchParams.get("payment")
     const whatsappUrl = searchParams.get("whatsapp_url")
+    const reference =
+      searchParams.get("ref") || searchParams.get("reference") || searchParams.get("trxref")
 
-    if (paymentStatus === "success") {
-      toast.success("Payment successful! Your bundle orders are being processed.")
-      setCart([])
+    if (paymentStatus !== "success") return
 
-      if (whatsappUrl) {
-        const timeout = setTimeout(() => {
-          window.open(whatsappUrl, "_blank", "noopener,noreferrer")
-        }, 600)
-        return () => clearTimeout(timeout)
-      }
+    toast.success("Payment successful! Your bundle orders are being processed.")
+    setCart([])
+
+    if (reference) {
+      void fetch("/api/paystack/storefront/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference, agent_id: agentId }),
+      }).catch((err) => console.error("[storefront] confirm fallback failed:", err))
     }
-  }, [searchParams])
+
+    if (whatsappUrl) {
+      const timeout = setTimeout(() => {
+        window.open(whatsappUrl, "_blank", "noopener,noreferrer")
+      }, 600)
+      return () => clearTimeout(timeout)
+    }
+  }, [searchParams, agentId])
 
   useEffect(() => {
     if (!showDeliveryNotice) return

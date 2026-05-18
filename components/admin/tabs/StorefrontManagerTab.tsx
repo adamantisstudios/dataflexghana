@@ -15,7 +15,9 @@ import {
 } from "@/components/ui/table"
 import { toast } from "sonner"
 import { getAdminAuthHeaders } from "@/lib/api-client"
-import { RefreshCw, Store, Search, Copy, Check } from "lucide-react"
+import { RefreshCw, Store, Search, Copy, Check, Download } from "lucide-react"
+
+const ORDERS_POLL_MS = 15000
 
 interface StorefrontOrder {
   id: string
@@ -58,6 +60,8 @@ export default function StorefrontManagerTab() {
   const [cashoutTotalPages, setCashoutTotalPages] = useState(1)
   const [cashoutSearch, setCashoutSearch] = useState("")
   const [debouncedCashoutSearch, setDebouncedCashoutSearch] = useState("")
+  const [exportingCsv, setExportingCsv] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -67,8 +71,8 @@ export default function StorefrontManagerTab() {
     return () => clearTimeout(t)
   }, [cashoutSearch])
 
-  const loadOrders = useCallback(async () => {
-    setOrdersLoading(true)
+  const loadOrders = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) setOrdersLoading(true)
     try {
       const q = new URLSearchParams({
         page: String(ordersPage),
@@ -80,10 +84,15 @@ export default function StorefrontManagerTab() {
       if (!res.ok) throw new Error(data.error || "Failed to load orders")
       setOrders(data.orders || [])
       setOrdersTotalPages(data.totalPages || 1)
+      const pending = Number(data.pendingCount ?? 0)
+      setPendingCount(pending)
+      window.dispatchEvent(new CustomEvent("admin-storefront-pending", { detail: pending }))
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Load failed")
+      if (!options?.silent) {
+        toast.error(e instanceof Error ? e.message : "Load failed")
+      }
     } finally {
-      setOrdersLoading(false)
+      if (!options?.silent) setOrdersLoading(false)
     }
   }, [ordersPage, orderStatus])
 
@@ -110,6 +119,18 @@ export default function StorefrontManagerTab() {
 
   useEffect(() => {
     loadOrders()
+    const interval = setInterval(() => loadOrders({ silent: true }), ORDERS_POLL_MS)
+    const onFocus = () => loadOrders({ silent: true })
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") loadOrders({ silent: true })
+    }
+    window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("focus", onFocus)
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
   }, [loadOrders])
 
   useEffect(() => {
@@ -119,6 +140,70 @@ export default function StorefrontManagerTab() {
   const refreshAll = () => {
     loadOrders()
     loadProfiles()
+  }
+
+  const escapeCsv = (value: string | number) => {
+    const s = String(value ?? "")
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+    return s
+  }
+
+  const downloadOrdersCsv = async () => {
+    setExportingCsv(true)
+    try {
+      const allOrders: StorefrontOrder[] = []
+      let page = 1
+      let totalPages = 1
+      while (page <= totalPages) {
+        const q = new URLSearchParams({
+          page: String(page),
+          limit: "100",
+          status: orderStatus,
+        })
+        const res = await fetch(`/api/admin/storefront-orders?${q}`, { headers: adminHeaders() })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Failed to export orders")
+        allOrders.push(...(data.orders || []))
+        totalPages = data.totalPages || 1
+        page += 1
+      }
+
+      const header = [
+        "Order ID",
+        "Agent",
+        "Bundle",
+        "Customer Phone",
+        "Base Cost",
+        "Markup",
+        "Total Paid",
+        "Status",
+        "Date",
+      ]
+      const rows = allOrders.map((o) => [
+        o.id,
+        o.agents?.full_name || o.agent_id,
+        o.data_bundles?.name || "",
+        o.customer_phone,
+        Number(o.base_cost).toFixed(2),
+        Number(o.agent_markup).toFixed(2),
+        Number(o.total_paid).toFixed(2),
+        o.status,
+        new Date(o.created_at).toISOString(),
+      ])
+      const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n")
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `storefront-orders-${new Date().toISOString().slice(0, 10)}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+      toast.success(`Exported ${allOrders.length} order(s)`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "CSV export failed")
+    } finally {
+      setExportingCsv(false)
+    }
   }
 
   const updateStatus = async (id: string, status: string) => {
@@ -336,24 +421,42 @@ export default function StorefrontManagerTab() {
 
       <Card>
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="text-lg">Storefront transaction log</CardTitle>
-          <Select
-            value={orderStatus}
-            onValueChange={(v) => {
-              setOrderStatus(v)
-              setOrdersPage(1)
-            }}
-          >
-            <SelectTrigger className="w-full sm:w-[160px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Processing">Processing</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
+          <CardTitle className="text-lg flex items-center gap-2">
+            Storefront transaction log
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-xs font-semibold">
+                {pendingCount > 99 ? "99+" : pendingCount}
+              </span>
+            )}
+          </CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void downloadOrdersCsv()}
+              disabled={exportingCsv || ordersLoading}
+            >
+              <Download className={`h-4 w-4 mr-2 ${exportingCsv ? "animate-pulse" : ""}`} />
+              Download CSV
+            </Button>
+            <Select
+              value={orderStatus}
+              onValueChange={(v) => {
+                setOrderStatus(v)
+                setOrdersPage(1)
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Processing">Processing</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           {ordersLoading ? (

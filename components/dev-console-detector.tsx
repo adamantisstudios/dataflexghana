@@ -22,6 +22,10 @@ export function DevConsoleDetector() {
       return
     }
 
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) {
+      return
+    }
+
     const detectDevTools = () => {
       const threshold = 160
       let devToolsOpen = false

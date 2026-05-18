@@ -50,6 +50,7 @@ import { safeCommissionDisplay } from "@/lib/commission-calculator"
 } from "lucide-react"
 import { getBundleDisplayName } from "@/lib/bundle-data-handler"
 import { toast } from "sonner"
+import { filterVisibleDataOrders, hideDataOrderIds } from "@/lib/admin-view-cleanup"
 
 interface OrdersTabProps {
   getCachedData?: () => DataOrder[] | undefined
@@ -269,14 +270,16 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         }
         const ordersData = data || []
         console.log(`✅ Successfully loaded ${ordersData.length} data orders`)
-        const processedOrders = ordersData.map((order) => ({
-          ...order,
-          commission_amount:
-            order.commission_amount ||
-            (order.data_bundles?.price && order.data_bundles?.commission_rate
-              ? order.data_bundles.price * order.data_bundles.commission_rate
-              : 0),
-        }))
+        const processedOrders = filterVisibleDataOrders(
+          ordersData.map((order) => ({
+            ...order,
+            commission_amount:
+              order.commission_amount ||
+              (order.data_bundles?.price && order.data_bundles?.commission_rate
+                ? order.data_bundles.price * order.data_bundles.commission_rate
+                : 0),
+          })),
+        )
         setDataOrders(processedOrders)
         setCachedData?.(processedOrders)
         setLastRefresh(new Date())
@@ -492,9 +495,17 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     }
   }, [loadOrders, setupRealtimeSubscription])
 
-  const handleOrdersUpdated = useCallback(() => {
-    loadOrders(true)
-  }, [loadOrders])
+  const handleOrdersHidden = useCallback(
+    (orderIds: string[]) => {
+      hideDataOrderIds(orderIds)
+      setDataOrders((prev) => {
+        const next = prev.filter((o) => !orderIds.includes(o.id))
+        setCachedData?.(next)
+        return next
+      })
+    },
+    [setCachedData],
+  )
 
   const downloadDataOrdersCSV = () => {
     if (filteredOrders.length === 0) {
@@ -864,7 +875,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
           open={showCleanupDialog}
           onOpenChange={setShowCleanupDialog}
           orders={dataOrders}
-          onOrdersUpdated={handleOrdersUpdated}
+          onOrdersHidden={handleOrdersHidden}
         />
       </div>
     )
@@ -1148,7 +1159,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
         open={showCleanupDialog}
         onOpenChange={setShowCleanupDialog}
         orders={dataOrders}
-        onOrdersUpdated={handleOrdersUpdated}
+        onOrdersHidden={handleOrdersHidden}
       />
     </div>
   )

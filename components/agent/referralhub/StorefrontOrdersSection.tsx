@@ -37,8 +37,8 @@ export function StorefrontOrdersSection({ agentId, commissionBalance }: Props) {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const headers = getAgentAuthHeaders()
       const res = await fetch(
@@ -52,12 +52,21 @@ export function StorefrontOrdersSection({ agentId, commissionBalance }: Props) {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load orders")
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [agentId, page])
 
   useEffect(() => {
     load()
+    const interval = setInterval(() => load(true), 20000)
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") load(true)
+    }
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener("visibilitychange", onVisibility)
+    }
   }, [load])
 
   return (

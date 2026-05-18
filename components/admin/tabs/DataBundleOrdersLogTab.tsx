@@ -25,6 +25,10 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Search, Download, Copy, Check, AlertCircle, Wifi, Trash2 } from "lucide-react"
 import { format } from "date-fns"
+import {
+  filterVisibleDataOrdersLog,
+  hideDataOrdersLogIds,
+} from "@/lib/admin-view-cleanup"
 
 interface DataOrderLog {
   id: string
@@ -54,39 +58,42 @@ export default function DataBundleOrdersLogTab({
   const [currentPage, setCurrentPage] = useState(1)
   const [copiedRefs, setCopiedRefs] = useState<Set<string>>(new Set())
   const [copiedNumbers, setCopiedNumbers] = useState<Set<string>>(new Set())
-  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
 
   const itemsPerPage = 12
 
-  const handleDeleteOrder = async (orderId: string) => {
-    if (!confirm("Delete this order from the log? This cannot be undone.")) return
-    setDeletingIds((prev) => new Set([...prev, orderId]))
-    try {
-      const response = await fetch(`/api/admin/data-orders/log/${orderId}`, {
-        method: "DELETE",
-        headers: getAdminAuthHeaders(),
-      })
-      const result = await response.json()
-      if (response.ok && result.success) {
-        const updated = orders.filter((o) => o.id !== orderId)
-        setOrders(updated)
-        if (typeof setCachedData === "function") {
-          setCachedData(updated)
-        }
-        toast.success("Order deleted successfully")
-      } else {
-        toast.error(result.message || "Failed to delete order")
-      }
-    } catch (err) {
-      console.error("[v0] Error deleting order:", err)
-      toast.error("Failed to delete order")
-    } finally {
-      setDeletingIds((prev) => {
-        const next = new Set(prev)
-        next.delete(orderId)
-        return next
-      })
+  const applyVisibleOrders = (list: DataOrderLog[]) => filterVisibleDataOrdersLog(list)
+
+  const handleHideOrder = (orderId: string) => {
+    if (!confirm("Remove this order from the admin log view? (Database record is kept.)")) return
+    hideDataOrdersLogIds([orderId])
+    const updated = orders.filter((o) => o.id !== orderId)
+    setOrders(updated)
+    if (typeof setCachedData === "function") {
+      setCachedData(updated)
     }
+    toast.success("Order cleared from admin view")
+  }
+
+  const handleBulkClearVisible = () => {
+    const visibleIds = filteredOrders.map((o) => o.id)
+    if (visibleIds.length === 0) {
+      toast.error("No orders to clear")
+      return
+    }
+    if (
+      !confirm(
+        `Clear ${visibleIds.length} order(s) from this admin view? Records stay in the database.`,
+      )
+    ) {
+      return
+    }
+    hideDataOrdersLogIds(visibleIds)
+    const updated = orders.filter((o) => !visibleIds.includes(o.id))
+    setOrders(updated)
+    if (typeof setCachedData === "function") {
+      setCachedData(updated)
+    }
+    toast.success(`Cleared ${visibleIds.length} order(s) from admin view`)
   }
 
   const loadOrders = useCallback(async () => {
@@ -96,8 +103,9 @@ export default function DataBundleOrdersLogTab({
       if (typeof getCachedData === "function") {
         const cachedData = getCachedData()
         if (cachedData && cachedData.length > 0) {
-          setOrders(cachedData)
-          setFilteredOrders(cachedData)
+          const visible = applyVisibleOrders(cachedData)
+          setOrders(visible)
+          setFilteredOrders(visible)
           setLoading(false)
           return
         }
@@ -110,11 +118,12 @@ export default function DataBundleOrdersLogTab({
 
       const data = await response.json()
       if (data.success && data.data) {
-        setOrders(data.data)
+        const visible = applyVisibleOrders(data.data)
+        setOrders(visible)
         if (typeof setCachedData === "function") {
-          setCachedData(data.data)
+          setCachedData(visible)
         }
-        setFilteredOrders(data.data)
+        setFilteredOrders(visible)
       }
     } catch (error) {
       console.error("[v0] Error loading data orders log:", error)
@@ -228,14 +237,26 @@ export default function DataBundleOrdersLogTab({
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-emerald-800">Data Bundle Orders Log</h2>
-        <Button
-          onClick={exportToCSV}
-          disabled={filteredOrders.length === 0}
-          className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleBulkClearVisible}
+            disabled={filteredOrders.length === 0}
+            className="border-red-200 text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear visible ({filteredOrders.length})
+          </Button>
+          <Button
+            onClick={exportToCSV}
+            disabled={filteredOrders.length === 0}
+            className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -380,16 +401,11 @@ export default function DataBundleOrdersLogTab({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteOrder(order.id)}
-                      disabled={deletingIds.has(order.id)}
+                      onClick={() => handleHideOrder(order.id)}
                       className="h-8 px-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                      title="Delete order (after attended to)"
+                      title="Clear from admin view (keeps database record)"
                     >
-                      {deletingIds.has(order.id) ? (
-                        <span className="animate-pulse">...</span>
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>

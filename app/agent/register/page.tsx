@@ -89,23 +89,36 @@ export default function RegisterPage() {
     return () => clearInterval(timer)
   }, [showWarningPopup])
 
-  // Check if payment was verified (via localStorage set by payment handler)
+  // Payment gate: URL params from Paystack return, or localStorage from manual payment
   useEffect(() => {
-    const checkPaymentVerification = () => {
-      const paymentVerified = localStorage.getItem("payment_verified")
-      if (paymentVerified === "true") {
-        console.log("[v0] Payment verified from localStorage")
-        setPaymentVerified(true)
-      } else {
-        console.log("[v0] Payment not verified - redirecting to payment page")
-        setPaymentVerified(false)
-        setTimeout(() => {
-          router.push("/agent/registration-payment")
-        }, 1500)
-      }
+    const params = new URLSearchParams(window.location.search)
+    const paymentStatus = params.get("payment")
+    const reference = params.get("reference")
+
+    if (paymentStatus === "success" && reference) {
+      localStorage.setItem("payment_verified", "true")
+      localStorage.setItem("payment_reference", reference)
+      localStorage.setItem("payment_method", "paystack")
+
+      const name = params.get("name")
+      const email = params.get("email")
+      if (name) localStorage.setItem("paystack_name", decodeURIComponent(name))
+      if (email) localStorage.setItem("paystack_email", decodeURIComponent(email))
+
+      setPaymentVerified(true)
+      return
     }
-    
-    checkPaymentVerification()
+
+    if (localStorage.getItem("payment_verified") === "true") {
+      setPaymentVerified(true)
+      return
+    }
+
+    setPaymentVerified(false)
+    const timer = setTimeout(() => {
+      router.push("/agent/registration-payment")
+    }, 1500)
+    return () => clearTimeout(timer)
   }, [router])
 
   // Track referral code from URL

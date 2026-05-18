@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,7 @@ export default function RegistrationPaymentPage() {
   const [showVideo, setShowVideo] = useState(false);
   const [currentVideo, setCurrentVideo] = useState<(typeof featuredTestimonies)[0] | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<"manual" | "paystack" | null>(null);
+  const paymentRedirectHandled = useRef(false);
 
   const generateCode = () => Math.floor(10000 + Math.random() * 90000).toString();
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -77,10 +78,6 @@ export default function RegistrationPaymentPage() {
     if (mailParam) setAgentEmail(decodeURIComponent(mailParam));
   }, [searchParams]);
 
-  useEffect(() => {
-    const reference = searchParams.get("reference");
-    if (reference) verifyPaystackPayment(reference);
-  }, [searchParams]);
 
   const openVideoModal = (video: (typeof featuredTestimonies)[0]) => {
     setCurrentVideo(video);
@@ -177,36 +174,50 @@ Thank you!`;
   };
 
   const verifyPaystackPayment = async (reference: string) => {
-    setVerifyingPayment(true);
-    const timeout = setTimeout(() => handlePaymentSuccess(reference), 12000);
     try {
       const res = await fetch("/api/paystack/register/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reference }),
-      });
-      clearTimeout(timeout);
+      })
       if (res.ok) {
-        const data = await res.json();
-        if (data.success) toast.success("Payment verified!");
+        const data = await res.json()
+        if (data.success) toast.success("Payment verified!")
       }
     } catch (err) {
-      console.warn("Verification error, redirecting anyway");
-    } finally {
-      handlePaymentSuccess(reference);
+      console.warn("Paystack verification error (user already redirected):", err)
     }
-  };
+  }
 
   const handlePaymentSuccess = (reference: string) => {
-    localStorage.setItem("payment_verified", "true");
-    localStorage.setItem("payment_reference", reference);
-    localStorage.setItem("paystack_email", agentEmail);
-    localStorage.setItem("paystack_name", agentName);
-    localStorage.setItem("payment_method", "paystack");
-    router.push(
-      `/agent/register?name=${encodeURIComponent(agentName)}&email=${encodeURIComponent(agentEmail)}&reference=${reference}`
-    );
-  };
+    const nameFromUrl = searchParams.get("name")
+    const emailFromUrl = searchParams.get("email")
+    const resolvedName = nameFromUrl ? decodeURIComponent(nameFromUrl) : agentName
+    const resolvedEmail = emailFromUrl ? decodeURIComponent(emailFromUrl) : agentEmail
+
+    localStorage.setItem("payment_verified", "true")
+    localStorage.setItem("payment_reference", reference)
+    localStorage.setItem("paystack_email", resolvedEmail)
+    localStorage.setItem("paystack_name", resolvedName)
+    localStorage.setItem("payment_method", "paystack")
+
+    const params = new URLSearchParams({
+      payment: "success",
+      reference,
+    })
+    if (resolvedName) params.set("name", resolvedName)
+    if (resolvedEmail) params.set("email", resolvedEmail)
+
+    router.replace(`/agent/register?${params.toString()}`)
+  }
+
+  useEffect(() => {
+    const reference = searchParams.get("reference") || searchParams.get("trxref")
+    if (!reference || paymentRedirectHandled.current) return
+    paymentRedirectHandled.current = true
+    handlePaymentSuccess(reference)
+    void verifyPaystackPayment(reference)
+  }, [searchParams, agentName, agentEmail, router])
 
   const handleContinue = () => {
     if (!selectedMethod) return;
