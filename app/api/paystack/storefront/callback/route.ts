@@ -8,17 +8,23 @@ import {
   formatStorefrontAdminWhatsAppMessage,
   parseStorefrontItemsFromMetadata,
 } from "@/lib/storefront-order-whatsapp"
+import { buildStorefrontUrl, STOREFRONT_PUBLIC_BASE } from "@/lib/storefront-utils"
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
 
 export const dynamic = "force-dynamic"
 
-function appBaseUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+function paymentReferenceFromRequest(request: NextRequest): string | null {
+  const params = request.nextUrl.searchParams
+  return (
+    params.get("reference") ||
+    params.get("trxref") ||
+    params.get("ref") ||
+    null
+  )
 }
 
 function buildSuccessRedirect(
-  appUrl: string,
   agentId: string,
   reference: string,
   meta: Record<string, unknown>,
@@ -26,6 +32,8 @@ function buildSuccessRedirect(
   cartTotal: number,
 ) {
   const storeName = String(meta.store_name || "Store")
+  const storeSlug = String(meta.store_slug || "").trim() || null
+
   const whatsappMessage = formatStorefrontAdminWhatsAppMessage({
     storeName,
     items: items.map((item) => ({
@@ -39,19 +47,24 @@ function buildSuccessRedirect(
     reference,
   })
 
-  const redirectUrl = new URL(`${appUrl}/public-agent-sandbox/${agentId}`)
+  const redirectUrl = new URL(buildStorefrontUrl(agentId, storeSlug))
   redirectUrl.searchParams.set("payment", "success")
   redirectUrl.searchParams.set("ref", reference)
   redirectUrl.searchParams.set("whatsapp_url", buildStorefrontAdminWhatsAppUrl(whatsappMessage))
   return redirectUrl.toString()
 }
 
+function buildFailureRedirect(reference?: string | null) {
+  const url = new URL(`${STOREFRONT_PUBLIC_BASE}/payment-failed`)
+  if (reference) url.searchParams.set("reference", reference)
+  return url.toString()
+}
+
 export async function GET(request: NextRequest) {
-  const referenceParam = request.nextUrl.searchParams.get("reference")
-  const appUrl = appBaseUrl()
+  const referenceParam = paymentReferenceFromRequest(request)
 
   if (!referenceParam || !PAYSTACK_SECRET_KEY) {
-    return NextResponse.redirect(`${appUrl}/store/payment-failed`)
+    return NextResponse.redirect(buildFailureRedirect(referenceParam))
   }
 
   let verifiedReference = referenceParam
@@ -67,7 +80,7 @@ export async function GET(request: NextRequest) {
 
     if (!verifyRes.ok || verifyData.data?.status !== "success") {
       console.error("[storefront callback] verification failed:", verifyData)
-      return NextResponse.redirect(`${appUrl}/store/payment-failed?reference=${referenceParam}`)
+      return NextResponse.redirect(buildFailureRedirect(referenceParam))
     }
 
     verifiedReference = String(verifyData.data.reference || referenceParam)
@@ -75,7 +88,7 @@ export async function GET(request: NextRequest) {
     amountPaid = Number(verifyData.data.amount) / 100
   } catch (error) {
     console.error("[storefront callback] verify error:", error)
-    return NextResponse.redirect(`${appUrl}/store/payment-failed?reference=${referenceParam}`)
+    return NextResponse.redirect(buildFailureRedirect(referenceParam))
   }
 
   const agentId = String(meta.agent_id || "")
@@ -84,7 +97,7 @@ export async function GET(request: NextRequest) {
 
   if (!agentId || items.length === 0) {
     console.error("[storefront callback] missing agent or items in metadata", meta)
-    return NextResponse.redirect(`${appUrl}/store/payment-failed?reference=${verifiedReference}`)
+    return NextResponse.redirect(buildFailureRedirect(verifiedReference))
   }
 
   const clientMeta = getRequestClientMeta(request)
@@ -104,6 +117,6 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.redirect(
-    buildSuccessRedirect(appUrl, agentId, verifiedReference, meta, items, cartTotal),
+    buildSuccessRedirect(agentId, verifiedReference, meta, items, cartTotal),
   )
 }

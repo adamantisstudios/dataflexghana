@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { getServerAppBaseUrl } from "@/lib/app-url"
 import { getAdminClient } from "@/lib/supabase-base"
 import type { StorefrontCartItemMeta } from "@/lib/storefront-order-whatsapp"
 
@@ -111,18 +112,18 @@ export async function POST(request: NextRequest) {
 
     const reference = `SF-${String(agent_id).slice(0, 8)}-${Date.now()}`
 
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+    const appUrl = getServerAppBaseUrl(request)
 
-    let resolvedStoreName = String(store_name || "").trim()
-    if (!resolvedStoreName) {
-      const { data: profile } = await db
-        .from("agent_store_profiles")
-        .select("store_name")
-        .eq("agent_id", agent_id)
-        .maybeSingle()
-      resolvedStoreName = profile?.store_name || "Store"
-    }
+    const { data: profile } = await db
+      .from("agent_store_profiles")
+      .select("store_name, store_slug")
+      .eq("agent_id", agent_id)
+      .maybeSingle()
+
+    let resolvedStoreName = String(store_name || profile?.store_name || "").trim()
+    if (!resolvedStoreName) resolvedStoreName = "Store"
+
+    const storeSlug = profile?.store_slug ? String(profile.store_slug) : ""
 
     const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
       method: "POST",
@@ -139,6 +140,7 @@ export async function POST(request: NextRequest) {
           order_type: "storefront_cart",
           agent_id: String(agent_id),
           store_name: resolvedStoreName,
+          store_slug: storeSlug,
           cart_total: String(cartTotal),
           items_json: JSON.stringify(resolved),
         },

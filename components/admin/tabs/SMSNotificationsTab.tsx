@@ -12,7 +12,8 @@ import { Send, AlertCircle, CheckCircle2, History } from "lucide-react"
 import { AgentSelector } from "@/components/admin/sms/AgentSelector"
 import { MessageComposer } from "@/components/admin/sms/MessageComposer"
 import { SmsHistoryViewer } from "@/components/admin/sms/SmsHistoryViewer"
-import { sendBulkSms, type SendSmsParams } from "@/lib/sms-service"
+import type { SendSmsParams } from "@/lib/sms-service"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -83,18 +84,33 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
         return
       }
 
-      // Send SMS in batches
-      const results = await sendBulkSms(smsParams, 150) // 150ms delay between sends
+      const response = await fetch("/api/admin/sms/send", {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+        body: JSON.stringify({ recipients: smsParams, delayMs: 150 }),
+      })
 
-      // Map results back to agents
-      const detailedResults = selectedAgents
-        .map((agent, index) => ({
-          agent,
-          success: results[index]?.success || false,
-          messageId: results[index]?.messageId,
-          error: results[index]?.error,
-        }))
-        .filter((_, index) => index < smsParams.length) // Only include agents with valid phone numbers
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send SMS")
+      }
+
+      const results: Array<{
+        success: boolean
+        messageId?: string
+        error?: string
+      }> = data.results || []
+
+      const agentsWithPhones = selectedAgents.filter(
+        (agent) => agent.selectedPhone || agent.phone_number || agent.momo_number,
+      )
+
+      const detailedResults = agentsWithPhones.map((agent, index) => ({
+        agent,
+        success: results[index]?.success || false,
+        messageId: results[index]?.messageId,
+        error: results[index]?.error,
+      }))
 
       setSendResults(detailedResults)
       setShowResultsDialog(true)
@@ -138,7 +154,7 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold text-emerald-800">SMS Notifications</h2>
         <p className="text-gray-600 text-sm">
-          Send custom SMS messages to agents via USMS-GH API. Messages are limited to 160 characters. Track all sent messages and manage campaigns.
+          Send custom SMS messages to agents via Hubtel. Messages are limited to 160 characters. Track all sent messages and manage campaigns.
         </p>
       </div>
 

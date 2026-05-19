@@ -1,4 +1,4 @@
-import { getSmsConfig, validateSmsConfig } from "@/lib/sms-config"
+import { getSmsConfig, getHubtelBasicAuthHeader, validateSmsConfig } from "@/lib/sms-config"
 import { supabase } from "@/lib/supabase-client";
 
 export interface SendSmsParams {
@@ -28,17 +28,17 @@ export interface SmsLog {
 }
 
 /**
- * Sends an SMS via USMS-GH API
- * @param params SMS parameters (phoneNumber, message, optional senderName)
+ * Sends an SMS via Hubtel API
+ * @param params SMS parameters (phoneNumber, message, optional agentId for logging)
  * @returns SendSmsResult with success status and message ID or error
  */
 export async function sendSms(params: SendSmsParams): Promise<SendSmsResult> {
   try {
     if (!validateSmsConfig()) {
-      console.error("[v0] SMS API token not configured")
+      console.error("[v0] Hubtel SMS credentials not configured")
       return {
         success: false,
-        error: "SMS API token is not configured",
+        error: "Hubtel SMS credentials are not configured",
       }
     }
 
@@ -67,90 +67,99 @@ export async function sendSms(params: SendSmsParams): Promise<SendSmsResult> {
     }
 
     const config = getSmsConfig()
-    console.log("[v0] SMS Config loaded")
+    console.log("[v0] Hubtel SMS config loaded")
 
-    // Normalize phone number - USMS-GH expects format like 2335XXXXXXXXX
     let normalizedPhone = params.phoneNumber.replace(/[\s\-\(\)]/g, "")
-    
-    // Remove leading + if present
+
     if (normalizedPhone.startsWith("+")) {
       normalizedPhone = normalizedPhone.substring(1)
     }
-    
-    // Prevent double country codes (233233...)
+
     if (normalizedPhone.startsWith("233233")) {
       normalizedPhone = normalizedPhone.substring(3)
     }
-    
-    console.log("[v0] Normalized phone number")
 
-    // USMS-GH API endpoint: https://webapp.usmsgh.com/api/sms/send
-    const apiUrl = "https://webapp.usmsgh.com/api/sms/send"
-
-    // Request body per USMS-GH API documentation
-    const requestBody = {
-      recipient: normalizedPhone, // Phone number to send to
-      sender_id: params.senderName || config.sender, // Sender name (max 11 chars)
-      type: "plain", // SMS type must be "plain"
-      message: params.message, // Message content
+    if (normalizedPhone.startsWith("0")) {
+      normalizedPhone = `233${normalizedPhone.substring(1)}`
     }
 
-    console.log("[v0] Sending SMS - Phone:", normalizedPhone, "Length:", params.message.length)
+    if (!normalizedPhone.startsWith("233")) {
+      normalizedPhone = `233${normalizedPhone}`
+    }
 
-    const response = await fetch(apiUrl, {
-      method: "POST", // USMS-GH requires POST
+    console.log("[v0] Normalized phone number for Hubtel")
+
+    const requestBody = {
+      from: config.senderId,
+      to: normalizedPhone,
+      content: params.message,
+    }
+
+    console.log("[v0] Sending SMS via Hubtel - Length:", params.message.length)
+
+    const response = await fetch(config.endpoint, {
+      method: "POST",
       headers: {
-        "Authorization": `Bearer ${config.token}`, // Bearer token format
+        Authorization: getHubtelBasicAuthHeader(),
         "Content-Type": "application/json",
-        "Accept": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(requestBody),
     })
 
-    console.log("[v0] SMS API response status:", response.status)
+    console.log("[v0] Hubtel SMS API response status:", response.status)
 
-    let responseData: any = null
+    let responseData: Record<string, unknown> | null = null
     const responseText = await response.text()
 
     try {
-      responseData = JSON.parse(responseText)
-    } catch (e) {
-      console.error("[v0] Failed to parse response as JSON:", responseText)
+      responseData = JSON.parse(responseText) as Record<string, unknown>
+    } catch {
+      console.error("[v0] Failed to parse Hubtel response as JSON:", responseText)
     }
 
-    console.log("[v0] SMS API response:", { status: responseData?.status, hasData: !!responseData?.data })
+    console.log("[v0] Hubtel SMS API response:", {
+      status: responseData?.Status ?? responseData?.status,
+      messageId: responseData?.MessageId ?? responseData?.messageId,
+    })
 
-    // Check for HTTP errors
     if (!response.ok) {
-      console.error("[v0] SMS API HTTP error:", response.status, responseData?.message)
+      const errorMessage =
+        (responseData?.message as string) ||
+        (responseData?.Message as string) ||
+        (responseData?.statusDescription as string) ||
+        `HTTP ${response.status}`
+      console.error("[v0] Hubtel SMS API HTTP error:", response.status, errorMessage)
       return {
         success: false,
-        error: responseData?.message || `HTTP ${response.status}`,
+        error: errorMessage,
         statusCode: response.status,
       }
     }
 
-    // Check USMS-GH response format: {"status": "success", "data": "..."}
-    if (responseData?.status === "error") {
-      console.error("[v0] SMS API error:", responseData?.message)
+    const hubtelStatus = responseData?.Status ?? responseData?.status
+    if (hubtelStatus !== undefined && hubtelStatus !== 0 && hubtelStatus !== "0") {
+      const errorMessage =
+        (responseData?.statusDescription as string) ||
+        (responseData?.Message as string) ||
+        "Hubtel returned a non-success status"
+      console.error("[v0] Hubtel SMS API error status:", hubtelStatus, errorMessage)
       return {
         success: false,
-        error: responseData?.message || "SMS provider returned error",
+        error: errorMessage,
+        statusCode: response.status,
       }
     }
 
-    if (responseData?.status !== "success") {
-      console.error("[v0] Unexpected response status:", responseData?.status)
-      return {
-        success: false,
-        error: "Unexpected response format from SMS provider",
-      }
-    }
+    const messageId =
+      (responseData?.MessageId as string) ||
+      (responseData?.messageId as string) ||
+      "sent"
 
-    console.log("[v0] SMS sent successfully")
+    console.log("[v0] SMS sent successfully via Hubtel")
     return {
       success: true,
-      messageId: responseData?.data?.uid || responseData?.data?.[0]?.uid || "sent",
+      messageId: String(messageId),
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -161,6 +170,9 @@ export async function sendSms(params: SendSmsParams): Promise<SendSmsResult> {
     }
   }
 }
+
+/** Alias for sendSms (Hubtel integration) */
+export const sendSMS = sendSms
 
 /**
  * Logs SMS sent to the database for tracking and history
@@ -219,7 +231,6 @@ export async function sendBulkSms(
     const result = await sendSms(recipient)
     results.push(result)
 
-    // Log the SMS to database for tracking
     if (recipient.agentId) {
       await logSmsToDatabase(
         recipient.agentId,
@@ -231,7 +242,6 @@ export async function sendBulkSms(
       )
     }
 
-    // Add delay between sends to avoid rate limiting (except on last item)
     if (i < recipients.length - 1 && delayMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, delayMs))
     }

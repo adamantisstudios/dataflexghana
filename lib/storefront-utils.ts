@@ -1,4 +1,12 @@
-export const STOREFRONT_PUBLIC_BASE = "https://referralpowerhouse.vercel.app/store"
+function storefrontOrigin(): string {
+  const fromEnv =
+    process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://referralpowerhouse.vercel.app"
+  return fromEnv.replace(/\/$/, "")
+}
+
+export const STOREFRONT_PUBLIC_BASE = `${storefrontOrigin()}/store`
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i

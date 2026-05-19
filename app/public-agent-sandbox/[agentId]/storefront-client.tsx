@@ -122,11 +122,30 @@ export default function PublicAgentStorefront() {
     setCart([])
 
     if (reference) {
-      void fetch("/api/paystack/storefront/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reference, agent_id: agentId }),
-      }).catch((err) => console.error("[storefront] confirm fallback failed:", err))
+      void (async () => {
+        try {
+          const res = await fetch("/api/paystack/storefront/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reference, agent_id: agentId }),
+          })
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) {
+            console.error("[storefront] confirm fallback failed:", data.error || res.status)
+            toast.error(
+              data.error ||
+                "Payment received but order sync failed. Contact support with your reference.",
+            )
+            return
+          }
+          if (data.insertedCount > 0) {
+            console.log("[storefront] confirm fallback recorded orders:", data.orderIds)
+          }
+        } catch (err) {
+          console.error("[storefront] confirm fallback failed:", err)
+          toast.error("Could not confirm your order. Please contact support with your payment reference.")
+        }
+      })()
     }
 
     if (whatsappUrl) {
@@ -529,16 +548,7 @@ export default function PublicAgentStorefront() {
                       return (
                       <div key={b.id} className="flex flex-col gap-2 min-w-0">
                       <Card
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => toggleBundle(b.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault()
-                            toggleBundle(b.id)
-                          }
-                        }}
-                        className={`rounded-2xl border bg-white shadow-md hover:shadow-lg transition-all overflow-hidden flex flex-col cursor-pointer ${
+                        className={`rounded-2xl border bg-white shadow-md hover:shadow-lg transition-all flex flex-col ${
                           isActive ? "ring-2 ring-offset-2 border-transparent" : "border-slate-100"
                         }`}
                         style={
@@ -547,41 +557,31 @@ export default function PublicAgentStorefront() {
                             : undefined
                         }
                       >
-                        <CardContent className="p-0 flex flex-col flex-1">
-                          <div className="relative aspect-[5/3] bg-gradient-to-br from-slate-100 to-slate-50">
-                            {b.image_url ? (
-                              <Image
-                                src={b.image_url}
-                                alt={b.name}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 640px) 100vw, 33vw"
-                              />
-                            ) : (
-                              <div
-                                className="absolute inset-0 flex items-center justify-center text-white text-2xl font-bold"
-                                style={{ backgroundColor: accent }}
+                        <CardContent className="p-4 flex flex-col flex-1 gap-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] mb-2"
+                                style={{ color: accent, borderColor: `${accent}33` }}
                               >
-                                {b.size_gb} GB
-                              </div>
-                            )}
-                            <Badge
-                              className="absolute top-3 left-3 text-white border-0"
-                              style={{ backgroundColor: accent }}
-                            >
-                              {normalizeProvider(b.provider)}
-                            </Badge>
-                          </div>
-                          <div className="p-4 flex flex-col flex-1">
-                            <h3 className="font-semibold text-slate-900 line-clamp-2">{b.name}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">{b.size_gb} GB</p>
-                            <p className="text-2xl font-bold mt-2" style={{ color: accent }}>
+                                {normalizeProvider(b.provider)}
+                              </Badge>
+                              <h3 className="font-semibold text-slate-900 line-clamp-2">{b.name}</h3>
+                              <p className="text-sm text-muted-foreground mt-1">{b.size_gb} GB</p>
+                            </div>
+                            <p className="text-xl font-bold shrink-0 tabular-nums" style={{ color: accent }}>
                               ₵{Number(b.retail_price).toFixed(2)}
                             </p>
-                            <p className="text-xs text-muted-foreground mt-3">
-                              {isActive ? "Enter number below" : "Tap to order"}
-                            </p>
                           </div>
+                          <Button
+                            type="button"
+                            className="w-full text-white rounded-lg h-10 font-semibold mt-auto"
+                            style={{ backgroundColor: accent }}
+                            onClick={() => toggleBundle(b.id)}
+                          >
+                            {isActive ? "Cancel" : "Buy"}
+                          </Button>
                         </CardContent>
                       </Card>
 
