@@ -13,13 +13,15 @@ export async function fetchJobsFromApi(options: FetchJobsOptions = {}): Promise<
   if (options.featured) params.set("featured", "true");
   if (options.limit != null) params.set("limit", String(options.limit));
 
-  const res = await fetch(`/api/jobs?${params.toString()}`, { cache: "no-store" });
+  const query = params.toString();
+  const url = query ? `/api/jobs?${query}` : "/api/jobs?active=true";
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { message?: string }).message || "Failed to load jobs");
+    throw new Error((err as { message?: string }).message || `Failed to load jobs (${res.status})`);
   }
   const json = (await res.json()) as { jobs?: Job[] };
-  return json.jobs ?? [];
+  return Array.isArray(json.jobs) ? json.jobs : [];
 }
 
 export async function fetchJobByIdFromApi(id: string): Promise<Job | null> {

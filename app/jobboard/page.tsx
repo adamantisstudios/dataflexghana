@@ -91,8 +91,8 @@ const fetchJobs = async (): Promise<Job[]> => {
     jobsCache.timestamp = now
     return jobs
   } catch (error) {
-    console.error("[v0] Supabase client error:", error)
-    return jobsCache.data || []
+    console.error("[v0] Jobs API error:", error)
+    throw error
   }
 }
 
@@ -159,13 +159,31 @@ export default function JobBoard() {
 
     const initializeJobs = async () => {
       setIsLoading(true)
-      const jobsData = await fetchJobs()
-      setJobs(jobsData)
-      setError(null)
-      setIsLoading(false)
+      try {
+        const jobsData = await fetchJobs()
+        setJobs(jobsData)
+        setError(jobsData.length === 0 ? "No active job listings are available right now." : null)
+      } catch (err) {
+        console.error("[jobboard] Failed to load jobs:", err)
+        setJobs(jobsCache.data || [])
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not load jobs. Check your connection and try again.",
+        )
+      } finally {
+        setIsLoading(false)
+      }
 
       const pollInterval = setInterval(() => {
-        fetchJobs().then((updated) => setJobs(updated))
+        fetchJobs()
+          .then((updated) => {
+            setJobs(updated)
+            setError(null)
+          })
+          .catch((err) => {
+            console.error("[jobboard] Poll failed:", err)
+          })
       }, 60_000)
       subscriptionRef.current = { unsubscribe: () => clearInterval(pollInterval) }
     }

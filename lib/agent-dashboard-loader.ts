@@ -121,10 +121,11 @@ export async function loadTabData(tabName: string, agentId: string): Promise<any
 
       case "jobs":
         try {
-          return await fetchJobsFromApi({ active: true })
+          const jobs = await fetchJobsFromApi({ active: true })
+          return { jobs }
         } catch (jobsError) {
           console.error("Error loading jobs:", jobsError)
-          return []
+          return { jobs: [], error: jobsError instanceof Error ? jobsError.message : "Failed to load jobs" }
         }
 
       case "courses":

@@ -200,6 +200,7 @@ export default function AgentDashboard() {
   const [activeTab, setActiveTab] = useState("services")
   const [loadedTabs, setLoadedTabs] = useState<Record<string, boolean>>({})
   const [tabLoadingStates, setTabLoadingStates] = useState<Record<string, boolean>>({})
+  const [jobsFetchError, setJobsFetchError] = useState<string | null>(null)
   const [showReferralDialog, setShowReferralDialog] = useState(false)
   const [referralWhatsApp, setReferralWhatsApp] = useState("")
   const [referralWhatsAppError, setReferralWhatsAppError] = useState("")
@@ -483,8 +484,9 @@ export default function AgentDashboard() {
               dataOrders: data.dataOrders,
             }))
           } else if (tab === "jobs") {
-            const { fetchJobsFromApi } = await import("@/lib/jobs-api")
+            setJobsFetchError(null)
             try {
+              const { fetchJobsFromApi } = await import("@/lib/jobs-api")
               const fetchedJobs = await fetchJobsFromApi({ active: true })
               const jobsWithTitles = fetchedJobs.map((job: { job_title?: string; industry?: string }) => {
                 if (!job.job_title && job.industry) {
@@ -493,9 +495,17 @@ export default function AgentDashboard() {
                 return job
               })
               setTabData((prev) => ({ ...prev, jobs: jobsWithTitles }))
+              if (jobsWithTitles.length === 0) {
+                setJobsFetchError("No active job listings are available right now.")
+              }
             } catch (error) {
               console.error("Error fetching jobs:", error)
               setTabData((prev) => ({ ...prev, jobs: [] }))
+              setJobsFetchError(
+                error instanceof Error
+                  ? error.message
+                  : "Could not load jobs from the job board. Please try again later.",
+              )
             }
           }
           if (tab === "online-courses") {
@@ -2269,6 +2279,11 @@ DataFlex Ghana Agent 🇬🇭`
                   </div>
                 ) : (
                   <>
+                    {jobsFetchError && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
+                        {jobsFetchError}
+                      </div>
+                    )}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <h2 className="text-2xl font-bold text-emerald-800">Job Opportunities</h2>
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -2358,7 +2373,7 @@ DataFlex Ghana Agent 🇬🇭`
                             </div>
                             <div className="w-full md:w-auto flex-shrink-0">
                               <Link
-                                href={`/job-details/${generateSlug(job.job_title)}`}
+                                href={`/job-details/${job.id}`}
                                 className="block w-full md:w-auto"
                               >
                                 <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap">
@@ -2371,10 +2386,14 @@ DataFlex Ghana Agent 🇬🇭`
                         </div>
                       ))}
                     </div>
-                    {filteredJobs.length === 0 && (
+                    {filteredJobs.length === 0 && !jobsFetchError && (
                       <div className="text-center py-8">
                         <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-600">No jobs found matching your search</p>
+                        <p className="text-gray-600">
+                          {jobSearchTerm || jobsFilterAgent !== "All Jobs"
+                            ? "No jobs found matching your search"
+                            : "No active jobs to show right now"}
+                        </p>
                       </div>
                     )}
                     <div className="text-center pt-4">

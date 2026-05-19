@@ -17,6 +17,7 @@ export function getJobsSupabaseAdmin(): SupabaseClient {
   const serviceKey =
     process.env.JOBS_SUPABASE_SERVICE_ROLE_KEY ||
     process.env.JOBS_SUPABASE_KEY ||
+    process.env.NEXT_PUBLIC_JOBS_SUPABASE_SERVICE_ROLE_KEY ||
     process.env.NEXT_PUBLIC_JOBS_SUPABASE_ANON_KEY;
 
   if (!url || !serviceKey) {

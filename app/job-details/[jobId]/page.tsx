@@ -143,14 +143,20 @@ export default function JobDetailsPage() {
         const data = await fetchJobByIdFromApi(jobId)
 
         if (!data) {
-          setError("Job not found")
+          setError(
+            "This job listing could not be found. It may have been removed or the link is outdated — browse the job board for current openings.",
+          )
         } else {
-          setJob(data)
+          setJob(data as Job)
           setError(null)
         }
       } catch (err) {
         console.error("[Fetch error]", err)
-        setError("Failed to load job details")
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load job details. Please try again or open the job board.",
+        )
       } finally {
         setIsLoading(false)
       }
