@@ -1,6 +1,6 @@
 import { requireAdminSession } from "@/lib/api-auth"
+import { getAdminClient } from "@/lib/supabase-base"
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-client";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const adminSession = await requireAdminSession(request)
@@ -18,8 +18,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Confirmation required for this critical operation" }, { status: 400 })
     }
 
+    const db = getAdminClient()
+
     // Verify agent exists
-    const { data: agent, error: agentError } = await supabase
+    const { data: agent, error: agentError } = await db
       .from("agents")
       .select("id, full_name, phone_number, wallet_balance")
       .eq("id", agentId)
@@ -51,64 +53,64 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.log("Step 1: Clearing withdrawals...")
 
       // Clear withdrawals that reference this agent's wallet transactions
-      const { data: agentWalletTxIds } = await supabase.from("wallet_transactions").select("id").eq("agent_id", agentId)
+      const { data: agentWalletTxIds } = await db.from("wallet_transactions").select("id").eq("agent_id", agentId)
 
       const walletTxIds = agentWalletTxIds?.map((tx) => tx.id) || []
 
       if (walletTxIds.length > 0) {
-        const { count: withdrawalsByWalletTx, error: withdrawalError1 } = await supabase
+        const { data: withdrawalsByWalletTx, error: withdrawalError1 } = await db
           .from("withdrawals")
           .delete()
           .in("wallet_transaction_id", walletTxIds)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (withdrawalError1) {
           console.warn("Error clearing withdrawals by wallet_transaction_id:", withdrawalError1)
         } else {
-          clearingCounts.withdrawals += withdrawalsByWalletTx || 0
+          clearingCounts.withdrawals += withdrawalsByWalletTx?.length || 0
         }
       }
 
       // Clear withdrawals directly linked to agent
-      const { count: withdrawalsByAgent, error: withdrawalError2 } = await supabase
+      const { data: withdrawalsByAgent, error: withdrawalError2 } = await db
         .from("withdrawals")
         .delete()
         .eq("agent_id", agentId)
-        .select("*", { count: "exact", head: true })
+        .select("id")
 
       if (withdrawalError2) {
         console.warn("Error clearing withdrawals by agent_id:", withdrawalError2)
       } else {
-        clearingCounts.withdrawals += withdrawalsByAgent || 0
+        clearingCounts.withdrawals += withdrawalsByAgent?.length || 0
       }
 
       console.log(`✅ Cleared ${clearingCounts.withdrawals} withdrawals`)
 
       // STEP 2: Clear wallet_transactions AFTER withdrawals
       console.log("Step 2: Clearing wallet transactions...")
-      const { count: walletCount, error: walletError } = await supabase
+      const { data: deletedWalletTx, error: walletError } = await db
         .from("wallet_transactions")
         .delete()
         .eq("agent_id", agentId)
-        .select("*", { count: "exact", head: true })
+        .select("id")
 
       if (walletError) {
         console.error("CRITICAL: Failed to clear wallet transactions:", walletError)
         throw new Error(`Failed to clear wallet transactions: ${walletError.message}`)
       }
-      clearingCounts.wallet_transactions = walletCount || 0
+      clearingCounts.wallet_transactions = deletedWalletTx?.length || 0
       console.log(`✅ Cleared ${clearingCounts.wallet_transactions} wallet transactions`)
 
       console.log("Step 2.5: Clearing wallet topups...")
       try {
-        const { count: topupsCount, error: topupsError } = await supabase
+        const { data: deletedTopups, error: topupsError } = await db
           .from("wallet_topups")
           .delete()
           .eq("agent_id", agentId)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (!topupsError) {
-          clearingCounts.wallet_topups = topupsCount || 0
+          clearingCounts.wallet_topups = deletedTopups?.length || 0
           console.log(`✅ Cleared ${clearingCounts.wallet_topups} wallet topups`)
         }
       } catch (e) {
@@ -119,14 +121,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.log("Step 3: Clearing other transactional records...")
 
       try {
-        const { count: commissionsCount, error: commissionsError } = await supabase
+        const { data: deletedCommissions, error: commissionsError } = await db
           .from("commissions")
           .delete()
           .eq("agent_id", agentId)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (!commissionsError) {
-          clearingCounts.commissions = commissionsCount || 0
+          clearingCounts.commissions = deletedCommissions?.length || 0
           console.log(`✅ Cleared ${clearingCounts.commissions} direct commissions`)
         }
       } catch (e) {
@@ -135,14 +137,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Commission deposits
       try {
-        const { count: commissionCount, error: commissionError } = await supabase
+        const { data: deletedCommissionDeposits, error: commissionError } = await db
           .from("commission_deposits")
           .delete()
           .eq("agent_id", agentId)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (!commissionError) {
-          clearingCounts.commission_deposits = commissionCount || 0
+          clearingCounts.commission_deposits = deletedCommissionDeposits?.length || 0
           console.log(`✅ Cleared ${clearingCounts.commission_deposits} commission deposits`)
         }
       } catch (e) {
@@ -151,14 +153,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Data orders
       try {
-        const { count: dataOrdersCount, error: dataOrdersError } = await supabase
+        const { data: deletedDataOrders, error: dataOrdersError } = await db
           .from("data_orders")
           .delete()
           .eq("agent_id", agentId)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (!dataOrdersError) {
-          clearingCounts.data_orders = dataOrdersCount || 0
+          clearingCounts.data_orders = deletedDataOrders?.length || 0
           console.log(`✅ Cleared ${clearingCounts.data_orders} data orders`)
         }
       } catch (e) {
@@ -167,14 +169,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Wholesale orders
       try {
-        const { count: wholesaleCount, error: wholesaleError } = await supabase
+        const { data: deletedWholesale, error: wholesaleError } = await db
           .from("wholesale_orders")
           .delete()
           .eq("agent_id", agentId)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (!wholesaleError) {
-          clearingCounts.wholesale_orders = wholesaleCount || 0
+          clearingCounts.wholesale_orders = deletedWholesale?.length || 0
           console.log(`✅ Cleared ${clearingCounts.wholesale_orders} wholesale orders`)
         }
       } catch (e) {
@@ -183,14 +185,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Referrals
       try {
-        const { count: referralsCount, error: referralsError } = await supabase
+        const { data: deletedReferrals, error: referralsError } = await db
           .from("referrals")
           .delete()
           .or(`agent_id.eq.${agentId},referrer_id.eq.${agentId}`)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (!referralsError) {
-          clearingCounts.referrals = referralsCount || 0
+          clearingCounts.referrals = deletedReferrals?.length || 0
           console.log(`✅ Cleared ${clearingCounts.referrals} referrals`)
         }
       } catch (e) {
@@ -198,14 +200,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
 
       try {
-        const { count: chatsCount, error: chatsError } = await supabase
+        const { data: deletedChats, error: chatsError } = await db
           .from("project_chats")
           .delete()
           .eq("agent_id", agentId)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (!chatsError) {
-          clearingCounts.project_chats = chatsCount || 0
+          clearingCounts.project_chats = deletedChats?.length || 0
           console.log(`✅ Cleared ${clearingCounts.project_chats} project chats`)
         }
       } catch (e) {
@@ -214,14 +216,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Agent sessions
       try {
-        const { count: sessionsCount, error: sessionsError } = await supabase
+        const { data: deletedSessions, error: sessionsError } = await db
           .from("agent_sessions")
           .delete()
           .eq("agent_id", agentId)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (!sessionsError) {
-          clearingCounts.agent_sessions = sessionsCount || 0
+          clearingCounts.agent_sessions = deletedSessions?.length || 0
           console.log(`✅ Cleared ${clearingCounts.agent_sessions} agent sessions`)
         }
       } catch (e) {
@@ -229,14 +231,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
 
       try {
-        const { count: pendingCount, error: pendingError } = await supabase
+        const { data: deletedPending, error: pendingError } = await db
           .from("pending_transactions")
           .delete()
           .eq("agent_id", agentId)
-          .select("*", { count: "exact", head: true })
+          .select("id")
 
         if (!pendingError) {
-          clearingCounts.pending_transactions = pendingCount || 0
+          clearingCounts.pending_transactions = deletedPending?.length || 0
           console.log(`✅ Cleared ${clearingCounts.pending_transactions} pending transactions`)
         }
       } catch (e) {
@@ -245,7 +247,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // STEP 4: Reset agent balances and stats
       console.log("Step 4: Resetting agent balances and stats...")
-      const { error: resetError } = await supabase
+      const { error: resetError } = await db
         .from("agents")
         .update({
           wallet_balance: 0,
@@ -278,7 +280,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // Create audit log
       try {
-        await supabase.from("agent_clearing_audit").insert({
+        await db.from("agent_clearing_audit").insert({
           agent_id: agentId,
           agent_name: agent.full_name,
           cleared_by: "admin_system",

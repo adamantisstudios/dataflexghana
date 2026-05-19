@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase-client";
 import type { Agent } from "@/lib/supabase";
 import { createSafeWalletTransactionWithRef } from "@/lib/wallet-transaction-types"
 import { getStoredAdmin } from "@/lib/auth"
+import { getAdminAuthHeaders } from "@/lib/api-client"
   import {
   Dialog,
   DialogContent,
@@ -161,6 +162,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   const [agentSearchTerm, setAgentSearchTerm] = useState("")
   const [searchedAgent, setSearchedAgent] = useState<Agent | null>(null)
   const [agentSearchLoading, setAgentSearchLoading] = useState(false)
+  const [approvingTopupIds, setApprovingTopupIds] = useState<Set<string>>(() => new Set())
 
   // --- Helper to safely call setCachedData (prevents TypeError) ---
   const safeSetCachedData = useCallback(
@@ -626,6 +628,10 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   }
 
   const approveWalletTopup = async (topupId: string) => {
+    if (approvingTopupIds.has(topupId)) return
+
+    setApprovingTopupIds((prev) => new Set(prev).add(topupId))
+
     try {
       const topup = walletTopups.find((t) => t.id === topupId)
       if (!topup) {
@@ -633,49 +639,19 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         return
       }
 
-      const { error: topupError } = await supabase
-        .from("wallet_topups")
-        .update({
-          status: "approved",
-          approved_at: new Date().toISOString(),
-          approved_by: admin?.id,
-        })
-        .eq("id", topupId)
+      const response = await fetch(`/api/admin/wallet-topups/${topupId}/approve`, {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+        body: JSON.stringify({ admin_id: admin?.id }),
+      })
 
-      if (topupError) throw topupError
-
-      const transactionData = {
-        agent_id: topup.agent_id,
-        transaction_type: "topup",
-        amount: topup.amount,
-        description: `Admin wallet top-up - GH₵${topup.amount.toFixed(2)}`,
-        status: "approved",
-        admin_notes: `Approved by admin ${admin?.id}`,
-        admin_id: admin?.id,
+      const json = await response.json().catch(() => ({}))
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || "Failed to approve wallet top-up")
       }
 
-      const safeTransaction = createSafeWalletTransactionWithRef(transactionData)
+      const correctBalance = Number(json.data?.balance ?? 0)
 
-      const { error: transactionError } = await supabase
-        .from("wallet_transactions")
-        .insert([safeTransaction])
-
-      if (transactionError) throw transactionError
-
-      const { calculateWalletBalance } = await import("@/lib/earnings-calculator")
-      const correctBalance = await calculateWalletBalance(topup.agent_id)
-
-      const { error: balanceError } = await supabase
-        .from("agents")
-        .update({
-          wallet_balance: correctBalance,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", topup.agent_id)
-
-      if (balanceError) throw balanceError
-
-      // Refresh data
       const [walletData, agentsData] = await Promise.all([
         supabase
           .from("wallet_transactions")
@@ -687,12 +663,22 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       setWalletTransactions(walletData.data || [])
       await loadPendingWalletTopups()
       setAgents(agentsData.data || [])
-      safeSetCachedData(walletData.data || [])   // ✅ safe call
+      safeSetCachedData(walletData.data || [])
 
-      alert(`Wallet top-up approved successfully! New balance: GH₵${correctBalance.toFixed(2)}`)
+      alert(
+        json.data?.idempotent
+          ? `Top-up was already approved. Current balance: GH₵${correctBalance.toFixed(2)}`
+          : `Wallet top-up approved successfully! New balance: GH₵${correctBalance.toFixed(2)}`,
+      )
     } catch (error) {
       console.error("Error approving wallet top-up:", error)
-      alert("Failed to approve wallet top-up")
+      alert(error instanceof Error ? error.message : "Failed to approve wallet top-up")
+    } finally {
+      setApprovingTopupIds((prev) => {
+        const next = new Set(prev)
+        next.delete(topupId)
+        return next
+      })
     }
   }
 
@@ -1135,10 +1121,11 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                         <Button
                           size="sm"
                           onClick={() => approveWalletTopup(topup.id)}
-                          className="bg-green-600 hover:bg-green-700 flex-1"
+                          disabled={approvingTopupIds.has(topup.id)}
+                          className="bg-green-600 hover:bg-green-700 flex-1 disabled:opacity-60 disabled:pointer-events-none"
                         >
                           <Check className="h-4 w-4 mr-1" />
-                          Approve
+                          {approvingTopupIds.has(topup.id) ? "Approving…" : "Approve"}
                         </Button>
                         <Button
                           size="sm"

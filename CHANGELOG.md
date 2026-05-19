@@ -1,374 +1,256 @@
-# Changelog - Admin Orders & Wallet System
+# Platform Upgrade & Critical Fixes Changelog
 
-## Version 1.0.0 - 2026-05-06
+**Project:** DataFlex Ghana / Referral Powerhouse  
+**Period:** May 2026 upgrade batch  
+**Build verified:** `npm run build` (Next.js 16.2.4)
 
-### 🔴 Critical Bug Fixes
-
-#### Order Status Reversion Bug (CRITICAL)
-- **Issue**: Order status updates would revert on page refresh
-- **Root Cause**: Optimistic updates not properly synchronized with API responses
-- **Fix**: Implemented proper optimistic update pattern with server confirmation
-- **File**: `app/admin/agents/[id]/data-orders/page.tsx`
-- **Changes**:
-  - Added `updatingOrdersRef` to track orders being updated
-  - Implemented optimistic state update before API call
-  - Confirmed updates with server response
-  - Added error reversion on failed updates
-- **Impact**: Users no longer need to refresh to see status changes
-- **Breaking**: No (fully backward compatible)
+This document records production-critical fixes and feature upgrades applied during the latest stabilization pass. Use it alongside [`TECHNICAL_ISSUES_AND_FIXES.md`](./TECHNICAL_ISSUES_AND_FIXES.md) for constraint details, root-cause analysis, and testing steps.
 
 ---
 
-### 🚀 Performance Improvements
+## Wallet transaction constraint violations
 
-#### Smart Pagination System
-- **Issue**: All orders/transactions loaded at once, wasting resources
-- **Solution**: Implement on-demand page loading (pages 1-3 initially, others on demand)
-- **Files Modified**:
-  - `app/admin/agents/[id]/data-orders/page.tsx`
-  - `app/admin/agents/[id]/wallet/page.tsx`
-- **Performance Gains**:
-  - Initial load: 80% faster (2-3s → <500ms for 500+ orders)
-  - Memory: 70% reduction (~50MB → ~15MB)
-  - UI responsiveness: Immediate pagination without page reloads
-- **Breaking**: No (fully backward compatible)
+### Problem
+Inserts into `wallet_transactions` failed with PostgreSQL check constraint errors (e.g. `wallet_transactions_type_check`). Causes included:
 
-#### Smart Pagination Hook
-- **File**: `hooks/use-smart-pagination.ts` (NEW)
-- **Type**: React Hook
-- **Purpose**: Efficient pagination with smart page loading
-- **Features**:
-  - Preload initial pages (configurable)
-  - Lazy load additional pages on demand
-  - Track loaded pages and total count
-  - Support for dynamic data updates
-  - No network overhead for pagination
-- **Usage**: `useSmartPagination(data, itemsPerPage, initialPages)`
+- A legacy `type` column being sent on insert (production has **only** `transaction_type`).
+- Invalid `transaction_type` values such as `adjustment`, `credit`, `debit`, or `admin_credit`.
+- Dynamic helpers mapping admin actions to disallowed strings.
 
----
+### Fix
+- Centralized allowed types in `lib/wallet-transaction-types.ts` (exactly seven values).
+- `createAdminAdjustment` and `createAdminReversal` in `lib/earnings-calculator.ts` now use **direct inserts** with hardcoded production types—no `buildWalletTransactionInsertRow`, no `type` field.
+- Credits use `admin_adjustment`; debits and reversals use `admin_reversal`.
 
-### ✨ New Features
+### Files
+| File | Change |
+|------|--------|
+| `lib/wallet-transaction-types.ts` | Canonical `DB_TRANSACTION_TYPES`; `buildWalletTransactionInsertRow` strips `type` |
+| `lib/earnings-calculator.ts` | Hardcoded `createAdminAdjustment` / `createAdminReversal` |
+| `components/admin/tabs/WalletsTab.tsx` | Top-up flow uses `transaction_type: "topup"` only |
+| `app/api/admin/agents/manual-register/route.ts` | Welcome credit via `createAdminAdjustment` |
+| `app/api/admin/agents/[id]/approve/route.ts` | ₵5 approval credit via `createAdminAdjustment` |
+| `app/api/admin/wallet/route.ts` | Admin adjustments/reversals via same helpers |
 
-#### Pagination UI Controls
-**Orders Page** - `app/admin/agents/[id]/data-orders/page.tsx`
-- Added pagination controls at bottom of orders list
-- Display format: "Page X of Y • Total orders • Z loaded"
-- Navigation: Previous, page buttons (1-5 shown), Next
-- Auto-loads pages when navigating
-- Responsive design for mobile
-
-**Wallet Page** - `app/admin/agents/[id]/wallet/page.tsx`
-- Added pagination below transaction table
-- Same format and controls as orders
-- Shows pagination info with transaction count
-- Smooth navigation between pages
-- Mobile responsive
-
-#### Status Information
-- "Page X of Y" - Current page position
-- "Total orders/transactions" - Complete dataset count
-- "Loaded" - Number of items currently in memory
-- Example: "Page 1 of 25 • 250 total orders • 30 loaded"
-
----
-
-### 📝 Documentation Added
-
-#### Implementation Summary
-- **File**: `IMPLEMENTATION_SUMMARY.md` (351 lines)
-- **Content**:
-  - Detailed explanation of all 3 issues and solutions
-  - Code examples for fixes
-  - Performance benchmarks
-  - Files modified list
-  - Testing checklist
-  - Maintenance notes
-
-#### Pagination Hook Guide
-- **File**: `PAGINATION_HOOK_GUIDE.md` (376 lines)
-- **Content**:
-  - Complete hook API documentation
-  - Usage examples (basic and advanced)
-  - Performance characteristics
-  - Best practices
-  - Common patterns
-  - Troubleshooting guide
-  - Migration guide from old pagination
-
-#### Testing Checklist
-- **File**: `TESTING_CHECKLIST.md` (590 lines)
-- **Content**:
-  - 10 comprehensive test suites
-  - Step-by-step testing procedures
-  - Expected results for each test
-  - Edge case testing
-  - Performance verification
-  - Cross-browser testing
-  - Accessibility testing
-  - Sign-off templates
-
-#### Deployment Guide
-- **File**: `DEPLOYMENT_READY.md` (401 lines)
-- **Content**:
-  - Deployment instructions
-  - Pre-deployment checklist
-  - Rollback plan
-  - Success metrics
-  - Maintenance plan
-  - Support procedures
-  - Timeline
-
-#### This Changelog
-- **File**: `CHANGELOG.md` (This file)
-- **Content**: Complete change history
-
----
-
-### 🔧 Technical Details
-
-#### Modified Files
-
-**`app/admin/agents/[id]/data-orders/page.tsx`**
-- Lines Added: ~100
-- Key Changes:
-  - Import: `useSmartPagination` hook
-  - State: Changed `orders` → `allOrders`
-  - State: Added `updatingOrdersRef`
-  - Function: Refactored `updateOrderStatus()` with optimistic updates
-  - Hook: Added `useSmartPagination()` initialization
-  - UI: Added pagination controls at bottom
-  - Logic: Filter logic applied to `allOrders`
-  - Memoization: Updated to use `filteredOrders` for pagination
-- No Breaking Changes: All existing APIs preserved
-
-**`app/admin/agents/[id]/wallet/page.tsx`**
-- Lines Added: ~65
-- Key Changes:
-  - Import: `useSmartPagination` hook
-  - State: Changed `transactions` → `allTransactions`
-  - Fetch: Removed `.limit(20)` to get all transactions
-  - Hook: Added `useSmartPagination()` initialization
-  - UI: Changed transaction display to use `paginatedTransactions`
-  - UI: Added pagination controls below table
-  - Layout: Fixed JSX nesting for pagination
-- No Breaking Changes: All existing functionality preserved
-
-#### New Files
-
-**`hooks/use-smart-pagination.ts`**
-- Size: 127 lines
-- Type: React Custom Hook
-- Exports: `useSmartPagination` function
-- Usage: `const { currentPage, totalPages, paginatedData, ... } = useSmartPagination(data, 10, 3)`
-- Features:
-  - Generic type support
-  - Memoized computations
-  - Efficient page management
-  - On-demand page loading
-
-#### API Files (No Changes)
-
-**`app/api/admin/data-orders/route.ts`**
-- Status: ✅ Already compatible
-- Returns: Pagination metadata in response
-- No modifications needed
-
-**`app/api/admin/data-orders/[id]/route.ts`**
-- Status: ✅ Already compatible
-- Returns: Full updated order on PATCH
-- No modifications needed
-
-**`app/api/admin/wallet/route.ts`**
-- Status: ✅ Already compatible
-- Returns: All transactions for agent
-- No modifications needed
-
----
-
-### 🎯 Bug Fixes Summary
-
-| Issue | Severity | Status | Fix |
-|-------|----------|--------|-----|
-| Status updates revert | CRITICAL | ✅ FIXED | Optimistic updates + server confirmation |
-| All orders loaded at once | HIGH | ✅ FIXED | Smart pagination (pages 1-3 initially) |
-| All transactions loaded at once | HIGH | ✅ FIXED | Smart pagination (pages 1-3 initially) |
-| No pagination UI | MEDIUM | ✅ IMPLEMENTED | Added pagination controls |
-| Slow initial load | HIGH | ✅ IMPROVED | 80% faster loading |
-| High memory usage | HIGH | ✅ IMPROVED | 70% reduction |
-
----
-
-### 📊 Metrics
-
-#### Performance
-- **Initial Load Time**: 2-3s → <500ms (80% improvement)
-- **Memory Usage**: ~50MB → ~15MB (70% reduction)
-- **Status Update**: Instant (no refresh needed)
-
-#### Code Quality
-- **TypeScript**: Strict mode enabled
-- **Errors**: 0 build errors, 0 runtime errors
-- **Warnings**: 0 warnings
-- **Test Coverage**: All manual tests pass
-
-#### User Experience
-- **Status Updates**: Instant with optimistic UI
-- **Pagination**: Smooth navigation
-- **Responsiveness**: Works on mobile
-- **Accessibility**: Keyboard navigable
-
----
-
-### 🔄 Breaking Changes
-**None** - This is a fully backward-compatible update.
-
----
-
-### ⚠️ Known Issues
-**None** - All known issues have been resolved.
-
----
-
-### 🔐 Security
-- No security vulnerabilities introduced
-- No new authentication required
-- No data exposure risks
-- Rollback safe
-
----
-
-### 📋 Migration Guide
-
-#### For Developers Using Old Code
-If any custom code references the old implementation:
-
-**Old**: Direct state management
 ```typescript
-const [orders, setOrders] = useState([])
-const paginatedOrders = orders.slice((page - 1) * 10, page * 10)
+// lib/earnings-calculator.ts — production-safe insert
+transaction_type: isCredit ? "admin_adjustment" : "admin_reversal",
 ```
 
-**New**: Using smart pagination hook
+---
+
+## Agent status constraint violation on delete / clear
+
+### Problem
+Clearing an agent’s transactional history via a monolithic SQL/RPC function sometimes failed with agent `status` check violations or FK errors when triggers attempted invalid state transitions.
+
+### Fix
+Replaced the RPC with **ordered, table-by-table deletes** in the API route using the service-role client (`getAdminClient()`):
+
+1. Withdrawals (by `wallet_transaction_id`, then by `agent_id`)
+2. `wallet_transactions`
+3. `wallet_topups`
+4. Commissions, commission deposits, data orders, wholesale orders, referrals, project chats, sessions, pending transactions
+5. Reset agent balance counters to zero (account row preserved)
+
+### Files
+| File | Change |
+|------|--------|
+| `app/api/admin/agents/[id]/clear-records/route.ts` | `getAdminClient()` + sequential deletes + balance reset |
+| `components/admin/tabs/AgentManagementTab.tsx` | Calls clear-records API with admin auth headers |
+
+---
+
+## Double wallet credit on slow network
+
+### Problem
+Admins could click **Approve** on a pending wallet top-up multiple times before the first request finished, creating duplicate `wallet_transactions` rows and inflating balances.
+
+### Fix
+**Defense in depth:**
+
+1. **UI:** Approve button disables immediately on click and re-enables only after the API response (`approvingTopupIds` state in `WalletsTab`).
+2. **API:** New idempotent approval route checks for an existing transaction with reference `TOPUP-{topupId}` before insert; duplicate unique-key errors are treated as success.
+
+### Files
+| File | Change |
+|------|--------|
+| `components/admin/tabs/WalletsTab.tsx` | Disabled “Approving…” button; calls approval API |
+| `app/api/admin/wallet-topups/[id]/approve/route.ts` | **New** — idempotent server-side approval |
+
 ```typescript
-const [allOrders, setAllOrders] = useState([])
-const { paginatedData, currentPage, totalPages } = useSmartPagination(allOrders, 10, 3)
+// Stable reference — one credit per top-up request
+const referenceCode = `TOPUP-${topupId}`
 ```
 
-No action needed for standard implementations - all changes are internal.
+---
+
+## Manual registration auto-approve 500
+
+### Problem
+Manual registration with **Auto approve** returned HTTP 500 when the welcome wallet credit insert violated `wallet_transactions_type_check`.
+
+### Fix
+Same hardcoded `createAdminAdjustment` path as agent approval (₵5 credit, `admin_adjustment`). Registration still succeeds with a warning if credit fails unexpectedly.
+
+### Files
+| File | Change |
+|------|--------|
+| `app/api/admin/agents/manual-register/route.ts` | Auto-approve branch calls `createAdminAdjustment` |
+| `lib/earnings-calculator.ts` | Correct transaction types on insert |
+| `components/admin/tabs/ManualRegistrationTab.tsx` | UI for manual registration |
 
 ---
 
-### 🧪 Testing Status
+## Agent approval button failing
 
-#### Unit Testing
-- ✅ Pagination hook logic
-- ✅ State management
-- ✅ Filter application
-- ✅ Optimistic updates
+### Problem
+Same root cause as manual registration: approving a new agent attempted a wallet credit with an invalid `transaction_type`, causing approval to fail after the agent row was updated.
 
-#### Integration Testing
-- ✅ Orders page pagination
-- ✅ Wallet page pagination
-- ✅ Status updates
-- ✅ Filter interactions
+### Fix
+`PATCH /api/admin/agents/[id]/approve` uses `createAdminAdjustment(agentId, 5, adminId, "Approval credit for new agent", true)` with production types. Referral credit hook runs after successful wallet insert.
 
-#### E2E Testing
-- ✅ Manual testing complete
-- ✅ Edge cases covered
-- ✅ Error handling verified
-- ✅ Mobile testing done
+### Files
+| File | Change |
+|------|--------|
+| `app/api/admin/agents/[id]/approve/route.ts` | `getAdminClient` + `createAdminAdjustment` |
+| `lib/referral-agent-program.ts` | `ensureReferralCreditOnAgentApproval` |
+| `components/admin/tabs/AgentsTab.tsx` | Approve action in admin UI |
 
 ---
 
-### 📚 Documentation Status
+## Storefront Paystack callback redirecting to Vercel login
 
-| Document | Lines | Status |
-|----------|-------|--------|
-| IMPLEMENTATION_SUMMARY.md | 351 | ✅ Complete |
-| PAGINATION_HOOK_GUIDE.md | 376 | ✅ Complete |
-| TESTING_CHECKLIST.md | 590 | ✅ Complete |
-| DEPLOYMENT_READY.md | 401 | ✅ Complete |
-| CHANGELOG.md | This | ✅ Complete |
+### Problem
+After Paystack payment, users were redirected to `localhost:3000/...` or a generic `*.vercel.app` deployment URL that showed a Vercel login wall instead of the live storefront.
 
-Total Documentation: ~2,100 lines
+### Fix
+- Paystack `callback_url` forced to `{NEXT_PUBLIC_STOREFRONT_ORIGIN}/api/paystack/storefront/callback` (default `https://referralpowerhouse.vercel.app`).
+- Callback handler verifies payment, captures orders, credits storefront commission, redirects to `/store/{slug}?payment=success&ref=...` on the public storefront origin.
+- `lib/storefront-utils.ts` and `lib/app-url.ts` avoid localhost and non-storefront Vercel hosts for customer-facing links.
 
----
-
-### 🚀 Deployment
-
-**Status**: ✅ READY FOR PRODUCTION
-
-**Prerequisites**:
-- Node.js 16+ (already met)
-- Next.js 16+ (already met)
-- No new dependencies
-
-**Deployment Steps**:
-1. Push code to main branch
-2. Vercel auto-builds
-3. Verify build completes
-4. Monitor error logs
-
-**Estimated Time**: 5 minutes
-
-**Risk Level**: LOW (no database changes)
-
-**Rollback Plan**: Available (git revert)
+### Files
+| File | Change |
+|------|--------|
+| `app/api/paystack/storefront/initialize/route.ts` | Fixed `PAYSTACK_STOREFRONT_CALLBACK_URL` |
+| `app/api/paystack/storefront/callback/route.ts` | Verify + redirect to live store URL |
+| `lib/storefront-order-capture.ts` | Order rows + commission credit |
+| `lib/storefront-utils.ts` | `getStorefrontServerOrigin`, `buildStorefrontUrl` |
+| `lib/app-url.ts` | Production origin resolution |
 
 ---
 
-### 📞 Support
+## Storefront slug mismatch blank page
 
-**For Questions**:
-1. See `IMPLEMENTATION_SUMMARY.md` for technical details
-2. See `PAGINATION_HOOK_GUIDE.md` for API reference
-3. See `TESTING_CHECKLIST.md` for testing help
-4. See `DEPLOYMENT_READY.md` for deployment help
+### Problem
+Store URLs using a custom slug (e.g. `/store/anna-store`) could 404 or render empty when the slug in the URL did not exactly match `agent_store_profiles.store_slug` (case, typos, legacy UUID paths).
 
-**For Issues**:
-1. Check browser console for errors
-2. Review the appropriate documentation
-3. If critical: Use git revert to rollback
+### Fix
+`resolveStoreSegmentToAgentId` in `lib/storefront-server.ts` resolves segments by UUID, exact slug, lowercase match, `ilike`, and controlled prefix matching. Public route `app/store/[segment]/page.tsx` uses this resolver before loading storefront data.
 
----
-
-### 👥 Contributors
-
-- Implementation: v0 AI Assistant
-- Review: [Pending]
-- Approval: [Pending]
-- Deployment: [Pending]
+### Files
+| File | Change |
+|------|--------|
+| `lib/storefront-server.ts` | `resolveStoreSegmentToAgentId`, slug availability checks |
+| `app/store/[segment]/page.tsx` | Slug/UUID segment routing |
+| `app/api/storefront/resolve-slug/route.ts` | API slug lookup |
+| `lib/storefront-public.ts` | Public storefront payload |
+| `app/agent/referralhub/page.tsx` | Slug editing + QR/link via `buildStorefrontUrl` |
 
 ---
 
-### 📅 Timeline
+## Jobs “not found” from agent dashboard
 
-| Date | Event |
-|------|-------|
-| 2026-05-06 | All changes implemented |
-| 2026-05-06 | Testing completed |
-| 2026-05-06 | Documentation written |
-| 2026-05-06 | Deployment ready |
-| TBD | Deployed to production |
-| TBD | Production monitoring |
+### Problem
+The agent dashboard loaded jobs from the browser Supabase client against an external jobs database, which failed under RLS or missing env keys—surfacing as “not found” or empty lists.
 
----
+### Fix
+Jobs are loaded through server API routes using `getJobsSupabaseAdmin()` (`lib/jobs-supabase-admin.ts`). The dashboard imports `fetchJobsFromApi` from `lib/jobs-api.ts`.
 
-### 🎉 Summary
-
-This release resolves critical issues and significantly improves the admin dashboard:
-
-✅ **Fixes**: Status reversion bug (critical)  
-✅ **Performance**: 80% faster load, 70% less memory  
-✅ **Features**: Smart pagination for orders and wallet  
-✅ **UX**: Instant status updates, smooth pagination  
-✅ **Quality**: Zero errors, fully tested  
-✅ **Documentation**: Complete and comprehensive  
-
-**Status**: 🟢 PRODUCTION READY
+### Files
+| File | Change |
+|------|--------|
+| `app/api/jobs/route.ts` | List jobs (server-only) |
+| `app/api/jobs/[id]/route.ts` | Single job |
+| `lib/jobs-supabase-admin.ts` | Service-role client for jobs DB |
+| `lib/jobs-api.ts` | Client wrapper |
+| `app/agent/dashboard/page.tsx` | Uses `fetchJobsFromApi` |
 
 ---
 
-**Changelog Version**: 1.0.0  
-**Generated**: 2026-05-06  
-**Confidence**: HIGH - All tests passing
+## Public storefront not loading (404)
+
+### Problem
+Public store pages returned 404 when only UUID-based sandbox paths worked or slug resolution failed.
+
+### Fix
+Unified public entry at `/store/[segment]` with slug resolution (see above) plus `app/api/storefront/public/[agentId]` for JSON payloads. Reserved paths: `not-available`, `payment-failed`, `invalid-agent`.
+
+### Files
+| File | Change |
+|------|--------|
+| `app/store/[segment]/page.tsx` | Primary public storefront |
+| `app/public-agent-sandbox/[agentId]/page.tsx` | Legacy/sandbox entry |
+| `app/api/storefront/public/[agentId]/route.ts` | Public API |
+
+---
+
+## Security hardening
+
+### Problem
+Some database views exposed `auth.users` metadata to `anon` / `authenticated` roles, creating unnecessary attack surface.
+
+### Fix
+Revoked `SELECT` on sensitive views from `anon` and `authenticated`; admin operations use service role via `getAdminClient()` only on the server. Application routes enforce `requireAdminSession` / `authenticateAdmin`.
+
+### Files / ops
+| Item | Notes |
+|------|--------|
+| Supabase SQL (run in dashboard) | `REVOKE` on views joining `auth.users` |
+| `lib/supabase-base.ts` | Server-only admin client guard |
+| `lib/api-auth.ts` | Admin session validation |
+| `app/robots.ts` | Blocks AI training crawlers on all paths |
+
+---
+
+## Upgrades
+
+### WhatsApp channel popup
+- `components/WhatsAppChannelPopup.tsx` — channel join promo.
+- `components/teaching/whatsapp-promo-notification.tsx` — teaching surfaces.
+- Store OG image: `/whatsapp-channel.jpg`.
+
+### Storefront payout request
+- Agent storefront commission balance and cashout requests.
+- `app/api/admin/storefront/cashout/route.ts`, `cashout-profiles/route.ts`.
+- `components/admin/tabs/StorefrontManagerTab.tsx` — admin payout workflow.
+
+### Social sharing
+- Open Graph / Twitter metadata on `app/store/[segment]/page.tsx` and blog routes.
+- Referral Hub QR and share links via `buildStorefrontUrl`.
+
+### Wholesale products
+- Product variants, admin CSV export, agent browser/cart (`WHOLESALE_PRODUCT_VARIANTS_CHANGELOG.md`).
+
+### Compliance forms
+- Agent compliance hub: bank account, TIN, partnership, passport, etc. under `components/agent/compliance/forms/`.
+
+### AI crawler blocking
+- `app/robots.ts` disallows GPTBot, ClaudeBot, Google-Extended, Bytespider, CCBot, and related agents site-wide.
+
+---
+
+## Finalisation pass (this release)
+
+| Item | Status |
+|------|--------|
+| `createAdminAdjustment` / `createAdminReversal` hardcoded types | Verified |
+| Clear-records via `getAdminClient()` | Implemented |
+| WalletsTab approve button debounce | Implemented |
+| Wallet top-up approval API + idempotency | Implemented |
+| Agent approve route uses `createAdminAdjustment` | Verified |
+| `npm run build` | Passes |
+
+---
+
+*For constraint definitions, migration SQL, environment variables, and manual test checklists, see [TECHNICAL_ISSUES_AND_FIXES.md](./TECHNICAL_ISSUES_AND_FIXES.md).*
