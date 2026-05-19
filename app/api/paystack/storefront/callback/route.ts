@@ -8,7 +8,7 @@ import {
   formatStorefrontAdminWhatsAppMessage,
   parseStorefrontItemsFromMetadata,
 } from "@/lib/storefront-order-whatsapp"
-import { buildStorefrontUrl, STOREFRONT_PUBLIC_BASE } from "@/lib/storefront-utils"
+import { buildStorefrontUrl, getStorefrontPublicBase } from "@/lib/storefront-utils"
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
 
@@ -55,7 +55,7 @@ function buildSuccessRedirect(
 }
 
 function buildFailureRedirect(reference?: string | null) {
-  const url = new URL(`${STOREFRONT_PUBLIC_BASE}/payment-failed`)
+  const url = new URL(`${getStorefrontPublicBase()}/payment-failed`)
   if (reference) url.searchParams.set("reference", reference)
   return url.toString()
 }

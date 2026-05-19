@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { getStorefrontPageMetadata } from "@/lib/storefront-server"
-import { STOREFRONT_PUBLIC_BASE } from "@/lib/storefront-utils"
+import { getStorefrontPublicBase } from "@/lib/storefront-utils"
 import PublicAgentStorefront from "./storefront-client"
 
 const STOREFRONT_ORIGIN = "https://referralpowerhouse.vercel.app"
@@ -20,9 +20,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     meta?.businessInfo?.trim().slice(0, 200) ||
     `Shop data bundles and referral services at ${title}.`
   const imageUrl = `${STOREFRONT_ORIGIN}${OG_IMAGE_PATH}`
+  const storeBase = getStorefrontPublicBase()
   const url = meta?.storeSlug
-    ? `${STOREFRONT_PUBLIC_BASE}/${meta.storeSlug}`
-    : `${STOREFRONT_PUBLIC_BASE}/${agentId}`
+    ? `${storeBase}/${meta.storeSlug}`
+    : `${storeBase}/${agentId}`
 
   return {
     title,

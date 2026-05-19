@@ -1,6 +1,5 @@
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import {
-  adminAdjustmentTransactionType,
   buildWalletTransactionInsertRow,
   assertDbTransactionType,
 } from "@/lib/wallet-transaction-types"
@@ -1041,26 +1040,23 @@ export async function createAdminAdjustment(
 
     console.log(`🔄 Creating admin adjustment for agent ${agentId}: ${isPositive ? "+" : "-"}${amount}`)
 
-    const txType = adminAdjustmentTransactionType(isPositive)
+    // Hardcoded types — must match production wallet_transactions_type_check exactly.
+    const transactionType = isPositive ? "admin_adjustment" : "admin_reversal"
 
     const { data, error } = await getDb()
       .from("wallet_transactions")
-      .insert(
-        buildWalletTransactionInsertRow(
-          {
-            agent_id: agentId,
-            transaction_type: txType,
-            amount: amount,
-            status: "approved",
-            description: `Admin ${isPositive ? "credit" : "debit"} adjustment - ${reason}`,
-            reference_code: `ADJ-${isPositive ? "CR" : "DR"}-${crypto.randomUUID().slice(0, 8)}`,
-            admin_id: adminId,
-            admin_notes: `${isPositive ? "Credit" : "Debit"} adjustment by admin. Reason: ${reason}`,
-          },
-          { created_at: new Date().toISOString() },
-        ),
-      )
-      .select()
+      .insert({
+        agent_id: agentId,
+        transaction_type: transactionType,
+        amount,
+        status: "approved",
+        description: `Admin ${isPositive ? "credit" : "debit"} adjustment - ${reason}`,
+        reference_code: `ADJ-${isPositive ? "CR" : "DR"}-${Date.now().toString(36).toUpperCase()}`,
+        admin_id: adminId,
+        admin_notes: `${isPositive ? "Credit" : "Debit"} adjustment by admin. Reason: ${reason}`,
+        created_at: new Date().toISOString(),
+      })
+      .select("id")
       .single()
 
     if (error) {
