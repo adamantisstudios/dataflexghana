@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table"
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { STOREFRONT_ORDERS_CHANGED_EVENT } from "@/lib/storefront-events"
 import { Loader2, Wallet } from "lucide-react"
 
 interface StorefrontOrder {
@@ -62,12 +63,18 @@ export function StorefrontOrdersSection({ agentId, commissionBalance }: Props) {
     const onVisibility = () => {
       if (document.visibilityState === "visible") load(true)
     }
+    const onOrdersChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ agentId?: string }>).detail
+      if (!detail?.agentId || detail.agentId === agentId) load(true)
+    }
     document.addEventListener("visibilitychange", onVisibility)
+    window.addEventListener(STOREFRONT_ORDERS_CHANGED_EVENT, onOrdersChanged)
     return () => {
       clearInterval(interval)
       document.removeEventListener("visibilitychange", onVisibility)
+      window.removeEventListener(STOREFRONT_ORDERS_CHANGED_EVENT, onOrdersChanged)
     }
-  }, [load])
+  }, [load, agentId])
 
   return (
     <div className="space-y-4">

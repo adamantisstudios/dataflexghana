@@ -67,9 +67,19 @@ export async function GET(
         return NextResponse.json(EMPTY_RESPONSE)
       }
     } else if (!agent) {
-      return NextResponse.json(EMPTY_RESPONSE)
+      return NextResponse.json({ ...EMPTY_RESPONSE, unavailable: true })
     } else if (agent.deleted_at) {
-      return NextResponse.json(EMPTY_RESPONSE)
+      return NextResponse.json({ ...EMPTY_RESPONSE, unavailable: true })
+    }
+
+    const { data: agentDetails } = await db
+      .from("agents")
+      .select("full_name, phone_number, momo_number, isapproved")
+      .eq("id", agentId)
+      .maybeSingle()
+
+    if (!agentDetails?.isapproved) {
+      return NextResponse.json({ ...EMPTY_RESPONSE, unavailable: true })
     }
 
     const { data: profileRow, error: profileError } = await db
@@ -84,7 +94,7 @@ export async function GET(
       console.error("public storefront profile:", profileError)
     }
 
-    const profile: PublicProfile | null = profileRow
+    const profile: PublicProfile = profileRow
       ? {
           store_name: profileRow.store_name ?? null,
           store_slug: profileRow.store_slug ?? null,
@@ -93,7 +103,14 @@ export async function GET(
           primary_color: profileRow.primary_color ?? null,
           business_info: profileRow.business_info ?? null,
         }
-      : null
+      : {
+          store_name: agentDetails.full_name ?? "Data Store",
+          store_slug: null,
+          whatsapp_number: agentDetails.momo_number ?? agentDetails.phone_number ?? null,
+          phone_number: agentDetails.phone_number ?? null,
+          primary_color: "#3B82F6",
+          business_info: null,
+        }
 
     const { data: settings, error: settingsError } = await db
       .from("agent_store_settings")
@@ -182,6 +199,7 @@ export async function GET(
       profile,
       bundles,
       services,
+      unavailable: false,
     })
   } catch (error) {
     console.error("public storefront:", error)

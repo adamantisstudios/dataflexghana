@@ -44,10 +44,27 @@ export type StorefrontCartItemMeta = {
   size_gb: number
 }
 
+export function metadataValue(meta: Record<string, unknown>, key: string): unknown {
+  if (meta[key] !== undefined && meta[key] !== null) return meta[key]
+
+  const customFields = meta.custom_fields
+  if (Array.isArray(customFields)) {
+    for (const field of customFields) {
+      if (field && typeof field === "object") {
+        const row = field as { variable_name?: string; display_name?: string; value?: unknown }
+        const name = row.variable_name || row.display_name
+        if (name === key) return row.value
+      }
+    }
+  }
+
+  return undefined
+}
+
 export function parseStorefrontItemsFromMetadata(
   meta: Record<string, unknown>,
 ): StorefrontCartItemMeta[] {
-  const raw = meta.items_json
+  const raw = metadataValue(meta, "items_json")
   if (typeof raw === "string" && raw.trim()) {
     try {
       const parsed = JSON.parse(raw) as StorefrontCartItemMeta[]
@@ -57,17 +74,19 @@ export function parseStorefrontItemsFromMetadata(
     }
   }
 
-  if (meta.data_bundle_id && meta.customer_phone) {
+  const bundleId = metadataValue(meta, "data_bundle_id")
+  const customerPhone = metadataValue(meta, "customer_phone")
+  if (bundleId && customerPhone) {
     return [
       {
-        data_bundle_id: String(meta.data_bundle_id),
-        customer_phone: String(meta.customer_phone),
-        base_cost: Number(meta.base_cost ?? 0),
-        agent_markup: Number(meta.agent_markup ?? 0),
-        total_paid: Number(meta.total_paid ?? 0),
-        bundle_name: String(meta.bundle_name ?? "Data Bundle"),
-        network: String(meta.network ?? "Unknown"),
-        size_gb: Number(meta.size_gb ?? 0),
+        data_bundle_id: String(bundleId),
+        customer_phone: String(customerPhone),
+        base_cost: Number(metadataValue(meta, "base_cost") ?? 0),
+        agent_markup: Number(metadataValue(meta, "agent_markup") ?? 0),
+        total_paid: Number(metadataValue(meta, "total_paid") ?? 0),
+        bundle_name: String(metadataValue(meta, "bundle_name") ?? "Data Bundle"),
+        network: String(metadataValue(meta, "network") ?? "Unknown"),
+        size_gb: Number(metadataValue(meta, "size_gb") ?? 0),
       },
     ]
   }

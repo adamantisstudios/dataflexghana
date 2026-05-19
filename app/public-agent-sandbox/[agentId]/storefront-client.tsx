@@ -88,12 +88,22 @@ function newLineId() {
   return `line-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
-export default function PublicAgentStorefront() {
+import { dispatchStorefrontOrdersChanged } from "@/lib/storefront-events"
+
+type PublicAgentStorefrontProps = {
+  agentId?: string
+  storeSegment?: string
+}
+
+export default function PublicAgentStorefront({
+  agentId: agentIdProp,
+}: PublicAgentStorefrontProps) {
   const params = useParams()
   const searchParams = useSearchParams()
-  const agentId = params.agentId as string
+  const agentId = (agentIdProp || (params?.agentId as string) || "").trim()
 
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [profile, setProfile] = useState<StoreProfile | null>(null)
   const [bundles, setBundles] = useState<DataBundle[]>([])
   const [services, setServices] = useState<ReferralService[]>([])
@@ -138,8 +148,8 @@ export default function PublicAgentStorefront() {
             )
             return
           }
-          if (data.insertedCount > 0) {
-            console.log("[storefront] confirm fallback recorded orders:", data.orderIds)
+          if (data.insertedCount > 0 || data.alreadyRecorded) {
+            dispatchStorefrontOrdersChanged({ agentId, reference: data.reference })
           }
         } catch (err) {
           console.error("[storefront] confirm fallback failed:", err)
@@ -163,11 +173,25 @@ export default function PublicAgentStorefront() {
   }, [showDeliveryNotice])
 
   useEffect(() => {
+    if (!agentId) {
+      setLoadError("This store link is invalid.")
+      setLoading(false)
+      return
+    }
+
     const load = async () => {
+      setLoadError(null)
       try {
         const res = await fetch(`/api/storefront/public/${agentId}`, { cache: "no-store" })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Store unavailable")
+        if (data.unavailable) {
+          setLoadError("This store is not available right now.")
+          setProfile(null)
+          setBundles([])
+          setServices([])
+          return
+        }
 
         const apiBundles: DataBundle[] = (data.bundles || []).map(
           (b: DataBundle & { final_price?: number }) => ({
@@ -187,12 +211,14 @@ export default function PublicAgentStorefront() {
 
         if (apiServices.length > 0 && apiBundles.length === 0) setMainTab("services")
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Failed to load store")
+        const message = e instanceof Error ? e.message : "Failed to load store"
+        setLoadError(message)
+        toast.error(message)
       } finally {
         setLoading(false)
       }
     }
-    if (agentId) load()
+    load()
   }, [agentId])
 
   const displayProfile: StoreProfile = profile ?? {
@@ -333,6 +359,30 @@ export default function PublicAgentStorefront() {
   const whatsappLink = (message: string) => toWhatsAppHref(whatsappPhone, message) ?? "#"
   const storeTagline =
     "Fast data bundles & trusted referral services — delivered with care."
+
+  if (!agentId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-center">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Store not available</h1>
+          <p className="text-muted-foreground mt-2 text-sm max-w-sm mx-auto">
+            This storefront link is invalid.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-center">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">Store not available</h1>
+          <p className="text-muted-foreground mt-2 text-sm max-w-sm mx-auto">{loadError}</p>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

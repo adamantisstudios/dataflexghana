@@ -2,6 +2,7 @@ import { getAdminClient } from "@/lib/supabase-base"
 import { creditStorefrontCommission } from "@/lib/storefront-server"
 import { logAudit } from "@/lib/audit-logger"
 import {
+  metadataValue,
   parseStorefrontItemsFromMetadata,
   type StorefrontCartItemMeta,
 } from "@/lib/storefront-order-whatsapp"
@@ -133,7 +134,7 @@ export async function captureStorefrontFromPaystackMetadata(params: {
   ipAddress?: string | null
   userAgent?: string | null
 }): Promise<StorefrontCaptureResult> {
-  const agentId = String(params.metadata.agent_id || "")
+  const agentId = String(metadataValue(params.metadata, "agent_id") || params.metadata.agent_id || "")
   const items = parseStorefrontItemsFromMetadata(params.metadata)
 
   if (!agentId || items.length === 0) {

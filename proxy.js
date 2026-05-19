@@ -3,6 +3,12 @@ import { NextResponse } from 'next/server'
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
+const RESERVED_STORE_SEGMENTS = new Set([
+  'not-available',
+  'payment-failed',
+  'invalid-agent',
+])
+
 function isUuid(value) {
   return UUID_RE.test(value)
 }
@@ -10,59 +16,27 @@ function isUuid(value) {
 export async function proxy(request) {
   const { pathname } = request.nextUrl
 
-  // Storefront subdomain routing (also handled in middleware.ts when present)
   const hostname = request.headers.get('host') || ''
   const isStorefrontDomain = hostname.includes('referralpowerhouse.vercel.app')
+
   if (isStorefrontDomain) {
     if (pathname === '/' || pathname.startsWith('/admin') || pathname.startsWith('/agent')) {
       return NextResponse.redirect(new URL('/store/invalid-agent', request.url))
     }
+
     const storefrontMatch = pathname.match(/^\/store\/([^/]+)/)
     if (storefrontMatch) {
       const segment = storefrontMatch[1]
-      const remainder = pathname.replace(`/store/${segment}`, '') || ''
 
-      if (isUuid(segment)) {
-        return NextResponse.rewrite(
-          new URL(
-            `/public-agent-sandbox/${segment}${remainder}${request.nextUrl.search}`,
-            request.url,
-          ),
-        )
+      if (RESERVED_STORE_SEGMENTS.has(segment)) {
+        return NextResponse.next()
       }
 
-      try {
-        const resolveUrl = new URL(
-          `/api/storefront/resolve-slug?slug=${encodeURIComponent(segment)}`,
-          request.url,
-        )
-        const resolveRes = await fetch(resolveUrl, {
-          headers: { 'Cache-Control': 'no-store' },
-          signal: AbortSignal.timeout(4000),
-        })
-        if (resolveRes.status === 404) {
-          return NextResponse.rewrite(new URL('/store/not-available', request.url))
-        }
-        if (resolveRes.ok) {
-          const data = await resolveRes.json()
-          if (data.agentId) {
-            return NextResponse.rewrite(
-              new URL(
-                `/public-agent-sandbox/${data.agentId}${remainder}${request.nextUrl.search}`,
-                request.url,
-              ),
-            )
-          }
-        }
-      } catch (err) {
-        console.error('storefront slug resolve failed:', err)
-      }
-
-      return NextResponse.rewrite(new URL('/store/not-available', request.url))
+      // app/store/[segment]/page.tsx resolves slugs server-side (no edge fetch / rewrite)
+      return NextResponse.next()
     }
   }
 
-  // Skip maintenance check for admin routes, agent login, registration pages, API routes, and static assets
   if (
     pathname.startsWith('/admin') ||
     pathname.startsWith('/api') ||
@@ -84,124 +58,95 @@ export async function proxy(request) {
     return NextResponse.next()
   }
 
-  // Skip maintenance check during build time (no origin available)
   if (!request.nextUrl.origin || request.nextUrl.origin === 'http://localhost:3000') {
     try {
-      // Check maintenance mode status with controlled cache busting
       const baseUrl = request.nextUrl.origin
-      
-      // Use a more controlled cache busting approach
       const now = Date.now()
-      const cacheWindow = Math.floor(now / 10000) // 10-second cache window
-      
+      const cacheWindow = Math.floor(now / 10000)
+
       const maintenanceResponse = await fetch(`${baseUrl}/api/maintenance?v=${cacheWindow}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          Pragma: 'no-cache',
+          Expires: '0',
         },
-        signal: AbortSignal.timeout(5000) // 5 second timeout
+        signal: AbortSignal.timeout(5000),
       })
 
       if (maintenanceResponse.ok) {
         const maintenanceData = await maintenanceResponse.json()
-        
+
         if (maintenanceData.success && maintenanceData.data.isEnabled) {
-          // Check if user is admin (bypass maintenance mode)
           const adminCookie = request.cookies.get('admin_user')
           if (adminCookie) {
-            console.log('Admin user detected, bypassing maintenance mode')
             return NextResponse.next()
           }
 
-          // Check for special agent cookie (new method)
           const specialAgentCookie = request.cookies.get('special_agent')
           const agentPhoneCookie = request.cookies.get('agent_phone')
           if (specialAgentCookie && agentPhoneCookie) {
             const phoneNumber = decodeURIComponent(agentPhoneCookie.value)
             if (phoneNumber === '+233546460945') {
-              console.log('Special test agent detected via cookie, bypassing maintenance mode')
               return NextResponse.next()
             }
           }
 
-          // Check if user is the special maintenance test agent (+233546460945) - legacy methods
           const agentCookie = request.cookies.get('agent')
           if (agentCookie) {
             try {
               const agentData = JSON.parse(agentCookie.value)
-              // Allow the special maintenance test agent to bypass maintenance mode
               if (agentData.phone_number === '+233546460945' || agentData.phone === '+233546460945') {
-                console.log('Special test agent detected, bypassing maintenance mode')
                 return NextResponse.next()
               }
-            } catch (error) {
-              console.error('Error parsing agent cookie:', error)
+            } catch {
+              /* ignore */
             }
           }
 
-          // Check for alternative agent authentication methods
           const agentAuth = request.cookies.get('agent_auth')
           if (agentAuth) {
             try {
               const authData = JSON.parse(agentAuth.value)
               if (authData.phone_number === '+233546460945' || authData.phone === '+233546460945') {
-                console.log('Special test agent (alt auth) detected, bypassing maintenance mode')
                 return NextResponse.next()
               }
-            } catch (error) {
-              console.error('Error parsing agent auth cookie:', error)
+            } catch {
+              /* ignore */
             }
           }
 
-          // Check for user session that might contain phone number
           const userSession = request.cookies.get('user_session')
           if (userSession) {
             try {
               const sessionData = JSON.parse(userSession.value)
               if (sessionData.phone_number === '+233546460945' || sessionData.phone === '+233546460945') {
-                console.log('Special test user session detected, bypassing maintenance mode')
                 return NextResponse.next()
               }
-            } catch (error) {
-              console.error('Error parsing user session cookie:', error)
+            } catch {
+              /* ignore */
             }
           }
 
-          console.log('Maintenance mode active, redirecting to maintenance page')
-          
-          // Redirect to maintenance page with controlled cache busting
           const maintenanceUrl = new URL('/maintenance', request.url)
           maintenanceUrl.searchParams.set('v', cacheWindow.toString())
-
           const response = NextResponse.redirect(maintenanceUrl)
-          
-          // Add headers to prevent caching of the redirect
           response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
           response.headers.set('Pragma', 'no-cache')
           response.headers.set('Expires', '0')
-          
-          // Add a header to indicate this is a maintenance redirect
           response.headers.set('X-Maintenance-Redirect', 'true')
-
-          return response
-        } else {
-          // Maintenance is disabled - ensure no caching issues
-          const response = NextResponse.next()
-          response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-          response.headers.set('Pragma', 'no-cache')
-          response.headers.set('X-Maintenance-Status', 'disabled')
           return response
         }
-      } else {
-        console.error('Failed to check maintenance mode status:', maintenanceResponse.status)
+
+        const response = NextResponse.next()
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+        response.headers.set('Pragma', 'no-cache')
+        response.headers.set('X-Maintenance-Status', 'disabled')
+        return response
       }
     } catch (error) {
       console.error('Middleware maintenance check error:', error)
-      // If there's an error checking maintenance mode, allow the request to continue
-      // This prevents the site from being completely inaccessible due to middleware errors
     }
   }
 

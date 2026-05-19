@@ -33,12 +33,32 @@ export async function resolveStoreSegmentToAgentId(segment: string): Promise<str
   }
   const slug = normalizeStoreSlug(trimmed)
   const db = getAdminClient()
-  const { data } = await db
+
+  const { data: exact } = await db
     .from("agent_store_profiles")
     .select("agent_id")
     .eq("store_slug", slug)
     .maybeSingle()
-  return data?.agent_id ?? null
+
+  if (exact?.agent_id) return exact.agent_id
+
+  const lower = trimmed.toLowerCase()
+  if (lower !== slug) {
+    const { data: lowerMatch } = await db
+      .from("agent_store_profiles")
+      .select("agent_id")
+      .eq("store_slug", lower)
+      .maybeSingle()
+    if (lowerMatch?.agent_id) return lowerMatch.agent_id
+  }
+
+  const { data: ilikeRows } = await db
+    .from("agent_store_profiles")
+    .select("agent_id")
+    .ilike("store_slug", slug)
+    .limit(1)
+
+  return ilikeRows?.[0]?.agent_id ?? null
 }
 
 export async function checkStoreSlugAvailable(

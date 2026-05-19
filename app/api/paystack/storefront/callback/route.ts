@@ -6,6 +6,7 @@ import {
 import {
   buildStorefrontAdminWhatsAppUrl,
   formatStorefrontAdminWhatsAppMessage,
+  metadataValue,
   parseStorefrontItemsFromMetadata,
 } from "@/lib/storefront-order-whatsapp"
 import { buildStorefrontUrl, getStorefrontPublicBase } from "@/lib/storefront-utils"
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(buildFailureRedirect(referenceParam))
   }
 
-  const agentId = String(meta.agent_id || "")
+  const agentId = String(metadataValue(meta, "agent_id") || meta.agent_id || "")
   const items = parseStorefrontItemsFromMetadata(meta)
   const cartTotal = Number(meta.cart_total ?? amountPaid)
 

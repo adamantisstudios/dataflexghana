@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table"
 import { toast } from "sonner"
 import { getAdminAuthHeaders } from "@/lib/api-client"
+import { STOREFRONT_ORDERS_CHANGED_EVENT } from "@/lib/storefront-events"
 import { RefreshCw, Store, Search, Copy, Check, Download } from "lucide-react"
 
 const ORDERS_POLL_MS = 15000
@@ -124,12 +125,15 @@ export default function StorefrontManagerTab() {
     const onVisibility = () => {
       if (document.visibilityState === "visible") loadOrders({ silent: true })
     }
+    const onOrdersChanged = () => loadOrders({ silent: true })
     window.addEventListener("focus", onFocus)
     document.addEventListener("visibilitychange", onVisibility)
+    window.addEventListener(STOREFRONT_ORDERS_CHANGED_EVENT, onOrdersChanged)
     return () => {
       clearInterval(interval)
       window.removeEventListener("focus", onFocus)
       document.removeEventListener("visibilitychange", onVisibility)
+      window.removeEventListener(STOREFRONT_ORDERS_CHANGED_EVENT, onOrdersChanged)
     }
   }, [loadOrders])
 
