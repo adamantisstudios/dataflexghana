@@ -146,6 +146,7 @@ function applyStorefrontPayload(
 
 export default function PublicAgentStorefront({
   agentId: agentIdProp,
+  storeSegment: storeSegmentProp,
   initialProfile,
   initialBundles,
   initialServices,
@@ -153,6 +154,7 @@ export default function PublicAgentStorefront({
   const params = useParams()
   const searchParams = useSearchParams()
   const agentId = (agentIdProp || (params?.agentId as string) || "").trim()
+  const storeSegment = (storeSegmentProp || "").trim()
 
   const hasServerPayload = initialProfile !== undefined || initialBundles !== undefined
 
@@ -397,6 +399,7 @@ export default function PublicAgentStorefront({
           email,
           agent_id: agentId,
           store_name: displayProfile.store_name || "Data Store",
+          store_segment: storeSegment || undefined,
           items: cart.map((line) => ({
             data_bundle_id: line.bundle.id,
             customer_phone: line.phone,

@@ -1,7 +1,14 @@
-const DEFAULT_STOREFRONT_ORIGIN = "https://referralpowerhouse.vercel.app"
+import type { NextRequest } from "next/server"
+import { resolveOriginFromRequest } from "@/lib/app-url"
+
+export const DEFAULT_STOREFRONT_ORIGIN = "https://referralpowerhouse.vercel.app"
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function stripTrailingSlash(url: string): string {
+  return url.replace(/\/$/, "")
+}
 
 function isLocalhostOrigin(origin: string): boolean {
   try {
@@ -10,6 +17,65 @@ function isLocalhostOrigin(origin: string): boolean {
   } catch {
     return /localhost|127\.0\.0\.1/i.test(origin)
   }
+}
+
+function isStorefrontHostname(hostname: string): boolean {
+  const lower = hostname.toLowerCase()
+  if (lower === "referralpowerhouse.vercel.app") return true
+  if (lower.endsWith(".referralpowerhouse.vercel.app")) return true
+  const extra = process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN?.trim()
+  if (extra) {
+    try {
+      if (new URL(extra).hostname.toLowerCase() === lower) return true
+    } catch {
+      /* ignore */
+    }
+  }
+  return false
+}
+
+/**
+ * Server-side storefront origin for Paystack callbacks and post-payment redirects.
+ * Never uses VERCEL_URL or generic *.vercel.app deployment hosts.
+ */
+export function getStorefrontServerOrigin(request?: NextRequest): string {
+  const envOrigin = process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN?.trim()
+  if (envOrigin && !isLocalhostOrigin(envOrigin)) {
+    return stripTrailingSlash(envOrigin)
+  }
+
+  if (request) {
+    const fromRequest = resolveOriginFromRequest(request)
+    if (fromRequest) {
+      if (isLocalhostOrigin(fromRequest)) {
+        return stripTrailingSlash(fromRequest)
+      }
+      try {
+        const host = new URL(fromRequest).hostname
+        if (isStorefrontHostname(host)) {
+          return stripTrailingSlash(fromRequest)
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+  }
+
+  return DEFAULT_STOREFRONT_ORIGIN
+}
+
+/** Paystack `callback_url` — always on the public storefront domain in production. */
+export function getStorefrontPaystackCallbackUrl(request?: NextRequest): string {
+  return `${getStorefrontServerOrigin(request)}/api/paystack/storefront/callback`
+}
+
+/** Build `/store/{segment}` on a specific origin (server redirects). */
+export function buildStorefrontPathUrl(
+  origin: string,
+  segment: string,
+): string {
+  const safeSegment = segment.trim() || ""
+  return `${stripTrailingSlash(origin)}/store/${encodeURIComponent(safeSegment)}`
 }
 
 /**
@@ -59,8 +125,12 @@ export function isValidStoreSlug(slug: string): boolean {
   return slug.length >= 3 && slug.length <= 40 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
 }
 
-export function buildStorefrontUrl(agentId: string, storeSlug?: string | null): string {
-  const segment = storeSlug?.trim() || agentId
+export function buildStorefrontUrl(
+  agentId: string,
+  storeSlug?: string | null,
+  storeSegment?: string | null,
+): string {
+  const segment = storeSegment?.trim() || storeSlug?.trim() || agentId
   return `${getStorefrontPublicOrigin()}/store/${segment}`
 }
 

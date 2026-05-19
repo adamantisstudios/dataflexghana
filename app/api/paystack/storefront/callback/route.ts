@@ -1,15 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getRequestClientMeta } from "@/lib/audit-logger"
-import {
-  captureStorefrontFromPaystackMetadata,
-} from "@/lib/storefront-order-capture"
+import { captureStorefrontFromPaystackMetadata } from "@/lib/storefront-order-capture"
 import {
   buildStorefrontAdminWhatsAppUrl,
   formatStorefrontAdminWhatsAppMessage,
   metadataValue,
   parseStorefrontItemsFromMetadata,
 } from "@/lib/storefront-order-whatsapp"
-import { buildStorefrontUrl, getStorefrontPublicBase } from "@/lib/storefront-utils"
+import {
+  buildStorefrontPathUrl,
+  getStorefrontPublicBase,
+  getStorefrontServerOrigin,
+} from "@/lib/storefront-utils"
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
 
@@ -17,15 +19,22 @@ export const dynamic = "force-dynamic"
 
 function paymentReferenceFromRequest(request: NextRequest): string | null {
   const params = request.nextUrl.searchParams
-  return (
-    params.get("reference") ||
-    params.get("trxref") ||
-    params.get("ref") ||
-    null
-  )
+  return params.get("reference") || params.get("trxref") || params.get("ref") || null
+}
+
+function resolveRedirectSegment(meta: Record<string, unknown>, agentId: string): string {
+  const segment = String(
+    metadataValue(meta, "store_segment") ||
+      metadataValue(meta, "store_slug") ||
+      meta.store_segment ||
+      meta.store_slug ||
+      "",
+  ).trim()
+  return segment || agentId
 }
 
 function buildSuccessRedirect(
+  request: NextRequest,
   agentId: string,
   reference: string,
   meta: Record<string, unknown>,
@@ -33,7 +42,8 @@ function buildSuccessRedirect(
   cartTotal: number,
 ) {
   const storeName = String(meta.store_name || "Store")
-  const storeSlug = String(meta.store_slug || "").trim() || null
+  const origin = getStorefrontServerOrigin(request)
+  const segment = resolveRedirectSegment(meta, agentId)
 
   const whatsappMessage = formatStorefrontAdminWhatsAppMessage({
     storeName,
@@ -48,7 +58,7 @@ function buildSuccessRedirect(
     reference,
   })
 
-  const redirectUrl = new URL(buildStorefrontUrl(agentId, storeSlug))
+  const redirectUrl = new URL(buildStorefrontPathUrl(origin, segment))
   redirectUrl.searchParams.set("payment", "success")
   redirectUrl.searchParams.set("ref", reference)
   redirectUrl.searchParams.set("whatsapp_url", buildStorefrontAdminWhatsAppUrl(whatsappMessage))
@@ -115,9 +125,15 @@ export async function GET(request: NextRequest) {
       reference: verifiedReference,
       agentId,
     })
+  } else if (capture.insertedCount > 0) {
+    console.info("[storefront callback] captured orders:", {
+      reference: verifiedReference,
+      agentId,
+      insertedCount: capture.insertedCount,
+    })
   }
 
   return NextResponse.redirect(
-    buildSuccessRedirect(agentId, verifiedReference, meta, items, cartTotal),
+    buildSuccessRedirect(request, agentId, verifiedReference, meta, items, cartTotal),
   )
 }

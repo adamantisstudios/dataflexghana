@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getServerAppBaseUrl } from "@/lib/app-url"
 import { getAdminClient } from "@/lib/supabase-base"
+import { getStorefrontPaystackCallbackUrl } from "@/lib/storefront-utils"
 import type { StorefrontCartItemMeta } from "@/lib/storefront-order-whatsapp"
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co"
@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { email, agent_id, items, store_name } = body
+    const { email, agent_id, items, store_name, store_slug: storeSlugInput, store_segment: storeSegmentInput } =
+      body
 
     const cartInputs: CartItemInput[] = Array.isArray(items)
       ? items
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     const reference = `SF-${String(agent_id).slice(0, 8)}-${Date.now()}`
 
-    const appUrl = getServerAppBaseUrl(request)
+    const callbackUrl = getStorefrontPaystackCallbackUrl(request)
 
     const { data: profile } = await db
       .from("agent_store_profiles")
@@ -123,7 +124,8 @@ export async function POST(request: NextRequest) {
     let resolvedStoreName = String(store_name || profile?.store_name || "").trim()
     if (!resolvedStoreName) resolvedStoreName = "Store"
 
-    const storeSlug = profile?.store_slug ? String(profile.store_slug) : ""
+    const storeSegment = String(storeSegmentInput || storeSlugInput || "").trim()
+    const storeSlug = storeSegment || (profile?.store_slug ? String(profile.store_slug) : "")
 
     const response = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
       method: "POST",
@@ -141,10 +143,11 @@ export async function POST(request: NextRequest) {
           agent_id: String(agent_id),
           store_name: resolvedStoreName,
           store_slug: storeSlug,
+          store_segment: storeSegment || storeSlug,
           cart_total: String(cartTotal),
           items_json: JSON.stringify(resolved),
         },
-        callback_url: `${appUrl}/api/paystack/storefront/callback`,
+        callback_url: callbackUrl,
       }),
     })
 
