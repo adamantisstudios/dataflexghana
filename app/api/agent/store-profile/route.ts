@@ -52,6 +52,8 @@ export const PUT = withUnifiedAuth(async (request: NextRequest, user) => {
       phone_number,
       primary_color: body.primary_color,
       business_info: body.business_info,
+      whatsapp_channel_url: body.whatsapp_channel_url?.trim() || null,
+      show_whatsapp_popup: body.show_whatsapp_popup !== false,
     })
 
     return NextResponse.json({ success: true, profile })

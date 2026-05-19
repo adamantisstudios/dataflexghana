@@ -536,6 +536,11 @@ export default function PayoutsTab() {
                         </h3>
                         <div className="flex items-center gap-2">
                           <Badge className={getStatusColor(withdrawal.status)}>{withdrawal.status}</Badge>
+                          {withdrawal.admin_notes?.includes("source:storefront") && (
+                            <Badge variant="secondary" className="bg-violet-100 text-violet-800">
+                              Storefront commission
+                            </Badge>
+                          )}
                           {validation && !validation.isValid && (
                             <Badge className="bg-red-100 text-red-800 border-red-200">
                               <AlertCircle className="h-3 w-3 mr-1" />

@@ -1,7 +1,12 @@
 import { getAdminClient } from "@/lib/supabase-base"
 import { isUuid, isValidStoreSlug, normalizeStoreSlug } from "@/lib/storefront-utils"
+import {
+  type StoreItemType,
+  marginForItemType,
+  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+} from "@/lib/storefront-catalog"
 
-export type StoreItemType = "data_bundle" | "referral_service"
+export type { StoreItemType } from "@/lib/storefront-catalog"
 
 export interface StoreSettingRow {
   id: string
@@ -21,6 +26,8 @@ export interface StoreProfileRow {
   primary_color: string | null
   business_info: string | null
   storefront_commission_balance: number
+  whatsapp_channel_url?: string | null
+  show_whatsapp_popup?: boolean | null
 }
 
 export async function resolveStoreSegmentToAgentId(segment: string): Promise<string | null> {
@@ -160,8 +167,7 @@ export async function upsertStoreSetting(
   fields: { is_visible?: boolean; custom_margin?: number },
 ) {
   const db = getAdminClient()
-  const margin =
-    itemType === "referral_service" ? 0 : Number(fields.custom_margin ?? 0)
+  const margin = marginForItemType(itemType, Number(fields.custom_margin ?? 0))
 
   const { data, error } = await db
     .from("agent_store_settings")

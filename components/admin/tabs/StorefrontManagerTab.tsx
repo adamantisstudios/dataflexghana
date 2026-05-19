@@ -17,20 +17,45 @@ import { toast } from "sonner"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { STOREFRONT_ORDERS_CHANGED_EVENT } from "@/lib/storefront-events"
 import { RefreshCw, Store, Search, Copy, Check, Download } from "lucide-react"
+import { StorefrontCompliancePanel } from "@/components/admin/StorefrontCompliancePanel"
 
 const ORDERS_POLL_MS = 15000
 
 interface StorefrontOrder {
   id: string
   agent_id: string
-  customer_phone: string
+  customer_phone: string | null
   base_cost: number
   agent_markup: number
   total_paid: number
   status: string
   created_at: string
+  order_type?: string | null
+  item_title?: string | null
+  quantity?: number | null
+  buyer_details?: Record<string, string> | null
   data_bundles?: { name: string; provider: string; size_gb: number } | null
   agents?: { full_name: string; phone_number: string } | null
+}
+
+function orderItemLabel(o: StorefrontOrder): string {
+  if (o.order_type === "wholesale_product") {
+    const qty = o.quantity && o.quantity > 1 ? ` ×${o.quantity}` : ""
+    return `${o.item_title || "Wholesale product"}${qty}`
+  }
+  if (o.data_bundles?.name) {
+    return `${o.data_bundles.name} (${o.data_bundles.provider} ${o.data_bundles.size_gb}GB)`
+  }
+  return o.item_title || "Data bundle"
+}
+
+function orderCustomerLabel(o: StorefrontOrder): string {
+  if (o.buyer_details && typeof o.buyer_details === "object") {
+    const b = o.buyer_details
+    const parts = [b.full_name, b.contact_number || b.phone, b.location, b.address].filter(Boolean)
+    return parts.join(" · ") || "Buyer details on file"
+  }
+  return o.customer_phone || "—"
 }
 
 interface StoreProfile {
@@ -246,7 +271,9 @@ export default function StorefrontManagerTab() {
     }
   }
 
-  const renderCustomerPhone = (phone: string) => (
+  const renderCustomerPhone = (phone: string | null) => {
+    if (!phone) return <span className="text-muted-foreground">—</span>
+    return (
     <span className="inline-flex items-center gap-0.5">
       <span>{phone}</span>
       <Button
@@ -272,7 +299,8 @@ export default function StorefrontManagerTab() {
         )}
       </Button>
     </span>
-  )
+    )
+  }
 
   const markCashoutPaid = async (agentId: string) => {
     if (!confirm("Mark MoMo cashout as paid and reset storefront commission balance to ₵0?")) return
@@ -475,8 +503,8 @@ export default function StorefrontManagerTab() {
                     <TableRow>
                       <TableHead>Order</TableHead>
                       <TableHead>Agent</TableHead>
-                      <TableHead>Bundle</TableHead>
-                      <TableHead>Customer</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Customer / buyer</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Date</TableHead>
@@ -488,12 +516,14 @@ export default function StorefrontManagerTab() {
                         <TableCell className="font-mono text-xs">{o.id.slice(0, 8)}…</TableCell>
                         <TableCell>{o.agents?.full_name || o.agent_id.slice(0, 8)}</TableCell>
                         <TableCell>
-                          {o.data_bundles?.name || "—"}
-                          <span className="block text-xs text-muted-foreground">
-                            {o.data_bundles?.provider} {o.data_bundles?.size_gb}GB
-                          </span>
+                          {orderItemLabel(o)}
+                          {o.order_type === "wholesale_product" && (
+                            <span className="block text-xs text-muted-foreground">Wholesale</span>
+                          )}
                         </TableCell>
-                        <TableCell>{renderCustomerPhone(o.customer_phone)}</TableCell>
+                        <TableCell className="max-w-[220px] text-xs">
+                          {o.buyer_details ? orderCustomerLabel(o) : renderCustomerPhone(o.customer_phone)}
+                        </TableCell>
                         <TableCell className="font-semibold">₵{Number(o.total_paid).toFixed(2)}</TableCell>
                         <TableCell>
                           <Select
@@ -525,14 +555,15 @@ export default function StorefrontManagerTab() {
                   <div key={o.id} className="border rounded-lg p-4 space-y-2">
                     <div className="flex justify-between gap-2">
                       <div>
-                        <p className="font-medium">{o.data_bundles?.name || "Order"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {o.agents?.full_name} · {o.data_bundles?.provider}
-                        </p>
+                        <p className="font-medium">{orderItemLabel(o)}</p>
+                        <p className="text-xs text-muted-foreground">{o.agents?.full_name}</p>
                       </div>
                       <p className="font-semibold shrink-0">₵{Number(o.total_paid).toFixed(2)}</p>
                     </div>
-                    <p className="text-sm">{renderCustomerPhone(o.customer_phone)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {o.buyer_details ? orderCustomerLabel(o) : null}
+                      {!o.buyer_details && renderCustomerPhone(o.customer_phone)}
+                    </p>
                     <Select
                       value={o.status}
                       onValueChange={(v) => updateStatus(o.id, v)}
@@ -581,6 +612,8 @@ export default function StorefrontManagerTab() {
           )}
         </CardContent>
       </Card>
+
+      <StorefrontCompliancePanel />
     </div>
   )
 }

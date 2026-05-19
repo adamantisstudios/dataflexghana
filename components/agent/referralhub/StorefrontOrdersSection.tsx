@@ -30,13 +30,39 @@ interface StorefrontOrder {
 interface Props {
   agentId: string
   commissionBalance: number
+  onBalanceChange?: () => void
 }
 
-export function StorefrontOrdersSection({ agentId, commissionBalance }: Props) {
+export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceChange }: Props) {
+  const [requestingPayout, setRequestingPayout] = useState(false)
   const [orders, setOrders] = useState<StorefrontOrder[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
+
+  const requestPayout = async () => {
+    if (commissionBalance <= 0) {
+      toast.error("No commission balance to withdraw")
+      return
+    }
+    if (!confirm(`Request payout of ₵${commissionBalance.toFixed(2)}? This will notify admin.`)) return
+    setRequestingPayout(true)
+    try {
+      const res = await fetch("/api/agent/storefront/request-payout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
+        body: JSON.stringify({ agentId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success(data.data?.message || "Payout requested")
+      onBalanceChange?.()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Request failed")
+    } finally {
+      setRequestingPayout(false)
+    }
+  }
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
@@ -79,17 +105,26 @@ export function StorefrontOrdersSection({ agentId, commissionBalance }: Props) {
   return (
     <div className="space-y-4">
       <Card className="border-emerald-200 bg-emerald-50/50">
-        <CardContent className="pt-6 flex items-center gap-3">
-          <Wallet className="h-8 w-8 text-emerald-700 shrink-0" />
-          <div>
-            <p className="text-sm text-muted-foreground">Storefront commission balance</p>
-            <p className="text-2xl font-bold text-emerald-800">
-              ₵{Number(commissionBalance).toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Paid manually by admin via MoMo when you request cashout.
-            </p>
+        <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <Wallet className="h-8 w-8 text-emerald-700 shrink-0" />
+            <div>
+              <p className="text-sm text-muted-foreground">Storefront commission balance</p>
+              <p className="text-2xl font-bold text-emerald-800">
+                ₵{Number(commissionBalance).toFixed(2)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Request payout — admin pays via MoMo and marks it in Payouts.
+              </p>
+            </div>
           </div>
+          <Button
+            onClick={requestPayout}
+            disabled={requestingPayout || commissionBalance <= 0}
+            className="bg-emerald-700 hover:bg-emerald-800 shrink-0"
+          >
+            {requestingPayout ? "Submitting…" : "Request Payout"}
+          </Button>
         </CardContent>
       </Card>
 

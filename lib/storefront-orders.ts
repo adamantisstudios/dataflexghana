@@ -3,14 +3,19 @@ import { getAdminClient } from "@/lib/supabase-base"
 export interface StorefrontOrderRow {
   id: string
   agent_id: string
-  data_bundle_id: string
-  customer_phone: string
+  data_bundle_id: string | null
+  customer_phone: string | null
   paystack_reference: string
   base_cost: number
   agent_markup: number
   total_paid: number
   status: string
   created_at: string
+  order_type?: string | null
+  item_title?: string | null
+  quantity?: number | null
+  buyer_details?: Record<string, string> | null
+  wholesale_product_id?: string | null
 }
 
 export interface EnrichedStorefrontOrder extends StorefrontOrderRow {
@@ -115,14 +120,16 @@ export async function fetchEnrichedStorefrontOrders(
   }
 
   const rows = (orders || []) as StorefrontOrderRow[]
-  const bundleMap = await fetchBundlesMap(rows.map((o) => o.data_bundle_id))
+  const bundleMap = await fetchBundlesMap(
+    rows.map((o) => o.data_bundle_id).filter((id): id is string => Boolean(id)),
+  )
   const agentMap = options?.includeAgents
     ? await fetchAgentsMap(rows.map((o) => o.agent_id))
     : new Map()
 
   const enriched = rows.map((o) => ({
     ...o,
-    data_bundles: bundleMap.get(o.data_bundle_id) ?? null,
+    data_bundles: o.data_bundle_id ? bundleMap.get(o.data_bundle_id) ?? null : null,
     agents: options?.includeAgents ? agentMap.get(o.agent_id) ?? null : undefined,
   }))
 

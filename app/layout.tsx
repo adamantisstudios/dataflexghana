@@ -840,6 +840,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noai, noimageai" />
         <meta name="theme-color" content="#059669" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="msapplication-TileColor" content="#10b981" />

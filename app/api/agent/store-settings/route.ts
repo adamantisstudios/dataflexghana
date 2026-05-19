@@ -18,16 +18,29 @@ export const GET = withUnifiedAuth(async (request: NextRequest, user) => {
 
   const settings = await getStoreSettings(agentId)
   const bundleIds = settings.filter((s) => s.item_type === "data_bundle").map((s) => s.item_id)
+  const wholesaleIds = settings.filter((s) => s.item_type === "wholesale_product").map((s) => s.item_id)
 
-  let savedBundles: Record<string, unknown>[] = []
-  if (bundleIds.length > 0) {
-    const db = getAdminClient()
-    const { data } = await db
-      .from("data_bundles")
-      .select("id, name, provider, size_gb, price, image_url")
-      .in("id", bundleIds)
-    savedBundles = data || []
-  }
+  const db = getAdminClient()
+    let savedBundles: Record<string, unknown>[] = []
+    if (bundleIds.length > 0) {
+      const { data } = await db
+        .from("data_bundles")
+        .select("id, name, provider, size_gb, price, image_url")
+        .in("id", bundleIds)
+      savedBundles = data || []
+    }
+
+    let savedWholesale: Record<string, unknown>[] = []
+    if (wholesaleIds.length > 0) {
+      const { data } = await db
+        .from("wholesale_products")
+        .select("id, name, description, price, image_urls")
+        .in("id", wholesaleIds)
+      savedWholesale = (data || []).map((p) => {
+        const images = (p.image_urls as string[] | null) || []
+        return { ...p, image_url: images[0] || null }
+      })
+    }
 
   const profileRes = await getAdminClient()
     .from("agent_store_profiles")
@@ -38,6 +51,7 @@ export const GET = withUnifiedAuth(async (request: NextRequest, user) => {
   return NextResponse.json({
     settings,
     savedBundles,
+    savedWholesale,
     storefront_commission_balance: Number(profileRes.data?.storefront_commission_balance ?? 0),
   })
 })

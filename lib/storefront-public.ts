@@ -1,5 +1,11 @@
 import { getAdminClient } from "@/lib/supabase-base"
 import { isUuid } from "@/lib/storefront-utils"
+import {
+  type PublicWholesaleProduct,
+  type PublicComplianceForm,
+  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+  complianceFormAdminPrice,
+} from "@/lib/storefront-catalog"
 
 export type PublicBundle = {
   id: string
@@ -27,12 +33,16 @@ export type PublicProfile = {
   phone_number: string | null
   primary_color: string | null
   business_info: string | null
+  whatsapp_channel_url?: string | null
+  show_whatsapp_popup?: boolean
 }
 
 export type PublicStorefrontResponse = {
   profile: PublicProfile | null
   bundles: PublicBundle[]
   services: PublicService[]
+  wholesaleProducts: PublicWholesaleProduct[]
+  complianceForms: PublicComplianceForm[]
   unavailable?: boolean
 }
 
@@ -40,6 +50,8 @@ const EMPTY_RESPONSE: PublicStorefrontResponse = {
   profile: null,
   bundles: [],
   services: [],
+  wholesaleProducts: [],
+  complianceForms: [],
 }
 
 /** Server-side payload for /api/storefront/public/[agentId] and /store/[segment] page. */
@@ -88,7 +100,7 @@ export async function getPublicStorefrontResponse(
     const { data: profileRow, error: profileError } = await db
       .from("agent_store_profiles")
       .select(
-        "store_name, store_slug, whatsapp_number, phone_number, primary_color, business_info",
+        "store_name, store_slug, whatsapp_number, phone_number, primary_color, business_info, whatsapp_channel_url, show_whatsapp_popup",
       )
       .eq("agent_id", agentId)
       .maybeSingle()
@@ -105,6 +117,8 @@ export async function getPublicStorefrontResponse(
           phone_number: profileRow.phone_number ?? null,
           primary_color: profileRow.primary_color ?? null,
           business_info: profileRow.business_info ?? null,
+          whatsapp_channel_url: profileRow.whatsapp_channel_url ?? null,
+          show_whatsapp_popup: profileRow.show_whatsapp_popup !== false,
         }
       : {
           store_name: agentDetails.full_name ?? "Data Store",
@@ -113,10 +127,12 @@ export async function getPublicStorefrontResponse(
           phone_number: agentDetails.phone_number ?? null,
           primary_color: "#3B82F6",
           business_info: null,
+          whatsapp_channel_url: null,
+          show_whatsapp_popup: true,
         }
 
     if (!agentDetails.isapproved) {
-      return { profile, bundles: [], services: [], unavailable: true }
+      return { profile, bundles: [], services: [], wholesaleProducts: [], complianceForms: [], unavailable: true }
     }
 
     const { data: settings, error: settingsError } = await db
@@ -127,7 +143,7 @@ export async function getPublicStorefrontResponse(
 
     if (settingsError) {
       console.error("public storefront settings:", settingsError)
-      return { profile, bundles: [], services: [] }
+      return { profile, bundles: [], services: [], wholesaleProducts: [], complianceForms: [] }
     }
 
     const visibleSettings = settings ?? []
@@ -137,10 +153,21 @@ export async function getPublicStorefrontResponse(
     const serviceIds = visibleSettings
       .filter((s) => s.item_type === "referral_service")
       .map((s) => s.item_id)
+    const wholesaleIds = visibleSettings
+      .filter((s) => s.item_type === "wholesale_product")
+      .map((s) => s.item_id)
+    const hasCompliance = visibleSettings.some(
+      (s) => s.item_type === "compliance_form" && s.item_id === COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+    )
 
     const marginByBundleId = new Map(
       visibleSettings
         .filter((s) => s.item_type === "data_bundle")
+        .map((s) => [s.item_id, Number(s.custom_margin ?? 0)]),
+    )
+    const marginByWholesaleId = new Map(
+      visibleSettings
+        .filter((s) => s.item_type === "wholesale_product")
         .map((s) => [s.item_id, Number(s.custom_margin ?? 0)]),
     )
 
@@ -202,10 +229,56 @@ export async function getPublicStorefrontResponse(
       }
     }
 
+    let wholesaleProducts: PublicWholesaleProduct[] = []
+    if (wholesaleIds.length > 0) {
+      const { data: productRows, error: productsError } = await db
+        .from("wholesale_products")
+        .select("id, name, description, price, image_urls, category, is_active, quantity")
+        .in("id", wholesaleIds)
+        .eq("is_active", true)
+
+      if (productsError) {
+        console.error("public storefront wholesale:", productsError)
+      } else {
+        wholesaleProducts = (productRows ?? [])
+          .filter((p) => Number(p.quantity ?? 0) > 0)
+          .map((p) => {
+            const base_price = Number(p.price ?? 0)
+            const custom_margin = marginByWholesaleId.get(p.id) ?? 0
+            const images = (p.image_urls as string[] | null) || []
+            return {
+              id: p.id,
+              name: p.name,
+              description: p.description ?? null,
+              base_price,
+              custom_margin,
+              retail_price: base_price + custom_margin,
+              image_url: images[0] || null,
+              category: p.category ?? null,
+            }
+          })
+        wholesaleProducts.sort((a, b) => a.name.localeCompare(b.name))
+      }
+    }
+
+    const complianceForms: PublicComplianceForm[] = hasCompliance
+      ? [
+          {
+            form_type: COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+            title: "Sole Proprietorship Registration",
+            description:
+              "Register your sole proprietorship business. Pay the registration fee to unlock the application form.",
+            admin_price: complianceFormAdminPrice(),
+          },
+        ]
+      : []
+
     return {
       profile,
       bundles,
       services,
+      wholesaleProducts,
+      complianceForms,
       unavailable: false,
     }
   } catch (error) {

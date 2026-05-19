@@ -6,6 +6,11 @@ import {
   parseStorefrontItemsFromMetadata,
   type StorefrontCartItemMeta,
 } from "@/lib/storefront-order-whatsapp"
+import {
+  parseWholesaleItemsFromMetadata,
+  parseBuyerDetailsFromMetadata,
+} from "@/lib/storefront-paystack-meta"
+import { COMPLIANCE_FORM_SOLE_PROPRIETORSHIP } from "@/lib/storefront-catalog"
 
 export type StorefrontCaptureResult = {
   ok: boolean
@@ -127,6 +132,125 @@ export async function captureStorefrontPaidOrder(params: {
   }
 }
 
+export async function captureWholesalePaidOrder(params: {
+  reference: string
+  agentId: string
+  metadata: Record<string, unknown>
+  actorType?: string
+  ipAddress?: string | null
+  userAgent?: string | null
+}): Promise<StorefrontCaptureResult> {
+  const reference = params.reference.trim()
+  const agentId = params.agentId.trim()
+  const wholesaleItems = parseWholesaleItemsFromMetadata(params.metadata)
+  const buyerDetails = parseBuyerDetailsFromMetadata(params.metadata)
+
+  if (!reference || !agentId || wholesaleItems.length === 0) {
+    return {
+      ok: false,
+      alreadyRecorded: false,
+      orderIds: [],
+      insertedCount: 0,
+      error: "Missing wholesale cart data",
+    }
+  }
+
+  const db = getAdminClient()
+  const { data: existing } = await db
+    .from("storefront_orders")
+    .select("id")
+    .eq("paystack_reference", reference)
+
+  if (existing?.length) {
+    return {
+      ok: true,
+      alreadyRecorded: true,
+      orderIds: existing.map((r) => r.id),
+      insertedCount: 0,
+    }
+  }
+
+  const rows = wholesaleItems.map((item) => ({
+    agent_id: agentId,
+    order_type: "wholesale_product",
+    wholesale_product_id: item.wholesale_product_id,
+    data_bundle_id: null,
+    customer_phone: buyerDetails?.contact_number ?? null,
+    paystack_reference: reference,
+    base_cost: item.base_cost * item.quantity,
+    agent_markup: item.agent_markup * item.quantity,
+    total_paid: item.total_paid,
+    quantity: item.quantity,
+    item_title: item.product_name,
+    buyer_details: buyerDetails,
+    status: "Pending",
+  }))
+
+  const { data: inserted, error: insertError } = await db
+    .from("storefront_orders")
+    .insert(rows)
+    .select("id")
+
+  if (insertError) {
+    return {
+      ok: false,
+      alreadyRecorded: false,
+      orderIds: [],
+      insertedCount: 0,
+      error: insertError.message,
+    }
+  }
+
+  const orderIds = (inserted || []).map((r) => r.id as string)
+  const totalMarkup = wholesaleItems.reduce((sum, item) => sum + Number(item.agent_markup) * item.quantity, 0)
+
+  if (totalMarkup > 0) {
+    try {
+      await creditStorefrontCommission(agentId, totalMarkup)
+    } catch (e) {
+      console.error("[storefront-capture] wholesale commission:", e)
+    }
+  }
+
+  return {
+    ok: true,
+    alreadyRecorded: false,
+    orderIds,
+    insertedCount: orderIds.length,
+  }
+}
+
+export async function captureCompliancePayment(params: {
+  reference: string
+  agentId: string
+  formType: string
+  amountPaid: number
+  metadata?: Record<string, unknown>
+}): Promise<{ ok: boolean; error?: string }> {
+  const db = getAdminClient()
+  const { data: existing } = await db
+    .from("storefront_compliance_submissions")
+    .select("id")
+    .eq("paystack_reference", params.reference)
+    .maybeSingle()
+
+  if (existing) return { ok: true }
+
+  const { error } = await db.from("storefront_compliance_submissions").insert({
+    agent_id: params.agentId,
+    form_type: params.formType || COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+    customer_data: {},
+    status: "paid_pending_form",
+    paystack_reference: params.reference,
+    amount_paid: params.amountPaid,
+  })
+
+  if (error) {
+    return { ok: false, error: error.message }
+  }
+  return { ok: true }
+}
+
 export async function captureStorefrontFromPaystackMetadata(params: {
   reference: string
   metadata: Record<string, unknown>
@@ -135,15 +259,60 @@ export async function captureStorefrontFromPaystackMetadata(params: {
   userAgent?: string | null
 }): Promise<StorefrontCaptureResult> {
   const agentId = String(metadataValue(params.metadata, "agent_id") || params.metadata.agent_id || "")
-  const items = parseStorefrontItemsFromMetadata(params.metadata)
+  const orderType = String(
+    metadataValue(params.metadata, "order_type") || params.metadata.order_type || "data_bundle",
+  )
 
-  if (!agentId || items.length === 0) {
+  if (!agentId) {
     return {
       ok: false,
       alreadyRecorded: false,
       orderIds: [],
       insertedCount: 0,
-      error: "Paystack metadata missing agent_id or cart items",
+      error: "Paystack metadata missing agent_id",
+    }
+  }
+
+  if (orderType === "wholesale") {
+    return captureWholesalePaidOrder({
+      reference: params.reference,
+      agentId,
+      metadata: params.metadata,
+      actorType: params.actorType,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    })
+  }
+
+  if (orderType === "compliance") {
+    const amount = Number(params.metadata.cart_total ?? params.metadata.amount ?? 0)
+    const formType = String(
+      metadataValue(params.metadata, "form_type") || COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+    )
+    const result = await captureCompliancePayment({
+      reference: params.reference,
+      agentId,
+      formType,
+      amountPaid: amount,
+      metadata: params.metadata,
+    })
+    return {
+      ok: result.ok,
+      alreadyRecorded: false,
+      orderIds: [],
+      insertedCount: result.ok ? 1 : 0,
+      error: result.error,
+    }
+  }
+
+  const items = parseStorefrontItemsFromMetadata(params.metadata)
+  if (items.length === 0) {
+    return {
+      ok: false,
+      alreadyRecorded: false,
+      orderIds: [],
+      insertedCount: 0,
+      error: "Paystack metadata missing cart items",
     }
   }
 

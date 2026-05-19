@@ -32,7 +32,14 @@ import {
   toWhatsAppHref,
 } from "@/lib/phone-utils"
 import { StorefrontWhatsAppWidget } from "@/components/storefront/StorefrontWhatsAppWidget"
+import { StorefrontChannelPopup } from "@/components/storefront/StorefrontChannelPopup"
+import { StorefrontSocialShareBar } from "@/components/storefront/StorefrontSocialShareBar"
+import {
+  StorefrontExtendedCatalog,
+  type WholesaleCartLine,
+} from "@/components/storefront/StorefrontExtendedCatalog"
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
+import type { PublicWholesaleProduct, PublicComplianceForm, BuyerDetails } from "@/lib/storefront-catalog"
 
 interface DataBundle {
   id: string
@@ -55,10 +62,13 @@ interface ReferralService {
 
 interface StoreProfile {
   store_name: string | null
+  store_slug?: string | null
   whatsapp_number: string | null
   phone_number: string | null
   primary_color: string | null
   business_info: string | null
+  whatsapp_channel_url?: string | null
+  show_whatsapp_popup?: boolean
 }
 
 const NETWORK_TABS = [
@@ -96,6 +106,8 @@ type PublicAgentStorefrontProps = {
   initialProfile?: StoreProfile | null
   initialBundles?: DataBundle[]
   initialServices?: ReferralService[]
+  initialWholesaleProducts?: PublicWholesaleProduct[]
+  initialComplianceForms?: PublicComplianceForm[]
 }
 
 function mapApiBundles(raw: Array<DataBundle & { final_price?: number }>): DataBundle[] {
@@ -110,12 +122,16 @@ function applyStorefrontPayload(
     profile?: StoreProfile | null
     bundles?: Array<DataBundle & { final_price?: number }>
     services?: ReferralService[]
+    wholesaleProducts?: PublicWholesaleProduct[]
+    complianceForms?: PublicComplianceForm[]
     unavailable?: boolean
   },
   setters: {
     setProfile: (p: StoreProfile | null) => void
     setBundles: (b: DataBundle[]) => void
     setServices: (s: ReferralService[]) => void
+    setWholesaleProducts: (p: PublicWholesaleProduct[]) => void
+    setComplianceForms: (f: PublicComplianceForm[]) => void
     setNetworkTab: (t: string) => void
     setMainTab: (t: "bundles" | "services") => void
     setLoadError: (e: string | null) => void
@@ -126,6 +142,8 @@ function applyStorefrontPayload(
     setters.setProfile(null)
     setters.setBundles([])
     setters.setServices([])
+    setters.setWholesaleProducts([])
+    setters.setComplianceForms([])
     return false
   }
 
@@ -135,6 +153,8 @@ function applyStorefrontPayload(
   setters.setProfile(data.profile ?? null)
   setters.setBundles(apiBundles)
   setters.setServices(apiServices)
+  setters.setWholesaleProducts(data.wholesaleProducts || [])
+  setters.setComplianceForms(data.complianceForms || [])
   setters.setLoadError(null)
 
   const providers = apiBundles.map((b) => normalizeProvider(b.provider))
@@ -150,19 +170,32 @@ export default function PublicAgentStorefront({
   initialProfile,
   initialBundles,
   initialServices,
+  initialWholesaleProducts,
+  initialComplianceForms,
 }: PublicAgentStorefrontProps) {
   const params = useParams()
   const searchParams = useSearchParams()
   const agentId = (agentIdProp || (params?.agentId as string) || "").trim()
   const storeSegment = (storeSegmentProp || "").trim()
 
-  const hasServerPayload = initialProfile !== undefined || initialBundles !== undefined
+  const hasServerPayload =
+    initialProfile !== undefined ||
+    initialBundles !== undefined ||
+    initialWholesaleProducts !== undefined
 
   const [loading, setLoading] = useState(!hasServerPayload)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [profile, setProfile] = useState<StoreProfile | null>(initialProfile ?? null)
   const [bundles, setBundles] = useState<DataBundle[]>(initialBundles ?? [])
   const [services, setServices] = useState<ReferralService[]>(initialServices ?? [])
+  const [wholesaleProducts, setWholesaleProducts] = useState<PublicWholesaleProduct[]>(
+    initialWholesaleProducts ?? [],
+  )
+  const [complianceForms, setComplianceForms] = useState<PublicComplianceForm[]>(
+    initialComplianceForms ?? [],
+  )
+  const [wholesaleCart, setWholesaleCart] = useState<WholesaleCartLine[]>([])
+  const [compliancePaidRef, setCompliancePaidRef] = useState<string | null>(null)
   const [activeBundleId, setActiveBundleId] = useState<string | null>(null)
   const [phoneDraft, setPhoneDraft] = useState("")
   const [lastPhone, setLastPhone] = useState("")
@@ -175,6 +208,14 @@ export default function PublicAgentStorefront({
   const [serviceSearch, setServiceSearch] = useState("")
   const [servicePage, setServicePage] = useState(1)
   const [showDeliveryNotice, setShowDeliveryNotice] = useState(true)
+
+  useEffect(() => {
+    const complianceRef = searchParams.get("compliance_paid")
+    if (complianceRef) {
+      setCompliancePaidRef(complianceRef)
+      toast.success("Payment received — you can complete the registration form below.")
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const paymentStatus = searchParams.get("payment")
@@ -241,8 +282,19 @@ export default function PublicAgentStorefront({
           profile: initialProfile,
           bundles: initialBundles,
           services: initialServices,
+          wholesaleProducts: initialWholesaleProducts,
+          complianceForms: initialComplianceForms,
         },
-        { setProfile, setBundles, setServices, setNetworkTab, setMainTab, setLoadError },
+        {
+          setProfile,
+          setBundles,
+          setServices,
+          setWholesaleProducts,
+          setComplianceForms,
+          setNetworkTab,
+          setMainTab,
+          setLoadError,
+        },
       )
       setLoading(false)
       return
@@ -258,6 +310,8 @@ export default function PublicAgentStorefront({
           setProfile,
           setBundles,
           setServices,
+          setWholesaleProducts,
+          setComplianceForms,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -277,6 +331,8 @@ export default function PublicAgentStorefront({
     initialProfile,
     initialBundles,
     initialServices,
+    initialWholesaleProducts,
+    initialComplianceForms,
   ])
 
   const displayProfile: StoreProfile = profile ?? {
@@ -380,6 +436,48 @@ export default function PublicAgentStorefront({
     setCart((prev) => prev.filter((line) => line.lineId !== lineId))
   }
 
+  const addWholesaleToCart = (product: PublicWholesaleProduct, qty: number) => {
+    setWholesaleCart((prev) => [
+      ...prev,
+      { lineId: `wp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, product, quantity: qty },
+    ])
+    toast.success("Added to cart")
+    setCartOpen(true)
+  }
+
+  const removeWholesaleFromCart = (lineId: string) => {
+    setWholesaleCart((prev) => prev.filter((l) => l.lineId !== lineId))
+  }
+
+  const checkoutWholesale = async (buyer: BuyerDetails, email: string) => {
+    if (wholesaleCart.length === 0) return
+    setCheckingOut(true)
+    try {
+      const res = await fetch("/api/paystack/storefront/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          agent_id: agentId,
+          order_type: "wholesale",
+          store_name: displayProfile.store_name || "Store",
+          store_segment: storeSegment || undefined,
+          buyer_details: buyer,
+          items: wholesaleCart.map((l) => ({
+            wholesale_product_id: l.product.id,
+            quantity: l.quantity,
+          })),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Could not start payment")
+      window.location.href = data.authorizationUrl
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not start payment")
+      setCheckingOut(false)
+    }
+  }
+
   const checkoutCart = async () => {
     if (cart.length === 0) {
       toast.error("Add at least one bundle to your order")
@@ -457,7 +555,12 @@ export default function PublicAgentStorefront({
     )
   }
 
-  const hasStoreContent = Boolean(profile) || bundles.length > 0 || services.length > 0
+  const hasStoreContent =
+    Boolean(profile) ||
+    bundles.length > 0 ||
+    services.length > 0 ||
+    wholesaleProducts.length > 0 ||
+    complianceForms.length > 0
 
   if (!hasStoreContent) {
     return (
@@ -858,6 +961,21 @@ export default function PublicAgentStorefront({
         </Tabs>
         </section>
 
+        <StorefrontExtendedCatalog
+          agentId={agentId}
+          storeSegment={storeSegment}
+          storeName={displayProfile.store_name || "Data Store"}
+          accent={accent}
+          products={wholesaleProducts}
+          complianceForms={complianceForms}
+          wholesaleCart={wholesaleCart}
+          onAddWholesale={addWholesaleToCart}
+          onRemoveWholesale={removeWholesaleFromCart}
+          onCheckoutWholesale={checkoutWholesale}
+          compliancePaidRef={compliancePaidRef}
+          customerEmail={customerEmail}
+        />
+
         <footer className="text-center text-xs text-muted-foreground pt-2 pb-4 border-t border-slate-200/80 mt-4">
           Powered by Referral Powerhouse · Secure Paystack checkout
         </footer>
@@ -974,6 +1092,19 @@ export default function PublicAgentStorefront({
           </aside>
         </div>
       )}
+
+      <StorefrontSocialShareBar
+        agentId={agentId}
+        storeSlug={displayProfile.store_slug ?? storeSegment}
+        storeName={displayProfile.store_name || "Data Store"}
+      />
+
+      <StorefrontChannelPopup
+        storeName={displayProfile.store_name || "Data Store"}
+        channelUrl={displayProfile.whatsapp_channel_url}
+        enabled={displayProfile.show_whatsapp_popup !== false}
+        accentColor={accent}
+      />
 
       <StorefrontWhatsAppWidget
         whatsappPhone={whatsappPhone}

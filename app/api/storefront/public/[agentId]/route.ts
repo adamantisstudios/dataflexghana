@@ -17,6 +17,8 @@ export async function GET(
       profile: null,
       bundles: [],
       services: [],
+      wholesaleProducts: [],
+      complianceForms: [],
     })
   }
 }

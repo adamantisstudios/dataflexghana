@@ -106,6 +106,8 @@ export default async function StorePage({ params }: PageProps) {
         initialProfile={storefront.profile}
         initialBundles={storefront.bundles}
         initialServices={storefront.services}
+        initialWholesaleProducts={storefront.wholesaleProducts}
+        initialComplianceForms={storefront.complianceForms}
       />
     </Suspense>
   )

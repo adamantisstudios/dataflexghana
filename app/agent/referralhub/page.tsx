@@ -19,6 +19,9 @@ import Link from "next/link"
 import { ArrowLeft, Store, Loader2, Check, X } from "lucide-react"
 import { ReferralHubSkeleton } from "@/components/agent/referralhub/ReferralHubSkeleton"
 import { ReferralHubEarningsTip } from "@/components/agent/referralhub/ReferralHubEarningsTip"
+import { MarketplaceWholesaleSection } from "@/components/agent/referralhub/MarketplaceWholesaleSection"
+import { MarketplaceComplianceSection } from "@/components/agent/referralhub/MarketplaceComplianceSection"
+import { Switch } from "@/components/ui/switch"
 
 interface AgentSession {
   id: string
@@ -32,6 +35,8 @@ interface StoreProfile {
   phone_number: string | null
   primary_color: string | null
   business_info: string | null
+  whatsapp_channel_url: string | null
+  show_whatsapp_popup: boolean
 }
 
 interface StoreSetting {
@@ -61,9 +66,14 @@ export default function ReferralHubPage() {
     phone_number: "",
     primary_color: "#3B82F6",
     business_info: "",
+    whatsapp_channel_url: "",
+    show_whatsapp_popup: true,
   })
   const [settings, setSettings] = useState<StoreSetting[]>([])
   const [savedBundles, setSavedBundles] = useState<DataBundle[]>([])
+  const [savedWholesale, setSavedWholesale] = useState<
+    { id: string; name: string; description: string | null; price: number; image_url?: string | null }[]
+  >([])
   const [commissionBalance, setCommissionBalance] = useState(0)
   const [saving, setSaving] = useState(false)
   const [slugInput, setSlugInput] = useState("")
@@ -87,6 +97,7 @@ export default function ReferralHubPage() {
     if (!marketRes.ok) throw new Error(marketData.error)
     setSettings(marketData.settings || [])
     setSavedBundles(marketData.savedBundles || [])
+    setSavedWholesale(marketData.savedWholesale || [])
     setCommissionBalance(Number(marketData.storefront_commission_balance ?? 0))
   }, [])
 
@@ -105,6 +116,8 @@ export default function ReferralHubPage() {
             phone_number: profileData.profile.phone_number || "",
             primary_color: profileData.profile.primary_color || "#3B82F6",
             business_info: profileData.profile.business_info || "",
+            whatsapp_channel_url: profileData.profile.whatsapp_channel_url || "",
+            show_whatsapp_popup: profileData.profile.show_whatsapp_popup !== false,
           })
           setSlugInput(profileData.profile.store_slug || "")
         }
@@ -333,6 +346,28 @@ export default function ReferralHubPage() {
                     />
                   </div>
                   <div className="w-full">
+                    <Label>WhatsApp channel / group link</Label>
+                    <Input
+                      className="w-full"
+                      placeholder="https://whatsapp.com/channel/..."
+                      value={profile.whatsapp_channel_url || ""}
+                      onChange={(e) => setProfile({ ...profile, whatsapp_channel_url: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Shown in a popup on your public store (after 3 seconds) when enabled below.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                    <div>
+                      <Label>Show WhatsApp channel popup on storefront</Label>
+                      <p className="text-xs text-muted-foreground">Visitors can join your channel</p>
+                    </div>
+                    <Switch
+                      checked={profile.show_whatsapp_popup}
+                      onCheckedChange={(v) => setProfile({ ...profile, show_whatsapp_popup: v })}
+                    />
+                  </div>
+                  <div className="w-full">
                     <Label>Business bio</Label>
                     <Textarea
                       className="w-full"
@@ -362,13 +397,28 @@ export default function ReferralHubPage() {
                     settings={settings}
                     onSettingsChange={() => loadSettings(agent.id)}
                   />
+                  <MarketplaceWholesaleSection
+                    agentId={agent.id}
+                    settings={settings}
+                    savedProducts={savedWholesale}
+                    onSettingsChange={() => loadSettings(agent.id)}
+                  />
+                  <MarketplaceComplianceSection
+                    agentId={agent.id}
+                    settings={settings}
+                    onSettingsChange={() => loadSettings(agent.id)}
+                  />
                 </>
               )}
             </TabsContent>
 
             <TabsContent value="orders" className="mt-4">
               {agent?.id && (
-                <StorefrontOrdersSection agentId={agent.id} commissionBalance={commissionBalance} />
+                <StorefrontOrdersSection
+                  agentId={agent.id}
+                  commissionBalance={commissionBalance}
+                  onBalanceChange={() => loadSettings(agent.id)}
+                />
               )}
             </TabsContent>
 

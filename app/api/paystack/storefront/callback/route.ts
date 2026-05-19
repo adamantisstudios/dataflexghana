@@ -101,11 +101,36 @@ export async function GET(request: NextRequest) {
   }
 
   const agentId = String(metadataValue(meta, "agent_id") || meta.agent_id || "")
-  const items = parseStorefrontItemsFromMetadata(meta)
+  const orderType = String(metadataValue(meta, "order_type") || meta.order_type || "data_bundle")
   const cartTotal = Number(meta.cart_total ?? amountPaid)
+  const segment = resolveRedirectSegment(meta, agentId)
 
-  if (!agentId || items.length === 0) {
-    console.error("[storefront callback] missing agent or items in metadata", meta)
+  if (!agentId) {
+    console.error("[storefront callback] missing agent in metadata", meta)
+    return NextResponse.redirect(buildFailureRedirect(verifiedReference))
+  }
+
+  if (orderType === "compliance") {
+    const clientMeta = getRequestClientMeta(request)
+    const capture = await captureStorefrontFromPaystackMetadata({
+      reference: verifiedReference,
+      metadata: meta,
+      actorType: "system",
+      ipAddress: clientMeta.ipAddress,
+      userAgent: clientMeta.userAgent,
+    })
+    if (!capture.ok) {
+      console.error("[storefront callback] compliance capture:", capture.error)
+    }
+    const redirectUrl = new URL(`${STOREFRONT_ORIGIN}/store/${encodeURIComponent(segment)}`)
+    redirectUrl.searchParams.set("compliance_paid", verifiedReference)
+    redirectUrl.searchParams.set("form_type", String(meta.form_type || "sole_proprietorship"))
+    return NextResponse.redirect(redirectUrl.toString())
+  }
+
+  const items = parseStorefrontItemsFromMetadata(meta)
+  if (orderType === "data_bundle" && items.length === 0) {
+    console.error("[storefront callback] missing bundle items", meta)
     return NextResponse.redirect(buildFailureRedirect(verifiedReference))
   }
 
@@ -129,6 +154,14 @@ export async function GET(request: NextRequest) {
       agentId,
       insertedCount: capture.insertedCount,
     })
+  }
+
+  if (orderType === "wholesale") {
+    const redirectUrl = new URL(`${STOREFRONT_ORIGIN}/store/${encodeURIComponent(segment)}`)
+    redirectUrl.searchParams.set("payment", "success")
+    redirectUrl.searchParams.set("ref", verifiedReference)
+    redirectUrl.searchParams.set("order_type", "wholesale")
+    return NextResponse.redirect(redirectUrl.toString())
   }
 
   return NextResponse.redirect(
