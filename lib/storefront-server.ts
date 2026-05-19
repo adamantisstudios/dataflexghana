@@ -26,17 +26,19 @@ export interface StoreProfileRow {
 export async function resolveStoreSegmentToAgentId(segment: string): Promise<string | null> {
   if (!segment?.trim()) return null
   const trimmed = segment.trim()
+  const db = getAdminClient()
+
   if (isUuid(trimmed)) {
-    const db = getAdminClient()
     const { data } = await db.from("agents").select("id").eq("id", trimmed).maybeSingle()
     return data?.id ?? null
   }
+
   const slug = normalizeStoreSlug(trimmed)
-  const db = getAdminClient()
+  if (!slug) return null
 
   const { data: exact } = await db
     .from("agent_store_profiles")
-    .select("agent_id")
+    .select("agent_id, store_slug")
     .eq("store_slug", slug)
     .maybeSingle()
 
@@ -54,11 +56,29 @@ export async function resolveStoreSegmentToAgentId(segment: string): Promise<str
 
   const { data: ilikeRows } = await db
     .from("agent_store_profiles")
-    .select("agent_id")
+    .select("agent_id, store_slug")
     .ilike("store_slug", slug)
     .limit(1)
 
-  return ilikeRows?.[0]?.agent_id ?? null
+  if (ilikeRows?.[0]?.agent_id) return ilikeRows[0].agent_id
+
+  // Prefix match (case-insensitive) for near-miss slugs, e.g. anna-store → anna-storem
+  const { data: prefixRows } = await db
+    .from("agent_store_profiles")
+    .select("agent_id, store_slug")
+    .ilike("store_slug", `${slug}%`)
+    .limit(10)
+
+  if (!prefixRows?.length) return null
+
+  const slugMatches = prefixRows.filter((row) => {
+    const rowSlug = normalizeStoreSlug(String(row.store_slug || ""))
+    return rowSlug === slug || rowSlug.startsWith(slug)
+  })
+
+  if (slugMatches.length === 1) return slugMatches[0].agent_id
+
+  return null
 }
 
 export async function checkStoreSlugAvailable(

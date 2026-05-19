@@ -93,20 +93,74 @@ import { dispatchStorefrontOrdersChanged } from "@/lib/storefront-events"
 type PublicAgentStorefrontProps = {
   agentId?: string
   storeSegment?: string
+  initialProfile?: StoreProfile | null
+  initialBundles?: DataBundle[]
+  initialServices?: ReferralService[]
+}
+
+function mapApiBundles(raw: Array<DataBundle & { final_price?: number }>): DataBundle[] {
+  return raw.map((b) => ({
+    ...b,
+    retail_price: Number(b.retail_price ?? b.final_price ?? 0),
+  }))
+}
+
+function applyStorefrontPayload(
+  data: {
+    profile?: StoreProfile | null
+    bundles?: Array<DataBundle & { final_price?: number }>
+    services?: ReferralService[]
+    unavailable?: boolean
+  },
+  setters: {
+    setProfile: (p: StoreProfile | null) => void
+    setBundles: (b: DataBundle[]) => void
+    setServices: (s: ReferralService[]) => void
+    setNetworkTab: (t: string) => void
+    setMainTab: (t: "bundles" | "services") => void
+    setLoadError: (e: string | null) => void
+  },
+): boolean {
+  if (data.unavailable) {
+    setters.setLoadError("This store is not available right now.")
+    setters.setProfile(null)
+    setters.setBundles([])
+    setters.setServices([])
+    return false
+  }
+
+  const apiBundles = mapApiBundles(data.bundles || [])
+  const apiServices = data.services || []
+
+  setters.setProfile(data.profile ?? null)
+  setters.setBundles(apiBundles)
+  setters.setServices(apiServices)
+  setters.setLoadError(null)
+
+  const providers = apiBundles.map((b) => normalizeProvider(b.provider))
+  if (providers.includes("MTN")) setters.setNetworkTab("MTN")
+  else if (providers[0]) setters.setNetworkTab(normalizeProvider(providers[0]))
+  if (apiServices.length > 0 && apiBundles.length === 0) setters.setMainTab("services")
+  return true
 }
 
 export default function PublicAgentStorefront({
   agentId: agentIdProp,
+  initialProfile,
+  initialBundles,
+  initialServices,
 }: PublicAgentStorefrontProps) {
   const params = useParams()
   const searchParams = useSearchParams()
   const agentId = (agentIdProp || (params?.agentId as string) || "").trim()
 
-  const [loading, setLoading] = useState(true)
+  const hasServerPayload = initialProfile !== undefined || initialBundles !== undefined
+
+  const [loading, setLoading] = useState(!hasServerPayload)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [profile, setProfile] = useState<StoreProfile | null>(null)
-  const [bundles, setBundles] = useState<DataBundle[]>([])
-  const [services, setServices] = useState<ReferralService[]>([])
+  const [profile, setProfile] = useState<StoreProfile | null>(initialProfile ?? null)
+  const [bundles, setBundles] = useState<DataBundle[]>(initialBundles ?? [])
+  const [services, setServices] = useState<ReferralService[]>(initialServices ?? [])
   const [activeBundleId, setActiveBundleId] = useState<string | null>(null)
   const [phoneDraft, setPhoneDraft] = useState("")
   const [lastPhone, setLastPhone] = useState("")
@@ -179,37 +233,33 @@ export default function PublicAgentStorefront({
       return
     }
 
+    if (hasServerPayload) {
+      applyStorefrontPayload(
+        {
+          profile: initialProfile,
+          bundles: initialBundles,
+          services: initialServices,
+        },
+        { setProfile, setBundles, setServices, setNetworkTab, setMainTab, setLoadError },
+      )
+      setLoading(false)
+      return
+    }
+
     const load = async () => {
       setLoadError(null)
       try {
         const res = await fetch(`/api/storefront/public/${agentId}`, { cache: "no-store" })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Store unavailable")
-        if (data.unavailable) {
-          setLoadError("This store is not available right now.")
-          setProfile(null)
-          setBundles([])
-          setServices([])
-          return
-        }
-
-        const apiBundles: DataBundle[] = (data.bundles || []).map(
-          (b: DataBundle & { final_price?: number }) => ({
-            ...b,
-            retail_price: Number(b.retail_price ?? b.final_price ?? 0),
-          }),
-        )
-        const apiServices: ReferralService[] = data.services || []
-
-        setProfile(data.profile ?? null)
-        setBundles(apiBundles)
-        setServices(apiServices)
-
-        const providers = apiBundles.map((b) => normalizeProvider(b.provider))
-        if (providers.includes("MTN")) setNetworkTab("MTN")
-        else if (providers[0]) setNetworkTab(normalizeProvider(providers[0]))
-
-        if (apiServices.length > 0 && apiBundles.length === 0) setMainTab("services")
+        applyStorefrontPayload(data, {
+          setProfile,
+          setBundles,
+          setServices,
+          setNetworkTab,
+          setMainTab,
+          setLoadError,
+        })
       } catch (e) {
         const message = e instanceof Error ? e.message : "Failed to load store"
         setLoadError(message)
@@ -219,7 +269,13 @@ export default function PublicAgentStorefront({
       }
     }
     load()
-  }, [agentId])
+  }, [
+    agentId,
+    hasServerPayload,
+    initialProfile,
+    initialBundles,
+    initialServices,
+  ])
 
   const displayProfile: StoreProfile = profile ?? {
     store_name: "Data Store",

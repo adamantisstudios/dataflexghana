@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
-import { redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 import { Suspense } from "react"
 import { getStorefrontPageMetadata, resolveStoreSegmentToAgentId } from "@/lib/storefront-server"
 import { getStorefrontPublicBase } from "@/lib/storefront-utils"
+import { getPublicStorefrontResponse } from "@/lib/storefront-public"
 import PublicAgentStorefront from "@/app/public-agent-sandbox/[agentId]/storefront-client"
 
 const STOREFRONT_ORIGIN = "https://referralpowerhouse.vercel.app"
@@ -58,17 +59,37 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function StoreBySlugPage({ params }: PageProps) {
+function StoreUnavailableMessage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <div className="max-w-md text-center space-y-3">
+        <h1 className="text-2xl font-semibold text-slate-900">This store is not available yet</h1>
+        <p className="text-slate-600">
+          The owner may still be setting up their storefront, or this link is no longer active.
+          Please check back later or contact the agent directly.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default async function StorePage({ params }: PageProps) {
   const { segment } = await params
 
   if (RESERVED_SEGMENTS.has(segment)) {
-    redirect("/store/not-available")
+    notFound()
   }
 
   const agentId = await resolveStoreSegmentToAgentId(segment)
 
   if (!agentId) {
-    redirect("/store/not-available")
+    notFound()
+  }
+
+  const storefront = await getPublicStorefrontResponse(agentId)
+
+  if (storefront.unavailable) {
+    return <StoreUnavailableMessage />
   }
 
   return (
@@ -79,7 +100,13 @@ export default async function StoreBySlugPage({ params }: PageProps) {
         </div>
       }
     >
-      <PublicAgentStorefront agentId={agentId} storeSegment={segment} />
+      <PublicAgentStorefront
+        agentId={agentId}
+        storeSegment={segment}
+        initialProfile={storefront.profile}
+        initialBundles={storefront.bundles}
+        initialServices={storefront.services}
+      />
     </Suspense>
   )
 }

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { getAdminClient } from "@/lib/supabase-base"
 import { resolveStoreSegmentToAgentId } from "@/lib/storefront-server"
 
 export const dynamic = "force-dynamic"
@@ -9,6 +10,9 @@ export async function GET(request: NextRequest) {
     if (!slug) {
       return NextResponse.json({ error: "slug required" }, { status: 400 })
     }
+
+    // Ensure admin client is available (slug lookup uses service role via storefront-server)
+    getAdminClient()
 
     const agentId = await resolveStoreSegmentToAgentId(slug)
     if (!agentId) {
