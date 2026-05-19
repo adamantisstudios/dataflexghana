@@ -7,13 +7,13 @@ import {
   metadataValue,
   parseStorefrontItemsFromMetadata,
 } from "@/lib/storefront-order-whatsapp"
-import {
-  buildStorefrontPathUrl,
-  getStorefrontPublicBase,
-  getStorefrontServerOrigin,
-} from "@/lib/storefront-utils"
+import { getStorefrontPublicBase } from "@/lib/storefront-utils"
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
+
+const STOREFRONT_ORIGIN = (
+  process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN || "https://referralpowerhouse.vercel.app"
+).replace(/\/$/, "")
 
 export const dynamic = "force-dynamic"
 
@@ -34,7 +34,6 @@ function resolveRedirectSegment(meta: Record<string, unknown>, agentId: string):
 }
 
 function buildSuccessRedirect(
-  request: NextRequest,
   agentId: string,
   reference: string,
   meta: Record<string, unknown>,
@@ -42,7 +41,6 @@ function buildSuccessRedirect(
   cartTotal: number,
 ) {
   const storeName = String(meta.store_name || "Store")
-  const origin = getStorefrontServerOrigin(request)
   const segment = resolveRedirectSegment(meta, agentId)
 
   const whatsappMessage = formatStorefrontAdminWhatsAppMessage({
@@ -58,7 +56,7 @@ function buildSuccessRedirect(
     reference,
   })
 
-  const redirectUrl = new URL(buildStorefrontPathUrl(origin, segment))
+  const redirectUrl = new URL(`${STOREFRONT_ORIGIN}/store/${encodeURIComponent(segment)}`)
   redirectUrl.searchParams.set("payment", "success")
   redirectUrl.searchParams.set("ref", reference)
   redirectUrl.searchParams.set("whatsapp_url", buildStorefrontAdminWhatsAppUrl(whatsappMessage))
@@ -134,6 +132,6 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.redirect(
-    buildSuccessRedirect(request, agentId, verifiedReference, meta, items, cartTotal),
+    buildSuccessRedirect(agentId, verifiedReference, meta, items, cartTotal),
   )
 }

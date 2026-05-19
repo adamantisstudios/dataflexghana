@@ -963,25 +963,21 @@ export async function createAdminReversal(
       throw new Error("Transaction does not belong to the specified agent")
     }
 
-    const reversalType = assertDbTransactionType("admin_reversal")
     const { data, error } = await getDb()
       .from("wallet_transactions")
-      .insert(
-        buildWalletTransactionInsertRow(
-          {
-            agent_id: agentId,
-            transaction_type: reversalType,
-            amount: originalTransaction.amount,
-            status: "approved",
-            description: `Admin reversal of transaction ${originalTransactionId} - ${reason}`,
-            reference_code: `REV-${originalTransactionId}-${Date.now()}`,
-            admin_id: adminId,
-            admin_notes: `Reversal of ${originalTransaction.transaction_type} transaction. Original description: ${originalTransaction.description || "N/A"}`,
-          },
-          { source_id: originalTransactionId, created_at: new Date().toISOString() },
-        ),
-      )
-      .select()
+      .insert({
+        agent_id: agentId,
+        transaction_type: "admin_reversal",
+        amount: originalTransaction.amount,
+        status: "approved",
+        description: `Admin reversal of transaction ${originalTransactionId} - ${reason}`,
+        reference_code: `REV-${originalTransactionId}-${Date.now()}`,
+        admin_id: adminId,
+        admin_notes: `Reversal of ${originalTransaction.transaction_type} transaction. Original description: ${originalTransaction.description || "N/A"}`,
+        source_id: originalTransactionId,
+        created_at: new Date().toISOString(),
+      })
+      .select("id")
       .single()
 
     if (error) {
@@ -1019,7 +1015,7 @@ export async function createAdminAdjustment(
   amount: number,
   adminId: string,
   reason: string,
-  isPositive = true,
+  isCredit = true,
 ): Promise<string | null> {
   try {
     if (!agentId?.trim()) {
@@ -1038,22 +1034,19 @@ export async function createAdminAdjustment(
     assertUuid(agentId, "agent ID")
     assertUuid(adminId, "admin ID")
 
-    console.log(`🔄 Creating admin adjustment for agent ${agentId}: ${isPositive ? "+" : "-"}${amount}`)
-
-    // Hardcoded types — must match production wallet_transactions_type_check exactly.
-    const transactionType = isPositive ? "admin_adjustment" : "admin_reversal"
+    console.log(`🔄 Creating admin adjustment for agent ${agentId}: ${isCredit ? "+" : "-"}${amount}`)
 
     const { data, error } = await getDb()
       .from("wallet_transactions")
       .insert({
         agent_id: agentId,
-        transaction_type: transactionType,
+        transaction_type: isCredit ? "admin_adjustment" : "admin_reversal",
         amount,
         status: "approved",
-        description: `Admin ${isPositive ? "credit" : "debit"} adjustment - ${reason}`,
-        reference_code: `ADJ-${isPositive ? "CR" : "DR"}-${Date.now().toString(36).toUpperCase()}`,
+        description: `Admin ${isCredit ? "credit" : "debit"} adjustment - ${reason}`,
+        reference_code: `ADJ-${isCredit ? "CR" : "DR"}-${Date.now().toString(36).toUpperCase()}`,
         admin_id: adminId,
-        admin_notes: `${isPositive ? "Credit" : "Debit"} adjustment by admin. Reason: ${reason}`,
+        admin_notes: `${isCredit ? "Credit" : "Debit"} adjustment by admin. Reason: ${reason}`,
         created_at: new Date().toISOString(),
       })
       .select("id")

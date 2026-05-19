@@ -1,10 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
-import { getStorefrontPaystackCallbackUrl } from "@/lib/storefront-utils"
 import type { StorefrontCartItemMeta } from "@/lib/storefront-order-whatsapp"
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co"
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
+
+const STOREFRONT_ORIGIN = (
+  process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN || "https://referralpowerhouse.vercel.app"
+).replace(/\/$/, "")
+
+const PAYSTACK_STOREFRONT_CALLBACK_URL = `${STOREFRONT_ORIGIN}/api/paystack/storefront/callback`
 
 export const dynamic = "force-dynamic"
 
@@ -113,8 +118,6 @@ export async function POST(request: NextRequest) {
 
     const reference = `SF-${String(agent_id).slice(0, 8)}-${Date.now()}`
 
-    const callbackUrl = getStorefrontPaystackCallbackUrl(request)
-
     const { data: profile } = await db
       .from("agent_store_profiles")
       .select("store_name, store_slug")
@@ -147,7 +150,7 @@ export async function POST(request: NextRequest) {
           cart_total: String(cartTotal),
           items_json: JSON.stringify(resolved),
         },
-        callback_url: callbackUrl,
+        callback_url: PAYSTACK_STOREFRONT_CALLBACK_URL,
       }),
     })
 
