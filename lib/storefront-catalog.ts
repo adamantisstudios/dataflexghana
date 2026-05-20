@@ -11,6 +11,29 @@ export type StoreItemType = (typeof STORE_ITEM_TYPES)[number]
 
 export const COMPLIANCE_FORM_SOLE_PROPRIETORSHIP = "sole_proprietorship" as const
 
+/** Stable UUID for agent_store_settings.item_id (Postgres UUID column). */
+export const COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID =
+  "c0ffee00-0001-4001-8001-000000000001"
+
+const LEGACY_COMPLIANCE_ITEM_IDS = new Set([
+  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+  "sole_proprietorship",
+])
+
+export function normalizeStoreItemId(itemId: string, itemType: StoreItemType): string {
+  if (itemType === "compliance_form") {
+    return COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID
+  }
+  return itemId
+}
+
+export function isComplianceFormSettingItemId(itemId: string): boolean {
+  return (
+    itemId === COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID ||
+    LEGACY_COMPLIANCE_ITEM_IDS.has(itemId)
+  )
+}
+
 /** Admin base price (GHS) — override via env on server. */
 export const DEFAULT_COMPLIANCE_SOLE_PROPRIETORSHIP_PRICE = 150
 

@@ -1,18 +1,30 @@
 "use client"
 
+import { useCallback, useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
-import { COMPLIANCE_FORM_SOLE_PROPRIETORSHIP } from "@/lib/storefront-catalog"
-import { FileText } from "lucide-react"
+import {
+  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
+  isComplianceFormSettingItemId,
+} from "@/lib/storefront-catalog"
+import { FileText, Loader2 } from "lucide-react"
 
 interface StoreSetting {
   item_id: string
   item_type: string
   is_visible: boolean
+}
+
+type AgentSubmission = {
+  id: string
+  form_type: string
+  status: string
+  created_at: string
+  amount_paid?: number | null
 }
 
 interface Props {
@@ -22,9 +34,32 @@ interface Props {
 }
 
 export function MarketplaceComplianceSection({ agentId, settings, onSettingsChange }: Props) {
+  const [submissions, setSubmissions] = useState<AgentSubmission[]>([])
+  const [loadingSubs, setLoadingSubs] = useState(true)
+
   const enabled = settings.some(
-    (s) => s.item_type === "compliance_form" && s.item_id === COMPLIANCE_FORM_SOLE_PROPRIETORSHIP && s.is_visible,
+    (s) => s.item_type === "compliance_form" && isComplianceFormSettingItemId(s.item_id) && s.is_visible,
   )
+
+  const loadSubmissions = useCallback(async () => {
+    setLoadingSubs(true)
+    try {
+      const res = await fetch(`/api/agent/storefront/compliance-submissions?agentId=${agentId}`, {
+        headers: getAgentAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setSubmissions(data.submissions || [])
+    } catch {
+      setSubmissions([])
+    } finally {
+      setLoadingSubs(false)
+    }
+  }, [agentId])
+
+  useEffect(() => {
+    loadSubmissions()
+  }, [loadSubmissions])
 
   const toggle = async (visible: boolean) => {
     try {
@@ -33,13 +68,14 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
         headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
         body: JSON.stringify({
           agentId,
-          item_id: COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+          item_id: COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
           item_type: "compliance_form",
           is_visible: visible,
           custom_margin: 0,
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to update")
       toast.success(visible ? "Form enabled on storefront" : "Form hidden from storefront")
       onSettingsChange()
     } catch (e) {
@@ -52,19 +88,46 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          Compliance forms
+          Compliance services
         </CardTitle>
         <CardDescription>
           Sole Proprietorship Registration — customers pay the admin base fee via Paystack, then complete the form on
           your store. Margin is locked at ₵0.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex items-center justify-between gap-4">
-        <div>
-          <Label htmlFor="sole-prop-toggle">Sole Proprietorship Registration</Label>
-          <p className="text-xs text-muted-foreground mt-1">Shows under Business Services on your public store</p>
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+          <div>
+            <Label htmlFor="sole-prop-toggle">Sole Proprietorship Registration</Label>
+            <p className="text-xs text-muted-foreground mt-1">Shows under Business Services on your public store</p>
+          </div>
+          <Switch id="sole-prop-toggle" checked={enabled} onCheckedChange={toggle} />
         </div>
-        <Switch id="sole-prop-toggle" checked={enabled} onCheckedChange={toggle} />
+
+        <div className="space-y-2">
+          <Label>Customer applications (status only)</Label>
+          {loadingSubs ? (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading…
+            </p>
+          ) : submissions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No submitted applications yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {submissions.map((row) => (
+                <li key={row.id} className="flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">
+                    {new Date(row.created_at).toLocaleDateString()} · {row.form_type.replace(/_/g, " ")}
+                  </span>
+                  <Badge variant="outline" className="capitalize">
+                    {row.status}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </CardContent>
     </Card>
   )

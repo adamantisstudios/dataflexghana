@@ -21,6 +21,7 @@ import { ReferralHubSkeleton } from "@/components/agent/referralhub/ReferralHubS
 import { ReferralHubEarningsTip } from "@/components/agent/referralhub/ReferralHubEarningsTip"
 import { MarketplaceWholesaleSection } from "@/components/agent/referralhub/MarketplaceWholesaleSection"
 import { MarketplaceComplianceSection } from "@/components/agent/referralhub/MarketplaceComplianceSection"
+import { MarketplaceSubTabs } from "@/components/agent/referralhub/MarketplaceSubTabs"
 import { Switch } from "@/components/ui/switch"
 
 interface AgentSession {
@@ -383,32 +384,40 @@ export default function ReferralHubPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="marketplace" className="mt-4 space-y-6">
+            <TabsContent value="marketplace" className="mt-4">
               {agent?.id && (
-                <>
-                  <MarketplaceBundlesSection
-                    agentId={agent.id}
-                    settings={settings}
-                    savedBundles={savedBundles}
-                    onSettingsChange={() => loadSettings(agent.id)}
-                  />
-                  <MarketplaceServicesSection
-                    agentId={agent.id}
-                    settings={settings}
-                    onSettingsChange={() => loadSettings(agent.id)}
-                  />
-                  <MarketplaceWholesaleSection
-                    agentId={agent.id}
-                    settings={settings}
-                    savedProducts={savedWholesale}
-                    onSettingsChange={() => loadSettings(agent.id)}
-                  />
-                  <MarketplaceComplianceSection
-                    agentId={agent.id}
-                    settings={settings}
-                    onSettingsChange={() => loadSettings(agent.id)}
-                  />
-                </>
+                <MarketplaceSubTabs
+                  bundles={
+                    <MarketplaceBundlesSection
+                      agentId={agent.id}
+                      settings={settings}
+                      savedBundles={savedBundles}
+                      onSettingsChange={() => loadSettings(agent.id)}
+                    />
+                  }
+                  services={
+                    <MarketplaceServicesSection
+                      agentId={agent.id}
+                      settings={settings}
+                      onSettingsChange={() => loadSettings(agent.id)}
+                    />
+                  }
+                  wholesale={
+                    <MarketplaceWholesaleSection
+                      agentId={agent.id}
+                      settings={settings}
+                      savedProducts={savedWholesale}
+                      onSettingsChange={() => loadSettings(agent.id)}
+                    />
+                  }
+                  compliance={
+                    <MarketplaceComplianceSection
+                      agentId={agent.id}
+                      settings={settings}
+                      onSettingsChange={() => loadSettings(agent.id)}
+                    />
+                  }
+                />
               )}
             </TabsContent>
 
@@ -422,7 +431,7 @@ export default function ReferralHubPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="qr" className="mt-4">
+            <TabsContent value="qr" className="mt-4 space-y-4">
               <StorefrontQrCard
                 agentId={agent.id}
                 storeSlug={profile.store_slug}

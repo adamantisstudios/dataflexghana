@@ -3,7 +3,8 @@ import { isUuid, isValidStoreSlug, normalizeStoreSlug } from "@/lib/storefront-u
 import {
   type StoreItemType,
   marginForItemType,
-  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+  normalizeStoreItemId,
+  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
 } from "@/lib/storefront-catalog"
 
 export type { StoreItemType } from "@/lib/storefront-catalog"
@@ -115,12 +116,20 @@ export async function deleteStoreSetting(
   itemType: StoreItemType,
 ): Promise<void> {
   const db = getAdminClient()
-  const { error } = await db
+  const normalizedId = normalizeStoreItemId(itemId, itemType)
+  let query = db
     .from("agent_store_settings")
     .delete()
     .eq("agent_id", agentId)
-    .eq("item_id", itemId)
     .eq("item_type", itemType)
+
+  if (itemType === "compliance_form") {
+    query = query.in("item_id", [normalizedId, itemId])
+  } else {
+    query = query.eq("item_id", normalizedId)
+  }
+
+  const { error } = await query
   if (error) throw error
 }
 
@@ -167,21 +176,64 @@ export async function upsertStoreSetting(
   fields: { is_visible?: boolean; custom_margin?: number },
 ) {
   const db = getAdminClient()
+  const normalizedItemId = normalizeStoreItemId(itemId, itemType)
   const margin = marginForItemType(itemType, Number(fields.custom_margin ?? 0))
+  const updatedAt = new Date().toISOString()
+  const isVisible = fields.is_visible ?? true
+
+  let existingQuery = db
+    .from("agent_store_settings")
+    .select("id, item_id")
+    .eq("agent_id", agentId)
+    .eq("item_type", itemType)
+
+  if (itemType === "compliance_form") {
+    existingQuery = existingQuery.in("item_id", [
+      normalizedItemId,
+      itemId,
+      COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
+    ])
+  } else {
+    existingQuery = existingQuery.eq("item_id", normalizedItemId)
+  }
+
+  const { data: existingRows, error: findError } = await existingQuery
+
+  if (findError) {
+    throw findError
+  }
+
+  const existing = existingRows?.[0]
+
+  if (existing?.id) {
+    const { data, error } = await db
+      .from("agent_store_settings")
+      .update({
+        item_id: normalizedItemId,
+        is_visible: isVisible,
+        custom_margin: margin,
+        updated_at: updatedAt,
+      })
+      .eq("id", existing.id)
+      .select()
+      .single()
+
+    if (error) {
+      throw error
+    }
+    return data
+  }
 
   const { data, error } = await db
     .from("agent_store_settings")
-    .upsert(
-      {
-        agent_id: agentId,
-        item_id: itemId,
-        item_type: itemType,
-        is_visible: fields.is_visible ?? true,
-        custom_margin: margin,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "agent_id,item_id,item_type" },
-    )
+    .insert({
+      agent_id: agentId,
+      item_id: normalizedItemId,
+      item_type: itemType,
+      is_visible: isVisible,
+      custom_margin: margin,
+      updated_at: updatedAt,
+    })
     .select()
     .single()
 

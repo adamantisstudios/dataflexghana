@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import {
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
   complianceFormAdminPrice,
 } from "@/lib/storefront-catalog"
 
@@ -39,8 +40,8 @@ export async function POST(request: NextRequest) {
       .from("agent_store_settings")
       .select("is_visible")
       .eq("agent_id", agent_id)
-      .eq("item_id", COMPLIANCE_FORM_SOLE_PROPRIETORSHIP)
       .eq("item_type", "compliance_form")
+      .in("item_id", [COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID, COMPLIANCE_FORM_SOLE_PROPRIETORSHIP])
       .maybeSingle()
 
     if (!setting?.is_visible) {

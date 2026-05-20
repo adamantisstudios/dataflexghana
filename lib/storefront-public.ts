@@ -4,6 +4,8 @@ import {
   type PublicWholesaleProduct,
   type PublicComplianceForm,
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
+  isComplianceFormSettingItemId,
   complianceFormAdminPrice,
 } from "@/lib/storefront-catalog"
 
@@ -157,7 +159,7 @@ export async function getPublicStorefrontResponse(
       .filter((s) => s.item_type === "wholesale_product")
       .map((s) => s.item_id)
     const hasCompliance = visibleSettings.some(
-      (s) => s.item_type === "compliance_form" && s.item_id === COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
+      (s) => s.item_type === "compliance_form" && isComplianceFormSettingItemId(s.item_id),
     )
 
     const marginByBundleId = new Map(

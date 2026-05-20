@@ -71,18 +71,33 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       return NextResponse.json({ error: balanceError.message }, { status: 500 })
     }
 
-    const { data: withdrawal, error: withdrawalError } = await db
+    const payoutNote = `Storefront commission payout request (₵${balance.toFixed(2)})`
+    const insertPayload: Record<string, unknown> = {
+      agent_id: agentId,
+      amount: balance,
+      momo_number: momo,
+      status: "requested",
+      requested_at: new Date().toISOString(),
+      admin_notes: `${STOREFRONT_PAYOUT_NOTE} | ${payoutNote}`,
+      source: "storefront",
+    }
+
+    let { data: withdrawal, error: withdrawalError } = await db
       .from("withdrawals")
-      .insert({
-        agent_id: agentId,
-        amount: balance,
-        momo_number: momo,
-        status: "requested",
-        requested_at: new Date().toISOString(),
-        admin_notes: `${STOREFRONT_PAYOUT_NOTE} | Storefront commission payout (₵${balance.toFixed(2)})`,
-      })
+      .insert(insertPayload)
       .select("id, amount, status")
       .single()
+
+    if (withdrawalError?.message?.includes("source")) {
+      const { source: _s, ...withoutSource } = insertPayload
+      const retry = await db
+        .from("withdrawals")
+        .insert(withoutSource)
+        .select("id, amount, status")
+        .single()
+      withdrawal = retry.data
+      withdrawalError = retry.error
+    }
 
     if (withdrawalError) {
       await db

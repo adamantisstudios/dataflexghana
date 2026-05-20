@@ -7,6 +7,7 @@ import {
   deleteStoreSetting,
   type StoreItemType,
 } from "@/lib/storefront-server"
+import { isStoreItemType, normalizeStoreItemId } from "@/lib/storefront-catalog"
 
 export const dynamic = "force-dynamic"
 
@@ -76,7 +77,12 @@ export const PUT = withUnifiedAuth(async (request: NextRequest, user) => {
       return NextResponse.json({ error: "item_id and item_type required" }, { status: 400 })
     }
 
-    const row = await upsertStoreSetting(agentId, item_id, item_type, {
+    if (!isStoreItemType(item_type)) {
+      return NextResponse.json({ error: `Invalid item_type: ${item_type}` }, { status: 400 })
+    }
+
+    const normalizedItemId = normalizeStoreItemId(item_id, item_type)
+    const row = await upsertStoreSetting(agentId, normalizedItemId, item_type, {
       is_visible,
       custom_margin,
     })
@@ -84,7 +90,8 @@ export const PUT = withUnifiedAuth(async (request: NextRequest, user) => {
     return NextResponse.json({ success: true, setting: row })
   } catch (error) {
     console.error("store-settings PUT:", error)
-    return NextResponse.json({ error: "Failed to save setting" }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Failed to save setting"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 })
 
@@ -102,7 +109,7 @@ export const DELETE = withUnifiedAuth(async (request: NextRequest, user) => {
       return NextResponse.json({ error: "item_id and item_type required" }, { status: 400 })
     }
 
-    await deleteStoreSetting(agentId, item_id, item_type)
+    await deleteStoreSetting(agentId, normalizeStoreItemId(item_id, item_type), item_type)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("store-settings DELETE:", error)

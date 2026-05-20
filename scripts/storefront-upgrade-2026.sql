@@ -36,3 +36,31 @@ ALTER TABLE storefront_orders ALTER COLUMN data_bundle_id DROP NOT NULL;
 ALTER TABLE storefront_orders ALTER COLUMN customer_phone DROP NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_storefront_orders_type ON storefront_orders(order_type);
+
+-- Allow wholesale_product and compliance_form in agent_store_settings (fixes PUT 500 on toggles)
+ALTER TABLE agent_store_settings DROP CONSTRAINT IF EXISTS agent_store_settings_item_type_check;
+ALTER TABLE agent_store_settings DROP CONSTRAINT IF EXISTS agent_store_settings_item_type_check1;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'agent_store_settings'::regclass
+      AND contype = 'c'
+      AND pg_get_constraintdef(oid) ILIKE '%item_type%'
+  ) THEN
+    EXECUTE (
+      SELECT 'ALTER TABLE agent_store_settings DROP CONSTRAINT ' || quote_ident(conname)
+      FROM pg_constraint
+      WHERE conrelid = 'agent_store_settings'::regclass
+        AND contype = 'c'
+        AND pg_get_constraintdef(oid) ILIKE '%item_type%'
+      LIMIT 1
+    );
+  END IF;
+END $$;
+
+ALTER TABLE agent_store_settings ADD CONSTRAINT agent_store_settings_item_type_check
+  CHECK (item_type IN ('data_bundle', 'referral_service', 'wholesale_product', 'compliance_form'));
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_store_settings_unique
+  ON agent_store_settings (agent_id, item_id, item_type);

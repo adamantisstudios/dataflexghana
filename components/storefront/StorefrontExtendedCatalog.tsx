@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Package, FileText, Plus, X, ZoomIn } from "lucide-react"
+import { Package, FileText, Plus, X } from "lucide-react"
+import { WholesaleProductThumb } from "@/components/wholesale/WholesaleProductThumb"
+import {
+  StorefrontListPagination,
+  StorefrontPageSection,
+  paginateItems,
+} from "@/components/storefront/StorefrontListPagination"
 import type { PublicWholesaleProduct, PublicComplianceForm, BuyerDetails } from "@/lib/storefront-catalog"
 import { COMPLIANCE_FORM_SOLE_PROPRIETORSHIP } from "@/lib/storefront-catalog"
 
@@ -24,6 +30,8 @@ export type WholesaleCartLine = {
   product: PublicWholesaleProduct
   quantity: number
 }
+
+export type StorefrontCatalogMode = "all" | "products" | "business"
 
 type Props = {
   agentId: string
@@ -38,6 +46,7 @@ type Props = {
   onCheckoutWholesale: (buyer: BuyerDetails, email: string) => Promise<void>
   compliancePaidRef: string | null
   customerEmail: string
+  mode?: StorefrontCatalogMode
 }
 
 export function StorefrontExtendedCatalog({
@@ -53,7 +62,10 @@ export function StorefrontExtendedCatalog({
   onCheckoutWholesale,
   compliancePaidRef,
   customerEmail,
+  mode = "all",
 }: Props) {
+  const showProducts = mode === "all" || mode === "products"
+  const showBusiness = mode === "all" || mode === "business"
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [buyerOpen, setBuyerOpen] = useState(false)
   const [buyer, setBuyer] = useState<BuyerDetails>({
@@ -74,6 +86,13 @@ export function StorefrontExtendedCatalog({
     signature: "",
   })
   const [submittingCompliance, setSubmittingCompliance] = useState(false)
+  const [productPage, setProductPage] = useState(1)
+  const [productSlideDir, setProductSlideDir] = useState<"up" | "down">("down")
+
+  const productPagination = useMemo(
+    () => paginateItems(products, productPage),
+    [products, productPage],
+  )
 
   const complianceUnlocked = Boolean(compliancePaidRef)
   const soleForm = complianceForms.find((f) => f.form_type === COMPLIANCE_FORM_SOLE_PROPRIETORSHIP)
@@ -145,52 +164,72 @@ export function StorefrontExtendedCatalog({
     }
   }
 
-  if (products.length === 0 && complianceForms.length === 0) return null
+  if (mode === "products" && products.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-10">No products listed right now.</p>
+    )
+  }
+  if (mode === "business" && complianceForms.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground text-center py-10">No business services listed right now.</p>
+    )
+  }
+  if (products.length === 0 && complianceForms.length === 0 && mode === "all") return null
 
   return (
     <>
-      {products.length > 0 && (
+      {showProducts && products.length > 0 && (
         <section className="space-y-4">
-          <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: accent }}>
-            <Package className="h-5 w-5" />
-            Shop products
-          </h3>
+          {mode === "all" && (
+            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: accent }}>
+              <Package className="h-5 w-5" />
+              Shop products
+            </h3>
+          )}
           <p className="text-sm text-muted-foreground">
             Delivery cost will be discussed with the agent after you place your order.
           </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {products.map((p) => (
-              <Card key={p.id} className="overflow-hidden">
-                {p.image_url && (
-                  <button
-                    type="button"
-                    className="relative w-full aspect-square bg-slate-100"
-                    onClick={() => setLightbox(p.image_url)}
-                  >
-                    <Image src={p.image_url} alt={p.name} fill className="object-cover" />
-                    <span className="absolute bottom-2 right-2 bg-black/50 text-white p-1 rounded">
-                      <ZoomIn className="h-4 w-4" />
-                    </span>
-                  </button>
-                )}
-                <CardContent className="p-4 space-y-2">
-                  <p className="font-semibold">{p.name}</p>
-                  <p className="text-lg font-bold" style={{ color: accent }}>
-                    ₵{p.retail_price.toFixed(2)}
-                  </p>
+          <StorefrontPageSection
+            pageKey={productPage}
+            slideDirection={productSlideDir}
+            className="grid grid-cols-2 gap-3 md:gap-4"
+          >
+            {productPagination.items.map((p) => (
+              <Card
+                key={p.id}
+                className="border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              >
+                <WholesaleProductThumb
+                  src={p.image_url}
+                  alt={p.name}
+                  onClick={p.image_url ? () => setLightbox(p.image_url) : undefined}
+                />
+                <div className="p-3 space-y-2">
+                  <p className="font-medium text-sm text-slate-900 line-clamp-2 leading-tight">{p.name}</p>
+                  <p className="text-sm font-bold text-emerald-700">₵{p.retail_price.toFixed(2)}</p>
                   <Button
                     size="sm"
-                    className="w-full gap-1 text-white"
+                    className="w-full h-9 gap-1 text-white text-xs"
                     style={{ backgroundColor: accent }}
                     onClick={() => onAddWholesale(p, 1)}
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3.5 w-3.5" />
                     Add to cart
                   </Button>
-                </CardContent>
+                </div>
               </Card>
             ))}
-          </div>
+          </StorefrontPageSection>
+          <StorefrontListPagination
+            page={productPagination.page}
+            totalPages={productPagination.totalPages}
+            totalItems={productPagination.total}
+            onPageChange={(p) => {
+              setProductSlideDir(p > productPage ? "down" : "up")
+              setProductPage(p)
+            }}
+            accentColor={accent}
+          />
           {wholesaleCart.length > 0 && (
             <Button className="w-full sm:w-auto" onClick={() => setBuyerOpen(true)} style={{ backgroundColor: accent }}>
               Checkout products (₵{wholesaleCart.reduce((s, l) => s + l.product.retail_price * l.quantity, 0).toFixed(2)})
@@ -199,12 +238,14 @@ export function StorefrontExtendedCatalog({
         </section>
       )}
 
-      {complianceForms.length > 0 && soleForm && (
+      {showBusiness && complianceForms.length > 0 && soleForm && (
         <section className="space-y-4">
-          <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: accent }}>
-            <FileText className="h-5 w-5" />
-            Business services
-          </h3>
+          {mode === "all" && (
+            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: accent }}>
+              <FileText className="h-5 w-5" />
+              Business services
+            </h3>
+          )}
           <Card>
             <CardContent className="p-6 space-y-4">
               <div>

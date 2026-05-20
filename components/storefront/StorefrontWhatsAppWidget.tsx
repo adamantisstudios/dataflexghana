@@ -34,7 +34,7 @@ export function StorefrontWhatsAppWidget({
   if (!whatsappPhone) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-24 right-4 md:bottom-6 z-50 flex flex-col items-end gap-3 pb-[env(safe-area-inset-bottom)]">
       {open && (
         <div
           className="w-[min(100vw-2rem,320px)] rounded-2xl shadow-2xl border border-slate-200 bg-white overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200"

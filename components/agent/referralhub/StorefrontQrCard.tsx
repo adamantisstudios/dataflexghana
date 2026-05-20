@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Copy, Download } from "lucide-react"
 import { toast } from "sonner"
 import { buildStorefrontUrl } from "@/lib/storefront-utils"
+import { StoreSocialShareButtons } from "@/components/shared/StoreSocialShareButtons"
 
 interface Props {
   agentId: string
@@ -60,6 +61,13 @@ export function StorefrontQrCard({ agentId, storeSlug, storeName }: Props) {
               Download QR
             </Button>
           </div>
+          <StoreSocialShareButtons
+            agentId={agentId}
+            storeSlug={storeSlug}
+            storeName={storeName || "My store"}
+            layout="bar"
+            className="justify-center sm:justify-start"
+          />
         </div>
       </CardContent>
     </Card>

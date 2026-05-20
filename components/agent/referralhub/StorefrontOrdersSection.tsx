@@ -19,11 +19,13 @@ import { Loader2, Wallet } from "lucide-react"
 
 interface StorefrontOrder {
   id: string
-  customer_phone: string
+  customer_phone: string | null
   total_paid: number
   agent_markup: number
   status: string
   created_at: string
+  order_type?: string | null
+  item_title?: string | null
   data_bundles?: { name: string; provider: string } | null
 }
 
@@ -158,12 +160,16 @@ export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceC
                     {orders.map((o) => (
                       <TableRow key={o.id}>
                         <TableCell>
-                          {o.data_bundles?.name || "—"}
-                          <span className="block text-xs text-muted-foreground">
-                            {o.data_bundles?.provider}
-                          </span>
+                          {o.order_type === "wholesale_product"
+                            ? o.item_title || "Wholesale product"
+                            : o.data_bundles?.name || "—"}
+                          {o.data_bundles?.provider && (
+                            <span className="block text-xs text-muted-foreground">
+                              {o.data_bundles.provider}
+                            </span>
+                          )}
                         </TableCell>
-                        <TableCell>{o.customer_phone}</TableCell>
+                        <TableCell>{o.customer_phone || "—"}</TableCell>
                         <TableCell>₵{Number(o.total_paid).toFixed(2)}</TableCell>
                         <TableCell>₵{Number(o.agent_markup).toFixed(2)}</TableCell>
                         <TableCell>

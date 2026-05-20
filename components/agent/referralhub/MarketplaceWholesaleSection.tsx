@@ -1,14 +1,15 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { Trash2, Package } from "lucide-react"
+import { WholesaleProductThumb } from "@/components/wholesale/WholesaleProductThumb"
 
 interface WholesaleProduct {
   id: string
@@ -70,27 +71,49 @@ export function MarketplaceWholesaleSection({
     fetchProducts()
   }, [fetchProducts])
 
+  const saveSetting = async (
+    productId: string,
+    fields: { is_visible: boolean; custom_margin: number },
+  ) => {
+    const res = await fetch("/api/agent/store-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
+      body: JSON.stringify({
+        agentId,
+        item_id: productId,
+        item_type: "wholesale_product",
+        ...fields,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "Failed to save")
+    onSettingsChange()
+  }
+
   const addToStore = async (productId: string, margin: number) => {
     try {
-      const res = await fetch("/api/agent/store-settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
-        body: JSON.stringify({
-          agentId,
-          item_id: productId,
-          item_type: "wholesale_product",
-          is_visible: true,
-          custom_margin: margin,
-        }),
-      })
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error)
-      }
+      await saveSetting(productId, { is_visible: true, custom_margin: margin })
       toast.success("Product added to your store")
-      onSettingsChange()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save")
+    }
+  }
+
+  const toggleVisibility = async (productId: string, visible: boolean, margin: number) => {
+    try {
+      await saveSetting(productId, { is_visible: visible, custom_margin: margin })
+      toast.success(visible ? "Product visible on store" : "Product hidden from store")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update")
+    }
+  }
+
+  const updateMargin = async (productId: string, margin: number, visible: boolean) => {
+    try {
+      await saveSetting(productId, { is_visible: visible, custom_margin: margin })
+      toast.success("Markup updated")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Update failed")
     }
   }
 
@@ -121,35 +144,55 @@ export function MarketplaceWholesaleSection({
           Wholesale products
         </CardTitle>
         <CardDescription>
-          Add products to your storefront with your markup. Customers pay via Paystack; you fulfill delivery.
+          Same product cards as the agent wholesale shop — add items with your markup for your storefront.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {savedProducts.length > 0 && (
           <div className="space-y-2">
             <Label>On your store ({savedProducts.length})</Label>
-            <div className="grid gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {savedProducts.map((p) => {
                 const setting = savedSettings.find((s) => s.item_id === p.id)
+                const margin = Number(setting?.custom_margin ?? 0)
+                const visible = setting?.is_visible ?? true
                 return (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 border rounded-lg p-3 bg-emerald-50/50"
-                  >
-                    {p.image_url && (
-                      <Image src={p.image_url} alt="" width={48} height={48} className="rounded object-cover" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Base ₵{p.price.toFixed(2)} + markup ₵{Number(setting?.custom_margin ?? 0).toFixed(2)} = ₵
-                        {(p.price + Number(setting?.custom_margin ?? 0)).toFixed(2)}
+                  <Card key={p.id} className="overflow-hidden border-emerald-200 bg-emerald-50/30">
+                    <WholesaleProductThumb src={p.image_url} alt={p.name} className="max-h-28" />
+                    <CardContent className="p-2.5 space-y-2">
+                      <p className="font-medium text-xs line-clamp-2 leading-tight">{p.name}</p>
+                      <p className="text-[11px] text-emerald-700 font-semibold">
+                        ₵{(p.price + margin).toFixed(2)}
                       </p>
-                    </div>
-                    <Button size="sm" variant="destructive" onClick={() => removeFromStore(p.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[10px]">Visible</Label>
+                        <Switch
+                          checked={visible}
+                          onCheckedChange={(v) => toggleVisibility(p.id, v, margin)}
+                        />
+                      </div>
+                      <div className="flex gap-1">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          className="h-7 text-xs flex-1"
+                          defaultValue={margin}
+                          onBlur={(e) =>
+                            updateMargin(p.id, parseFloat(e.target.value) || 0, visible)
+                          }
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="h-7 w-7 shrink-0"
+                          onClick={() => removeFromStore(p.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )
               })}
             </div>
@@ -171,40 +214,49 @@ export function MarketplaceWholesaleSection({
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {products.map((p) => {
               const onStore = savedSettings.some((s) => s.item_id === p.id)
               const margin = Number(margins[p.id] ?? "0")
               return (
-                <div key={p.id} className="border rounded-xl p-3 space-y-2">
-                  {p.image_url && (
-                    <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-100">
-                      <Image src={p.image_url} alt={p.name} fill className="object-cover" />
-                    </div>
-                  )}
-                  <p className="font-medium text-sm">{p.name}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{p.description}</p>
-                  <p className="text-sm font-semibold">Base: ₵{p.price.toFixed(2)}</p>
-                  {!onStore ? (
-                    <>
-                      <div>
-                        <Label className="text-xs">Your markup (₵)</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          step={0.5}
-                          value={margins[p.id] ?? "0"}
-                          onChange={(e) => setMargins((m) => ({ ...m, [p.id]: e.target.value }))}
-                        />
-                      </div>
-                      <Button size="sm" className="w-full" onClick={() => addToStore(p.id, margin)}>
-                        Add to store
-                      </Button>
-                    </>
-                  ) : (
-                    <p className="text-xs text-emerald-700 font-medium">Already on your store</p>
-                  )}
-                </div>
+                <Card
+                  key={p.id}
+                  className="overflow-hidden border-emerald-200 bg-white/95 hover:shadow-md transition-shadow"
+                >
+                  <WholesaleProductThumb src={p.image_url} alt={p.name} />
+                  <CardContent className="p-2.5 md:p-3 space-y-2">
+                    <h3 className="text-xs md:text-sm font-medium text-emerald-900 line-clamp-2 leading-tight">
+                      {p.name}
+                    </h3>
+                    <p className="text-xs font-bold text-emerald-600">GH₵{p.price.toFixed(2)}</p>
+                    {!onStore ? (
+                      <>
+                        <div>
+                          <Label className="text-[10px]">Markup (₵)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.5}
+                            className="h-8 text-xs"
+                            value={margins[p.id] ?? "0"}
+                            onChange={(e) => setMargins((m) => ({ ...m, [p.id]: e.target.value }))}
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full h-8 text-xs bg-emerald-700 hover:bg-emerald-800"
+                          onClick={() => addToStore(p.id, margin)}
+                        >
+                          Add to store
+                        </Button>
+                      </>
+                    ) : (
+                      <p className="text-[10px] text-emerald-700 font-medium text-center py-1">
+                        On your store
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
               )
             })}
           </div>

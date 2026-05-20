@@ -25,6 +25,8 @@ import {
   Store,
   Sparkles,
   ShieldCheck,
+  Package,
+  FileText,
 } from "lucide-react"
 import {
   normalizeGhanaPhoneNumber,
@@ -38,6 +40,15 @@ import {
   StorefrontExtendedCatalog,
   type WholesaleCartLine,
 } from "@/components/storefront/StorefrontExtendedCatalog"
+import {
+  StorefrontCatalogTabNav,
+  type StorefrontTabId,
+} from "@/components/storefront/StorefrontCatalogTabNav"
+import {
+  StorefrontListPagination,
+  StorefrontPageSection,
+  paginateItems,
+} from "@/components/storefront/StorefrontListPagination"
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 import type { PublicWholesaleProduct, PublicComplianceForm, BuyerDetails } from "@/lib/storefront-catalog"
 
@@ -77,7 +88,7 @@ const NETWORK_TABS = [
   { key: "AirtelTigo", label: "AirtelTigo" },
 ] as const
 
-const SERVICES_PER_PAGE = 6
+const ITEMS_PER_PAGE = 12
 const DELIVERY_NOTICE_MS = 30_000
 
 function normalizeProvider(p: string): string {
@@ -97,6 +108,8 @@ type CartLine = {
 function newLineId() {
   return `line-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
+
+type MainStoreTab = StorefrontTabId
 
 import { dispatchStorefrontOrdersChanged } from "@/lib/storefront-events"
 
@@ -133,7 +146,7 @@ function applyStorefrontPayload(
     setWholesaleProducts: (p: PublicWholesaleProduct[]) => void
     setComplianceForms: (f: PublicComplianceForm[]) => void
     setNetworkTab: (t: string) => void
-    setMainTab: (t: "bundles" | "services") => void
+    setMainTab: (t: MainStoreTab) => void
     setLoadError: (e: string | null) => void
   },
 ): boolean {
@@ -204,15 +217,19 @@ export default function PublicAgentStorefront({
   const [cartOpen, setCartOpen] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [networkTab, setNetworkTab] = useState<string>("MTN")
-  const [mainTab, setMainTab] = useState<"bundles" | "services">("bundles")
+  const [mainTab, setMainTab] = useState<MainStoreTab>("bundles")
   const [serviceSearch, setServiceSearch] = useState("")
   const [servicePage, setServicePage] = useState(1)
+  const [bundlePage, setBundlePage] = useState(1)
+  const [serviceSlideDir, setServiceSlideDir] = useState<"up" | "down">("down")
+  const [bundleSlideDir, setBundleSlideDir] = useState<"up" | "down">("down")
   const [showDeliveryNotice, setShowDeliveryNotice] = useState(true)
 
   useEffect(() => {
     const complianceRef = searchParams.get("compliance_paid")
     if (complianceRef) {
       setCompliancePaidRef(complianceRef)
+      setMainTab("business")
       toast.success("Payment received — you can complete the registration form below.")
     }
   }, [searchParams])
@@ -381,15 +398,40 @@ export default function PublicAgentStorefront({
     )
   }, [services, serviceSearch])
 
-  const serviceTotalPages = Math.max(1, Math.ceil(filteredServices.length / SERVICES_PER_PAGE))
+  const servicePagination = useMemo(
+    () => paginateItems(filteredServices, servicePage, ITEMS_PER_PAGE),
+    [filteredServices, servicePage],
+  )
 
-  const paginatedServices = useMemo(() => {
-    const start = (servicePage - 1) * SERVICES_PER_PAGE
-    return filteredServices.slice(start, start + SERVICES_PER_PAGE)
-  }, [filteredServices, servicePage])
+  const currentNetworkBundles = bundlesByNetwork[networkTab] || []
+  const bundlePagination = useMemo(
+    () => paginateItems(currentNetworkBundles, bundlePage, ITEMS_PER_PAGE),
+    [currentNetworkBundles, bundlePage],
+  )
+
+  const tabVisibility = useMemo(
+    () => ({
+      bundles: bundles.length > 0,
+      services: services.length > 0,
+      products: wholesaleProducts.length > 0,
+      business: complianceForms.length > 0,
+    }),
+    [bundles.length, services.length, wholesaleProducts.length, complianceForms.length],
+  )
+
+  const tabCounts = useMemo(
+    () => ({
+      bundles: bundles.length,
+      services: services.length,
+      products: wholesaleProducts.length,
+      business: complianceForms.length,
+    }),
+    [bundles.length, services.length, wholesaleProducts.length, complianceForms.length],
+  )
 
   useEffect(() => {
     setActiveBundleId(null)
+    setBundlePage(1)
   }, [networkTab])
 
   useEffect(() => {
@@ -397,13 +439,36 @@ export default function PublicAgentStorefront({
   }, [serviceSearch])
 
   useEffect(() => {
-    if (servicePage > serviceTotalPages) setServicePage(serviceTotalPages)
-  }, [servicePage, serviceTotalPages])
+    if (servicePage > servicePagination.totalPages) {
+      setServicePage(servicePagination.totalPages)
+    }
+  }, [servicePage, servicePagination.totalPages])
+
+  useEffect(() => {
+    if (bundlePage > bundlePagination.totalPages) {
+      setBundlePage(bundlePagination.totalPages)
+    }
+  }, [bundlePage, bundlePagination.totalPages])
+
+  useEffect(() => {
+    const order: MainStoreTab[] = ["bundles", "services", "products", "business"]
+    if (order.includes(mainTab) && tabVisibility[mainTab]) return
+    const first = order.find((t) => tabVisibility[t])
+    if (first) setMainTab(first)
+  }, [tabVisibility, mainTab])
 
   const cartTotal = useMemo(
     () => cart.reduce((sum, line) => sum + Number(line.bundle.retail_price), 0),
     [cart],
   )
+
+  const wholesaleCartTotal = useMemo(
+    () =>
+      wholesaleCart.reduce((sum, line) => sum + line.product.retail_price * line.quantity, 0),
+    [wholesaleCart],
+  )
+
+  const cartItemCount = cart.length + wholesaleCart.length
 
   const toggleBundle = (bundleId: string) => {
     if (activeBundleId === bundleId) {
@@ -612,15 +677,15 @@ export default function PublicAgentStorefront({
           type="button"
           onClick={() => setCartOpen(true)}
           className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors"
-          aria-label={`Open cart, ${cart.length} items`}
+          aria-label={`Open cart, ${cartItemCount} items`}
         >
           <ShoppingCart className="h-5 w-5" />
-          {cart.length > 0 && (
+          {cartItemCount > 0 && (
             <span
               className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
               style={{ backgroundColor: accent }}
             >
-              {cart.length > 9 ? "9+" : cart.length}
+              {cartItemCount > 9 ? "9+" : cartItemCount}
             </span>
           )}
         </button>
@@ -683,44 +748,16 @@ export default function PublicAgentStorefront({
             </div>
           </div>
 
-        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "bundles" | "services")}>
-          <TabsList className="w-full h-auto grid grid-cols-2 p-1 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <TabsTrigger
-              value="bundles"
-              className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:text-white transition-colors"
-              style={
-                mainTab === "bundles"
-                  ? { backgroundColor: accent, color: "white" }
-                  : undefined
-              }
-            >
-              <Wifi className="h-4 w-4 mr-1.5 inline" />
-              Data bundles
-              {bundles.length > 0 && (
-                <Badge variant="secondary" className="ml-1.5 text-[10px]">
-                  {bundles.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger
-              value="services"
-              className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:text-white transition-colors"
-              style={
-                mainTab === "services"
-                  ? { backgroundColor: accent, color: "white" }
-                  : undefined
-              }
-            >
-              Referral services
-              {services.length > 0 && (
-                <Badge variant="secondary" className="ml-1.5 text-[10px]">
-                  {services.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as MainStoreTab)} className="space-y-4">
+          <StorefrontCatalogTabNav
+            activeTab={mainTab}
+            accent={accent}
+            visible={tabVisibility}
+            counts={tabCounts}
+          />
 
-          <TabsContent value="bundles" className="mt-4 space-y-4">
+          {tabVisibility.bundles && (
+          <TabsContent value="bundles" className="mt-2 space-y-4 focus-visible:outline-none">
             {bundles.length === 0 ? (
               <Card className="border-0 shadow-md rounded-2xl">
                 <CardContent className="py-10 text-center text-muted-foreground text-sm">
@@ -754,9 +791,15 @@ export default function PublicAgentStorefront({
                 </TabsList>
                 {NETWORK_TABS.map((n) => (
                   <TabsContent key={n.key} value={n.key} className="mt-4 space-y-4">
+                    {networkTab === n.key ? (
+                      <StorefrontPageSection
+                        pageKey={`${n.key}-${bundlePage}`}
+                        slideDirection={bundleSlideDir}
+                        className="space-y-4"
+                      >
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {(bundlesByNetwork[n.key] || []).map((b) => {
-                      const isActive = networkTab === n.key && activeBundleId === b.id
+                    {bundlePagination.items.map((b) => {
+                      const isActive = activeBundleId === b.id
                       return (
                       <div key={b.id} className="flex flex-col gap-2 min-w-0">
                       <Card
@@ -832,6 +875,18 @@ export default function PublicAgentStorefront({
                       </div>
                     )})}
                     </div>
+                    <StorefrontListPagination
+                      page={bundlePagination.page}
+                      totalPages={bundlePagination.totalPages}
+                      totalItems={bundlePagination.total}
+                      onPageChange={(p) => {
+                        setBundleSlideDir(p > bundlePage ? "down" : "up")
+                        setBundlePage(p)
+                      }}
+                      accentColor={accent}
+                    />
+                      </StorefrontPageSection>
+                    ) : null}
 
                     {!bundlesByNetwork[n.key]?.length && (
                       <p className="text-sm text-muted-foreground text-center py-8">
@@ -843,8 +898,10 @@ export default function PublicAgentStorefront({
               </Tabs>
             )}
           </TabsContent>
+          )}
 
-          <TabsContent value="services" className="mt-4 space-y-4">
+          {tabVisibility.services && (
+          <TabsContent value="services" className="mt-2 space-y-4 focus-visible:outline-none">
             {services.length === 0 ? (
               <Card className="border-0 shadow-md rounded-2xl">
                 <CardContent className="py-10 text-center text-muted-foreground text-sm">
@@ -866,8 +923,13 @@ export default function PublicAgentStorefront({
                 {filteredServices.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">No matches found.</p>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {paginatedServices.map((s) => (
+                  <>
+                  <StorefrontPageSection
+                    pageKey={servicePage}
+                    slideDirection={serviceSlideDir}
+                    className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                  >
+                    {servicePagination.items.map((s) => (
                       <Card
                         key={s.id}
                         className="border border-slate-100 bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full"
@@ -925,56 +987,65 @@ export default function PublicAgentStorefront({
                         </CardContent>
                       </Card>
                     ))}
-                  </div>
-                )}
-
-                {filteredServices.length > SERVICES_PER_PAGE && (
-                  <div className="flex items-center justify-center gap-3 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-lg"
-                      disabled={servicePage <= 1}
-                      onClick={() => setServicePage((p) => p - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground tabular-nums">
-                      {servicePage} / {serviceTotalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-lg"
-                      disabled={servicePage >= serviceTotalPages}
-                      onClick={() => setServicePage((p) => p + 1)}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
+                  </StorefrontPageSection>
+                  <StorefrontListPagination
+                    page={servicePagination.page}
+                    totalPages={servicePagination.totalPages}
+                    totalItems={servicePagination.total}
+                    onPageChange={(p) => {
+                      setServiceSlideDir(p > servicePage ? "down" : "up")
+                      setServicePage(p)
+                    }}
+                    accentColor={accent}
+                  />
+                  </>
                 )}
               </>
             )}
           </TabsContent>
+          )}
+
+          {tabVisibility.products && (
+            <TabsContent value="products" className="mt-4">
+              <StorefrontExtendedCatalog
+                mode="products"
+                agentId={agentId}
+                storeSegment={storeSegment}
+                storeName={displayProfile.store_name || "Data Store"}
+                accent={accent}
+                products={wholesaleProducts}
+                complianceForms={complianceForms}
+                wholesaleCart={wholesaleCart}
+                onAddWholesale={addWholesaleToCart}
+                onRemoveWholesale={removeWholesaleFromCart}
+                onCheckoutWholesale={checkoutWholesale}
+                compliancePaidRef={compliancePaidRef}
+                customerEmail={customerEmail}
+              />
+            </TabsContent>
+          )}
+
+          {tabVisibility.business && (
+            <TabsContent value="business" className="mt-2 focus-visible:outline-none">
+              <StorefrontExtendedCatalog
+                mode="business"
+                agentId={agentId}
+                storeSegment={storeSegment}
+                storeName={displayProfile.store_name || "Data Store"}
+                accent={accent}
+                products={wholesaleProducts}
+                complianceForms={complianceForms}
+                wholesaleCart={wholesaleCart}
+                onAddWholesale={addWholesaleToCart}
+                onRemoveWholesale={removeWholesaleFromCart}
+                onCheckoutWholesale={checkoutWholesale}
+                compliancePaidRef={compliancePaidRef}
+                customerEmail={customerEmail}
+              />
+            </TabsContent>
+          )}
         </Tabs>
         </section>
-
-        <StorefrontExtendedCatalog
-          agentId={agentId}
-          storeSegment={storeSegment}
-          storeName={displayProfile.store_name || "Data Store"}
-          accent={accent}
-          products={wholesaleProducts}
-          complianceForms={complianceForms}
-          wholesaleCart={wholesaleCart}
-          onAddWholesale={addWholesaleToCart}
-          onRemoveWholesale={removeWholesaleFromCart}
-          onCheckoutWholesale={checkoutWholesale}
-          compliancePaidRef={compliancePaidRef}
-          customerEmail={customerEmail}
-        />
 
         <footer className="text-center text-xs text-muted-foreground pt-2 pb-4 border-t border-slate-200/80 mt-4">
           Powered by Referral Powerhouse · Secure Paystack checkout
@@ -1001,9 +1072,9 @@ export default function PublicAgentStorefront({
               <h2 className="font-semibold flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
                 Your cart
-                {cart.length > 0 && (
+                {cartItemCount > 0 && (
                   <Badge variant="secondary" className="bg-white/20 text-white border-0 text-xs">
-                    {cart.length}
+                    {cartItemCount}
                   </Badge>
                 )}
               </h2>
@@ -1018,9 +1089,9 @@ export default function PublicAgentStorefront({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-              {cart.length === 0 ? (
+              {cartItemCount === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-12">
-                  Your cart is empty. Tap a bundle, enter a phone number, and add to cart.
+                  Your cart is empty. Add data bundles or shop products to checkout.
                 </p>
               ) : (
                 <ul className="space-y-3">
@@ -1052,6 +1123,32 @@ export default function PublicAgentStorefront({
                       </Button>
                     </li>
                   ))}
+                  {wholesaleCart.map((line) => (
+                    <li
+                      key={line.lineId}
+                      className="flex items-start gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900">{line.product.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Qty {line.quantity} · Product order
+                        </p>
+                        <p className="text-sm font-semibold mt-1" style={{ color: accent }}>
+                          ₵{(line.product.retail_price * line.quantity).toFixed(2)}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        aria-label="Remove item"
+                        onClick={() => removeWholesaleFromCart(line.lineId)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>
@@ -1060,10 +1157,10 @@ export default function PublicAgentStorefront({
               <div className="flex items-center justify-between">
                 <span className="font-medium text-slate-700">Total</span>
                 <span className="text-xl font-bold tabular-nums" style={{ color: accent }}>
-                  ₵{cartTotal.toFixed(2)}
+                  ₵{(cartTotal + wholesaleCartTotal).toFixed(2)}
                 </span>
               </div>
-              {cart.length > 0 && (
+              {cartItemCount > 0 && (
                 <div>
                   <Label className="text-xs text-slate-600">Email (optional, for receipt)</Label>
                   <Input
@@ -1075,19 +1172,33 @@ export default function PublicAgentStorefront({
                   />
                 </div>
               )}
-              <Button
-                type="button"
-                className="w-full text-white rounded-xl h-12 font-semibold text-base"
-                style={{ backgroundColor: accent }}
-                disabled={checkingOut || cart.length === 0}
-                onClick={checkoutCart}
-              >
-                {checkingOut
-                  ? "Redirecting to Paystack…"
-                  : cart.length === 0
-                    ? "Proceed to Pay"
-                    : `Proceed to Pay · ₵${cartTotal.toFixed(2)}`}
-              </Button>
+              {cart.length > 0 && (
+                <Button
+                  type="button"
+                  className="w-full text-white rounded-xl h-12 font-semibold text-base"
+                  style={{ backgroundColor: accent }}
+                  disabled={checkingOut}
+                  onClick={checkoutCart}
+                >
+                  {checkingOut
+                    ? "Redirecting to Paystack…"
+                    : `Pay data bundles · ₵${cartTotal.toFixed(2)}`}
+                </Button>
+              )}
+              {wholesaleCart.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full rounded-xl h-12 font-semibold"
+                  disabled={checkingOut}
+                  onClick={() => {
+                    setCartOpen(false)
+                    setMainTab("products")
+                  }}
+                >
+                  Complete product checkout (delivery details)
+                </Button>
+              )}
             </div>
           </aside>
         </div>
@@ -1102,7 +1213,10 @@ export default function PublicAgentStorefront({
       <StorefrontChannelPopup
         storeName={displayProfile.store_name || "Data Store"}
         channelUrl={displayProfile.whatsapp_channel_url}
-        enabled={displayProfile.show_whatsapp_popup !== false}
+        enabled={
+          Boolean(displayProfile.show_whatsapp_popup) &&
+          Boolean(displayProfile.whatsapp_channel_url?.trim())
+        }
         accentColor={accent}
       />
 
