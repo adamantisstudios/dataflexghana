@@ -3,15 +3,12 @@ import { getAdminClient } from "@/lib/supabase-base"
 import type { StorefrontCartItemMeta } from "@/lib/storefront-order-whatsapp"
 import type { WholesaleCartItemMeta } from "@/lib/storefront-paystack-meta"
 import type { BuyerDetails } from "@/lib/storefront-catalog"
+import { getStorefrontPaystackCallbackUrl } from "@/lib/storefront-utils"
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co"
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
 
-const STOREFRONT_ORIGIN = (
-  process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN || "https://referralpowerhouse.vercel.app"
-).replace(/\/$/, "")
-
-const PAYSTACK_STOREFRONT_CALLBACK_URL = `${STOREFRONT_ORIGIN}/api/paystack/storefront/callback`
+const PAYSTACK_STOREFRONT_CALLBACK_URL = getStorefrontPaystackCallbackUrl()
 
 export const dynamic = "force-dynamic"
 

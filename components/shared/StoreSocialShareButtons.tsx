@@ -23,10 +23,7 @@ export function StoreSocialShareButtons({
   layout = "inline",
   className = "",
 }: Props) {
-  const shareUrl =
-    typeof window !== "undefined"
-      ? buildStorefrontUrl(agentId, storeSlug)
-      : buildStorefrontUrl(agentId, storeSlug)
+  const shareUrl = buildStorefrontUrl(agentId, storeSlug)
 
   const shareText = `Shop at ${storeName} on Referral Powerhouse`
 

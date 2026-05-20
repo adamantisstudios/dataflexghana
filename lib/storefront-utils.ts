@@ -1,5 +1,4 @@
 import type { NextRequest } from "next/server"
-import { resolveOriginFromRequest } from "@/lib/app-url"
 
 export const DEFAULT_STOREFRONT_ORIGIN = "https://referralpowerhouse.vercel.app"
 
@@ -10,101 +9,47 @@ function stripTrailingSlash(url: string): string {
   return url.replace(/\/$/, "")
 }
 
-function isLocalhostOrigin(origin: string): boolean {
-  try {
-    const host = new URL(origin).hostname
-    return host === "localhost" || host === "127.0.0.1"
-  } catch {
-    return /localhost|127\.0\.0\.1/i.test(origin)
-  }
-}
-
-function isStorefrontHostname(hostname: string): boolean {
-  const lower = hostname.toLowerCase()
-  if (lower === "referralpowerhouse.vercel.app") return true
-  if (lower.endsWith(".referralpowerhouse.vercel.app")) return true
-  const extra = process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN?.trim()
-  if (extra) {
-    try {
-      if (new URL(extra).hostname.toLowerCase() === lower) return true
-    } catch {
-      /* ignore */
-    }
-  }
-  return false
-}
-
 /**
- * Server-side storefront origin for Paystack callbacks and post-payment redirects.
- * Never uses VERCEL_URL or generic *.vercel.app deployment hosts.
+ * Canonical storefront origin for public links, QR codes, share buttons, metadata, and Paystack.
+ * Uses NEXT_PUBLIC_STOREFRONT_ORIGIN when set; never window.location or the main app domain.
  */
-export function getStorefrontServerOrigin(request?: NextRequest): string {
+export function getStorefrontOrigin(): string {
   const envOrigin = process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN?.trim()
-  if (envOrigin && !isLocalhostOrigin(envOrigin)) {
+  if (envOrigin) {
     return stripTrailingSlash(envOrigin)
   }
-
-  if (request) {
-    const fromRequest = resolveOriginFromRequest(request)
-    if (fromRequest) {
-      if (isLocalhostOrigin(fromRequest)) {
-        return stripTrailingSlash(fromRequest)
-      }
-      try {
-        const host = new URL(fromRequest).hostname
-        if (isStorefrontHostname(host)) {
-          return stripTrailingSlash(fromRequest)
-        }
-      } catch {
-        /* fall through */
-      }
-    }
-  }
-
   return DEFAULT_STOREFRONT_ORIGIN
 }
 
-/** Paystack `callback_url` — always on the public storefront domain in production. */
+/** @deprecated Alias — use getStorefrontOrigin */
+export function getStorefrontPublicOrigin(): string {
+  return getStorefrontOrigin()
+}
+
+/**
+ * Server-side storefront origin (Paystack callbacks, redirects).
+ * Same as getStorefrontOrigin — request host is intentionally ignored.
+ */
+export function getStorefrontServerOrigin(_request?: NextRequest): string {
+  return getStorefrontOrigin()
+}
+
+/** Paystack `callback_url` — always on the public storefront domain. */
 export function getStorefrontPaystackCallbackUrl(request?: NextRequest): string {
   return `${getStorefrontServerOrigin(request)}/api/paystack/storefront/callback`
 }
 
-/** Build `/store/{segment}` on a specific origin (server redirects). */
-export function buildStorefrontPathUrl(
-  origin: string,
-  segment: string,
-): string {
+/** Full URL: `{origin}/store/{segment}` */
+export function buildStorefrontPathUrl(origin: string, segment: string): string {
   const safeSegment = segment.trim() || ""
   return `${stripTrailingSlash(origin)}/store/${encodeURIComponent(safeSegment)}`
 }
 
-/**
- * Origin used for public storefront links and QR codes.
- * 1. NEXT_PUBLIC_STOREFRONT_ORIGIN (if set and not localhost)
- * 2. Current browser host on the client (if not localhost)
- * 3. Production default — never NEXT_PUBLIC_APP_URL (often localhost in dev builds)
- */
-export function getStorefrontPublicOrigin(): string {
-  const envOrigin = process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN?.trim()
-  if (envOrigin && !isLocalhostOrigin(envOrigin)) {
-    return envOrigin.replace(/\/$/, "")
-  }
-
-  if (typeof window !== "undefined") {
-    const hostOrigin = window.location.origin
-    if (!isLocalhostOrigin(hostOrigin)) {
-      return hostOrigin.replace(/\/$/, "")
-    }
-  }
-
-  return DEFAULT_STOREFRONT_ORIGIN
-}
-
 export function getStorefrontPublicBase(): string {
-  return `${getStorefrontPublicOrigin()}/store`
+  return `${getStorefrontOrigin()}/store`
 }
 
-/** Static fallback for metadata; prefer getStorefrontPublicBase() at runtime. */
+/** Static fallback for metadata when env is unavailable at build time. */
 export const STOREFRONT_PUBLIC_BASE = `${DEFAULT_STOREFRONT_ORIGIN}/store`
 
 export function isUuid(value: string): boolean {
@@ -131,7 +76,7 @@ export function buildStorefrontUrl(
   storeSegment?: string | null,
 ): string {
   const segment = storeSegment?.trim() || storeSlug?.trim() || agentId
-  return `${getStorefrontPublicOrigin()}/store/${segment}`
+  return buildStorefrontPathUrl(getStorefrontOrigin(), segment)
 }
 
 export function normalizeProvider(provider: string): string {

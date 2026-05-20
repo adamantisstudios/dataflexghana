@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { DEFAULT_STOREFRONT_ORIGIN } from "@/lib/storefront-utils"
+import { getStorefrontOrigin } from "@/lib/storefront-utils"
 
 export const STOREFRONT_PWA_ICON = "/images/data-bundles.png"
 
@@ -21,10 +21,7 @@ export function storefrontStoreDescription(storeName: string, businessInfo: stri
 }
 
 export function storefrontPublicImageUrl(origin?: string): string {
-  const base = (origin || process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN || DEFAULT_STOREFRONT_ORIGIN).replace(
-    /\/$/,
-    "",
-  )
+  const base = (origin || getStorefrontOrigin()).replace(/\/$/, "")
   return `${base}${STOREFRONT_PWA_ICON}`
 }
 

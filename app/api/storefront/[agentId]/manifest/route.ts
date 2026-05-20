@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getStorefrontPageMetadata } from "@/lib/storefront-server"
 import { STOREFRONT_PWA_ICON } from "@/lib/storefront-pwa-metadata"
-import { isUuid } from "@/lib/storefront-utils"
+import { buildStorefrontPathUrl, getStorefrontOrigin, isUuid } from "@/lib/storefront-utils"
 
 type RouteContext = {
   params: Promise<{ agentId: string }>
@@ -21,7 +21,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const segment = meta.storeSlug || agentId
-  const storePath = `/store/${encodeURIComponent(segment)}`
+  const storeUrl = buildStorefrontPathUrl(getStorefrontOrigin(), segment)
   const shortName =
     meta.storeName.length > 12 ? `${meta.storeName.slice(0, 12).trim()}…` : meta.storeName
 
@@ -31,8 +31,8 @@ export async function GET(_request: Request, context: RouteContext) {
     description:
       meta.businessInfo?.trim().slice(0, 200) ||
       `Shop data bundles and more at ${meta.storeName}.`,
-    start_url: storePath,
-    scope: storePath,
+    start_url: storeUrl,
+    scope: storeUrl,
     display: "standalone",
     orientation: "portrait-primary",
     background_color: "#ffffff",

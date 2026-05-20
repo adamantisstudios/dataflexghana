@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { getStorefrontPageMetadata } from "@/lib/storefront-server"
 import { buildStorefrontPageMetadata } from "@/lib/storefront-pwa-metadata"
-import { getStorefrontPublicBase, STOREFRONT_PUBLIC_BASE } from "@/lib/storefront-utils"
+import { buildStorefrontPathUrl, getStorefrontOrigin } from "@/lib/storefront-utils"
 
 type LayoutProps = {
   children: ReactNode
@@ -17,8 +17,8 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     return { title: "Store Not Available" }
   }
 
-  const storeBase = getStorefrontPublicBase()
-  const url = meta.storeSlug ? `${storeBase}/${meta.storeSlug}` : `${storeBase}/${agentId}`
+  const origin = getStorefrontOrigin()
+  const url = buildStorefrontPathUrl(origin, meta.storeSlug || agentId)
 
   return buildStorefrontPageMetadata(
     {
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       storeSlug: meta.storeSlug,
     },
     url,
-    STOREFRONT_PUBLIC_BASE.replace(/\/store$/, ""),
+    origin,
   )
 }
 

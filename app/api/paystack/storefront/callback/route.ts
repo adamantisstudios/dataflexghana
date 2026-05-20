@@ -7,13 +7,9 @@ import {
   metadataValue,
   parseStorefrontItemsFromMetadata,
 } from "@/lib/storefront-order-whatsapp"
-import { getStorefrontPublicBase } from "@/lib/storefront-utils"
+import { buildStorefrontPathUrl, getStorefrontOrigin, getStorefrontPublicBase } from "@/lib/storefront-utils"
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
-
-const STOREFRONT_ORIGIN = (
-  process.env.NEXT_PUBLIC_STOREFRONT_ORIGIN || "https://referralpowerhouse.vercel.app"
-).replace(/\/$/, "")
 
 export const dynamic = "force-dynamic"
 
@@ -56,7 +52,7 @@ function buildSuccessRedirect(
     reference,
   })
 
-  const redirectUrl = new URL(`${STOREFRONT_ORIGIN}/store/${encodeURIComponent(segment)}`)
+  const redirectUrl = new URL(buildStorefrontPathUrl(getStorefrontOrigin(), segment))
   redirectUrl.searchParams.set("payment", "success")
   redirectUrl.searchParams.set("ref", reference)
   redirectUrl.searchParams.set("whatsapp_url", buildStorefrontAdminWhatsAppUrl(whatsappMessage))
@@ -122,7 +118,7 @@ export async function GET(request: NextRequest) {
     if (!capture.ok) {
       console.error("[storefront callback] compliance capture:", capture.error)
     }
-    const redirectUrl = new URL(`${STOREFRONT_ORIGIN}/store/${encodeURIComponent(segment)}`)
+    const redirectUrl = new URL(buildStorefrontPathUrl(getStorefrontOrigin(), segment))
     redirectUrl.searchParams.set("compliance_paid", verifiedReference)
     redirectUrl.searchParams.set("form_type", String(meta.form_type || "sole_proprietorship"))
     return NextResponse.redirect(redirectUrl.toString())
@@ -157,7 +153,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (orderType === "wholesale") {
-    const redirectUrl = new URL(`${STOREFRONT_ORIGIN}/store/${encodeURIComponent(segment)}`)
+    const redirectUrl = new URL(buildStorefrontPathUrl(getStorefrontOrigin(), segment))
     redirectUrl.searchParams.set("payment", "success")
     redirectUrl.searchParams.set("ref", verifiedReference)
     redirectUrl.searchParams.set("order_type", "wholesale")
