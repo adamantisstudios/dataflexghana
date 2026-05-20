@@ -15,6 +15,18 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
 
 export const dynamic = "force-dynamic"
 
+function isValidStorefrontEmail(email: string): boolean {
+  const t = email.trim()
+  if (t.length < 5 || t.length > 254) return false
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)
+}
+
+/** Digits-only length 9–15 (local or international). */
+function isValidStorefrontPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "")
+  return digits.length >= 9 && digits.length <= 15
+}
+
 function isAllowedCallbackUrl(callbackUrl: string, request: NextRequest): boolean {
   try {
     const parsed = new URL(callbackUrl)
@@ -37,7 +49,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const {
-      email,
+      email: emailRaw,
+      phone: phoneRaw,
       agent_id,
       form_type,
       store_name,
@@ -46,8 +59,25 @@ export async function POST(request: NextRequest) {
       callback_url: callbackFromClient,
     } = body
 
-    if (!email || !agent_id) {
-      return NextResponse.json({ error: "email and agent_id are required" }, { status: 400 })
+    const email = typeof emailRaw === "string" ? emailRaw.trim() : ""
+    const phone = typeof phoneRaw === "string" ? phoneRaw.trim() : ""
+
+    if (!email || !phone || !agent_id) {
+      return NextResponse.json(
+        { error: "email, phone, and agent_id are required" },
+        { status: 400 },
+      )
+    }
+
+    if (!isValidStorefrontEmail(email)) {
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 })
+    }
+
+    if (!isValidStorefrontPhone(phone)) {
+      return NextResponse.json(
+        { error: "Enter a valid phone number (9–15 digits)" },
+        { status: 400 },
+      )
     }
 
     const formType = form_type || COMPLIANCE_FORM_SOLE_PROPRIETORSHIP
@@ -124,6 +154,8 @@ export async function POST(request: NextRequest) {
           store_segment: String(store_segment || ""),
           cart_total: String(priceGhs),
           amount_kobo: String(amountKobo),
+          customer_email: email,
+          customer_phone: phone.replace(/\D/g, ""),
         },
         callback_url: callbackUrl,
       }),

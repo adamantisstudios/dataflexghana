@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
   import {
   Plus,
   Clock,
@@ -326,7 +326,9 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
         <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
           <DialogHeader className="px-4 pt-4 pb-2 shrink-0 border-b">
             <DialogTitle className="text-lg font-bold tracking-tight">Select a form</DialogTitle>
-            <p className="text-sm text-muted-foreground">Choose the compliance service you need</p>
+            <DialogDescription className="text-sm text-muted-foreground text-left">
+              Choose the compliance service you need
+            </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-2.5 p-4 overflow-y-auto max-h-[calc(85vh-5rem)]">
             {AVAILABLE_FORMS.map((form) => {

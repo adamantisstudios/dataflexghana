@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -87,6 +88,9 @@ export function StorefrontExtendedCatalog({
   })
   const [checkingOut, setCheckingOut] = useState(false)
   const [payingCompliance, setPayingCompliance] = useState(false)
+  const [compliancePayOpen, setCompliancePayOpen] = useState(false)
+  const [compliancePayerEmail, setCompliancePayerEmail] = useState("")
+  const [compliancePayerPhone, setCompliancePayerPhone] = useState("")
   const [complianceForm, setComplianceForm] = useState({
     business_name: "",
     owner_name: "",
@@ -113,9 +117,27 @@ export function StorefrontExtendedCatalog({
     setLightbox({ src: src.trim(), alt })
   }
 
-  const payCompliance = async () => {
+  const openCompliancePayModal = () => {
+    setCompliancePayerEmail((customerEmail || complianceForm.email || "").trim())
+    setCompliancePayerPhone(complianceForm.phone.trim())
+    setCompliancePayOpen(true)
+  }
+
+  const continueComplianceToPaystack = async () => {
     if (!soleForm) return
-    const email = customerEmail.trim() || "customer@storefront.local"
+    const email = compliancePayerEmail.trim()
+    const phone = compliancePayerPhone.trim()
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    const digits = phone.replace(/\D/g, "")
+    if (!emailOk) {
+      toast.error("Please enter a valid email address")
+      return
+    }
+    if (digits.length < 9 || digits.length > 15) {
+      toast.error("Please enter a valid phone number (9–15 digits)")
+      return
+    }
+
     setPayingCompliance(true)
     try {
       const callbackUrl =
@@ -128,6 +150,7 @@ export function StorefrontExtendedCatalog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
+          phone,
           agent_id: agentId,
           form_type: soleForm.form_type,
           amount: COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO,
@@ -138,6 +161,7 @@ export function StorefrontExtendedCatalog({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Payment could not be started")
+      setComplianceForm((f) => ({ ...f, email, phone }))
       window.location.href = data.authorizationUrl
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Payment failed")
@@ -320,12 +344,12 @@ export function StorefrontExtendedCatalog({
                   <div className="space-y-3">
                     <PaystackSecureBadge />
                     <Button
-                      onClick={payCompliance}
+                      onClick={openCompliancePayModal}
                       disabled={payingCompliance}
                       className="w-full text-white h-11"
                       style={{ backgroundColor: accent }}
                     >
-                      {payingCompliance ? "Redirecting to Paystack…" : "Pay GH₵ 590 to unlock form"}
+                      Pay GH₵ 590 to unlock form
                     </Button>
                   </div>
                 ) : (
@@ -386,6 +410,7 @@ export function StorefrontExtendedCatalog({
             <>
               <DialogHeader className="sr-only">
                 <DialogTitle>{productModal.name}</DialogTitle>
+                <DialogDescription>Product details and add to cart</DialogDescription>
               </DialogHeader>
               <div className="px-4 pt-12 pb-4 space-y-4">
                 <button
@@ -449,6 +474,9 @@ export function StorefrontExtendedCatalog({
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Delivery details</DialogTitle>
+            <DialogDescription>
+              Provide shipping and contact details for your wholesale order.
+            </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
             Delivery cost will be discussed with the agent after your order is placed.
@@ -490,6 +518,73 @@ export function StorefrontExtendedCatalog({
               className="text-white"
             >
               {checkingOut ? "Processing…" : "Pay with Paystack"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={compliancePayOpen}
+        onOpenChange={(open) => {
+          setCompliancePayOpen(open)
+          if (!open) setPayingCompliance(false)
+        }}
+      >
+        <DialogContent className="max-w-md sm:rounded-2xl border-slate-200">
+          <DialogHeader>
+            <DialogTitle>Before you pay</DialogTitle>
+            <DialogDescription>
+              Enter your email and phone number. We will use them for your Paystack receipt and so the agent can
+              reach you about your compliance application.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label htmlFor="compliance-payer-email">Email</Label>
+              <Input
+                id="compliance-payer-email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                className="mt-1 h-11"
+                placeholder="you@example.com"
+                value={compliancePayerEmail}
+                onChange={(e) => setCompliancePayerEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="compliance-payer-phone">Phone</Label>
+              <Input
+                id="compliance-payer-phone"
+                type="tel"
+                autoComplete="tel"
+                inputMode="tel"
+                className="mt-1 h-11"
+                placeholder="e.g. 0241234567"
+                value={compliancePayerPhone}
+                onChange={(e) => setCompliancePayerPhone(e.target.value)}
+              />
+            </div>
+            <PaystackSecureBadge />
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              type="button"
+              className="w-full h-11 text-white font-semibold"
+              style={{ backgroundColor: accent }}
+              disabled={payingCompliance}
+              onClick={() => void continueComplianceToPaystack()}
+            >
+              {payingCompliance ? "Redirecting to Paystack…" : "Continue to Payment"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-10"
+              disabled={payingCompliance}
+              onClick={() => setCompliancePayOpen(false)}
+            >
+              Cancel
             </Button>
           </DialogFooter>
         </DialogContent>
