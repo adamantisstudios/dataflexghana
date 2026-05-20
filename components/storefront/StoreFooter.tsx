@@ -15,16 +15,16 @@ export function StoreFooter({ className }: Props) {
         className,
       )}
     >
-      <div className="flex items-center justify-center gap-2 px-4">
+      <div className="flex items-center justify-center px-4">
         <Image
           src="/paystack.png"
-          alt="Paystack"
-          width={80}
-          height={28}
-          className="h-7 w-auto object-contain"
+          alt="Paystack — secure payments"
+          width={280}
+          height={77}
+          className="h-12 sm:h-14 w-auto max-w-[min(100%,280px)] object-contain"
         />
       </div>
-      <p className="text-xs text-muted-foreground px-4 leading-relaxed">
+      <p className="text-xs sm:text-sm text-muted-foreground px-4 leading-relaxed">
         Powered by Referral Powerhouse · Secure Paystack checkout
       </p>
     </footer>
