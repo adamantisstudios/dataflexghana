@@ -48,10 +48,20 @@ const VARIANT_CONFIG: Record<
 
 export interface PwaInstallPromptProps {
   variant?: PwaInstallVariant
+  /** Store name for storefront installs (replaces generic "Install App" copy). */
+  storeName?: string
 }
 
-export function PwaInstallPrompt({ variant = "dataflex" }: PwaInstallPromptProps) {
-  const config = VARIANT_CONFIG[variant]
+export function PwaInstallPrompt({ variant = "dataflex", storeName }: PwaInstallPromptProps) {
+  const baseConfig = VARIANT_CONFIG[variant]
+  const config =
+    variant === "storefront" && storeName?.trim()
+      ? {
+          ...baseConfig,
+          iconAlt: storeName.trim(),
+          title: `Install ${storeName.trim()}`,
+        }
+      : baseConfig
   const dismissKey = `${DISMISS_KEY_PREFIX}_${variant}`
 
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)

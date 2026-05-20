@@ -1332,7 +1332,10 @@ export default function PublicAgentStorefront({
         onClose={() => setImageLightbox(null)}
       />
 
-      <PwaInstallPrompt variant="storefront" />
+      <PwaInstallPrompt
+        variant="storefront"
+        storeName={displayProfile.store_name || "Data Store"}
+      />
     </div>
   )
 }

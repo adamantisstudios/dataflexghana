@@ -780,6 +780,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://dataflexghana.com",
   },
+  manifest: "/manifest.json",
   other: {
     "geo.region": "GH",
     "geo.placename": "Ghana",
@@ -842,7 +843,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noai, noimageai" />
         <meta name="theme-color" content="#059669" />
-        <link rel="manifest" href="/manifest.json" />
         <meta name="msapplication-TileColor" content="#10b981" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
