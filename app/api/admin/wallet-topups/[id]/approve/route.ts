@@ -26,12 +26,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const db = getAdminClient()
     const referenceCode = topupApprovalReferenceCode(topupId)
 
-    const { data: existingTx } = await db
-      .from("wallet_transactions")
-      .select("id")
-      .eq("reference_code", referenceCode)
-      .maybeSingle()
-
     const { data: topup, error: topupError } = await db
       .from("wallet_topups")
       .select("id, agent_id, amount, status")
@@ -61,21 +55,36 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
-    if (!existingTx) {
-      const { error: insertError } = await db.from("wallet_transactions").insert({
-        agent_id: topup.agent_id,
-        transaction_type: "topup",
-        amount: topup.amount,
-        description: `Admin wallet top-up - GH₵${Number(topup.amount).toFixed(2)}`,
-        status: "approved",
-        reference_code: referenceCode,
-        admin_notes: adminId ? `Approved by admin ${adminId}` : "Approved by admin",
-        admin_id: adminId || null,
-      })
+    // Re-check after status flip (or concurrent approve) so we never double-credit the same request.
+    const { data: creditBeforeInsert } = await db
+      .from("wallet_transactions")
+      .select("id")
+      .eq("reference_code", referenceCode)
+      .maybeSingle()
+
+    const hadCreditAlready = Boolean(creditBeforeInsert?.id)
+    let walletTransactionCreated = false
+
+    if (!hadCreditAlready) {
+      const { data: insertedRow, error: insertError } = await db
+        .from("wallet_transactions")
+        .insert({
+          agent_id: topup.agent_id,
+          transaction_type: "topup",
+          amount: topup.amount,
+          description: `Admin wallet top-up - GH₵${Number(topup.amount).toFixed(2)}`,
+          status: "approved",
+          reference_code: referenceCode,
+          admin_notes: adminId ? `Approved by admin ${adminId}` : "Approved by admin",
+          admin_id: adminId || null,
+        })
+        .select("id")
+        .maybeSingle()
 
       if (insertError && insertError.code !== "23505") {
         return NextResponse.json({ success: false, error: insertError.message }, { status: 500 })
       }
+      walletTransactionCreated = Boolean(insertedRow?.id)
     }
 
     const balance = await calculateWalletBalance(topup.agent_id)
@@ -92,6 +101,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ success: false, error: balanceError.message }, { status: 500 })
     }
 
+    const { data: creditAfter } = await db
+      .from("wallet_transactions")
+      .select("id")
+      .eq("reference_code", referenceCode)
+      .maybeSingle()
+
+    const creditExists = Boolean(creditAfter?.id)
+    const idempotentReplay = hadCreditAlready || (creditExists && !walletTransactionCreated)
+
     return NextResponse.json({
       success: true,
       data: {
@@ -99,9 +117,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         agent_id: topup.agent_id,
         balance,
         reference_code: referenceCode,
-        idempotent: Boolean(existingTx),
-        wallet_transaction_created: !existingTx,
-        message: existingTx
+        idempotent: idempotentReplay,
+        wallet_transaction_created: walletTransactionCreated,
+        message: idempotentReplay
           ? "Top-up was already credited (idempotent)"
           : `Wallet top-up approved. New balance: GH₵${balance.toFixed(2)}`,
       },

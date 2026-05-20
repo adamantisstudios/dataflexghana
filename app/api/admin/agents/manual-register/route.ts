@@ -93,29 +93,42 @@ export const POST = withAdminAuth(async (request: NextRequest, admin) => {
     })
 
     if (autoApprove) {
-      const adjustmentId = await createAdminAdjustment(
-        newAgent.id,
-        5,
-        admin.id,
-        "Approval credit for manually registered agent",
-        true,
-      )
+      try {
+        const adjustmentId = await createAdminAdjustment(
+          newAgent.id,
+          5,
+          admin.id,
+          "Approval credit for manually registered agent",
+          true,
+        )
 
-      if (!adjustmentId) {
+        if (!adjustmentId) {
+          return NextResponse.json(
+            {
+              success: true,
+              warning: "Agent created but welcome wallet credit failed",
+              agent: newAgent,
+            },
+            { status: 201 },
+          )
+        }
+
+        try {
+          await ensureReferralCreditOnAgentApproval(newAgent.id)
+        } catch (referralErr) {
+          console.error("[manual-register] referral credit:", referralErr)
+        }
+      } catch (creditErr) {
+        console.error("[manual-register] welcome wallet credit:", creditErr)
+        const msg = creditErr instanceof Error ? creditErr.message : "Wallet credit failed"
         return NextResponse.json(
           {
             success: true,
-            warning: "Agent created but welcome wallet credit failed",
+            warning: `Agent created but welcome wallet credit failed: ${msg}`,
             agent: newAgent,
           },
           { status: 201 },
         )
-      }
-
-      try {
-        await ensureReferralCreditOnAgentApproval(newAgent.id)
-      } catch (referralErr) {
-        console.error("[manual-register] referral credit:", referralErr)
       }
     }
 

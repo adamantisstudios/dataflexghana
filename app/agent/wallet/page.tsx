@@ -36,13 +36,19 @@ interface WalletTransaction {
   id: string
   created_at: string
   transaction_type:
-    | "topup"
-    | "deduction"
+    | "credit"
+    | "debit"
     | "refund"
+    | "adjustment"
+    | "deduction"
+    | "topup"
+    | "withdrawal"
+    | "deposit"
+    | "penalty"
+    | "interest"
     | "commission_deposit"
     | "withdrawal_deduction"
-    | "admin_reversal"
-    | "admin_adjustment"
+    | "payment_completed"
   amount: number
   description: string
   reference_code: string
@@ -329,12 +335,18 @@ export default function WalletPage() {
             switch (transaction.transaction_type) {
               case "topup":
               case "refund":
-              case "admin_adjustment":
+              case "adjustment":
+              case "credit":
+              case "deposit":
+              case "interest":
+              case "payment_completed":
                 manualBalance += Number(transaction.amount) || 0
                 break
               case "deduction":
               case "withdrawal_deduction":
-              case "admin_reversal":
+              case "debit":
+              case "withdrawal":
+              case "penalty":
                 manualBalance -= Number(transaction.amount) || 0
                 break
               case "commission_deposit":
@@ -565,9 +577,15 @@ export default function WalletPage() {
         return <TrendingDown className="h-4 w-4 text-orange-600" />
       case "refund":
         return <RefreshCw className="h-4 w-4 text-blue-600" />
-      case "admin_adjustment":
+      case "adjustment":
+      case "credit":
+      case "deposit":
+      case "interest":
+      case "payment_completed":
         return <TrendingUp className="h-4 w-4 text-purple-600" />
-      case "admin_reversal":
+      case "debit":
+      case "withdrawal":
+      case "penalty":
         return <TrendingDown className="h-4 w-4 text-purple-600" />
       default:
         return <Wallet className="h-4 w-4 text-gray-600" />
@@ -594,11 +612,17 @@ export default function WalletPage() {
       case "topup":
       case "refund":
       case "commission_deposit":
-      case "admin_adjustment":
+      case "adjustment":
+      case "credit":
+      case "deposit":
+      case "interest":
+      case "payment_completed":
         return "text-green-600"
       case "deduction":
       case "withdrawal_deduction":
-      case "admin_reversal":
+      case "debit":
+      case "withdrawal":
+      case "penalty":
         return "text-red-600"
       default:
         return "text-gray-600"
@@ -617,10 +641,22 @@ export default function WalletPage() {
         return "Withdrawal"
       case "refund":
         return "Refund"
-      case "admin_adjustment":
-        return "Admin Credit"
-      case "admin_reversal":
-        return "Admin Debit"
+      case "adjustment":
+        return "Adjustment"
+      case "credit":
+        return "Credit"
+      case "debit":
+        return "Debit"
+      case "deposit":
+        return "Deposit"
+      case "withdrawal":
+        return "Withdrawal"
+      case "penalty":
+        return "Penalty"
+      case "interest":
+        return "Interest"
+      case "payment_completed":
+        return "Payment completed"
       default:
         return type.charAt(0).toUpperCase() + type.slice(1)
     }
@@ -920,8 +956,8 @@ export default function WalletPage() {
                       <SelectItem value="deduction">Purchases</SelectItem>
                       <SelectItem value="withdrawal_deduction">Withdrawals</SelectItem>
                       <SelectItem value="refund">Refunds</SelectItem>
-                      <SelectItem value="admin_adjustment">Admin Credits</SelectItem>
-                      <SelectItem value="admin_reversal">Admin Debits</SelectItem>
+                      <SelectItem value="adjustment">Adjustments / admin credits</SelectItem>
+                      <SelectItem value="debit">Debits / admin debits</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1018,7 +1054,7 @@ export default function WalletPage() {
                                 <span
                                   className={`font-semibold ${getAmountColor(transaction.transaction_type, transaction.status)}`}
                                 >
-                                  {["topup", "refund", "commission_deposit", "admin_adjustment"].includes(
+                                  {["topup", "refund", "commission_deposit", "adjustment", "credit", "deposit", "interest", "payment_completed"].includes(
                                     transaction.transaction_type,
                                   )
                                     ? "+"
@@ -1071,7 +1107,7 @@ export default function WalletPage() {
                                   <p
                                     className={`font-semibold ${getAmountColor(transaction.transaction_type, transaction.status)}`}
                                   >
-                                    {["topup", "refund", "commission_deposit", "admin_adjustment"].includes(
+                                    {["topup", "refund", "commission_deposit", "adjustment", "credit", "deposit", "interest", "payment_completed"].includes(
                                       transaction.transaction_type,
                                     )
                                       ? "+"

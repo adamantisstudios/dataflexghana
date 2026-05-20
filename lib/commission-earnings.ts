@@ -687,7 +687,11 @@ export async function calculateCorrectWalletBalance(agentId: string): Promise<{
           breakdown.refunds += amount
           break
 
-        case "admin_adjustment":
+        case "adjustment":
+        case "credit":
+        case "deposit":
+        case "interest":
+        case "payment_completed":
           balance += amount
           breakdown.adminAdjustments += amount
           break
@@ -702,7 +706,9 @@ export async function calculateCorrectWalletBalance(agentId: string): Promise<{
           breakdown.withdrawalDeductions += amount
           break
 
-        case "admin_reversal":
+        case "debit":
+        case "penalty":
+        case "withdrawal":
           balance -= amount
           breakdown.adminReversals += amount
           break
@@ -806,6 +812,12 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
         if (transaction.status === "approved") {
           switch (transaction.transaction_type) {
             case "topup":
+            case "refund":
+            case "adjustment":
+            case "credit":
+            case "deposit":
+            case "interest":
+            case "payment_completed":
               totalTopups += amount
               break
             case "commission_deposit":
@@ -816,8 +828,9 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
               totalWithdrawals += amount
               break
             case "deduction":
-            case "withdrawal_deduction":
-            case "admin_reversal":
+            case "debit":
+            case "penalty":
+            case "withdrawal":
               totalDeductions += amount
               break
           }

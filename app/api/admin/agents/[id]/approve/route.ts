@@ -59,16 +59,40 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       )
     }
 
-    const adjustmentId = await createAdminAdjustment(
-      agentId,
-      5,
-      admin.id,
-      "Approval credit for new agent",
-      true,
-    )
+    let adjustmentId: string | null = null
+    try {
+      adjustmentId = await createAdminAdjustment(
+        agentId,
+        5,
+        admin.id,
+        "Approval credit for new agent",
+        true,
+      )
+    } catch (creditErr) {
+      console.error("[approve] wallet credit failed, reverting approval:", creditErr)
+      await db
+        .from("agents")
+        .update({
+          isapproved: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", agentId)
+      const msg = creditErr instanceof Error ? creditErr.message : "Failed to credit wallet"
+      return NextResponse.json(
+        { success: false, error: `Approval rolled back: ${msg}` },
+        { status: 500 },
+      )
+    }
 
     if (!adjustmentId) {
-      return NextResponse.json({ success: false, error: "Agent approved but failed to credit wallet" }, { status: 500 })
+      await db
+        .from("agents")
+        .update({
+          isapproved: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", agentId)
+      return NextResponse.json({ success: false, error: "Agent approval rolled back: wallet credit failed" }, { status: 500 })
     }
 
     try {

@@ -90,6 +90,7 @@ export default function AgentManagementTab() {
   const [showClearDialog, setShowClearDialog] = useState(false)
   const [clearingAgent, setClearingAgent] = useState<Agent | null>(null)
   const [operationLoading, setOperationLoading] = useState(false)
+  const [clearRecordsAgentId, setClearRecordsAgentId] = useState<string | null>(null)
   const [searchInitiated, setSearchInitiated] = useState(false)
 
   // ---------- Helper: fetch paginated agents with stats ----------
@@ -266,8 +267,8 @@ export default function AgentManagementTab() {
   }
 
   const clearAgentRecords = async (agent: Agent) => {
+    setClearRecordsAgentId(agent.id)
     try {
-      setOperationLoading(true)
       const response = await fetch(`/api/admin/agents/${agent.id}/clear-records`, {
         method: "POST",
         headers: getAdminAuthHeaders(),
@@ -281,7 +282,7 @@ export default function AgentManagementTab() {
     } catch (error) {
       toast.error("Failed to clear records")
     } finally {
-      setOperationLoading(false)
+      setClearRecordsAgentId(null)
     }
   }
 
@@ -549,7 +550,7 @@ export default function AgentManagementTab() {
                         <Button variant="outline" size="sm" onClick={() => downloadAgentData(agent)} disabled={operationLoading} className="flex-1 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors">
                           <Download className="h-3.5 w-3.5 mr-1.5" /> CSV Export
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleClearRecords(agent)} disabled={operationLoading} className="flex-1 border-gray-200 hover:border-red-300 hover:bg-red-50 text-red-600 transition-colors">
+                        <Button variant="outline" size="sm" onClick={() => handleClearRecords(agent)} disabled={operationLoading || clearRecordsAgentId === agent.id} className="flex-1 border-gray-200 hover:border-red-300 hover:bg-red-50 text-red-600 transition-colors">
                           <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Clear
                         </Button>
                         <Button variant="default" size="sm" onClick={() => handleViewDetails(agent)} className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm transition-all">
@@ -619,7 +620,7 @@ export default function AgentManagementTab() {
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2 text-orange-600"><Database className="h-5 w-5" />Clear Agent Data Records</AlertDialogTitle></AlertDialogHeader>
           <div className="space-y-3 text-sm"><div className="bg-orange-50 border border-orange-200 rounded-lg p-3"><span className="font-medium text-orange-800 block mb-2">⚠️ Confirm Data Clearing</span><span className="text-orange-700">You are about to clear all data records for: <strong>{clearingAgent?.full_name}</strong></span></div><div className="bg-red-50 border border-red-200 rounded-lg p-3"><span className="font-bold text-red-800 block text-center">🚨 THIS ACTION CANNOT BE UNDONE 🚨</span></div></div>
-          <AlertDialogFooter className="gap-2"><AlertDialogCancel disabled={operationLoading}>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => clearingAgent && clearAgentRecords(clearingAgent)} disabled={operationLoading} className="bg-orange-600 hover:bg-orange-700">{operationLoading ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Clearing...</> : <><Database className="h-4 w-4 mr-2" />Clear Data Records</>}</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter className="gap-2"><AlertDialogCancel disabled={clearRecordsAgentId !== null}>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => clearingAgent && clearAgentRecords(clearingAgent)} disabled={clearRecordsAgentId !== null} className="bg-orange-600 hover:bg-orange-700">{clearRecordsAgentId ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Clearing...</> : <><Database className="h-4 w-4 mr-2" />Clear Data Records</>}</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

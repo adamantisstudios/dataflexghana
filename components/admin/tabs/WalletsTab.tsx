@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase-client";
 import type { Agent } from "@/lib/supabase";
-import { createSafeWalletTransactionWithRef } from "@/lib/wallet-transaction-types"
+import { createSafeWalletTransactionWithRef, isWalletCreditType } from "@/lib/wallet-transaction-types"
 import { getStoredAdmin } from "@/lib/auth"
 import { getAdminAuthHeaders } from "@/lib/api-client"
   import {
@@ -41,9 +41,11 @@ import { getAdminAuthHeaders } from "@/lib/api-client"
   TrendingUp,
   RefreshCw,
   DollarSign,
+  Loader2,
 } from "lucide-react"
 import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton"
 import { connectionManager } from "@/lib/connection-manager"
+import { toast } from "sonner"
 
 interface WalletsTabProps {
   getCachedData: () => any[] | undefined
@@ -65,10 +67,10 @@ const getTransactionTypeLabel = (transaction: any): string => {
       return "Commission Deposit"
     case "withdrawal_deduction":
       return "Withdrawal"
-    case "admin_adjustment":
-      return "Admin Adjustment"
-    case "admin_reversal":
-      return "Admin Reversal"
+    case "adjustment":
+      return "Adjustment / admin credit"
+    case "debit":
+      return "Debit / admin debit"
     default:
       const description = transaction.description?.toLowerCase() || ""
       if (description.includes("top-up") || description.includes("topup")) return "Wallet Top-up"
@@ -95,9 +97,9 @@ const getTransactionTypeIcon = (transaction: any) => {
       return <DollarSign className="h-5 w-5 text-emerald-600" />
     case "withdrawal_deduction":
       return <TrendingUp className="h-5 w-5 text-red-600 rotate-180" />
-    case "admin_adjustment":
+    case "adjustment":
       return <TrendingUp className="h-5 w-5 text-gray-600" />
-    case "admin_reversal":
+    case "debit":
       return <TrendingUp className="h-5 w-5 text-orange-600 rotate-180" />
     default:
       return <Wallet className="h-5 w-5 text-gray-600" />
@@ -163,6 +165,10 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   const [searchedAgent, setSearchedAgent] = useState<Agent | null>(null)
   const [agentSearchLoading, setAgentSearchLoading] = useState(false)
   const [approvingTopupIds, setApprovingTopupIds] = useState<Set<string>>(() => new Set())
+  const [rejectingTopupIds, setRejectingTopupIds] = useState<Set<string>>(() => new Set())
+  const [deletingTopupIds, setDeletingTopupIds] = useState<Set<string>>(() => new Set())
+  const [processingWalletTxIds, setProcessingWalletTxIds] = useState<Set<string>>(() => new Set())
+  const [walletTopupSubmitting, setWalletTopupSubmitting] = useState(false)
 
   // --- Helper to safely call setCachedData (prevents TypeError) ---
   const safeSetCachedData = useCallback(
@@ -575,10 +581,12 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
 
   const handleWalletTopup = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (walletTopupSubmitting) return
     if (!walletTopupForm.agentId || !walletTopupForm.amount) {
       alert("Please select an agent and enter an amount")
       return
     }
+    setWalletTopupSubmitting(true)
     try {
       const amount = Number.parseFloat(walletTopupForm.amount)
       if (amount <= 0) {
@@ -624,6 +632,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
     } catch (error) {
       console.error("Error creating wallet top-up:", error)
       alert("Failed to create wallet top-up request")
+    } finally {
+      setWalletTopupSubmitting(false)
     }
   }
 
@@ -652,18 +662,29 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
 
       const correctBalance = Number(json.data?.balance ?? 0)
 
-      const [walletData, agentsData] = await Promise.all([
-        supabase
-          .from("wallet_transactions")
-          .select(`*, agents (full_name, phone_number, wallet_balance)`)
-          .order("created_at", { ascending: false }),
-        supabase.from("agents").select("*").order("full_name", { ascending: true }),
-      ])
+      try {
+        const [walletData, agentsData] = await Promise.all([
+          supabase
+            .from("wallet_transactions")
+            .select(`*, agents (full_name, phone_number, wallet_balance)`)
+            .order("created_at", { ascending: false }),
+          supabase.from("agents").select("*").order("full_name", { ascending: true }),
+        ])
 
-      setWalletTransactions(walletData.data || [])
-      await loadPendingWalletTopups()
-      setAgents(agentsData.data || [])
-      safeSetCachedData(walletData.data || [])
+        if (walletData.error) throw walletData.error
+
+        setWalletTransactions(walletData.data || [])
+        await loadPendingWalletTopups()
+        setAgents(agentsData.data || [])
+        safeSetCachedData(walletData.data || [])
+      } catch (refreshErr) {
+        console.error("Error refreshing wallet data after approval:", refreshErr)
+        await loadPendingWalletTopups()
+        alert(
+          `Top-up processed. Current balance: GH₵${correctBalance.toFixed(2)}. List refresh failed — please reload the page.`,
+        )
+        return
+      }
 
       alert(
         json.data?.idempotent
@@ -672,7 +693,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       )
     } catch (error) {
       console.error("Error approving wallet top-up:", error)
-      alert(error instanceof Error ? error.message : "Failed to approve wallet top-up")
+      const message = error instanceof Error ? error.message : "Failed to approve wallet top-up"
+      toast.error(message)
     } finally {
       setApprovingTopupIds((prev) => {
         const next = new Set(prev)
@@ -683,6 +705,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   }
 
   const rejectWalletTopup = async (topupId: string) => {
+    if (rejectingTopupIds.has(topupId)) return
+    setRejectingTopupIds((prev) => new Set(prev).add(topupId))
     try {
       const { error } = await supabase
         .from("wallet_topups")
@@ -692,44 +716,66 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         })
         .eq("id", topupId)
       if (error) throw error
-      alert("Wallet top-up rejected successfully!")
       await loadPendingWalletTopups()
+      alert("Wallet top-up rejected successfully!")
     } catch (error) {
       console.error("Error rejecting wallet top-up:", error)
-      alert("Failed to reject wallet top-up")
+      toast.error(error instanceof Error ? error.message : "Failed to reject wallet top-up")
+      await loadPendingWalletTopups()
+    } finally {
+      setRejectingTopupIds((prev) => {
+        const next = new Set(prev)
+        next.delete(topupId)
+        return next
+      })
     }
   }
 
   const deleteWalletTopup = async (topupId: string) => {
+    if (deletingTopupIds.has(topupId)) return
+
+    const topup = walletTopups.find((t) => t.id === topupId)
+    if (topup && topup.status === "pending") {
+      alert(
+        "❌ Cannot delete pending wallet top-up requests. Please approve or reject the request first, then you can delete it if needed."
+      )
+      return
+    }
+
+    if (!confirm("Are you sure you want to delete this wallet top-up request?")) return
+
+    const prevTopups = walletTopups
+    setDeletingTopupIds((prev) => new Set(prev).add(topupId))
     try {
-      const topup = walletTopups.find((t) => t.id === topupId)
-      if (topup && topup.status === "pending") {
-        alert(
-          "❌ Cannot delete pending wallet top-up requests. Please approve or reject the request first, then you can delete it if needed."
-        )
-        return
-      }
-
-      if (!confirm("Are you sure you want to delete this wallet top-up request?")) return
-
       const { error } = await supabase.from("wallet_topups").delete().eq("id", topupId)
       if (error) throw error
-      setWalletTopups(walletTopups.filter((topup) => topup.id !== topupId))
+      setWalletTopups((prev) => prev.filter((t) => t.id !== topupId))
       alert("Wallet top-up request deleted successfully!")
     } catch (error) {
       console.error("Error deleting wallet top-up:", error)
-      alert("Failed to delete wallet top-up request")
+      setWalletTopups(prevTopups)
+      toast.error(error instanceof Error ? error.message : "Failed to delete wallet top-up request")
+    } finally {
+      setDeletingTopupIds((prev) => {
+        const next = new Set(prev)
+        next.delete(topupId)
+        return next
+      })
     }
   }
 
   const updateWalletTransactionStatus = async (transactionId: string, newStatus: string, adminNotes?: string) => {
-    try {
-      const transaction = walletTransactions.find((t) => t.id === transactionId)
-      if (!transaction) {
-        alert("Transaction not found. Please refresh the page.")
-        return
-      }
+    const transaction = walletTransactions.find((t) => t.id === transactionId)
+    if (!transaction) {
+      alert("Transaction not found. Please refresh the page.")
+      return
+    }
+    if (processingWalletTxIds.has(transactionId)) return
 
+    const prevTransactions = walletTransactions
+    setProcessingWalletTxIds((prev) => new Set(prev).add(transactionId))
+
+    try {
       const { error: updateError } = await supabase
         .from("wallet_transactions")
         .update({
@@ -763,7 +809,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           .select(`*, agents (full_name, phone_number, wallet_balance)`)
           .order("created_at", { ascending: false })
         setWalletTransactions(data || [])
-        safeSetCachedData(data || [])   // ✅ safe call
+        safeSetCachedData(data || [])
       }
 
       const fetchAgents = async () => {
@@ -775,7 +821,15 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       alert(`Transaction ${newStatus} successfully!`)
     } catch (error) {
       console.error("Error updating wallet transaction status:", error)
-      alert(`Failed to ${newStatus} transaction. Please try again.`)
+      setWalletTransactions(prevTransactions)
+      safeSetCachedData(prevTransactions)
+      toast.error(`Failed to ${newStatus} transaction. Please try again.`)
+    } finally {
+      setProcessingWalletTxIds((prev) => {
+        const next = new Set(prev)
+        next.delete(transactionId)
+        return next
+      })
     }
   }
 
@@ -796,8 +850,8 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         return "Refund"
       case "withdrawal_deduction":
         return "Mobile Money"
-      case "admin_adjustment":
-      case "admin_reversal":
+      case "adjustment":
+      case "debit":
         return "Admin Action"
       default:
         return paymentMethod || "Unknown"
@@ -1121,30 +1175,62 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                         <Button
                           size="sm"
                           onClick={() => approveWalletTopup(topup.id)}
-                          disabled={approvingTopupIds.has(topup.id)}
+                          disabled={
+                            approvingTopupIds.has(topup.id) ||
+                            rejectingTopupIds.has(topup.id) ||
+                            deletingTopupIds.has(topup.id)
+                          }
                           className="bg-green-600 hover:bg-green-700 flex-1 disabled:opacity-60 disabled:pointer-events-none"
                         >
-                          <Check className="h-4 w-4 mr-1" />
-                          {approvingTopupIds.has(topup.id) ? "Approving…" : "Approve"}
+                          {approvingTopupIds.has(topup.id) ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4 mr-1" />
+                          )}
+                          {approvingTopupIds.has(topup.id) ? "Processing…" : "Approve"}
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => rejectWalletTopup(topup.id)}
-                          className="flex-1"
+                          disabled={
+                            approvingTopupIds.has(topup.id) ||
+                            rejectingTopupIds.has(topup.id) ||
+                            deletingTopupIds.has(topup.id)
+                          }
+                          className="flex-1 disabled:opacity-60"
                         >
-                          <Ban className="h-4 w-4 mr-1" />
-                          Reject
+                          {rejectingTopupIds.has(topup.id) ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Ban className="h-4 w-4 mr-1" />
+                          )}
+                          {rejectingTopupIds.has(topup.id) ? "Processing…" : "Reject"}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => deleteWalletTopup(topup.id)}
-                          disabled={topup.status === "pending"}
+                          disabled={
+                            topup.status === "pending" ||
+                            approvingTopupIds.has(topup.id) ||
+                            rejectingTopupIds.has(topup.id) ||
+                            deletingTopupIds.has(topup.id)
+                          }
                           title={topup.status === "pending" ? "Cannot delete pending requests" : "Delete request"}
-                          className={topup.status === "pending" ? "opacity-50 cursor-not-allowed" : ""}
+                          className={
+                            topup.status === "pending"
+                              ? "opacity-50 cursor-not-allowed"
+                              : deletingTopupIds.has(topup.id)
+                                ? "opacity-60"
+                                : ""
+                          }
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {deletingTopupIds.has(topup.id) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -1205,14 +1291,12 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                           <span className="font-medium">Amount:</span>
                           <span
                             className={`font-bold ml-1 ${
-                              transaction.transaction_type === "topup" || transaction.transaction_type === "refund"
+                              isWalletCreditType(transaction.transaction_type)
                                 ? "text-green-600"
                                 : "text-red-600"
                             }`}
                           >
-                            {transaction.transaction_type === "topup" || transaction.transaction_type === "refund"
-                              ? "+"
-                              : "-"}
+                            {isWalletCreditType(transaction.transaction_type) ? "+" : "-"}
                             {"GH₵ "}
                             {transaction.amount.toFixed(2)}
                           </span>
@@ -1242,22 +1326,32 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                         <Button
                           size="sm"
                           onClick={() => updateWalletTransactionStatus(transaction.id, "approved")}
-                          className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
+                          disabled={processingWalletTxIds.has(transaction.id)}
+                          className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto disabled:opacity-60"
                         >
-                          <Check className="h-4 w-4 mr-2" />
-                          Approve Top-up
+                          {processingWalletTxIds.has(transaction.id) ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4 mr-2" />
+                          )}
+                          {processingWalletTxIds.has(transaction.id) ? "Processing…" : "Approve Top-up"}
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
+                          disabled={processingWalletTxIds.has(transaction.id)}
                           onClick={() => {
                             const notes = prompt("Reason for rejection (optional):")
-                            updateWalletTransactionStatus(transaction.id, "rejected", notes || undefined)
+                            void updateWalletTransactionStatus(transaction.id, "rejected", notes || undefined)
                           }}
-                          className="w-full sm:w-auto"
+                          className="w-full sm:w-auto disabled:opacity-60"
                         >
-                          <Ban className="h-4 w-4 mr-2" />
-                          Reject
+                          {processingWalletTxIds.has(transaction.id) ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Ban className="h-4 w-4 mr-2" />
+                          )}
+                          {processingWalletTxIds.has(transaction.id) ? "Processing…" : "Reject"}
                         </Button>
                       </div>
                     )}
@@ -1294,6 +1388,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                     id="agentSearch"
                     placeholder="Search agents by name or phone..."
                     value={walletTopupForm.searchTerm}
+                    disabled={walletTopupSubmitting}
                     onChange={(e) =>
                       setWalletTopupForm({
                         ...walletTopupForm,
@@ -1369,6 +1464,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                   type="number"
                   id="amount"
                   value={walletTopupForm.amount}
+                  disabled={walletTopupSubmitting}
                   onChange={(e) => setWalletTopupForm({ ...walletTopupForm, amount: e.target.value })}
                   className="w-full mt-1"
                   placeholder="Enter amount to top-up"
@@ -1379,7 +1475,16 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit">Create Request</Button>
+              <Button type="submit" disabled={walletTopupSubmitting}>
+                {walletTopupSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing…
+                  </>
+                ) : (
+                  "Create Request"
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase-client";
   import {
   CreditCard,
@@ -76,6 +78,7 @@ function RegistrationPaymentContent() {
   const [showVideo, setShowVideo] = useState(false);
   const [currentVideo, setCurrentVideo] = useState<(typeof featuredTestimonies)[0] | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<"manual" | "paystack" | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const paymentRedirectHandled = useRef(false);
   const registerRedirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -260,6 +263,10 @@ Thank you!`;
   }, [searchParams, completePaymentRedirect]);
 
   const handleContinue = () => {
+    if (!agreedToTerms) {
+      toast.error("Please read and accept the Terms & Conditions to continue.");
+      return;
+    }
     if (!selectedMethod) return;
     if (selectedMethod === "manual") handleManualStart();
     else handlePaystack();
@@ -307,6 +314,18 @@ Thank you!`;
 
           {/* Main content */}
           <div className="max-w-3xl mx-auto px-4 py-8 md:py-12 space-y-8">
+            <div
+              role="note"
+              className="rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-950 shadow-sm"
+            >
+              <p className="font-semibold text-amber-900 mb-1">Important</p>
+              <p className="leading-relaxed">
+                This is a multi-service platform designed to help you earn money in multiple ways — not just data
+                bundles. If you are only interested in selling data bundles, please do not register. Find another
+                platform that focuses only on data sales.
+              </p>
+            </div>
+
             {/* Payment card */}
             <Card className="border-0 shadow-xl">
               <CardContent className="p-5 md:p-6 space-y-6">
@@ -418,9 +437,31 @@ Thank you!`;
                   </div>
                 )}
 
+                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+                  <Checkbox
+                    id="registration-terms"
+                    checked={agreedToTerms}
+                    onCheckedChange={(v) => setAgreedToTerms(v === true)}
+                    className="mt-0.5 border-slate-400 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                  />
+                  <Label htmlFor="registration-terms" className="text-sm font-normal text-slate-700 leading-snug cursor-pointer">
+                    I have read and agree to the{" "}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-emerald-700 underline underline-offset-2 hover:text-emerald-800"
+                    >
+                      Terms & Conditions
+                    </Link>
+                    .
+                  </Label>
+                </div>
+
                 <Button
                   onClick={handleContinue}
                   disabled={
+                    !agreedToTerms ||
                     !selectedMethod ||
                     isProcessing ||
                     manualProcessing ||

@@ -24,6 +24,7 @@ import { getAdminAuthHeaders } from "@/lib/api-client";
   import {
   Check,
   Trash2,
+  Loader2,
   RotateCcw,
   Search,
   AlertTriangle,
@@ -77,6 +78,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
   const itemsPerPage = 12;
   const admin = getCurrentAdmin();
   const agentsListRef = useRef<HTMLDivElement>(null);
+  const [processingAgentIds, setProcessingAgentIds] = useState<Set<string>>(() => new Set());
 
   const scrollToTop = () => {
     if (agentsListRef.current) {
@@ -249,8 +251,13 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       toast.error("Admin session required. Please log in again.");
       return;
     }
+    if (processingAgentIds.has(agent.id)) return;
     if (!confirm(`Reactivate ${agent.full_name}? They will regain dashboard access.`)) return;
 
+    const prevAgents = agents;
+    const prevCached = getCachedData?.();
+
+    setProcessingAgentIds((prev) => new Set(prev).add(agent.id));
     try {
       const response = await fetch(`/api/admin/agents/${agent.id}/reactivate`, {
         method: "POST",
@@ -277,16 +284,30 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       toast.success(result.message || "Agent reactivated");
     } catch (error) {
       console.error("Error reactivating agent:", error);
+      setAgents(prevAgents);
+      if (prevCached) setCachedData?.(prevCached);
       toast.error(error instanceof Error ? error.message : "Failed to reactivate agent");
+    } finally {
+      setProcessingAgentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(agent.id);
+        return next;
+      });
     }
   };
 
   const approveAgent = async (agentId: string) => {
     const admin = getCurrentAdmin();
     if (!admin?.id) {
-      alert("Admin session required. Please log in again.");
+      toast.error("Admin session required. Please log in again.");
       return;
     }
+    if (processingAgentIds.has(agentId)) return;
+
+    const prevAgents = agents;
+    const prevCached = getCachedData?.();
+
+    setProcessingAgentIds((prev) => new Set(prev).add(agentId));
     try {
       const response = await fetch(`/api/admin/agents/${agentId}/approve`, {
         method: "PATCH",
@@ -305,12 +326,26 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       toast.success(result.data?.message || "Agent approved and credited ₵5");
     } catch (error) {
       console.error("Error approving agent:", error);
-      alert(error instanceof Error ? error.message : "Failed to approve agent");
+      setAgents(prevAgents);
+      if (prevCached) setCachedData?.(prevCached);
+      toast.error(error instanceof Error ? error.message : "Failed to approve agent");
+    } finally {
+      setProcessingAgentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(agentId);
+        return next;
+      });
     }
   };
 
   const deleteAgent = async (agentId: string) => {
+    if (processingAgentIds.has(agentId)) return;
     if (!confirm("Are you sure you want to delete this agent? This action cannot be undone.")) return;
+
+    const prevAgents = agents;
+    const prevCached = getCachedData?.();
+
+    setProcessingAgentIds((prev) => new Set(prev).add(agentId));
     try {
       const { error } = await supabase.from("agents").delete().eq("id", agentId);
       if (error) throw error;
@@ -319,7 +354,15 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       setCachedData?.(updatedAgents);
     } catch (error) {
       console.error("Error deleting agent:", error);
-      alert("Failed to delete agent");
+      setAgents(prevAgents);
+      if (prevCached) setCachedData?.(prevCached);
+      toast.error("Failed to delete agent");
+    } finally {
+      setProcessingAgentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(agentId);
+        return next;
+      });
     }
   };
 
@@ -492,6 +535,12 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
   };
 
   const unapproveAgent = async (agentId: string) => {
+    if (processingAgentIds.has(agentId)) return;
+
+    const prevAgents = agents;
+    const prevCached = getCachedData?.();
+
+    setProcessingAgentIds((prev) => new Set(prev).add(agentId));
     try {
       const { error } = await supabase.from("agents").update({ isapproved: false }).eq("id", agentId);
       if (error) throw error;
@@ -502,7 +551,15 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       setCachedData?.(updatedAgents);
     } catch (error) {
       console.error("Error unapproving agent:", error);
-      alert("Failed to unapprove agent");
+      setAgents(prevAgents);
+      if (prevCached) setCachedData?.(prevCached);
+      toast.error("Failed to unapprove agent");
+    } finally {
+      setProcessingAgentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(agentId);
+        return next;
+      });
     }
   };
 
@@ -726,10 +783,15 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                   <Button
                     size="sm"
                     onClick={() => reactivateAgent(agent)}
+                    disabled={processingAgentIds.has(agent.id)}
                     className="w-full col-span-2 sm:col-span-4 bg-orange-600 hover:bg-orange-700 text-white"
                   >
-                    <RotateCcw className="h-4 w-4 mr-1" />
-                    Reactivate
+                    {processingAgentIds.has(agent.id) ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                    )}
+                    {processingAgentIds.has(agent.id) ? "Processing…" : "Reactivate"}
                   </Button>
                 )}
                 <Link href={`/admin/agents/${agent.id}`} passHref>
@@ -746,20 +808,30 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                   <Button
                     size="sm"
                     onClick={() => approveAgent(agent.id)}
+                    disabled={processingAgentIds.has(agent.id)}
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                   >
-                    <Check className="h-4 w-4 mr-1" />
-                    Approve
+                    {processingAgentIds.has(agent.id) ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4 mr-1" />
+                    )}
+                    {processingAgentIds.has(agent.id) ? "Processing…" : "Approve"}
                   </Button>
                 ) : (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => unapproveAgent(agent.id)}
+                    disabled={processingAgentIds.has(agent.id)}
                     className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
                   >
-                    <RotateCcw className="h-4 w-4 mr-1" />
-                    Unapprove
+                    {processingAgentIds.has(agent.id) ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                    )}
+                    {processingAgentIds.has(agent.id) ? "Processing…" : "Unapprove"}
                   </Button>
                 )}
                 <Button
@@ -775,10 +847,15 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                   size="sm"
                   variant="destructive"
                   onClick={() => deleteAgent(agent.id)}
+                  disabled={processingAgentIds.has(agent.id)}
                   className="w-full"
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete
+                  {processingAgentIds.has(agent.id) ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-1" />
+                  )}
+                  {processingAgentIds.has(agent.id) ? "Processing…" : "Delete"}
                 </Button>
               </div>
             </CardContent>

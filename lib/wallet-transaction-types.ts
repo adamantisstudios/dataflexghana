@@ -4,15 +4,21 @@ import { supabase } from "./supabase";
  * wallet_transactions.transaction_type only (no `type` column in production).
  */
 
-/** Exactly the 7 values allowed in production */
+/** Values allowed by production CHECK on wallet_transactions.transaction_type */
 export const DB_TRANSACTION_TYPES = [
-  "topup",
-  "deduction",
+  "credit",
+  "debit",
   "refund",
+  "adjustment",
+  "deduction",
+  "topup",
+  "withdrawal",
+  "deposit",
+  "penalty",
+  "interest",
   "commission_deposit",
   "withdrawal_deduction",
-  "admin_reversal",
-  "admin_adjustment",
+  "payment_completed",
 ] as const
 
 export type DbTransactionType = (typeof DB_TRANSACTION_TYPES)[number]
@@ -21,11 +27,25 @@ export const VALID_TRANSACTION_TYPES = DB_TRANSACTION_TYPES
 
 export type ValidTransactionType = DbTransactionType
 
-/** Types that increase spendable wallet balance */
-export const WALLET_CREDIT_TYPES = ["topup", "refund", "admin_adjustment"] as const
+/** Types that increase spendable wallet balance (commission_deposit excluded below) */
+export const WALLET_CREDIT_TYPES = [
+  "topup",
+  "refund",
+  "adjustment",
+  "credit",
+  "deposit",
+  "interest",
+  "payment_completed",
+] as const
 
 /** Types that decrease spendable wallet balance */
-export const WALLET_DEBIT_TYPES = ["deduction", "withdrawal_deduction", "admin_reversal"] as const
+export const WALLET_DEBIT_TYPES = [
+  "debit",
+  "deduction",
+  "withdrawal_deduction",
+  "withdrawal",
+  "penalty",
+] as const
 
 export function isWalletCreditType(type: string): boolean {
   return (WALLET_CREDIT_TYPES as readonly string[]).includes(type)
@@ -59,10 +79,10 @@ export function assertDbTransactionType(type: string): DbTransactionType {
 }
 
 /** Admin wallet credit (approval bonus, referral credit, manual credit). */
-export const ADMIN_WALLET_CREDIT_TYPE = "admin_adjustment" as const satisfies DbTransactionType
+export const ADMIN_WALLET_CREDIT_TYPE = "adjustment" as const satisfies DbTransactionType
 
-/** Admin wallet debit (commission reset, manual debit). */
-export const ADMIN_WALLET_DEBIT_TYPE = "admin_reversal" as const satisfies DbTransactionType
+/** Admin wallet debit (commission reset, manual debit, reversals). */
+export const ADMIN_WALLET_DEBIT_TYPE = "debit" as const satisfies DbTransactionType
 
 export function adminAdjustmentTransactionType(isCredit: boolean): DbTransactionType {
   return isCredit ? ADMIN_WALLET_CREDIT_TYPE : ADMIN_WALLET_DEBIT_TYPE
@@ -365,7 +385,7 @@ export function createReversalTransaction(
 
     const transactionInput: WalletTransactionInput = {
       agent_id: agentId,
-      transaction_type: "admin_reversal",
+      transaction_type: "debit",
       amount: roundedAmount,
       description: `Reversal of transaction ${originalTransactionId}${originalDescription ? ` - Original: ${originalDescription}` : ""}`,
       status: "approved",

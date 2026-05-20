@@ -510,7 +510,7 @@ export default function DataOrdersPage() {
         description: `Data Order: ${order.data_bundles?.name} to ${order.recipient_phone}`,
       })),
       ...walletTransactions.map((tx) => {
-        const isCredit = ["topup", "refund", "admin_adjustment"].includes(tx.transaction_type)
+        const isCredit = ["topup", "refund", "adjustment", "credit", "deposit", "interest", "payment_completed"].includes(tx.transaction_type)
         return {
           type: "wallet_transaction",
           timestamp: tx.created_at,

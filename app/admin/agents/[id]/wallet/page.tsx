@@ -358,9 +358,9 @@ export default function AdminAgentWalletPage() {
         return <TrendingDown className="h-4 w-4 text-orange-600" />
       case "refund":
         return <RefreshCw className="h-4 w-4 text-blue-600" />
-      case "admin_adjustment":
+      case "adjustment":
         return <Settings className="h-4 w-4 text-purple-600" />
-      case "admin_reversal":
+      case "debit":
         return <RotateCcw className="h-4 w-4 text-purple-600" />
       default:
         return <Wallet className="h-4 w-4 text-gray-600" />
@@ -392,10 +392,10 @@ export default function AdminAgentWalletPage() {
         return "Withdrawal"
       case "refund":
         return "Refund"
-      case "admin_adjustment":
+      case "adjustment":
         return "Admin Credit"
-      case "admin_reversal":
-        return "Admin Reversal"
+      case "debit":
+        return "Debit / reversal"
       default:
         return type.charAt(0).toUpperCase() + type.slice(1)
     }
@@ -636,14 +636,14 @@ export default function AdminAgentWalletPage() {
                         <TableCell>
                           <span
                             className={`font-semibold ${
-                              ["topup", "refund", "commission_deposit", "admin_adjustment"].includes(
+                              ["topup", "refund", "commission_deposit", "adjustment", "credit", "deposit", "interest", "payment_completed"].includes(
                                 transaction.transaction_type,
                               )
                                 ? "text-green-600"
                                 : "text-red-600"
                             }`}
                           >
-                            {["topup", "refund", "commission_deposit", "admin_adjustment"].includes(
+                            {["topup", "refund", "commission_deposit", "adjustment", "credit", "deposit", "interest", "payment_completed"].includes(
                               transaction.transaction_type,
                             )
                               ? "+"
@@ -661,7 +661,13 @@ export default function AdminAgentWalletPage() {
                         </TableCell>
                         <TableCell>
                           {transaction.status === "approved" &&
-                            !transaction.transaction_type.includes("admin_reversal") && (
+                            !(
+                              transaction.transaction_type === "admin_reversal" ||
+                              (transaction.transaction_type === "debit" &&
+                                String(transaction.description || "")
+                                  .toLowerCase()
+                                  .includes("admin reversal"))
+                            ) && (
                               <Button
                                 size="sm"
                                 variant="outline"

@@ -126,13 +126,19 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
         switch (transaction.transaction_type) {
           case "topup":
           case "refund":
-          case "admin_adjustment":
+          case "adjustment":
+          case "credit":
+          case "deposit":
+          case "interest":
+          case "payment_completed":
             spendableBalance += amount
             console.log(`💰 Added to spendable balance: ${amount} (${transaction.transaction_type})`)
             break
+          case "debit":
           case "deduction":
           case "withdrawal_deduction":
-          case "admin_reversal":
+          case "withdrawal":
+          case "penalty":
             spendableBalance -= amount
             console.log(`💸 Deducted from spendable balance: ${amount} (${transaction.transaction_type})`)
             break
@@ -199,12 +205,18 @@ async function calculateWalletBalanceDirectQuery(agentId: string): Promise<numbe
       switch (transaction.transaction_type) {
         case "topup":
         case "refund":
-        case "admin_adjustment":
+        case "adjustment":
+        case "credit":
+        case "deposit":
+        case "interest":
+        case "payment_completed":
           balance += amount
           break
+        case "debit":
         case "deduction":
         case "withdrawal_deduction":
-        case "admin_reversal":
+        case "withdrawal":
+        case "penalty":
           balance -= amount
           break
         case "commission_deposit":
@@ -265,12 +277,18 @@ async function calculateWalletBalanceComprehensiveFallback(agentId: string): Pro
       switch (transaction.transaction_type) {
         case "topup":
         case "refund":
-        case "admin_adjustment":
+        case "adjustment":
+        case "credit":
+        case "deposit":
+        case "interest":
+        case "payment_completed":
           balance += amount
           break
+        case "debit":
         case "deduction":
         case "withdrawal_deduction":
-        case "admin_reversal":
+        case "withdrawal":
+        case "penalty":
           balance -= amount
           break
         case "commission_deposit":
@@ -328,9 +346,9 @@ async function calculateWalletBalanceManualFallback(agentId: string): Promise<nu
     for (const tx of basicTransactions) {
       if (tx && typeof tx.amount === "number") {
         const amount = tx.amount
-        if (["topup", "refund", "admin_adjustment"].includes(tx.transaction_type)) {
+        if (["topup", "refund", "adjustment", "credit", "deposit", "interest", "payment_completed"].includes(tx.transaction_type)) {
           balance += amount
-        } else if (["deduction", "withdrawal_deduction", "admin_reversal"].includes(tx.transaction_type)) {
+        } else if (["debit", "deduction", "withdrawal_deduction", "withdrawal", "penalty"].includes(tx.transaction_type)) {
           balance -= amount
         } else if (tx.transaction_type === "commission_deposit") {
           // CRITICAL FIX: Commission deposits do NOT add to spendable wallet balance
@@ -422,6 +440,12 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
         if (transaction.status === "approved") {
           switch (transaction.transaction_type) {
             case "topup":
+            case "refund":
+            case "adjustment":
+            case "credit":
+            case "deposit":
+            case "interest":
+            case "payment_completed":
               totalTopups += amount
               break
             case "commission_deposit":
@@ -432,10 +456,10 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
               totalWithdrawals += amount
               break
             case "deduction":
-            case "admin_reversal":
+            case "debit":
+            case "penalty":
+            case "withdrawal":
               totalDeductions += amount
-              break
-            case "admin_adjustment":
               break
           }
         }
@@ -942,7 +966,6 @@ export async function createAdminReversal(
 
     console.log(`🔄 Creating admin reversal for agent ${agentId}, original transaction: ${originalTransactionId}`)
 
-    // Get the original transaction details
     const { data: originalTransaction, error: fetchError } = await getDb()
       .from("wallet_transactions")
       .select("*")
@@ -958,30 +981,31 @@ export async function createAdminReversal(
       throw new Error("Original transaction not found")
     }
 
-    // Verify the transaction belongs to the specified agent
     if (originalTransaction.agent_id !== agentId) {
       throw new Error("Transaction does not belong to the specified agent")
     }
+
+    const reference = `REV-${originalTransactionId}-${Date.now()}`
+    const description = `Admin reversal of transaction ${originalTransactionId} - ${reason}`
 
     const { data, error } = await getDb()
       .from("wallet_transactions")
       .insert({
         agent_id: agentId,
-        transaction_type: "admin_reversal",
-        amount: originalTransaction.amount,
+        amount: Math.abs(Number(originalTransaction.amount)),
+        transaction_type: "debit",
+        reference_code: reference,
+        description,
         status: "approved",
-        description: `Admin reversal of transaction ${originalTransactionId} - ${reason}`,
-        reference_code: `REV-${originalTransactionId}-${Date.now()}`,
-        admin_id: adminId,
-        admin_notes: `Reversal of ${originalTransaction.transaction_type} transaction. Original description: ${originalTransaction.description || "N/A"}`,
-        source_id: originalTransactionId,
         created_at: new Date().toISOString(),
+        admin_id: adminId,
+        admin_notes: `Reversal of ${originalTransaction.transaction_type}. Original: ${originalTransaction.description || "N/A"}`,
+        source_id: originalTransactionId,
       })
       .select("id")
       .single()
 
     if (error) {
-      console.error("❌ Error creating admin reversal:", error)
       throw new Error(`Failed to create admin reversal: ${error.message}`)
     }
 
@@ -1032,32 +1056,34 @@ export async function createAdminAdjustment(
     }
 
     assertUuid(agentId, "agent ID")
-    assertUuid(adminId, "admin ID")
 
     console.log(`🔄 Creating admin adjustment for agent ${agentId}: ${isCredit ? "+" : "-"}${amount}`)
+
+    const reference = `adj-${Date.now()}`
+    const description =
+      reason.trim() || (isCredit ? "Admin adjustment credit" : "Admin adjustment debit")
 
     const { data, error } = await getDb()
       .from("wallet_transactions")
       .insert({
         agent_id: agentId,
-        transaction_type: isCredit ? "admin_adjustment" : "admin_reversal",
-        amount,
+        amount: Math.abs(amount),
+        transaction_type: isCredit ? "adjustment" : "debit",
+        reference_code: reference,
+        description,
         status: "approved",
-        description: `Admin ${isCredit ? "credit" : "debit"} adjustment - ${reason}`,
-        reference_code: `ADJ-${isCredit ? "CR" : "DR"}-${Date.now().toString(36).toUpperCase()}`,
-        admin_id: adminId,
-        admin_notes: `${isCredit ? "Credit" : "Debit"} adjustment by admin. Reason: ${reason}`,
         created_at: new Date().toISOString(),
+        admin_id: adminId,
+        admin_notes: `${isCredit ? "Credit" : "Debit"} adjustment. Reason: ${reason.trim()}`,
       })
       .select("id")
       .single()
 
     if (error) {
-      console.error("❌ Error creating admin adjustment:", error)
       throw new Error(`Failed to create admin adjustment: ${error.message}`)
     }
 
-    if (!data) {
+    if (!data?.id) {
       throw new Error("No data returned from admin adjustment creation")
     }
 

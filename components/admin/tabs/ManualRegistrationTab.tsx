@@ -349,6 +349,7 @@ export default function ManualRegistrationTab() {
                     id="agentFullName"
                     type="text"
                     required
+                    disabled={loading}
                     value={agentFormData.fullName}
                     onChange={(e) => setAgentFormData({ ...agentFormData, fullName: e.target.value })}
                     placeholder="Enter agent's full name"
@@ -363,6 +364,7 @@ export default function ManualRegistrationTab() {
                   <Select
                     value={agentFormData.region}
                     onValueChange={(value) => setAgentFormData({ ...agentFormData, region: value })}
+                    disabled={loading}
                   >
                     <SelectTrigger className="border-gray-200 focus:border-blue-500">
                       <SelectValue placeholder="Select region" />
@@ -395,6 +397,7 @@ export default function ManualRegistrationTab() {
                     id="agentPhone"
                     type="tel"
                     required
+                    disabled={loading}
                     value={agentFormData.phoneNumber}
                     onChange={(e) => setAgentFormData({ ...agentFormData, phoneNumber: e.target.value })}
                     placeholder="e.g., 0551234567"
@@ -410,6 +413,7 @@ export default function ManualRegistrationTab() {
                     id="agentMomo"
                     type="tel"
                     required
+                    disabled={loading}
                     value={agentFormData.momoNumber}
                     onChange={(e) => setAgentFormData({ ...agentFormData, momoNumber: e.target.value })}
                     placeholder="e.g., 0551234567"
@@ -436,6 +440,7 @@ export default function ManualRegistrationTab() {
                       id="agentPassword"
                       type={showPassword ? "text" : "password"}
                       required
+                      disabled={loading}
                       value={agentFormData.password}
                       onChange={(e) => setAgentFormData({ ...agentFormData, password: e.target.value })}
                       placeholder="Create a secure password"
@@ -445,6 +450,7 @@ export default function ManualRegistrationTab() {
                       type="button"
                       variant="ghost"
                       size="sm"
+                      disabled={loading}
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
@@ -462,6 +468,7 @@ export default function ManualRegistrationTab() {
                       id="agentConfirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       required
+                      disabled={loading}
                       value={agentFormData.confirmPassword}
                       onChange={(e) => setAgentFormData({ ...agentFormData, confirmPassword: e.target.value })}
                       placeholder="Confirm password"
@@ -471,6 +478,7 @@ export default function ManualRegistrationTab() {
                       type="button"
                       variant="ghost"
                       size="sm"
+                      disabled={loading}
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
@@ -493,6 +501,7 @@ export default function ManualRegistrationTab() {
                   <Checkbox
                     id="autoApprove"
                     checked={agentFormData.autoApprove}
+                    disabled={loading}
                     onCheckedChange={(checked) =>
                       setAgentFormData({ ...agentFormData, autoApprove: checked as boolean })
                     }
@@ -510,6 +519,7 @@ export default function ManualRegistrationTab() {
                   <Textarea
                     id="agentNotes"
                     value={agentFormData.adminNotes}
+                    disabled={loading}
                     onChange={(e) => setAgentFormData({ ...agentFormData, adminNotes: e.target.value })}
                     placeholder="Add any notes about this registration..."
                     className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
