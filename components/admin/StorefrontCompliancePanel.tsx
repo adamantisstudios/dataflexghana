@@ -1,12 +1,21 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { toast } from "sonner"
+import { Download, Search } from "lucide-react"
 
 type Submission = {
   id: string
@@ -18,31 +27,72 @@ type Submission = {
   agent?: { full_name: string; phone_number: string } | null
 }
 
+function escapeCsv(value: string | number) {
+  const s = String(value ?? "")
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+function customerName(data: Record<string, string>): string {
+  return data.full_name || data.customer_name || data.name || "—"
+}
+
+function customerPhone(data: Record<string, string>): string {
+  return data.contact_number || data.phone || data.phone_number || "—"
+}
+
+function statusLabel(status: string): string {
+  return status.charAt(0).toUpperCase() + status.slice(1)
+}
+
 export function StorefrontCompliancePanel() {
   const [rows, setRows] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
-  const [status, setStatus] = useState("pending")
+  const [status, setStatus] = useState("all")
+  const [search, setSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [exportingCsv, setExportingCsv] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 400)
+    return () => clearTimeout(t)
+  }, [search])
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const q = new URLSearchParams({ status, page: "1", limit: "30" })
-      const res = await fetch(`/api/admin/storefront/compliance?${q}`, { headers: getAdminAuthHeaders() })
+      const q = new URLSearchParams({
+        status,
+        page: String(page),
+        limit: "20",
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      })
+      const res = await fetch(`/api/admin/storefront/compliance?${q}`, {
+        headers: getAdminAuthHeaders(),
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setRows(data.submissions || [])
+      setTotalPages(data.totalPages || 1)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load")
     } finally {
       setLoading(false)
     }
-  }, [status])
+  }, [status, page, debouncedSearch])
 
   useEffect(() => {
     load()
   }, [load])
 
   const updateStatus = async (id: string, newStatus: string) => {
+    setUpdatingId(id)
     try {
       const res = await fetch("/api/admin/storefront/compliance", {
         method: "PATCH",
@@ -50,60 +100,209 @@ export function StorefrontCompliancePanel() {
         body: JSON.stringify({ id, status: newStatus }),
       })
       if (!res.ok) throw new Error((await res.json()).error)
-      toast.success("Updated")
+      toast.success(`Marked as ${statusLabel(newStatus)}`)
       load()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Update failed")
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const downloadCsv = async () => {
+    setExportingCsv(true)
+    try {
+      const all: Submission[] = []
+      let p = 1
+      let pages = 1
+      while (p <= pages) {
+        const q = new URLSearchParams({
+          status,
+          page: String(p),
+          limit: "100",
+          ...(debouncedSearch ? { search: debouncedSearch } : {}),
+        })
+        const res = await fetch(`/api/admin/storefront/compliance?${q}`, {
+          headers: getAdminAuthHeaders(),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+        all.push(...(data.submissions || []))
+        pages = data.totalPages || 1
+        p += 1
+      }
+
+      const header = ["Agent", "Form Type", "Customer Name", "Phone", "Status", "Date"]
+      const csvRows = all.map((row) => [
+        row.agent?.full_name || row.agent_id,
+        row.form_type,
+        customerName(row.customer_data),
+        customerPhone(row.customer_data),
+        statusLabel(row.status),
+        new Date(row.created_at).toISOString(),
+      ])
+      const csv = [header, ...csvRows].map((r) => r.map(escapeCsv).join(",")).join("\n")
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `storefront-compliance-${new Date().toISOString().slice(0, 10)}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+      toast.success(`Exported ${all.length} submission(s)`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "CSV export failed")
+    } finally {
+      setExportingCsv(false)
     }
   }
 
   return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle>Storefront compliance submissions</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="processing">Processing</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-          </SelectContent>
-        </Select>
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No submissions</p>
-        ) : (
-          <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search agent name or form type…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={status}
+            onValueChange={(v) => {
+              setStatus(v)
+              setPage(1)
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => void downloadCsv()} disabled={exportingCsv || loading}>
+            <Download className={`h-4 w-4 mr-2 ${exportingCsv ? "animate-pulse" : ""}`} />
+            Download CSV
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground py-8 text-center">Loading compliance submissions…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-8 text-center">
+          {debouncedSearch || status !== "all"
+            ? "No submissions match your filters."
+            : "No compliance submissions yet."}
+        </p>
+      ) : (
+        <>
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Agent</TableHead>
+                  <TableHead>Form Type</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <span className="font-medium">{row.agent?.full_name || row.agent_id}</span>
+                    </TableCell>
+                    <TableCell>{row.form_type}</TableCell>
+                    <TableCell>{customerName(row.customer_data)}</TableCell>
+                    <TableCell>{customerPhone(row.customer_data)}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={row.status}
+                        onValueChange={(v) => updateStatus(row.id, v)}
+                        disabled={updatingId === row.id}
+                      >
+                        <SelectTrigger className="w-[130px] h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="processing">Processing</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {new Date(row.created_at).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="md:hidden flex flex-col gap-3">
             {rows.map((row) => (
-              <div key={row.id} className="border rounded-lg p-4 space-y-2 text-sm">
+              <div key={row.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex justify-between gap-2 flex-wrap">
                   <div>
                     <p className="font-medium">{row.agent?.full_name || row.agent_id}</p>
                     <p className="text-xs text-muted-foreground">{row.form_type}</p>
                   </div>
-                  <Badge variant="outline">{row.status}</Badge>
+                  <Badge variant="outline">{statusLabel(row.status)}</Badge>
                 </div>
-                <pre className="text-xs bg-slate-50 p-2 rounded overflow-x-auto">
-                  {JSON.stringify(row.customer_data, null, 2)}
-                </pre>
-                <div className="flex gap-2 flex-wrap">
-                  {["processing", "completed", "rejected"].map((s) => (
-                    <Button key={s} size="sm" variant="outline" onClick={() => updateStatus(row.id, s)}>
-                      Mark {s}
-                    </Button>
-                  ))}
-                </div>
+                <p className="text-sm">{customerName(row.customer_data)}</p>
+                <p className="text-sm text-muted-foreground">{customerPhone(row.customer_data)}</p>
+                <Select
+                  value={row.status}
+                  onValueChange={(v) => updateStatus(row.id, v)}
+                  disabled={updatingId === row.id}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(row.created_at).toLocaleString()}
+                </p>
               </div>
             ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                Previous
+              </Button>
+              <span className="text-sm self-center">
+                Page {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   )
 }

@@ -78,6 +78,7 @@ export interface OrdersQueryOptions {
   agentId?: string
   includeAgents?: boolean
   status?: string
+  search?: string
   page?: number
   limit?: number
 }
@@ -109,6 +110,24 @@ export async function fetchEnrichedStorefrontOrders(
   }
   if (options?.status && options.status !== "all") {
     query = query.eq("status", options.status)
+  }
+
+  const search = (options?.search || "").trim()
+  if (search) {
+    const agentIdsFromSearch: string[] = []
+    const { data: matchingAgents } = await db
+      .from("agents")
+      .select("id")
+      .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%`)
+    for (const a of matchingAgents || []) {
+      agentIdsFromSearch.push(a.id)
+    }
+
+    const orParts = [`customer_phone.ilike.%${search}%`, `id.ilike.%${search}%`]
+    if (agentIdsFromSearch.length > 0) {
+      orParts.push(`agent_id.in.(${agentIdsFromSearch.join(",")})`)
+    }
+    query = query.or(orParts.join(","))
   }
 
   query = query.range(offset, offset + limit - 1)

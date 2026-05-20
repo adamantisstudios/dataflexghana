@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10)
     const limit = parseInt(searchParams.get("limit") || "20", 10)
     const status = searchParams.get("status") || "all"
+    const search = searchParams.get("search") || ""
 
     const [result, pendingCount] = await Promise.all([
       fetchEnrichedStorefrontOrders({
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         status: status === "all" ? undefined : status,
+        search: search.trim() || undefined,
       }),
       countPendingStorefrontOrders(),
     ])
@@ -65,5 +67,33 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, order: data })
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = await authenticateAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json({ error: auth.error }, { status: 401 })
+  }
+
+  try {
+    const db = getAdminClient()
+    const { data, error } = await db
+      .from("storefront_orders")
+      .delete()
+      .eq("status", "Completed")
+      .select("id")
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      deletedCount: data?.length ?? 0,
+    })
+  } catch (error) {
+    console.error("admin storefront-orders DELETE:", error)
+    return NextResponse.json({ error: "Failed to delete completed orders" }, { status: 500 })
   }
 }

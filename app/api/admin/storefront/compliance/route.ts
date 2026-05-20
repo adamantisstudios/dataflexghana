@@ -4,6 +4,22 @@ import { getAdminClient } from "@/lib/supabase-base"
 
 export const dynamic = "force-dynamic"
 
+const STATUS_SORT: Record<string, number> = {
+  pending: 0,
+  processing: 1,
+  completed: 2,
+  rejected: 3,
+}
+
+function sortSubmissions<T extends { status: string; created_at: string }>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => {
+    const sa = STATUS_SORT[a.status] ?? 99
+    const sb = STATUS_SORT[b.status] ?? 99
+    if (sa !== sb) return sa - sb
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+}
+
 export async function GET(request: NextRequest) {
   const auth = await authenticateAdmin(request)
   if (!auth.success) {
@@ -12,26 +28,41 @@ export async function GET(request: NextRequest) {
 
   try {
     const status = request.nextUrl.searchParams.get("status") || "all"
+    const search = (request.nextUrl.searchParams.get("search") || "").trim()
     const page = Math.max(1, parseInt(request.nextUrl.searchParams.get("page") || "1", 10))
-    const limit = Math.min(50, parseInt(request.nextUrl.searchParams.get("limit") || "20", 10))
-    const offset = (page - 1) * limit
+    const limit = Math.min(100, Math.max(1, parseInt(request.nextUrl.searchParams.get("limit") || "20", 10)))
 
     const db = getAdminClient()
-    let query = db
-      .from("storefront_compliance_submissions")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false })
+    let query = db.from("storefront_compliance_submissions").select("*")
 
     if (status !== "all") {
       query = query.eq("status", status)
     }
 
-    const { data, error, count } = await query.range(offset, offset + limit - 1)
+    if (search) {
+      const { data: matchingAgents } = await db
+        .from("agents")
+        .select("id")
+        .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%`)
+      const agentIds = (matchingAgents || []).map((a) => a.id)
+      const orParts = [`form_type.ilike.%${search}%`]
+      if (agentIds.length > 0) {
+        orParts.push(`agent_id.in.(${agentIds.join(",")})`)
+      }
+      query = query.or(orParts.join(","))
+    }
+
+    const { data, error } = await query
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const agentIds = [...new Set((data || []).map((r) => r.agent_id))]
+    const sorted = sortSubmissions(data || [])
+    const total = sorted.length
+    const offset = (page - 1) * limit
+    const pageRows = sorted.slice(offset, offset + limit)
+
+    const agentIds = [...new Set(pageRows.map((r) => r.agent_id))]
     const agentMap = new Map<string, { full_name: string; phone_number: string }>()
 
     if (agentIds.length) {
@@ -44,12 +75,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const submissions = (data || []).map((row) => ({
+    const submissions = pageRows.map((row) => ({
       ...row,
       agent: agentMap.get(row.agent_id) ?? null,
     }))
 
-    const total = count ?? 0
     return NextResponse.json({
       submissions,
       page,

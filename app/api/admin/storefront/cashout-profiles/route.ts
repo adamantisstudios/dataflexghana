@@ -58,11 +58,24 @@ export async function GET(request: NextRequest) {
 
     const agentIds = (profiles || []).map((p) => p.agent_id)
     let agentsMap = new Map<string, { full_name: string; phone_number: string }>()
+    const lastOrderByAgent = new Map<string, string>()
 
     if (agentIds.length > 0) {
       const { data: agents } = await db.from("agents").select("id, full_name, phone_number").in("id", agentIds)
       for (const a of agents || []) {
         agentsMap.set(a.id, a)
+      }
+
+      const { data: recentOrders } = await db
+        .from("storefront_orders")
+        .select("agent_id, created_at")
+        .in("agent_id", agentIds)
+        .order("created_at", { ascending: false })
+
+      for (const o of recentOrders || []) {
+        if (!lastOrderByAgent.has(o.agent_id)) {
+          lastOrderByAgent.set(o.agent_id, o.created_at)
+        }
       }
     }
 
@@ -74,6 +87,7 @@ export async function GET(request: NextRequest) {
         storefront_commission_balance: Number(p.storefront_commission_balance ?? 0),
         agent_name: a?.full_name ?? "Unknown",
         phone_number: a?.phone_number ?? "",
+        last_order_date: lastOrderByAgent.get(p.agent_id) ?? null,
       }
     })
 
