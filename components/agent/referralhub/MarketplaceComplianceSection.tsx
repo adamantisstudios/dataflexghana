@@ -10,8 +10,10 @@ import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import {
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
   complianceFormAdminPrice,
+  complianceFormAgentCommission,
   isComplianceFormSettingItemId,
 } from "@/lib/storefront-catalog"
+import { EarningsBadge } from "@/components/agent/referralhub/EarningsBadge"
 import { FileText, Loader2 } from "lucide-react"
 
 interface StoreSetting {
@@ -84,6 +86,8 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
     }
   }
 
+  const agentCommission = complianceFormAgentCommission()
+
   return (
     <Card id="compliance-forms-section">
       <CardHeader>
@@ -92,17 +96,25 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
           Compliance services
         </CardTitle>
         <CardDescription>
-          Sole Proprietorship Registration — storefront fee GH₵{complianceFormAdminPrice().toFixed(0)} via Paystack,
-          then customers complete the form on your store. Margin is locked at ₵0.
+          Enable Sole Proprietorship on your store so customers can pay and complete registration on your
+          storefront. Margin is locked at ₵0 — you earn a fixed commission per paid application.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
-          <div>
-            <Label htmlFor="sole-prop-toggle">Sole Proprietorship Registration</Label>
-            <p className="text-xs text-muted-foreground mt-1">Shows under Business Services on your public store</p>
+        <div className="rounded-lg border border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-emerald-50/50 p-4 space-y-3">
+          <EarningsBadge amount={agentCommission} variant="amber" className="text-sm px-3 py-1" />
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label htmlFor="sole-prop-toggle" className="text-base font-semibold">
+                Sole Proprietorship Registration
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Shows under Business Services on your public store · Customer pays GH₵
+                {complianceFormAdminPrice().toFixed(0)} via Paystack
+              </p>
+            </div>
+            <Switch id="sole-prop-toggle" checked={enabled} onCheckedChange={toggle} />
           </div>
-          <Switch id="sole-prop-toggle" checked={enabled} onCheckedChange={toggle} />
         </div>
 
         <div className="space-y-2">

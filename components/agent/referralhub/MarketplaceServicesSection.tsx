@@ -10,12 +10,17 @@ import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { Search } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { EarningsBadge } from "@/components/agent/referralhub/EarningsBadge"
+import { referralServiceAgentCommission } from "@/lib/referral-service-commission"
 
 interface ReferralService {
   id: string
   title: string
   description: string
   cost: number
+  commission_amount?: number | null
+  product_cost?: number | null
+  agent_commission?: number
   image_url?: string | null
 }
 
@@ -132,6 +137,12 @@ export function MarketplaceServicesSection({ agentId, settings, onSettingsChange
             {services.map((svc) => {
               const s = getSetting(svc.id)
               const img = svc.image_url || "/placeholder.svg"
+              const agentCommission =
+                svc.agent_commission ??
+                referralServiceAgentCommission({
+                  commission_amount: svc.commission_amount,
+                  product_cost: svc.product_cost ?? svc.cost,
+                })
               return (
                 <div
                   key={svc.id}
@@ -148,7 +159,12 @@ export function MarketplaceServicesSection({ agentId, settings, onSettingsChange
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:justify-between gap-2">
                     <div>
-                      <p className="font-medium">{svc.title}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{svc.title}</p>
+                        {agentCommission > 0 && (
+                          <EarningsBadge amount={agentCommission} variant="green" />
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
                         {svc.description}
                       </p>

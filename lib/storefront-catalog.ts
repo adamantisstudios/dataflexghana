@@ -34,6 +34,9 @@ export function isComplianceFormSettingItemId(itemId: string): boolean {
   )
 }
 
+/** Fixed agent commission (GHS) when a customer pays for Sole Proprietorship on the storefront. */
+export const COMPLIANCE_SOLE_PROPRIETORSHIP_AGENT_COMMISSION = 50
+
 /** Admin base price (GHS) — override via env on server. */
 export const DEFAULT_COMPLIANCE_SOLE_PROPRIETORSHIP_PRICE = 590
 
@@ -70,6 +73,12 @@ export function complianceFormAdminPrice(): number {
   const raw = process.env.STOREFRONT_COMPLIANCE_SOLE_PROPRIETORSHIP_PRICE
   const n = raw ? Number(raw) : DEFAULT_COMPLIANCE_SOLE_PROPRIETORSHIP_PRICE
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_COMPLIANCE_SOLE_PROPRIETORSHIP_PRICE
+}
+
+export function complianceFormAgentCommission(): number {
+  const raw = process.env.STOREFRONT_COMPLIANCE_SOLE_PROPRIETORSHIP_AGENT_COMMISSION
+  const n = raw ? Number(raw) : COMPLIANCE_SOLE_PROPRIETORSHIP_AGENT_COMMISSION
+  return Number.isFinite(n) && n >= 0 ? n : COMPLIANCE_SOLE_PROPRIETORSHIP_AGENT_COMMISSION
 }
 
 export function isStoreItemType(value: string): value is StoreItemType {

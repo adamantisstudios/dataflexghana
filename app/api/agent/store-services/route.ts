@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { withUnifiedAuth } from "@/lib/auth-middleware"
+import { referralServiceAgentCommission } from "@/lib/referral-service-commission"
 import { getAdminClient } from "@/lib/supabase-base"
 
 export const dynamic = "force-dynamic"
@@ -35,10 +36,18 @@ export const GET = withUnifiedAuth(async (request: NextRequest) => {
 
     const services = (data || []).map((s) => {
       const images = (s.image_urls as string[] | null) || []
+      const product_cost = Number(s.product_cost ?? 0)
+      const commission_amount = Number(s.commission_amount ?? 0)
       return {
         ...s,
         image_url: (s.image_url as string | null) || images[0] || null,
-        cost: Number(s.product_cost ?? s.commission_amount ?? 0),
+        product_cost,
+        commission_amount,
+        cost: product_cost > 0 ? product_cost : commission_amount,
+        agent_commission: referralServiceAgentCommission({
+          commission_amount,
+          product_cost,
+        }),
       }
     })
 
