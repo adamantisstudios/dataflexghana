@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,17 @@ interface PaystackResponse {
   reference: string;
 }
 
-export default function RegistrationPaymentPage() {
+function buildRegisterRedirectUrl(reference: string, name?: string, email?: string): string {
+  const params = new URLSearchParams({
+    payment: "success",
+    reference,
+  });
+  if (name?.trim()) params.set("name", name.trim());
+  if (email?.trim()) params.set("email", email.trim());
+  return `/agent/register?${params.toString()}`;
+}
+
+function RegistrationPaymentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [agentName, setAgentName] = useState("New Agent");
@@ -67,6 +77,7 @@ export default function RegistrationPaymentPage() {
   const [currentVideo, setCurrentVideo] = useState<(typeof featuredTestimonies)[0] | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<"manual" | "paystack" | null>(null);
   const paymentRedirectHandled = useRef(false);
+  const registerRedirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const generateCode = () => Math.floor(10000 + Math.random() * 90000).toString();
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -77,6 +88,15 @@ export default function RegistrationPaymentPage() {
     if (name) setAgentName(decodeURIComponent(name));
     if (mailParam) setAgentEmail(decodeURIComponent(mailParam));
   }, [searchParams]);
+
+  useEffect(() => {
+    return () => {
+      if (registerRedirectTimerRef.current != null) {
+        clearTimeout(registerRedirectTimerRef.current);
+        registerRedirectTimerRef.current = null;
+      }
+    };
+  }, []);
 
 
   const openVideoModal = (video: (typeof featuredTestimonies)[0]) => {
@@ -189,35 +209,55 @@ Thank you!`;
     }
   }
 
-  const handlePaymentSuccess = (reference: string) => {
-    const nameFromUrl = searchParams.get("name")
-    const emailFromUrl = searchParams.get("email")
-    const resolvedName = nameFromUrl ? decodeURIComponent(nameFromUrl) : agentName
-    const resolvedEmail = emailFromUrl ? decodeURIComponent(emailFromUrl) : agentEmail
+  const completePaymentRedirect = useCallback(
+    (reference: string) => {
+      if (typeof window !== "undefined" && window.location.pathname === "/agent/register") {
+        return;
+      }
 
-    localStorage.setItem("payment_verified", "true")
-    localStorage.setItem("payment_reference", reference)
-    localStorage.setItem("paystack_email", resolvedEmail)
-    localStorage.setItem("paystack_name", resolvedName)
-    localStorage.setItem("payment_method", "paystack")
+      const nameFromUrl = searchParams.get("name");
+      const emailFromUrl = searchParams.get("email");
+      const resolvedName = nameFromUrl
+        ? decodeURIComponent(nameFromUrl)
+        : agentName;
+      const resolvedEmail = emailFromUrl
+        ? decodeURIComponent(emailFromUrl)
+        : agentEmail;
 
-    const params = new URLSearchParams({
-      payment: "success",
-      reference,
-    })
-    if (resolvedName) params.set("name", resolvedName)
-    if (resolvedEmail) params.set("email", resolvedEmail)
+      localStorage.setItem("payment_verified", "true");
+      localStorage.setItem("payment_reference", reference);
+      localStorage.setItem("paystack_email", resolvedEmail);
+      localStorage.setItem("paystack_name", resolvedName);
+      localStorage.setItem("payment_method", "paystack");
 
-    router.replace(`/agent/register?${params.toString()}`)
-  }
+      setVerifyingPayment(true);
+      const target = buildRegisterRedirectUrl(reference, resolvedName, resolvedEmail);
+      if (registerRedirectTimerRef.current != null) {
+        clearTimeout(registerRedirectTimerRef.current);
+      }
+      registerRedirectTimerRef.current = setTimeout(() => {
+        registerRedirectTimerRef.current = null;
+        window.location.replace(target);
+      }, 2000);
+    },
+    [searchParams, agentName, agentEmail],
+  );
 
   useEffect(() => {
-    const reference = searchParams.get("reference") || searchParams.get("trxref")
-    if (!reference || paymentRedirectHandled.current) return
-    paymentRedirectHandled.current = true
-    handlePaymentSuccess(reference)
-    void verifyPaystackPayment(reference)
-  }, [searchParams, agentName, agentEmail, router])
+    const reference =
+      searchParams.get("reference") ||
+      searchParams.get("trxref") ||
+      searchParams.get("ref");
+
+    if (!reference || paymentRedirectHandled.current) return;
+    if (typeof window !== "undefined" && window.location.pathname === "/agent/register") {
+      return;
+    }
+
+    paymentRedirectHandled.current = true;
+    completePaymentRedirect(reference);
+    void verifyPaystackPayment(reference);
+  }, [searchParams, completePaymentRedirect]);
 
   const handleContinue = () => {
     if (!selectedMethod) return;
@@ -766,5 +806,19 @@ Thank you!`;
         </div>
       )}
     </div>
+  );
+}
+
+export default function RegistrationPaymentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+          <Loader className="h-8 w-8 animate-spin text-emerald-600" />
+        </div>
+      }
+    >
+      <RegistrationPaymentContent />
+    </Suspense>
   );
 }

@@ -11,13 +11,13 @@ export function PaystackSecureBadge({ className }: Props) {
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2",
+        "flex flex-col sm:flex-row items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-center sm:text-left",
         className,
       )}
     >
-      <Image src="/paystack.png" alt="Paystack" width={72} height={24} className="h-6 w-auto object-contain" />
+      <Image src="/paystack.png" alt="Paystack" width={80} height={28} className="h-7 w-auto object-contain" />
       <span className="text-[11px] sm:text-xs text-slate-600 leading-tight">
-        Secure payment powered by Paystack
+        Powered by Referral Powerhouse · Secure Paystack checkout
       </span>
     </div>
   )

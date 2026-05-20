@@ -4,7 +4,6 @@ import {
   type StoreItemType,
   marginForItemType,
   normalizeStoreItemId,
-  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
 } from "@/lib/storefront-catalog"
 
 export type { StoreItemType } from "@/lib/storefront-catalog"
@@ -117,19 +116,12 @@ export async function deleteStoreSetting(
 ): Promise<void> {
   const db = getAdminClient()
   const normalizedId = normalizeStoreItemId(itemId, itemType)
-  let query = db
+  const { error } = await db
     .from("agent_store_settings")
     .delete()
     .eq("agent_id", agentId)
     .eq("item_type", itemType)
-
-  if (itemType === "compliance_form") {
-    query = query.in("item_id", [normalizedId, itemId])
-  } else {
-    query = query.eq("item_id", normalizedId)
-  }
-
-  const { error } = await query
+    .eq("item_id", normalizedId)
   if (error) throw error
 }
 
@@ -181,23 +173,16 @@ export async function upsertStoreSetting(
   const updatedAt = new Date().toISOString()
   const isVisible = fields.is_visible ?? true
 
-  let existingQuery = db
+  const settingsSelect = db
     .from("agent_store_settings")
     .select("id, item_id")
     .eq("agent_id", agentId)
     .eq("item_type", itemType)
 
-  if (itemType === "compliance_form") {
-    existingQuery = existingQuery.in("item_id", [
-      normalizedItemId,
-      itemId,
-      COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
-    ])
-  } else {
-    existingQuery = existingQuery.eq("item_id", normalizedItemId)
-  }
-
-  const { data: existingRows, error: findError } = await existingQuery
+  const { data: existingRows, error: findError } =
+    itemType === "compliance_form"
+      ? await settingsSelect.limit(1)
+      : await settingsSelect.eq("item_id", normalizedItemId).limit(1)
 
   if (findError) {
     throw findError

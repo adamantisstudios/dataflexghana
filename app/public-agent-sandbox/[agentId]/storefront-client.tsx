@@ -1,10 +1,18 @@
 "use client"
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react"
-import { useParams, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -52,6 +60,11 @@ import {
 import { NetworkProviderIcon } from "@/components/storefront/NetworkProviderIcon"
 import { StorefrontImageLightbox } from "@/components/storefront/StorefrontImageLightbox"
 import { PaystackSecureBadge } from "@/components/storefront/PaystackSecureBadge"
+import { StoreFooter } from "@/components/storefront/StoreFooter"
+import {
+  loadWholesaleCart,
+  saveWholesaleCart,
+} from "@/lib/storefront-wholesale-cart"
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 import type { PublicWholesaleProduct, PublicComplianceForm, BuyerDetails } from "@/lib/storefront-catalog"
 
@@ -190,6 +203,7 @@ export default function PublicAgentStorefront({
   initialComplianceForms,
 }: PublicAgentStorefrontProps) {
   const params = useParams()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const agentId = (agentIdProp || (params?.agentId as string) || "").trim()
   const storeSegment = (storeSegmentProp || "").trim()
@@ -228,6 +242,23 @@ export default function PublicAgentStorefront({
   const [bundleSlideDir, setBundleSlideDir] = useState<"up" | "down">("down")
   const [showDeliveryNotice, setShowDeliveryNotice] = useState(true)
   const [imageLightbox, setImageLightbox] = useState<{ src: string; alt: string } | null>(null)
+  const [serviceModal, setServiceModal] = useState<ReferralService | null>(null)
+
+  useEffect(() => {
+    if (!agentId) return
+    setWholesaleCart(loadWholesaleCart(agentId))
+  }, [agentId])
+
+  useEffect(() => {
+    if (!agentId) return
+    saveWholesaleCart(agentId, wholesaleCart)
+  }, [agentId, wholesaleCart])
+
+  useEffect(() => {
+    if (searchParams.get("openCart") === "1") {
+      setCartOpen(true)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const complianceRef = searchParams.get("compliance_paid")
@@ -237,6 +268,8 @@ export default function PublicAgentStorefront({
       toast.success("Payment received — you can complete the registration form below.")
     }
   }, [searchParams])
+
+  const cartPageHref = `/store/${encodeURIComponent(storeSegment || agentId)}/cart`
 
   useEffect(() => {
     const paymentStatus = searchParams.get("payment")
@@ -506,12 +539,18 @@ export default function PublicAgentStorefront({
   }
 
   const addWholesaleToCart = (product: PublicWholesaleProduct, qty: number) => {
-    setWholesaleCart((prev) => [
-      ...prev,
-      { lineId: `wp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, product, quantity: qty },
-    ])
+    const line = {
+      lineId: `wp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      product,
+      quantity: qty,
+    }
+    setWholesaleCart((prev) => {
+      const next = [...prev, line]
+      saveWholesaleCart(agentId, next)
+      return next
+    })
     toast.success("Added to cart")
-    setCartOpen(true)
+    router.push(cartPageHref)
   }
 
   const removeWholesaleFromCart = (lineId: string) => {
@@ -677,22 +716,38 @@ export default function PublicAgentStorefront({
         }}
       >
         <div className="absolute inset-0 opacity-25 bg-[radial-gradient(ellipse_at_top_left,white,transparent_50%)]" />
-        <button
-          type="button"
-          onClick={() => setCartOpen(true)}
-          className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors"
-          aria-label={`Open cart, ${cartItemCount} items`}
-        >
-          <ShoppingCart className="h-5 w-5" />
-          {cartItemCount > 0 && (
+        {wholesaleCart.length > 0 ? (
+          <Link
+            href={cartPageHref}
+            className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors"
+            aria-label={`View product cart, ${wholesaleCart.length} items`}
+          >
+            <ShoppingCart className="h-5 w-5" />
             <span
               className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
               style={{ backgroundColor: accent }}
             >
-              {cartItemCount > 9 ? "9+" : cartItemCount}
+              {wholesaleCart.length > 9 ? "9+" : wholesaleCart.length}
             </span>
-          )}
-        </button>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-sm transition-colors"
+            aria-label={`Open data bundle cart${cart.length > 0 ? `, ${cart.length} items` : ""}`}
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {cart.length > 0 && (
+              <span
+                className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+                style={{ backgroundColor: accent }}
+              >
+                {cart.length > 9 ? "9+" : cart.length}
+              </span>
+            )}
+          </button>
+        )}
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-14 sm:pt-12 sm:pb-16 pr-16 sm:pr-6">
           <p className="flex items-center gap-2 text-white/75 text-xs uppercase tracking-widest font-semibold mb-3">
             <Store className="h-4 w-4 shrink-0" />
@@ -802,7 +857,7 @@ export default function PublicAgentStorefront({
                         slideDirection={bundleSlideDir}
                         className="space-y-4"
                       >
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4">
                     {bundlePagination.items.map((b) => {
                       const isActive = activeBundleId === b.id
                       return (
@@ -817,22 +872,18 @@ export default function PublicAgentStorefront({
                             : undefined
                         }
                       >
-                        <CardContent className="p-4 flex flex-col flex-1 gap-3">
-                          <div className="flex items-start justify-between gap-2">
+                        <CardContent className="p-3 sm:p-4 flex flex-col flex-1 gap-2">
+                          <div className="flex items-start gap-2">
+                            <NetworkProviderIcon provider={b.provider} size="sm" />
                             <div className="min-w-0 flex-1">
-                              <Badge
-                                variant="secondary"
-                                className="text-[10px] mb-2"
-                                style={{ color: accent, borderColor: `${accent}33` }}
-                              >
-                                {normalizeProvider(b.provider)}
-                              </Badge>
-                              <h3 className="font-semibold text-slate-900 line-clamp-2">{b.name}</h3>
-                              <p className="text-sm text-muted-foreground mt-1">{b.size_gb} GB</p>
+                              <h3 className="font-semibold text-slate-900 text-sm line-clamp-2 leading-tight">
+                                {b.name}
+                              </h3>
+                              <p className="text-xs text-muted-foreground">{b.size_gb} GB</p>
+                              <p className="text-base font-bold mt-1 tabular-nums" style={{ color: accent }}>
+                                GH₵{Number(b.retail_price).toFixed(2)}
+                              </p>
                             </div>
-                            <p className="text-xl font-bold shrink-0 tabular-nums" style={{ color: accent }}>
-                              ₵{Number(b.retail_price).toFixed(2)}
-                            </p>
                           </div>
                           <Button
                             type="button"
@@ -937,65 +988,35 @@ export default function PublicAgentStorefront({
                     {servicePagination.items.map((s) => (
                       <Card
                         key={s.id}
-                        className="border border-slate-100 bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setServiceModal(s)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            setServiceModal(s)
+                          }
+                        }}
+                        className="border border-slate-100 bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                       >
                         <CardContent className="p-0 flex flex-col flex-1">
-                          <button
-                            type="button"
-                            className="relative aspect-square w-full bg-slate-100 cursor-pointer block"
-                            onClick={() =>
-                              s.image_url && setImageLightbox({ src: s.image_url, alt: s.title })
-                            }
-                            aria-label={`View ${s.title} image`}
-                          >
-                              <Image
-                                src={s.image_url || "/placeholder.svg"}
-                                alt={s.title}
-                                fill
-                                className="object-cover hover:scale-105 transition-transform duration-200"
-                                sizes="50vw"
-                              />
-                            </button>
-                            <div className="p-4 flex flex-col flex-1 min-w-0">
-                              <h3 className="font-semibold text-slate-900 line-clamp-2">{s.title}</h3>
-                              <p className="text-sm text-muted-foreground line-clamp-3 mt-2 flex-1 leading-relaxed">
-                                {s.description}
-                              </p>
-                              <p className="text-xl font-bold mt-3" style={{ color: accent }}>
-                                ₵{Number(s.cost).toFixed(2)}
-                              </p>
-                              <div className="grid grid-cols-2 gap-2 mt-4">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="rounded-lg h-9 text-xs sm:text-sm"
-                                  asChild
-                                  disabled={!callPhone}
-                                >
-                                  <a href={toTelHref(callPhone) ?? "#"}>
-                                    <Phone className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-                                    Call
-                                  </a>
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="rounded-lg h-9 text-white text-xs sm:text-sm"
-                                  style={{ backgroundColor: accent }}
-                                  asChild
-                                >
-                                  <a
-                                    href={whatsappLink(
-                                      `Hi, I'm interested in "${s.title}" from your store.`,
-                                    )}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
-                                    <MessageCircle className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-                                    WhatsApp
-                                  </a>
-                                </Button>
-                              </div>
-                            </div>
+                          <div className="relative aspect-square w-full bg-slate-100 pointer-events-none">
+                            <Image
+                              src={s.image_url || "/placeholder.svg"}
+                              alt={s.title}
+                              fill
+                              className="object-cover"
+                              sizes="50vw"
+                            />
+                          </div>
+                          <div className="p-3 flex flex-col flex-1 min-w-0 gap-1">
+                            <h3 className="font-semibold text-slate-900 text-sm line-clamp-2 leading-tight">
+                              {s.title}
+                            </h3>
+                            <p className="text-lg font-bold tabular-nums mt-auto" style={{ color: accent }}>
+                              ₵{Number(s.cost).toFixed(2)}
+                            </p>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -1061,9 +1082,7 @@ export default function PublicAgentStorefront({
         </Tabs>
         </section>
 
-        <footer className="text-center text-xs text-muted-foreground pt-2 pb-4 border-t border-slate-200/80 mt-4">
-          Powered by Referral Powerhouse · Secure Paystack checkout
-        </footer>
+        <StoreFooter className="mt-4" />
       </main>
 
       {cartOpen && (
@@ -1086,9 +1105,9 @@ export default function PublicAgentStorefront({
               <h2 className="font-semibold flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
                 Your cart
-                {cartItemCount > 0 && (
+                {cart.length > 0 && (
                   <Badge variant="secondary" className="bg-white/20 text-white border-0 text-xs">
-                    {cartItemCount}
+                    {cart.length}
                   </Badge>
                 )}
               </h2>
@@ -1103,9 +1122,10 @@ export default function PublicAgentStorefront({
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
-              {cartItemCount === 0 ? (
+              {cart.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-12">
-                  Your cart is empty. Add data bundles or shop products to checkout.
+                  Your cart is empty. Add data bundles to checkout here, or shop products from the
+                  Wholesale tab.
                 </p>
               ) : (
                 <ul className="space-y-3">
@@ -1137,33 +1157,15 @@ export default function PublicAgentStorefront({
                       </Button>
                     </li>
                   ))}
-                  {wholesaleCart.map((line) => (
-                    <li
-                      key={line.lineId}
-                      className="flex items-start gap-3 rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900">{line.product.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Qty {line.quantity} · Product order
-                        </p>
-                        <p className="text-sm font-semibold mt-1" style={{ color: accent }}>
-                          ₵{(line.product.retail_price * line.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        aria-label="Remove item"
-                        onClick={() => removeWholesaleFromCart(line.lineId)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </li>
-                  ))}
                 </ul>
+              )}
+              {wholesaleCart.length > 0 && (
+                <p className="text-xs text-center text-muted-foreground mt-4 pt-4 border-t">
+                  {wholesaleCart.length} product(s) in cart —{" "}
+                  <Link href={cartPageHref} className="font-semibold underline" style={{ color: accent }}>
+                    view product cart
+                  </Link>
+                </p>
               )}
             </div>
 
@@ -1171,10 +1173,10 @@ export default function PublicAgentStorefront({
               <div className="flex items-center justify-between">
                 <span className="font-medium text-slate-700">Total</span>
                 <span className="text-xl font-bold tabular-nums" style={{ color: accent }}>
-                  ₵{(cartTotal + wholesaleCartTotal).toFixed(2)}
+                  GH₵{cartTotal.toFixed(2)}
                 </span>
               </div>
-              {cartItemCount > 0 && (
+              {cart.length > 0 && (
                 <div>
                   <Label className="text-xs text-slate-600">Email (optional, for receipt)</Label>
                   <Input
@@ -1202,20 +1204,6 @@ export default function PublicAgentStorefront({
                   </Button>
                 </>
               )}
-              {wholesaleCart.length > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full rounded-xl h-12 font-semibold"
-                  disabled={checkingOut}
-                  onClick={() => {
-                    setCartOpen(false)
-                    setMainTab("products")
-                  }}
-                >
-                  Complete product checkout (delivery details)
-                </Button>
-              )}
             </div>
           </aside>
         </div>
@@ -1242,6 +1230,101 @@ export default function PublicAgentStorefront({
         storeName={displayProfile.store_name || "Data Store"}
         accentColor={accent}
       />
+
+      <Dialog
+        open={serviceModal != null}
+        onOpenChange={(open) => {
+          if (!open) setServiceModal(null)
+        }}
+      >
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto gap-0 border-slate-200 p-0 sm:rounded-2xl">
+          {serviceModal && (
+            <>
+              <DialogHeader className="sr-only">
+                <DialogTitle>{serviceModal.title}</DialogTitle>
+              </DialogHeader>
+              <div className="px-4 pt-12 pb-4 space-y-4">
+                <button
+                  type="button"
+                  className="relative w-full min-h-[200px] max-h-[44vh] rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
+                  onClick={() =>
+                    serviceModal.image_url &&
+                    setImageLightbox({ src: serviceModal.image_url, alt: serviceModal.title })
+                  }
+                  aria-label="View full-size service image"
+                >
+                  <Image
+                    src={serviceModal.image_url || "/placeholder.svg"}
+                    alt={serviceModal.title}
+                    width={800}
+                    height={800}
+                    className="max-h-[44vh] w-full h-auto object-contain"
+                    unoptimized
+                  />
+                  <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-medium text-slate-500 bg-white/90 px-2 py-0.5 rounded-full shadow-sm">
+                    Tap for full screen
+                  </span>
+                </button>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 leading-snug">{serviceModal.title}</h3>
+                  <p className="text-xl font-bold tabular-nums mt-1" style={{ color: accent }}>
+                    ₵{Number(serviceModal.cost).toFixed(2)}
+                  </p>
+                </div>
+                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                  {serviceModal.description || "No description provided."}
+                </p>
+              </div>
+              <DialogFooter className="flex-col gap-4 border-t border-slate-100 bg-slate-50/90 p-4 sm:flex-col">
+                {callPhone ? (
+                  <Button variant="outline" type="button" className="w-full h-12 text-base font-semibold rounded-xl border-slate-200 shrink-0" asChild>
+                    <a href={toTelHref(callPhone) ?? "#"} className="inline-flex items-center justify-center gap-2">
+                      <Phone className="h-5 w-5 shrink-0" />
+                      Call
+                    </a>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="w-full h-12 text-base font-semibold rounded-xl border-slate-200 shrink-0"
+                    disabled
+                  >
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <Phone className="h-5 w-5 shrink-0" />
+                      Call unavailable
+                    </span>
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  className="w-full h-12 text-base font-semibold text-white rounded-xl shrink-0"
+                  style={{ backgroundColor: accent }}
+                  asChild
+                >
+                  <a
+                    href={whatsappLink(`Hi, I'm interested in "${serviceModal.title}" from your store.`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle className="h-5 w-5 shrink-0" />
+                    WhatsApp
+                  </a>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full h-11 text-base text-slate-600 rounded-xl"
+                  onClick={() => setServiceModal(null)}
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <StorefrontImageLightbox
         src={imageLightbox?.src ?? null}

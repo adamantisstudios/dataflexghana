@@ -7,6 +7,10 @@ import {
   formatNoRegistrationDataBundleMessage,
   isNoRegistrationPaystackMetadata,
 } from "@/lib/no-registration-order-whatsapp"
+import {
+  AGENT_REGISTRATION_PAYMENT_TYPE,
+  isAgentRegistrationPaystackMetadata,
+} from "@/lib/paystack-registration"
 
 const PAYSTACK_BASE_URL = "https://api.paystack.co"
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || ""
@@ -93,7 +97,10 @@ export async function GET(request: NextRequest) {
     const metadata = flattenPaystackMetadata(data.data.metadata || {})
     const amount = data.data.amount / 100
 
-    if (metadata.registration_type === "agent_registration") {
+    if (isAgentRegistrationPaystackMetadata(metadata)) {
+      const agentName = String(metadata.agent_name || "")
+      const agentEmail = String(metadata.email || "")
+
       await logAuditFromRequest(request, {
         actorType: "system",
         action: "payment_received",
@@ -102,15 +109,16 @@ export async function GET(request: NextRequest) {
         newData: {
           amount,
           phone: metadata.phone,
-          registration_type: "agent_registration",
+          registration_type: AGENT_REGISTRATION_PAYMENT_TYPE,
+          payment_type: AGENT_REGISTRATION_PAYMENT_TYPE,
         },
       })
 
-      const registerUrl = new URL("/agent/register", request.url)
+      const registerUrl = new URL("https://www.dataflexghana.com/agent/register")
       registerUrl.searchParams.set("payment", "success")
       registerUrl.searchParams.set("reference", reference)
-      if (metadata.phone) registerUrl.searchParams.set("phone", String(metadata.phone))
-      return NextResponse.redirect(registerUrl, 302)
+
+      return NextResponse.redirect(registerUrl.toString(), 302)
     }
 
     const isNoRegistrationOrder =

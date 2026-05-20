@@ -4,9 +4,6 @@ import {
   type PublicWholesaleProduct,
   type PublicComplianceForm,
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
-  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
-  isComplianceFormSettingItemId,
-  complianceFormAdminPrice,
 } from "@/lib/storefront-catalog"
 
 export type PublicBundle = {
@@ -158,9 +155,7 @@ export async function getPublicStorefrontResponse(
     const wholesaleIds = visibleSettings
       .filter((s) => s.item_type === "wholesale_product")
       .map((s) => s.item_id)
-    const hasCompliance = visibleSettings.some(
-      (s) => s.item_type === "compliance_form" && isComplianceFormSettingItemId(s.item_id),
-    )
+    const hasCompliance = visibleSettings.some((s) => s.item_type === "compliance_form")
 
     const marginByBundleId = new Map(
       visibleSettings
@@ -270,7 +265,7 @@ export async function getPublicStorefrontResponse(
             title: "Sole Proprietorship Registration",
             description:
               "Includes free nation-wide delivery of all documents to your doorstep within 14 working days. Fill forms easily, sign and submit securely.",
-            admin_price: complianceFormAdminPrice(),
+            admin_price: 590,
           },
         ]
       : []

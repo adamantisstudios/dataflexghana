@@ -37,7 +37,8 @@ export function isComplianceFormSettingItemId(itemId: string): boolean {
 /** Admin base price (GHS) — override via env on server. */
 export const DEFAULT_COMPLIANCE_SOLE_PROPRIETORSHIP_PRICE = 590
 
-export const COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO = 59_000
+/** GH₵590.00 → Paystack amount in kobo */
+export const COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO = 590 * 100
 
 export type PublicWholesaleProduct = {
   id: string

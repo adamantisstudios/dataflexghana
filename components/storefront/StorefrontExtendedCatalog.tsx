@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,7 @@ import {
 import { toast } from "sonner"
 import { Package, FileText, Plus } from "lucide-react"
 import { WholesaleProductThumb } from "@/components/wholesale/WholesaleProductThumb"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import {
   StorefrontListPagination,
   StorefrontPageSection,
@@ -27,7 +29,6 @@ import type { PublicWholesaleProduct, PublicComplianceForm, BuyerDetails } from 
 import {
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
   COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO,
-  complianceFormAdminPrice,
 } from "@/lib/storefront-catalog"
 import { getStorefrontPaystackCallbackUrl } from "@/lib/storefront-utils"
 
@@ -56,8 +57,6 @@ type Props = {
   onComplianceSubmitted?: () => void
 }
 
-const COMPLIANCE_FEE_GHS = complianceFormAdminPrice()
-
 export function StorefrontExtendedCatalog({
   agentId,
   storeSegment,
@@ -67,6 +66,7 @@ export function StorefrontExtendedCatalog({
   complianceForms,
   wholesaleCart,
   onAddWholesale,
+  onRemoveWholesale: _onRemoveWholesale,
   onCheckoutWholesale,
   compliancePaidRef,
   customerEmail,
@@ -76,6 +76,7 @@ export function StorefrontExtendedCatalog({
   const showProducts = mode === "all" || mode === "products"
   const showBusiness = mode === "all" || mode === "business"
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null)
+  const [productModal, setProductModal] = useState<PublicWholesaleProduct | null>(null)
   const [buyerOpen, setBuyerOpen] = useState(false)
   const [buyer, setBuyer] = useState<BuyerDetails>({
     full_name: "",
@@ -230,25 +231,21 @@ export function StorefrontExtendedCatalog({
             {productPagination.items.map((p) => (
               <Card
                 key={p.id}
-                className="border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                role="button"
+                tabIndex={0}
+                onClick={() => setProductModal(p)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    setProductModal(p)
+                  }
+                }}
+                className="border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 rounded-xl"
               >
-                <WholesaleProductThumb
-                  src={p.image_url}
-                  alt={p.name}
-                  onClick={() => openLightbox(p.image_url, p.name)}
-                />
-                <div className="p-3 space-y-2">
+                <WholesaleProductThumb src={p.image_url} alt={p.name} />
+                <div className="p-3 space-y-1">
                   <p className="font-medium text-sm text-slate-900 line-clamp-2 leading-tight">{p.name}</p>
-                  <p className="text-sm font-bold text-emerald-700">GH₵{p.retail_price.toFixed(2)}</p>
-                  <Button
-                    size="sm"
-                    className="w-full h-9 gap-1 text-white text-xs"
-                    style={{ backgroundColor: accent }}
-                    onClick={() => onAddWholesale(p, 1)}
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Add to cart
-                  </Button>
+                  <p className="text-sm font-bold text-emerald-700 tabular-nums">GH₵{p.retail_price.toFixed(2)}</p>
                 </div>
               </Card>
             ))}
@@ -264,16 +261,16 @@ export function StorefrontExtendedCatalog({
             accentColor={accent}
           />
           {wholesaleCart.length > 0 && (
-            <>
-              <Button
-                className="w-full sm:w-auto"
-                onClick={() => setBuyerOpen(true)}
-                style={{ backgroundColor: accent }}
-              >
-                Checkout products (GH₵
+            <Button
+              className="w-full sm:w-auto text-white"
+              style={{ backgroundColor: accent }}
+              asChild
+            >
+              <Link href={`/store/${encodeURIComponent(storeSegment)}/cart`}>
+                View cart & checkout (GH₵
                 {wholesaleCart.reduce((s, l) => s + l.product.retail_price * l.quantity, 0).toFixed(2)})
-              </Button>
-            </>
+              </Link>
+            </Button>
           )}
         </section>
       )}
@@ -287,8 +284,9 @@ export function StorefrontExtendedCatalog({
             </h3>
           )}
 
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
           {complianceSuccess ? (
-            <Card className="border-emerald-200 bg-emerald-50">
+            <Card className="border-emerald-200 bg-emerald-50 col-span-2">
               <CardContent className="p-6 space-y-3 text-center">
                 <p className="font-semibold text-emerald-900">
                   Your form has been submitted. For follow-up, please contact the store agent.
@@ -299,13 +297,14 @@ export function StorefrontExtendedCatalog({
               </CardContent>
             </Card>
           ) : (
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden col-span-2">
               <CardContent className="p-4 sm:p-6 space-y-4">
                 <div>
                   <h4 className="font-semibold text-lg">{soleForm.title}</h4>
                   <p className="text-lg font-bold mt-2" style={{ color: accent }}>
-                    Fee: GH₵ {COMPLIANCE_FEE_GHS.toFixed(0)}
+                    Fee: GH₵ 590
                   </p>
+                  <p className="text-sm font-medium text-slate-600 mt-1">Payment summary: GH₵ 590</p>
                   <ul className="mt-3 space-y-2 text-sm text-slate-600 list-disc pl-5">
                     <li>
                       Includes free nation-wide delivery of all documents to your doorstep within 14 working
@@ -326,7 +325,7 @@ export function StorefrontExtendedCatalog({
                       className="w-full text-white h-11"
                       style={{ backgroundColor: accent }}
                     >
-                      {payingCompliance ? "Redirecting to Paystack…" : "Pay to unlock form"}
+                      {payingCompliance ? "Redirecting to Paystack…" : "Pay GH₵ 590 to unlock form"}
                     </Button>
                   </div>
                 ) : (
@@ -366,6 +365,7 @@ export function StorefrontExtendedCatalog({
               </CardContent>
             </Card>
           )}
+          </div>
         </section>
       )}
 
@@ -374,6 +374,76 @@ export function StorefrontExtendedCatalog({
         alt={lightbox?.alt}
         onClose={() => setLightbox(null)}
       />
+
+      <Dialog
+        open={productModal != null}
+        onOpenChange={(open) => {
+          if (!open) setProductModal(null)
+        }}
+      >
+        <DialogContent className="max-w-md max-h-[92vh] overflow-y-auto gap-0 border-slate-200 p-0 sm:rounded-2xl">
+          {productModal && (
+            <>
+              <DialogHeader className="sr-only">
+                <DialogTitle>{productModal.name}</DialogTitle>
+              </DialogHeader>
+              <div className="px-4 pt-12 pb-4 space-y-4">
+                <button
+                  type="button"
+                  className="relative w-full min-h-[200px] max-h-[48vh] rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400"
+                  onClick={() => openLightbox(productModal.image_url, productModal.name)}
+                  aria-label="View full-size product image"
+                >
+                  <ImageWithFallback
+                    src={productModal.image_url?.trim() || "/placeholder-product.jpg"}
+                    alt={productModal.name}
+                    className="max-h-[48vh] w-full h-auto object-contain"
+                    fallbackSrc="/placeholder-product.jpg"
+                  />
+                  <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-medium text-slate-500 bg-white/90 px-2 py-0.5 rounded-full shadow-sm">
+                    Tap for full screen
+                  </span>
+                </button>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 leading-snug">{productModal.name}</h3>
+                  <p className="text-xl font-bold text-emerald-700 tabular-nums mt-1">
+                    GH₵{productModal.retail_price.toFixed(2)}
+                  </p>
+                </div>
+                {productModal.description?.trim() ? (
+                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                    {productModal.description}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-400 italic">No description provided.</p>
+                )}
+              </div>
+              <DialogFooter className="flex-col gap-2 border-t border-slate-100 bg-slate-50/90 p-4 sm:flex-col">
+                <Button
+                  type="button"
+                  className="w-full h-12 gap-2 text-white text-base font-semibold rounded-xl"
+                  style={{ backgroundColor: accent }}
+                  onClick={() => {
+                    onAddWholesale(productModal, 1)
+                    setProductModal(null)
+                  }}
+                >
+                  <Plus className="h-5 w-5 shrink-0" />
+                  Add to Cart
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11 rounded-xl border-slate-200"
+                  onClick={() => setProductModal(null)}
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={buyerOpen} onOpenChange={setBuyerOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">

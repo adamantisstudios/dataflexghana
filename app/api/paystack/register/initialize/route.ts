@@ -1,4 +1,8 @@
-import { NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import {
+  AGENT_REGISTRATION_PAYMENT_TYPE,
+  getRegistrationPaystackCallbackUrl,
+} from "@/lib/paystack-registration"
 
 interface PaystackInitializeRequest {
   agent_name: string
@@ -17,34 +21,30 @@ interface PaystackInitializeResponse {
 }
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || ""
-const CALLBACK_URL = process.env.NEXT_PUBLIC_APP_URL || "https://dataflexghana.com"
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] Paystack registration payment initialize request received")
-
     if (!PAYSTACK_SECRET_KEY) {
-      console.error("[v0] PAYSTACK_SECRET_KEY is not configured")
       return NextResponse.json(
-        { error: "Payment gateway is not configured. PAYSTACK_SECRET_KEY missing. Please contact admin." },
-        { status: 500 }
+        {
+          error:
+            "Payment gateway is not configured. PAYSTACK_SECRET_KEY missing. Please contact admin.",
+        },
+        { status: 500 },
       )
     }
 
     const body: PaystackInitializeRequest = await request.json()
     const { agent_name, amount, email } = body
 
-    console.log(`[v0] Received body:`, { agent_name, amount, email })
-
     if (!agent_name || !amount || !email) {
-      console.error("[v0] Missing required fields:", { agent_name, amount, email })
       return NextResponse.json(
-        { error: `Missing required payment information. Got: agent_name=${agent_name}, amount=${amount}, email=${email}` },
-        { status: 400 }
+        { error: "Missing required payment information (agent_name, amount, email)." },
+        { status: 400 },
       )
     }
 
-    console.log(`[v0] Initializing registration payment for: ${agent_name}, amount: ${amount}, email: ${email}`)
+    const callbackUrl = getRegistrationPaystackCallbackUrl(request)
 
     const paystackResponse = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
@@ -54,49 +54,47 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         email,
-        amount, // Amount in pesewas (₵50 = 5000 pesewas)
+        amount,
         metadata: {
           agent_name,
-          registration_type: "agent_registration",
+          email,
+          registration_type: AGENT_REGISTRATION_PAYMENT_TYPE,
+          payment_type: AGENT_REGISTRATION_PAYMENT_TYPE,
           transaction_type: "registration_fee",
         },
-        callback_url: `${CALLBACK_URL}/agent/registration-payment?name=${encodeURIComponent(agent_name)}&email=${encodeURIComponent(email)}`,
+        callback_url: callbackUrl,
       }),
     })
 
     if (!paystackResponse.ok) {
       const errorText = await paystackResponse.text()
-      console.error("[v0] Paystack API error status:", paystackResponse.status)
-      console.error("[v0] Paystack API error response:", errorText)
+      console.error("[paystack register init]", paystackResponse.status, errorText)
       return NextResponse.json(
         { error: `Paystack error (${paystackResponse.status}): ${errorText}` },
-        { status: 500 }
+        { status: 500 },
       )
     }
 
     const paystackData: PaystackInitializeResponse = await paystackResponse.json()
-    console.log("[v0] Paystack response data:", paystackData)
 
     if (!paystackData.status) {
-      console.error("[v0] Paystack returned unsuccessful status:", paystackData.message)
       return NextResponse.json(
-        { error: `Paystack error: ${paystackData.message || "Payment initialization failed"}` },
-        { status: 400 }
+        { error: paystackData.message || "Payment initialization failed" },
+        { status: 400 },
       )
     }
-
-    console.log(`[v0] Payment initialized successfully. Reference: ${paystackData.data.reference}`)
 
     return NextResponse.json({
       authorization_url: paystackData.data.authorization_url,
       access_code: paystackData.data.access_code,
       reference: paystackData.data.reference,
+      callback_url: callbackUrl,
     })
   } catch (error) {
-    console.error("[v0] Payment initialization error:", error)
+    console.error("[paystack register init]", error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "An error occurred during payment initialization" },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : "Payment initialization failed" },
+      { status: 500 },
     )
   }
 }

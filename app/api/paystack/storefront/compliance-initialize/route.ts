@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import {
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
-  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
   COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO,
   complianceFormAdminPrice,
 } from "@/lib/storefront-catalog"
@@ -77,10 +76,9 @@ export async function POST(request: NextRequest) {
     const db = getAdminClient()
     const { data: complianceSettings, error: settingsError } = await db
       .from("agent_store_settings")
-      .select("is_visible, item_id")
+      .select("is_visible")
       .eq("agent_id", agent_id)
       .eq("item_type", "compliance_form")
-      .in("item_id", [COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID, COMPLIANCE_FORM_SOLE_PROPRIETORSHIP])
 
     if (settingsError) {
       console.error("compliance-initialize settings:", settingsError)
@@ -120,10 +118,12 @@ export async function POST(request: NextRequest) {
           source: "storefront",
           order_type: "compliance",
           agent_id: String(agent_id),
+          item_id: "c0ffee00-0001-4001-8001-000000000001",
           form_type: formType,
           store_name: String(store_name || "Store"),
           store_segment: String(store_segment || ""),
           cart_total: String(priceGhs),
+          amount_kobo: String(amountKobo),
         },
         callback_url: callbackUrl,
       }),
