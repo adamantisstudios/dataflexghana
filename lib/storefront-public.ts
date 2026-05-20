@@ -269,7 +269,7 @@ export async function getPublicStorefrontResponse(
             form_type: COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
             title: "Sole Proprietorship Registration",
             description:
-              "Register your sole proprietorship business. Pay the registration fee to unlock the application form.",
+              "Includes free nation-wide delivery of all documents to your doorstep within 14 working days. Fill forms easily, sign and submit securely.",
             admin_price: complianceFormAdminPrice(),
           },
         ]

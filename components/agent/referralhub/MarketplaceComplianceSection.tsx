@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import {
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
+  complianceFormAdminPrice,
   isComplianceFormSettingItemId,
 } from "@/lib/storefront-catalog"
 import { FileText, Loader2 } from "lucide-react"
@@ -91,8 +92,8 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
           Compliance services
         </CardTitle>
         <CardDescription>
-          Sole Proprietorship Registration — customers pay the admin base fee via Paystack, then complete the form on
-          your store. Margin is locked at ₵0.
+          Sole Proprietorship Registration — storefront fee GH₵{complianceFormAdminPrice().toFixed(0)} via Paystack,
+          then customers complete the form on your store. Margin is locked at ₵0.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

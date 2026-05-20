@@ -49,6 +49,9 @@ import {
   StorefrontPageSection,
   paginateItems,
 } from "@/components/storefront/StorefrontListPagination"
+import { NetworkProviderIcon } from "@/components/storefront/NetworkProviderIcon"
+import { StorefrontImageLightbox } from "@/components/storefront/StorefrontImageLightbox"
+import { PaystackSecureBadge } from "@/components/storefront/PaystackSecureBadge"
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 import type { PublicWholesaleProduct, PublicComplianceForm, BuyerDetails } from "@/lib/storefront-catalog"
 
@@ -224,6 +227,7 @@ export default function PublicAgentStorefront({
   const [serviceSlideDir, setServiceSlideDir] = useState<"up" | "down">("down")
   const [bundleSlideDir, setBundleSlideDir] = useState<"up" | "down">("down")
   const [showDeliveryNotice, setShowDeliveryNotice] = useState(true)
+  const [imageLightbox, setImageLightbox] = useState<{ src: string; alt: string } | null>(null)
 
   useEffect(() => {
     const complianceRef = searchParams.get("compliance_paid")
@@ -772,7 +776,7 @@ export default function PublicAgentStorefront({
                       key={n.key}
                       value={n.key}
                       disabled={!bundlesByNetwork[n.key]?.length}
-                      className="rounded-lg text-xs sm:text-sm py-2 data-[state=active]:shadow-sm"
+                      className="rounded-lg text-xs sm:text-sm py-2 data-[state=active]:shadow-sm flex items-center justify-center gap-1.5"
                       style={
                         networkTab === n.key
                           ? {
@@ -782,9 +786,10 @@ export default function PublicAgentStorefront({
                           : undefined
                       }
                     >
-                      {n.label}
+                      <NetworkProviderIcon provider={n.key} size="sm" className="border-white/30" />
+                      <span className="truncate">{n.label}</span>
                       {bundlesByNetwork[n.key]?.length ? (
-                        <span className="ml-1 opacity-80">({bundlesByNetwork[n.key].length})</span>
+                        <span className="opacity-80 tabular-nums">({bundlesByNetwork[n.key].length})</span>
                       ) : null}
                     </TabsTrigger>
                   ))}
@@ -927,7 +932,7 @@ export default function PublicAgentStorefront({
                   <StorefrontPageSection
                     pageKey={servicePage}
                     slideDirection={serviceSlideDir}
-                    className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                    className="grid grid-cols-2 gap-3 md:gap-4"
                   >
                     {servicePagination.items.map((s) => (
                       <Card
@@ -935,15 +940,22 @@ export default function PublicAgentStorefront({
                         className="border border-slate-100 bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-lg transition-shadow flex flex-col h-full"
                       >
                         <CardContent className="p-0 flex flex-col flex-1">
-                          <div className="relative aspect-square w-full bg-slate-100">
+                          <button
+                            type="button"
+                            className="relative aspect-square w-full bg-slate-100 cursor-pointer block"
+                            onClick={() =>
+                              s.image_url && setImageLightbox({ src: s.image_url, alt: s.title })
+                            }
+                            aria-label={`View ${s.title} image`}
+                          >
                               <Image
                                 src={s.image_url || "/placeholder.svg"}
                                 alt={s.title}
                                 fill
-                                className="object-cover"
-                                sizes="(max-width: 640px) 100vw, 33vw"
+                                className="object-cover hover:scale-105 transition-transform duration-200"
+                                sizes="50vw"
                               />
-                            </div>
+                            </button>
                             <div className="p-4 flex flex-col flex-1 min-w-0">
                               <h3 className="font-semibold text-slate-900 line-clamp-2">{s.title}</h3>
                               <p className="text-sm text-muted-foreground line-clamp-3 mt-2 flex-1 leading-relaxed">
@@ -1021,6 +1033,7 @@ export default function PublicAgentStorefront({
                 onCheckoutWholesale={checkoutWholesale}
                 compliancePaidRef={compliancePaidRef}
                 customerEmail={customerEmail}
+                onComplianceSubmitted={() => setCompliancePaidRef(null)}
               />
             </TabsContent>
           )}
@@ -1041,6 +1054,7 @@ export default function PublicAgentStorefront({
                 onCheckoutWholesale={checkoutWholesale}
                 compliancePaidRef={compliancePaidRef}
                 customerEmail={customerEmail}
+                onComplianceSubmitted={() => setCompliancePaidRef(null)}
               />
             </TabsContent>
           )}
@@ -1061,7 +1075,7 @@ export default function PublicAgentStorefront({
             onClick={() => setCartOpen(false)}
           />
           <aside
-            className="fixed inset-y-0 right-0 w-full max-w-sm bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300"
+            className="fixed inset-x-0 bottom-0 sm:inset-y-0 sm:inset-x-auto sm:right-0 w-full max-w-sm max-h-[70vh] sm:max-h-none bg-white shadow-2xl flex flex-col rounded-t-2xl sm:rounded-none animate-in slide-in-from-bottom sm:slide-in-from-right duration-300"
             role="dialog"
             aria-label="Shopping cart"
           >
@@ -1088,7 +1102,7 @@ export default function PublicAgentStorefront({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
               {cartItemCount === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-12">
                   Your cart is empty. Add data bundles or shop products to checkout.
@@ -1153,7 +1167,7 @@ export default function PublicAgentStorefront({
               )}
             </div>
 
-            <div className="border-t p-4 pb-6 space-y-3 bg-white">
+            <div className="shrink-0 border-t p-4 pb-6 space-y-3 bg-white">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-slate-700">Total</span>
                 <span className="text-xl font-bold tabular-nums" style={{ color: accent }}>
@@ -1173,17 +1187,20 @@ export default function PublicAgentStorefront({
                 </div>
               )}
               {cart.length > 0 && (
-                <Button
-                  type="button"
-                  className="w-full text-white rounded-xl h-12 font-semibold text-base"
-                  style={{ backgroundColor: accent }}
-                  disabled={checkingOut}
-                  onClick={checkoutCart}
-                >
-                  {checkingOut
-                    ? "Redirecting to Paystack…"
-                    : `Pay data bundles · ₵${cartTotal.toFixed(2)}`}
-                </Button>
+                <>
+                  <PaystackSecureBadge />
+                  <Button
+                    type="button"
+                    className="w-full text-white rounded-xl h-12 font-semibold text-base"
+                    style={{ backgroundColor: accent }}
+                    disabled={checkingOut}
+                    onClick={checkoutCart}
+                  >
+                    {checkingOut
+                      ? "Redirecting to Paystack…"
+                      : `Proceed to Pay · GH₵${cartTotal.toFixed(2)}`}
+                  </Button>
+                </>
               )}
               {wholesaleCart.length > 0 && (
                 <Button
@@ -1224,6 +1241,12 @@ export default function PublicAgentStorefront({
         whatsappPhone={whatsappPhone}
         storeName={displayProfile.store_name || "Data Store"}
         accentColor={accent}
+      />
+
+      <StorefrontImageLightbox
+        src={imageLightbox?.src ?? null}
+        alt={imageLightbox?.alt}
+        onClose={() => setImageLightbox(null)}
       />
 
       <PwaInstallPrompt variant="storefront" />

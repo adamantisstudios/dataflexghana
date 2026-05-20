@@ -6,18 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { BUNDLE_NETWORKS, type BundleNetwork } from "@/lib/storefront-utils"
+import { getNetworkProviderImage } from "@/lib/network-provider-icons"
 import { Trash2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 interface DataBundle {
   id: string
@@ -42,13 +38,30 @@ interface Props {
   onSettingsChange: () => void
 }
 
+function NetworkTabLabel({ network }: { network: BundleNetwork }) {
+  return (
+    <span className="flex items-center justify-center gap-1.5">
+      <span className="relative h-6 w-6 shrink-0 rounded overflow-hidden border border-slate-200">
+        <Image
+          src={getNetworkProviderImage(network)}
+          alt={`${network} logo`}
+          fill
+          className="object-cover"
+          sizes="24px"
+        />
+      </span>
+      <span className="truncate">{network}</span>
+    </span>
+  )
+}
+
 export function MarketplaceBundlesSection({
   agentId,
   settings,
   savedBundles,
   onSettingsChange,
 }: Props) {
-  const [network, setNetwork] = useState<BundleNetwork | "">("")
+  const [network, setNetwork] = useState<BundleNetwork>("MTN")
   const [bundles, setBundles] = useState<DataBundle[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -58,7 +71,6 @@ export function MarketplaceBundlesSection({
   const savedSettings = settings.filter((s) => s.item_type === "data_bundle")
 
   const fetchBundles = useCallback(async () => {
-    if (!network) return
     setLoading(true)
     try {
       const headers = getAgentAuthHeaders()
@@ -78,8 +90,12 @@ export function MarketplaceBundlesSection({
   }, [network, page])
 
   useEffect(() => {
-    if (network) fetchBundles()
-  }, [network, page, fetchBundles])
+    fetchBundles()
+  }, [fetchBundles])
+
+  useEffect(() => {
+    setPage(1)
+  }, [network])
 
   const addToStore = async (bundleId: string, margin: number) => {
     try {
@@ -151,121 +167,114 @@ export function MarketplaceBundlesSection({
           <CardDescription>Pick a network, set your margin, then add to your store</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="w-full">
-            <Label>Network</Label>
-            <Select
-              value={network}
-              onValueChange={(v) => {
-                setNetwork(v as BundleNetwork)
-                setPage(1)
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select network (MTN, Telecel, AirtelTigo)" />
-              </SelectTrigger>
-              <SelectContent>
-                {BUNDLE_NETWORKS.map((n) => (
-                  <SelectItem key={n} value={n}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {!network ? (
-            <p className="text-sm text-muted-foreground">Select a network to browse bundles.</p>
-          ) : loading ? (
-            <div className="flex flex-col gap-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3 border rounded-lg p-4">
-                  <Skeleton className="h-14 w-14 rounded-lg shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-9 w-32" />
-                  </div>
-                </div>
+          <Tabs value={network} onValueChange={(v) => setNetwork(v as BundleNetwork)}>
+            <TabsList className="w-full grid grid-cols-3 h-auto p-1 gap-1">
+              {BUNDLE_NETWORKS.map((n) => (
+                <TabsTrigger
+                  key={n}
+                  value={n}
+                  className={cn(
+                    "text-xs sm:text-sm py-2 data-[state=active]:bg-emerald-700 data-[state=active]:text-white",
+                  )}
+                >
+                  <NetworkTabLabel network={n} />
+                </TabsTrigger>
               ))}
-            </div>
-          ) : bundles.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No bundles for this network.</p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {bundles.map((b) => {
-                const marginVal = margins[b.id] ?? "0"
-                const inStore = savedSettings.some((s) => s.item_id === b.id)
-                return (
-                  <div
-                    key={b.id}
-                    className="flex flex-row gap-3 border rounded-lg p-4 w-full items-start bg-white shadow-sm"
-                  >
-                    <div className="relative h-14 w-14 shrink-0 rounded-lg overflow-hidden bg-slate-100 border">
-                      {b.image_url ? (
-                        <Image
-                          src={b.image_url}
-                          alt={b.name}
-                          fill
-                          className="object-cover"
-                          sizes="56px"
-                        />
-                      ) : (
+            </TabsList>
+
+            {BUNDLE_NETWORKS.map((n) => (
+              <TabsContent key={n} value={n} className="mt-4">
+                {loading ? (
+                  <div className="flex flex-col gap-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex gap-3 border rounded-lg p-4">
+                        <Skeleton className="h-14 w-14 rounded-lg shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-2/3" />
+                          <Skeleton className="h-3 w-1/2" />
+                          <Skeleton className="h-9 w-32" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : bundles.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No bundles for {n}.</p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {bundles.map((b) => {
+                      const marginVal = margins[b.id] ?? "0"
+                      const inStore = savedSettings.some((s) => s.item_id === b.id)
+                      return (
                         <div
-                          className="h-full w-full flex items-center justify-center text-xs font-bold text-slate-500"
+                          key={b.id}
+                          className="flex flex-row gap-3 border rounded-lg p-4 w-full items-start bg-white shadow-sm"
                         >
-                          {b.size_gb}G
+                          <span className="relative h-14 w-14 shrink-0 rounded-lg overflow-hidden border bg-slate-50">
+                            <Image
+                              src={getNetworkProviderImage(b.provider)}
+                              alt={b.provider}
+                              fill
+                              className="object-cover"
+                              sizes="56px"
+                            />
+                          </span>
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <p className="font-medium">{b.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {b.provider} · {b.size_gb}GB · Base ₵{Number(b.price).toFixed(2)}
+                            </p>
+                            <div className="flex flex-col xs:flex-row gap-2 items-stretch sm:items-end">
+                              <div className="w-full sm:max-w-[140px]">
+                                <Label className="text-xs">Margin (₵)</Label>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={0.01}
+                                  value={marginVal}
+                                  onChange={(e) => setMargins((m) => ({ ...m, [b.id]: e.target.value }))}
+                                  className="w-full"
+                                />
+                              </div>
+                              <Button
+                                className="w-full sm:w-auto"
+                                disabled={inStore}
+                                onClick={() => addToStore(b.id, parseFloat(marginVal) || 0)}
+                              >
+                                {inStore ? "In store" : "Add to Store"}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <p className="font-medium">{b.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {b.provider} · {b.size_gb}GB · Base ₵{Number(b.price).toFixed(2)}
-                      </p>
-                      <div className="flex flex-col xs:flex-row gap-2 items-stretch sm:items-end">
-                        <div className="w-full sm:max-w-[140px]">
-                          <Label className="text-xs">Margin (₵)</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={marginVal}
-                            onChange={(e) => setMargins((m) => ({ ...m, [b.id]: e.target.value }))}
-                            className="w-full"
-                          />
-                        </div>
+                      )
+                    })}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center gap-2 pt-2">
                         <Button
-                          className="w-full sm:w-auto"
-                          disabled={inStore}
-                          onClick={() => addToStore(b.id, parseFloat(marginVal) || 0)}
+                          variant="outline"
+                          size="sm"
+                          disabled={page <= 1}
+                          onClick={() => setPage((p) => p - 1)}
                         >
-                          {inStore ? "In store" : "Add to Store"}
+                          Previous
+                        </Button>
+                        <span className="text-sm self-center">
+                          Page {page} / {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={page >= totalPages}
+                          onClick={() => setPage((p) => p + 1)}
+                        >
+                          Next
                         </Button>
                       </div>
-                    </div>
+                    )}
                   </div>
-                )
-              })}
-              {totalPages > 1 && (
-                <div className="flex justify-center gap-2 pt-2">
-                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                    Previous
-                  </Button>
-                  <span className="text-sm self-center">
-                    Page {page} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </TabsContent>
+            ))}
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -285,21 +294,15 @@ export function MarketplaceBundlesSection({
                   key={s.item_id}
                   className="flex flex-row gap-3 border rounded-lg p-4 items-start bg-white shadow-sm"
                 >
-                  <div className="relative h-14 w-14 shrink-0 rounded-lg overflow-hidden bg-slate-100 border">
-                    {b?.image_url ? (
-                      <Image
-                        src={b.image_url}
-                        alt={b.name}
-                        fill
-                        className="object-cover"
-                        sizes="56px"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-xs text-slate-500">
-                        {b?.size_gb ?? "?"}G
-                      </div>
-                    )}
-                  </div>
+                  <span className="relative h-14 w-14 shrink-0 rounded-lg overflow-hidden border bg-slate-50">
+                    <Image
+                      src={getNetworkProviderImage(b?.provider || "MTN")}
+                      alt={b?.provider || "Network"}
+                      fill
+                      className="object-cover"
+                      sizes="56px"
+                    />
+                  </span>
                   <div className="flex-1 min-w-0 space-y-2">
                     <p className="font-medium">{b?.name || s.item_id.slice(0, 8)}</p>
                     {b && (
