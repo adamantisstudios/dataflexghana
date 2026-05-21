@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import Link from "next/link"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
@@ -270,6 +270,7 @@ export default function PublicAgentStorefront({
   }, [searchParams])
 
   const cartPageHref = `/store/${encodeURIComponent(storeSegment || agentId)}/cart`
+  const confirmedPaymentRef = useRef<string | null>(null)
 
   useEffect(() => {
     const paymentStatus = searchParams.get("payment")
@@ -277,12 +278,19 @@ export default function PublicAgentStorefront({
     const reference =
       searchParams.get("ref") || searchParams.get("reference") || searchParams.get("trxref")
 
-    if (paymentStatus !== "success") return
+    const isSuccess =
+      paymentStatus === "success" ||
+      Boolean(reference && searchParams.get("trxref"))
 
-    toast.success("Payment successful! Your bundle orders are being processed.")
-    setCart([])
+    if (!isSuccess) return
 
-    if (reference) {
+    if (paymentStatus === "success") {
+      toast.success("Payment successful! Your bundle orders are being processed.")
+      setCart([])
+    }
+
+    if (reference && confirmedPaymentRef.current !== reference) {
+      confirmedPaymentRef.current = reference
       void (async () => {
         try {
           const res = await fetch("/api/paystack/storefront/confirm", {
@@ -292,7 +300,10 @@ export default function PublicAgentStorefront({
           })
           const data = await res.json().catch(() => ({}))
           if (!res.ok) {
-            console.error("[storefront] confirm fallback failed:", data.error || res.status)
+            console.error("[storefront] confirm fallback failed:", data.error || res.status, {
+              reference,
+              agentId,
+            })
             toast.error(
               data.error ||
                 "Payment received but order sync failed. Contact support with your reference.",
@@ -300,10 +311,10 @@ export default function PublicAgentStorefront({
             return
           }
           if (data.insertedCount > 0 || data.alreadyRecorded) {
-            dispatchStorefrontOrdersChanged({ agentId, reference: data.reference })
+            dispatchStorefrontOrdersChanged({ agentId, reference: data.reference || reference })
           }
         } catch (err) {
-          console.error("[storefront] confirm fallback failed:", err)
+          console.error("[storefront] confirm fallback failed:", err, { reference, agentId })
           toast.error("Could not confirm your order. Please contact support with your payment reference.")
         }
       })()

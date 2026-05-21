@@ -8,8 +8,6 @@ import { getStorefrontPaystackCallbackUrl } from "@/lib/storefront-utils"
 const PAYSTACK_BASE_URL = "https://api.paystack.co"
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY
 
-const PAYSTACK_STOREFRONT_CALLBACK_URL = getStorefrontPaystackCallbackUrl()
-
 export const dynamic = "force-dynamic"
 
 type CartItemInput = {
@@ -207,7 +205,7 @@ export async function POST(request: NextRequest) {
             wholesale_items_json: JSON.stringify(resolvedWholesale),
             buyer_details_json: JSON.stringify(buyer),
           },
-          callback_url: PAYSTACK_STOREFRONT_CALLBACK_URL,
+          callback_url: getStorefrontPaystackCallbackUrl(request),
         }),
       })
 
@@ -288,7 +286,7 @@ export async function POST(request: NextRequest) {
           cart_total: String(cartTotal),
           items_json: JSON.stringify(resolved),
         },
-        callback_url: PAYSTACK_STOREFRONT_CALLBACK_URL,
+        callback_url: getStorefrontPaystackCallbackUrl(request),
       }),
     })
 
@@ -297,6 +295,13 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       return NextResponse.json({ error: data.message || "Paystack init failed" }, { status: 500 })
     }
+
+    console.info("[storefront initialize] data_bundle payment", {
+      agent_id,
+      reference: data.data.reference,
+      callback_url: getStorefrontPaystackCallbackUrl(request),
+      item_count: resolved.length,
+    })
 
     return NextResponse.json({
       success: true,

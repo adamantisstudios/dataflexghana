@@ -61,17 +61,27 @@ export function metadataValue(meta: Record<string, unknown>, key: string): unkno
   return undefined
 }
 
+/** Parse JSON array fields from Paystack metadata (string or pre-parsed array). */
+export function parseJsonArrayFromMetadata(meta: Record<string, unknown>, key: string): unknown[] | null {
+  const raw = metadataValue(meta, key)
+  if (Array.isArray(raw) && raw.length > 0) return raw
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : null
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
 export function parseStorefrontItemsFromMetadata(
   meta: Record<string, unknown>,
 ): StorefrontCartItemMeta[] {
-  const raw = metadataValue(meta, "items_json")
-  if (typeof raw === "string" && raw.trim()) {
-    try {
-      const parsed = JSON.parse(raw) as StorefrontCartItemMeta[]
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
-    } catch {
-      /* fall through to legacy single-item */
-    }
+  const parsed = parseJsonArrayFromMetadata(meta, "items_json")
+  if (parsed) {
+    return parsed as StorefrontCartItemMeta[]
   }
 
   const bundleId = metadataValue(meta, "data_bundle_id")

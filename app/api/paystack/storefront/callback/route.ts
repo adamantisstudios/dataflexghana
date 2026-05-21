@@ -101,8 +101,19 @@ export async function GET(request: NextRequest) {
   const cartTotal = Number(meta.cart_total ?? amountPaid)
   const segment = resolveRedirectSegment(meta, agentId)
 
+  console.info("[storefront callback] verified payment", {
+    reference: verifiedReference,
+    orderType,
+    agentId: agentId || "(missing)",
+    amountPaid,
+    metadataKeys: Object.keys(meta),
+  })
+
   if (!agentId) {
-    console.error("[storefront callback] missing agent in metadata", meta)
+    console.error("[storefront callback] missing agent in metadata", {
+      reference: verifiedReference,
+      meta,
+    })
     return NextResponse.redirect(buildFailureRedirect(verifiedReference))
   }
 
@@ -126,7 +137,12 @@ export async function GET(request: NextRequest) {
 
   const items = parseStorefrontItemsFromMetadata(meta)
   if (orderType === "data_bundle" && items.length === 0) {
-    console.error("[storefront callback] missing bundle items", meta)
+    console.error("[storefront callback] missing bundle items", {
+      reference: verifiedReference,
+      agentId,
+      items_json: metadataValue(meta, "items_json"),
+      meta,
+    })
     return NextResponse.redirect(buildFailureRedirect(verifiedReference))
   }
 
@@ -140,15 +156,22 @@ export async function GET(request: NextRequest) {
   })
 
   if (!capture.ok && !capture.alreadyRecorded) {
-    console.error("[storefront callback] capture failed (user still redirected):", capture.error, {
+    console.error("[storefront callback] capture failed (user still redirected):", {
+      error: capture.error,
       reference: verifiedReference,
       agentId,
+      orderType,
+      itemCount: items.length,
     })
-  } else if (capture.insertedCount > 0) {
-    console.info("[storefront callback] captured orders:", {
+  } else {
+    console.info("[storefront callback] capture result:", {
       reference: verifiedReference,
       agentId,
+      orderType,
+      ok: capture.ok,
+      alreadyRecorded: capture.alreadyRecorded,
       insertedCount: capture.insertedCount,
+      orderIds: capture.orderIds,
     })
   }
 

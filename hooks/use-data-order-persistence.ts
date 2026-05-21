@@ -8,13 +8,11 @@ import {
   type DataOrderState,
 } from "@/lib/data-order-persistence"
 
+/** Persist manual/wallet order draft immediately (no debounce — survives quick tab close on mobile). */
 export function useDataOrderPersistence(data: DataOrderState | null | undefined) {
   useEffect(() => {
     if (!data) return
-    const timeoutId = setTimeout(() => {
-      saveDataOrderState(data)
-    }, 400)
-    return () => clearTimeout(timeoutId)
+    saveDataOrderState(data)
   }, [data])
 
   const saveOrderState = useCallback((payload: DataOrderState) => {

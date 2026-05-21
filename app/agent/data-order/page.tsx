@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import type React from "react"
 
 import { useRouter, useSearchParams } from "next/navigation"
@@ -52,7 +52,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { loadDataOrderState, clearDataOrderState, type DataOrderState } from "@/lib/data-order-persistence"
+import {
+  loadDataOrderState,
+  clearDataOrderState,
+  hasInProgressDataOrder,
+  type DataOrderState,
+} from "@/lib/data-order-persistence"
 import { useDataOrderPersistence } from "@/hooks/use-data-order-persistence"
 import { checkForDuplicateOrder, addToOrderHistory, type DuplicateCheckResult } from "@/lib/order-history"
 import { DuplicateOrderNotification } from "@/components/duplicate-order-notification"
@@ -108,10 +113,14 @@ export default function DataOrderPage() {
   const paymentSectionRef = useRef<HTMLDivElement>(null)
   const bundleSectionRef = useRef<HTMLDivElement>(null)
   const channelsRef = useRef<any[]>([])
+  const orderRestoreAppliedRef = useRef(false)
 
   const orderPersistenceData = useMemo(() => {
-    if (!selectedBundle && !recipientPhone.trim() && !orderDetails) return null
+    if (!selectedBundle && !recipientPhone.trim() && !generatedReference && !orderDetails) {
+      return null
+    }
     return {
+      bundleId: selectedBundle?.id,
       selectedBundle,
       recipientPhone,
       paymentMethod,
@@ -180,42 +189,64 @@ export default function DataOrderPage() {
     }
   }, [searchParams, dataBundles])
 
-  // Restore persisted order state (e.g. after leaving to pay via mobile money)
+  const applyRestoredOrderState = useCallback(
+    (restored: DataOrderState, bundles: DataBundle[]) => {
+      setPersistedOrder(restored)
+
+      const bundleId =
+        restored.bundleId ||
+        (restored.selectedBundle && typeof restored.selectedBundle === "object" && "id" in restored.selectedBundle
+          ? String((restored.selectedBundle as DataBundle).id)
+          : undefined)
+
+      const bundle =
+        (bundleId ? bundles.find((b) => b.id === bundleId) : null) ||
+        (restored.selectedBundle as DataBundle | undefined)
+
+      if (bundle) setSelectedBundle(bundle)
+      if (restored.recipientPhone) setRecipientPhone(restored.recipientPhone)
+      if (restored.paymentMethod) setPaymentMethod(restored.paymentMethod)
+      if (restored.generatedReference) setGeneratedReference(restored.generatedReference)
+      if (restored.orderDetails) setOrderDetails(restored.orderDetails)
+
+      if (
+        restored.paymentMethod === "manual" &&
+        restored.orderDetails &&
+        restored.generatedReference
+      ) {
+        setShowPaymentModal(true)
+      } else if (
+        restored.paymentMethod === "wallet" &&
+        restored.orderDetails &&
+        bundle
+      ) {
+        setShowConfirmDialog(true)
+      }
+    },
+    [],
+  )
+
+  // Restore persisted order after bundles load (e.g. agent copied MoMo code and reopened tab)
   useEffect(() => {
+    if (orderRestoreAppliedRef.current || dataBundles.length === 0 || !agent) return
     const restored = restoreOrderState()
-    if (!restored) return
+    if (!restored || !hasInProgressDataOrder(restored)) return
+    orderRestoreAppliedRef.current = true
+    applyRestoredOrderState(restored, dataBundles)
 
-    if (restored.selectedBundle) {
-      setSelectedBundle(restored.selectedBundle as DataBundle)
+    const bundleId =
+      restored.bundleId ||
+      (restored.selectedBundle && typeof restored.selectedBundle === "object" && "id" in restored.selectedBundle
+        ? String((restored.selectedBundle as DataBundle).id)
+        : undefined)
+    const bundle = bundleId ? dataBundles.find((b) => b.id === bundleId) : null
+    if (restored.paymentMethod === "wallet" && bundle && walletBalance < bundle.price) {
+      setError(
+        `Insufficient wallet balance. You need GH₵ ${bundle.price.toFixed(2)} but have GH₵ ${walletBalance.toFixed(2)}`,
+      )
     }
-    if (restored.recipientPhone) {
-      setRecipientPhone(restored.recipientPhone)
-    }
-    if (restored.paymentMethod) {
-      setPaymentMethod(restored.paymentMethod)
-    }
-    if (restored.generatedReference) {
-      setGeneratedReference(restored.generatedReference)
-    }
-    if (restored.orderDetails) {
-      setOrderDetails(restored.orderDetails)
-    }
-
-    if (
-      restored.paymentMethod === "manual" &&
-      restored.orderDetails &&
-      restored.generatedReference
-    ) {
-      setShowPaymentModal(true)
-    } else if (
-      restored.paymentMethod === "wallet" &&
-      restored.orderDetails &&
-      restored.selectedBundle
-    ) {
-      setShowConfirmDialog(true)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- restore once on mount
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- restore once when bundles + agent ready
+  }, [dataBundles.length, agent?.id])
 
   // Set up wallet balance listener
   const setupWalletBalanceListener = (agentId: string) => {
@@ -301,25 +332,6 @@ export default function DataOrderPage() {
 
       setDataBundles(bundlesData || [])
       setWalletBalance(balances.wallet_balance)
-
-      const saved = loadDataOrderState()
-      if (saved) {
-        setPersistedOrder(saved)
-        if (bundlesData && bundlesData.length > 0) {
-          const bundle = bundlesData.find((b) => b.id === saved.bundleId)
-          if (bundle) {
-            setSelectedBundle(bundle)
-            setRecipientPhone(saved.recipientPhone)
-            setPaymentMethod(saved.paymentMethod)
-            setGeneratedReference(saved.generatedReference)
-            if (saved.paymentMethod === "wallet" && balances.wallet_balance < bundle.price) {
-              setError(
-                `Insufficient wallet balance. You need GH₵ ${bundle.price.toFixed(2)} but have GH₵ ${balances.wallet_balance.toFixed(2)}`,
-              )
-            }
-          }
-        }
-      }
     } catch (error) {
       console.error("Error loading data:", error)
       setError("Failed to load data bundles")
@@ -419,6 +431,7 @@ export default function DataOrderPage() {
     setGeneratedReference(reference)
 
     saveOrderState({
+      bundleId: selectedBundle.id,
       selectedBundle,
       recipientPhone: cleanPhoneNumber,
       paymentMethod,
@@ -502,6 +515,7 @@ export default function DataOrderPage() {
       setOrderDetails(null)
       clearDataOrderState()
       clearOrderState()
+      setPersistedOrder(null)
 
       setTimeout(() => {
         setShowSuccessNotification(false)
@@ -834,6 +848,37 @@ export default function DataOrderPage() {
             </div>
           </div>
         </div>
+
+        {hasInProgressDataOrder(persistedOrder) && (
+          <Alert className="border-amber-300 bg-amber-50 mb-2">
+            <Clock className="h-4 w-4 text-amber-700" />
+            <AlertDescription className="text-amber-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <span>
+                <strong>Order in progress</strong> — your bundle, phone number, and payment details were restored.
+                {persistedOrder?.paymentMethod === "manual" && persistedOrder?.generatedReference
+                  ? ` Reference: ${persistedOrder.generatedReference}`
+                  : ""}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-amber-400 text-amber-900 shrink-0"
+                onClick={() => {
+                  clearDataOrderState()
+                  clearOrderState()
+                  setPersistedOrder(null)
+                  setShowPaymentModal(false)
+                  setShowConfirmDialog(false)
+                  setGeneratedReference("")
+                  setOrderDetails(null)
+                }}
+              >
+                Discard draft
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="flex flex-col gap-6">
           <Card ref={bundleSectionRef} className="border-emerald-100 shadow-lg">

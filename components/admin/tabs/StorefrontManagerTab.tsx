@@ -455,23 +455,32 @@ export default function StorefrontManagerTab() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto gap-1 p-1">
-          <TabsTrigger value="cashout" className="flex items-center gap-2 py-2.5">
+        <TabsList className="flex w-full h-auto gap-1 p-1 overflow-x-auto flex-nowrap justify-start rounded-lg bg-muted/60">
+          <TabsTrigger
+            value="cashout"
+            className="flex items-center gap-2 py-2.5 px-4 shrink-0 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-800"
+          >
             <Wallet className="h-4 w-4 shrink-0" />
-            <span className="truncate">MoMo Cashout</span>
+            <span className="whitespace-nowrap">MoMo Cashout</span>
           </TabsTrigger>
-          <TabsTrigger value="orders" className="flex items-center gap-2 py-2.5">
+          <TabsTrigger
+            value="orders"
+            className="flex items-center gap-2 py-2.5 px-4 shrink-0 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-800"
+          >
             <Receipt className="h-4 w-4 shrink-0" />
-            <span className="truncate">Transaction Log</span>
+            <span className="whitespace-nowrap">Orders</span>
             {pendingCount > 0 && (
               <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-xs font-semibold">
                 {pendingCount > 99 ? "99+" : pendingCount}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="compliance" className="flex items-center gap-2 py-2.5">
+          <TabsTrigger
+            value="compliance"
+            className="flex items-center gap-2 py-2.5 px-4 shrink-0 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-800"
+          >
             <ClipboardList className="h-4 w-4 shrink-0" />
-            <span className="truncate">Compliance</span>
+            <span className="whitespace-nowrap">Compliance</span>
           </TabsTrigger>
         </TabsList>
 

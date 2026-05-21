@@ -140,10 +140,7 @@ export function StorefrontExtendedCatalog({
 
     setPayingCompliance(true)
     try {
-      const callbackUrl =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/api/paystack/storefront/callback`
-          : getStorefrontPaystackCallbackUrl()
+      const callbackUrl = getStorefrontPaystackCallbackUrl()
 
       const res = await fetch("/api/paystack/storefront/compliance-initialize", {
         method: "POST",

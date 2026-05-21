@@ -54,6 +54,12 @@ export async function POST(request: NextRequest) {
     })
 
     if (!capture.ok && !capture.alreadyRecorded) {
+      console.error("[storefront confirm] capture failed:", {
+        reference: verifiedReference,
+        agentId: metaAgentId,
+        orderType: meta.order_type,
+        error: capture.error,
+      })
       return NextResponse.json(
         {
           success: false,
@@ -62,6 +68,13 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       )
     }
+
+    console.info("[storefront confirm] capture ok:", {
+      reference: verifiedReference,
+      agentId: metaAgentId,
+      insertedCount: capture.insertedCount,
+      alreadyRecorded: capture.alreadyRecorded,
+    })
 
     return NextResponse.json({
       success: true,

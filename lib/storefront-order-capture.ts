@@ -86,7 +86,11 @@ export async function captureStorefrontPaidOrder(params: {
     .select("id")
 
   if (insertError) {
-    console.error("[storefront-capture] insert failed:", insertError, { reference, agentId, rows })
+    console.error("[storefront-capture] insert failed:", insertError.message, insertError.details, {
+      reference,
+      agentId,
+      rowCount: rows.length,
+    })
     return {
       ok: false,
       alreadyRecorded: false,
