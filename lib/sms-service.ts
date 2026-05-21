@@ -1,5 +1,7 @@
-import { getSmsConfig, getHubtelBasicAuthHeader, validateSmsConfig } from "@/lib/sms-config"
-import { supabase } from "@/lib/supabase-client";
+import { getSmsConfig, validateSmsConfig } from "@/lib/sms-config"
+import { getAdminClient } from "@/lib/supabase-base"
+
+const ARKESEL_API_BASE = "https://sms.arkesel.com/sms/api"
 
 export interface SendSmsParams {
   phoneNumber: string
@@ -7,6 +9,7 @@ export interface SendSmsParams {
   senderName?: string
   agentId?: string
   campaignName?: string
+  schedule?: Date | string
 }
 
 export interface SendSmsResult {
@@ -14,6 +17,7 @@ export interface SendSmsResult {
   messageId?: string
   error?: string
   statusCode?: number
+  rawResponse?: string
 }
 
 export interface SmsLog {
@@ -27,143 +31,193 @@ export interface SmsLog {
   api_response?: string
 }
 
+export interface SmsBalanceResult {
+  balance: number
+  raw: Record<string, unknown>
+}
+
+/** Ghana numbers → international 233… without leading + */
+export function normalizeGhanaSmsPhone(phoneNumber: string): string {
+  let normalized = phoneNumber.replace(/[\s\-()]/g, "")
+
+  if (normalized.startsWith("+")) {
+    normalized = normalized.slice(1)
+  }
+
+  if (normalized.startsWith("233233")) {
+    normalized = normalized.slice(3)
+  }
+
+  if (normalized.startsWith("0")) {
+    normalized = `233${normalized.slice(1)}`
+  }
+
+  if (!normalized.startsWith("233")) {
+    normalized = `233${normalized}`
+  }
+
+  return normalized
+}
+
+function formatArkeselSchedule(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+
+function parseArkeselSendSuccess(data: Record<string, unknown>): boolean {
+  const status = data.status ?? data.Status ?? data.code
+  if (status === "success" || status === "ok" || status === 200 || status === "200") {
+    return true
+  }
+  if (status === "error" || status === "failed" || status === false) {
+    return false
+  }
+  if (data.error || data.Error) {
+    return false
+  }
+  return true
+}
+
 /**
- * Sends an SMS via Hubtel API
- * @param params SMS parameters (phoneNumber, message, optional agentId for logging)
- * @returns SendSmsResult with success status and message ID or error
+ * Sends an SMS via Arkesel query-parameter API.
  */
-export async function sendSms(params: SendSmsParams): Promise<SendSmsResult> {
+export async function sendSMS(
+  phoneNumber: string,
+  message: string,
+  options?: {
+    schedule?: Date | string
+    agentId?: string
+    campaignName?: string
+  },
+): Promise<SendSmsResult> {
+  const logContext = {
+    agentId: options?.agentId,
+    campaignName: options?.campaignName,
+  }
+
   try {
     if (!validateSmsConfig()) {
-      console.error("[v0] Hubtel SMS credentials not configured")
-      return {
-        success: false,
-        error: "Hubtel SMS credentials are not configured",
+      const error = "Arkesel SMS API key is not configured"
+      if (logContext.agentId) {
+        await logSmsToDatabase(
+          logContext.agentId,
+          phoneNumber,
+          message,
+          "failed",
+          logContext.campaignName,
+          error,
+        )
       }
+      return { success: false, error }
     }
 
-    if (!params.phoneNumber) {
-      console.error("[v0] Phone number is required")
-      return {
-        success: false,
-        error: "Phone number is required",
-      }
+    if (!phoneNumber?.trim()) {
+      return { success: false, error: "Phone number is required" }
     }
 
-    if (!params.message || params.message.trim().length === 0) {
-      console.error("[v0] Message cannot be empty")
-      return {
-        success: false,
-        error: "Message cannot be empty",
-      }
-    }
-
-    if (params.message.length > 160) {
-      console.error("[v0] Message exceeds 160 character limit")
-      return {
-        success: false,
-        error: "Message exceeds 160 character limit",
-      }
+    if (!message?.trim()) {
+      return { success: false, error: "Message cannot be empty" }
     }
 
     const config = getSmsConfig()
-    console.log("[v0] Hubtel SMS config loaded")
+    const to = normalizeGhanaSmsPhone(phoneNumber)
 
-    let normalizedPhone = params.phoneNumber.replace(/[\s\-\(\)]/g, "")
-
-    if (normalizedPhone.startsWith("+")) {
-      normalizedPhone = normalizedPhone.substring(1)
-    }
-
-    if (normalizedPhone.startsWith("233233")) {
-      normalizedPhone = normalizedPhone.substring(3)
-    }
-
-    if (normalizedPhone.startsWith("0")) {
-      normalizedPhone = `233${normalizedPhone.substring(1)}`
-    }
-
-    if (!normalizedPhone.startsWith("233")) {
-      normalizedPhone = `233${normalizedPhone}`
-    }
-
-    console.log("[v0] Normalized phone number for Hubtel")
-
-    const requestBody = {
+    const params = new URLSearchParams({
+      action: "send-sms",
+      api_key: config.apiKey,
+      to,
       from: config.senderId,
-      to: normalizedPhone,
-      content: params.message,
-    }
-
-    console.log("[v0] Sending SMS via Hubtel - Length:", params.message.length)
-
-    const response = await fetch(config.endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: getHubtelBasicAuthHeader(),
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(requestBody),
+      sms: message,
     })
 
-    console.log("[v0] Hubtel SMS API response status:", response.status)
-
-    let responseData: Record<string, unknown> | null = null
-    const responseText = await response.text()
-
-    try {
-      responseData = JSON.parse(responseText) as Record<string, unknown>
-    } catch {
-      console.error("[v0] Failed to parse Hubtel response as JSON:", responseText)
-    }
-
-    console.log("[v0] Hubtel SMS API response:", {
-      status: responseData?.Status ?? responseData?.status,
-      messageId: responseData?.MessageId ?? responseData?.messageId,
-    })
-
-    if (!response.ok) {
-      const errorMessage =
-        (responseData?.message as string) ||
-        (responseData?.Message as string) ||
-        (responseData?.statusDescription as string) ||
-        `HTTP ${response.status}`
-      console.error("[v0] Hubtel SMS API HTTP error:", response.status, errorMessage)
-      return {
-        success: false,
-        error: errorMessage,
-        statusCode: response.status,
+    if (options?.schedule) {
+      const scheduleDate =
+        options.schedule instanceof Date
+          ? options.schedule
+          : new Date(options.schedule)
+      if (!Number.isNaN(scheduleDate.getTime())) {
+        params.set("schedule", formatArkeselSchedule(scheduleDate))
       }
     }
 
-    const hubtelStatus = responseData?.Status ?? responseData?.status
-    if (hubtelStatus !== undefined && hubtelStatus !== 0 && hubtelStatus !== "0") {
+    const url = `${ARKESEL_API_BASE}?${params.toString()}`
+    const response = await fetch(url, { method: "GET", cache: "no-store" })
+    const responseText = await response.text()
+
+    let responseData: Record<string, unknown> | null = null
+    try {
+      responseData = JSON.parse(responseText) as Record<string, unknown>
+    } catch {
+      responseData = { raw: responseText }
+    }
+
+    const apiOk =
+      response.ok && (responseData ? parseArkeselSendSuccess(responseData) : responseText.length > 0)
+
+    if (!apiOk) {
       const errorMessage =
-        (responseData?.statusDescription as string) ||
-        (responseData?.Message as string) ||
-        "Hubtel returned a non-success status"
-      console.error("[v0] Hubtel SMS API error status:", hubtelStatus, errorMessage)
+        (responseData?.message as string) ||
+        (responseData?.error as string) ||
+        (responseData?.description as string) ||
+        responseText ||
+        `HTTP ${response.status}`
+
+      if (logContext.agentId) {
+        await logSmsToDatabase(
+          logContext.agentId,
+          to,
+          message,
+          "failed",
+          logContext.campaignName,
+          responseText,
+        )
+      }
+
       return {
         success: false,
         error: errorMessage,
         statusCode: response.status,
+        rawResponse: responseText,
       }
     }
 
     const messageId =
-      (responseData?.MessageId as string) ||
+      (responseData?.message_id as string) ||
       (responseData?.messageId as string) ||
+      (responseData?.id as string) ||
       "sent"
 
-    console.log("[v0] SMS sent successfully via Hubtel")
+    if (logContext.agentId) {
+      await logSmsToDatabase(
+        logContext.agentId,
+        to,
+        message,
+        "success",
+        logContext.campaignName,
+        responseText,
+      )
+    }
+
     return {
       success: true,
       messageId: String(messageId),
+      rawResponse: responseText,
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    console.error("[v0] Error sending SMS:", error)
+    console.error("[sms-service] sendSMS failed:", errorMessage)
+
+    if (logContext.agentId) {
+      await logSmsToDatabase(
+        logContext.agentId,
+        phoneNumber,
+        message,
+        "failed",
+        logContext.campaignName,
+        errorMessage,
+      )
+    }
+
     return {
       success: false,
       error: `Failed to send SMS: ${errorMessage}`,
@@ -171,28 +225,86 @@ export async function sendSms(params: SendSmsParams): Promise<SendSmsResult> {
   }
 }
 
-/** Alias for sendSms (Hubtel integration) */
-export const sendSMS = sendSms
+/** Backward-compatible wrapper used by bulk send and legacy callers. */
+export async function sendSms(params: SendSmsParams): Promise<SendSmsResult> {
+  const schedule =
+    params.schedule instanceof Date
+      ? params.schedule
+      : params.schedule
+        ? new Date(params.schedule)
+        : undefined
+
+  return sendSMS(params.phoneNumber, params.message, {
+    schedule: schedule && !Number.isNaN(schedule.getTime()) ? schedule : undefined,
+    agentId: params.agentId,
+    campaignName: params.campaignName,
+  })
+}
 
 /**
- * Logs SMS sent to the database for tracking and history
- * @param agentId Agent ID who received the SMS
- * @param phoneNumber Phone number SMS was sent to
- * @param message Message content (up to 160 chars)
- * @param status Status of SMS send (success or failed)
- * @param campaignName Optional campaign name for grouping
- * @param apiResponse Optional full API response for debugging
+ * Check Arkesel SMS balance (response=json).
  */
+export async function checkSmsBalance(): Promise<SmsBalanceResult> {
+  if (!validateSmsConfig()) {
+    throw new Error("Arkesel SMS API key is not configured")
+  }
+
+  const config = getSmsConfig()
+  const url = `${ARKESEL_API_BASE}?${new URLSearchParams({
+    action: "check-balance",
+    api_key: config.apiKey,
+    response: "json",
+  }).toString()}`
+
+  const response = await fetch(url, { method: "GET", cache: "no-store" })
+  const responseText = await response.text()
+
+  let data: Record<string, unknown>
+  try {
+    data = JSON.parse(responseText) as Record<string, unknown>
+  } catch {
+    throw new Error(`Invalid balance response: ${responseText}`)
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      (data.message as string) ||
+        (data.error as string) ||
+        `Balance check failed: HTTP ${response.status}`,
+    )
+  }
+
+  const nested = data.data as Record<string, unknown> | undefined
+  const balanceRaw =
+    data.balance ??
+    data.Balance ??
+    data.sms_balance ??
+    nested?.balance ??
+    nested?.sms_balance
+
+  const balance = Number(balanceRaw)
+  if (!Number.isFinite(balance)) {
+    throw new Error(
+      (data.message as string) ||
+        (data.error as string) ||
+        "Balance not found in Arkesel response",
+    )
+  }
+
+  return { balance, raw: data }
+}
+
 export async function logSmsToDatabase(
   agentId: string,
   phoneNumber: string,
   message: string,
   status: "success" | "failed",
   campaignName?: string,
-  apiResponse?: string
+  apiResponse?: string,
 ): Promise<boolean> {
   try {
-    const { error } = await supabase.from("sms_logs").insert({
+    const db = typeof window === "undefined" ? getAdminClient() : null
+    const payload = {
       agent_id: agentId,
       phone_number: phoneNumber,
       message_content: message,
@@ -200,29 +312,33 @@ export async function logSmsToDatabase(
       status,
       campaign_name: campaignName || null,
       api_response: apiResponse || null,
-    })
-
-    if (error) {
-      console.error("[v0] Error logging SMS to database:", error)
-      return false
     }
 
+    if (db) {
+      const { error } = await db.from("sms_logs").insert(payload)
+      if (error) {
+        console.error("[sms-service] Error logging SMS:", error)
+        return false
+      }
+      return true
+    }
+
+    const { supabase } = await import("@/lib/supabase-client")
+    const { error } = await supabase.from("sms_logs").insert(payload)
+    if (error) {
+      console.error("[sms-service] Error logging SMS:", error)
+      return false
+    }
     return true
   } catch (error) {
-    console.error("[v0] Failed to log SMS:", error)
+    console.error("[sms-service] Failed to log SMS:", error)
     return false
   }
 }
 
-/**
- * Sends SMS to multiple recipients with error handling and logging
- * @param recipients Array of {phoneNumber, message, agentId, campaignName}
- * @param delayMs Optional delay between sends (to avoid rate limiting)
- * @returns Array of results for each send attempt
- */
 export async function sendBulkSms(
   recipients: SendSmsParams[],
-  delayMs: number = 100
+  delayMs: number = 100,
 ): Promise<SendSmsResult[]> {
   const results: SendSmsResult[] = []
 
@@ -230,17 +346,6 @@ export async function sendBulkSms(
     const recipient = recipients[i]
     const result = await sendSms(recipient)
     results.push(result)
-
-    if (recipient.agentId) {
-      await logSmsToDatabase(
-        recipient.agentId,
-        recipient.phoneNumber,
-        recipient.message,
-        result.success ? "success" : "failed",
-        recipient.campaignName,
-        JSON.stringify(result)
-      )
-    }
 
     if (i < recipients.length - 1 && delayMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, delayMs))

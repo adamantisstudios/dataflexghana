@@ -37,6 +37,8 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
   }>>([])
   const [showResultsDialog, setShowResultsDialog] = useState(false)
   const [activeTab, setActiveTab] = useState("compose")
+  const [smsBalance, setSmsBalance] = useState<number | null>(null)
+  const [balanceLoading, setBalanceLoading] = useState(false)
 
   const handleSendClick = () => {
     if (selectedAgents.length === 0) {
@@ -55,6 +57,27 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
     }
 
     setShowConfirmDialog(true)
+  }
+
+  const fetchSmsBalance = async () => {
+    setBalanceLoading(true)
+    try {
+      const response = await fetch("/api/admin/sms/balance", {
+        headers: getAdminAuthHeaders(),
+        cache: "no-store",
+      })
+      const data = await response.json()
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to fetch balance")
+      }
+      setSmsBalance(Number(data.balance))
+      toast.success(`Arkesel SMS balance: ${Number(data.balance).toLocaleString()} credits`)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Balance check failed"
+      toast.error(msg)
+    } finally {
+      setBalanceLoading(false)
+    }
   }
 
   const handleConfirmSend = async () => {
@@ -131,6 +154,8 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
         )
       }
 
+      await fetchSmsBalance()
+
       // Reset form
       setMessage("")
       setSelectedAgents([])
@@ -154,7 +179,7 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
       <div className="flex flex-col gap-2">
         <h2 className="text-2xl font-bold text-emerald-800">SMS Notifications</h2>
         <p className="text-gray-600 text-sm">
-          Send custom SMS messages to agents via Hubtel. Messages are limited to 160 characters. Track all sent messages and manage campaigns.
+          Send custom SMS messages to agents via Arkesel. Messages are limited to 160 characters. Track all sent messages and manage campaigns.
         </p>
       </div>
 
@@ -262,6 +287,13 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
                   <Send className="h-4 w-4 mr-2" />
                   {isSending ? "Sending SMS..." : "Send SMS"}
                 </Button>
+                <p className="text-xs text-center text-gray-500">
+                  {balanceLoading
+                    ? "Checking Arkesel balance…"
+                    : smsBalance != null
+                      ? `Arkesel balance: ${smsBalance.toLocaleString()} credits`
+                      : "Balance updates after each send"}
+                </p>
               </div>
             </CardContent>
           </Card>

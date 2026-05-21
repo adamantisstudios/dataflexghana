@@ -9,6 +9,7 @@ import {
   isBelowOrderQuota,
   ordersNeededForQuota,
 } from "@/lib/agent-deactivation"
+import { sendSMS } from "@/lib/sms-service"
 
 export const dynamic = "force-dynamic"
 
@@ -91,6 +92,24 @@ async function sendInAppNotification(
   return true
 }
 
+async function sendDeactivationSms(
+  agent: AgentRow,
+  smsBody: string,
+  campaignName: string,
+): Promise<boolean> {
+  const phone = agent.phone_number?.trim()
+  if (!phone) return false
+
+  const truncated =
+    smsBody.length > 160 ? `${smsBody.slice(0, 157)}...` : smsBody
+
+  const result = await sendSMS(phone, truncated, {
+    agentId: agent.id,
+    campaignName,
+  })
+  return result.success
+}
+
 export async function POST(request: NextRequest) {
   try {
     const cronSecret = request.headers.get("x-cron-secret")
@@ -151,6 +170,8 @@ async function processWarnings(agents: AgentRow[], cooldownSince: string) {
     scanned: agents.length,
     warnings_7d: 0,
     warnings_3d: 0,
+    sms_sent: 0,
+    sms_failed: 0,
     skipped: 0,
     errors: [] as string[],
   }
@@ -188,13 +209,23 @@ async function processWarnings(agents: AgentRow[], cooldownSince: string) {
 
       await db.from("agents").update({ warned_at: nowIso, updated_at: nowIso }).eq("id", agent.id)
 
+      const smsOk = await sendDeactivationSms(agent, message, "deactivation_warning_7d")
+      if (smsOk) results.sms_sent++
+      else if (agent.phone_number?.trim()) results.sms_failed++
+
       await logAudit({
         actorId: null,
         actorType: "system",
         action: "deactivation_warning_7d",
         targetTable: "agents",
         targetId: agent.id,
-        newData: { title, message, in_app: notified, orders_needed: ordersNeeded },
+        newData: {
+          title,
+          message,
+          in_app: notified,
+          sms: smsOk,
+          orders_needed: ordersNeeded,
+        },
       })
 
       results.warnings_7d++
@@ -234,13 +265,23 @@ async function processWarnings(agents: AgentRow[], cooldownSince: string) {
 
       await db.from("agents").update({ warned_at: nowIso, updated_at: nowIso }).eq("id", agent.id)
 
+      const smsOk = await sendDeactivationSms(agent, message, "deactivation_warning_3d")
+      if (smsOk) results.sms_sent++
+      else if (agent.phone_number?.trim()) results.sms_failed++
+
       await logAudit({
         actorId: null,
         actorType: "system",
         action: "deactivation_warning_3d",
         targetTable: "agents",
         targetId: agent.id,
-        newData: { title, message, in_app: notified, orders_needed: ordersNeeded },
+        newData: {
+          title,
+          message,
+          in_app: notified,
+          sms: smsOk,
+          orders_needed: ordersNeeded,
+        },
       })
 
       results.warnings_3d++
