@@ -630,6 +630,32 @@ Thank you!`;
               </CardContent>
             </Card>
 
+            <Card className="border-0 shadow-md overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Play className="h-5 w-5 text-emerald-600" />
+                  The Storefront
+                </CardTitle>
+                <CardDescription>See how your agent storefront works on mobile</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="flex justify-center bg-black/5 py-6 px-4">
+                  <div className="relative w-full max-w-sm mx-auto rounded-xl overflow-hidden shadow-lg">
+                    <div className="aspect-[9/16]">
+                      <iframe
+                        src="https://player.vimeo.com/video/1194247499?badge=0&autopause=0&player_id=0&app_id=58479"
+                        className="absolute top-0 left-0 w-full h-full"
+                        frameBorder="0"
+                        allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        title="The Storefront"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* What you get */}
             <Card className="border-0 shadow-md">
               <CardHeader className="pb-2">
