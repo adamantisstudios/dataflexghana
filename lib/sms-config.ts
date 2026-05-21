@@ -1,22 +1,35 @@
-// SMS Provider Configuration (Arkesel)
-export const SMS_CONFIG = {
-  ARKESEL: {
-    name: "Arkesel",
-    baseUrl: "https://sms.arkesel.com/sms/api",
-    apiKey: process.env.ARKESEL_API_KEY || "",
-    senderId: process.env.ARKESEL_SENDER_ID || "MyDataflex",
-  },
+// SMS Provider Configuration (Arkesel) — read env at runtime, not at module load
+
+const ARKESEL_BASE_URL = "https://sms.arkesel.com/sms/api"
+
+/** Resolve API key when a request runs (required for Vercel/serverless). */
+export function getArkeselApiKey(): string {
+  const raw = process.env.ARKESEL_API_KEY
+  if (raw === undefined || raw === null) {
+    throw new Error("ARKESEL_API_KEY is not set")
+  }
+  const apiKey = String(raw).trim()
+  if (!apiKey) {
+    throw new Error("ARKESEL_API_KEY is not set")
+  }
+  return apiKey
 }
 
 export function validateSmsConfig(): boolean {
-  return SMS_CONFIG.ARKESEL.apiKey.length > 0
+  try {
+    getArkeselApiKey()
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function getSmsConfig() {
-  if (!validateSmsConfig()) {
-    throw new Error(
-      "Arkesel SMS is not configured. Add ARKESEL_API_KEY to your environment variables.",
-    )
+  const apiKey = getArkeselApiKey()
+  return {
+    name: "Arkesel",
+    baseUrl: ARKESEL_BASE_URL,
+    apiKey,
+    senderId: (process.env.ARKESEL_SENDER_ID || "MyDataflex").trim(),
   }
-  return SMS_CONFIG.ARKESEL
 }

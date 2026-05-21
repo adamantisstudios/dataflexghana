@@ -1,7 +1,13 @@
-import { getSmsConfig, validateSmsConfig } from "@/lib/sms-config"
+import { getArkeselApiKey, getSmsConfig, validateSmsConfig } from "@/lib/sms-config"
 import { getAdminClient } from "@/lib/supabase-base"
 
 const ARKESEL_API_BASE = "https://sms.arkesel.com/sms/api"
+
+function logArkeselKeyDiagnostics(context: string): string {
+  const apiKey = getArkeselApiKey()
+  console.log(`[sms-service] ${context} — ARKESEL_API_KEY length:`, apiKey.length)
+  return apiKey
+}
 
 export interface SendSmsParams {
   phoneNumber: string
@@ -65,17 +71,83 @@ function formatArkeselSchedule(date: Date): string {
 }
 
 function parseArkeselSendSuccess(data: Record<string, unknown>): boolean {
-  const status = data.status ?? data.Status ?? data.code
-  if (status === "success" || status === "ok" || status === 200 || status === "200") {
-    return true
-  }
-  if (status === "error" || status === "failed" || status === false) {
+  const status = String(data.status ?? data.Status ?? "").toLowerCase()
+  const code = data.code ?? data.status_code
+
+  if (
+    code === 401 ||
+    code === 403 ||
+    code === "401" ||
+    code === "403" ||
+    status === "error" ||
+    status === "failed" ||
+    status === "failure"
+  ) {
     return false
   }
+
   if (data.error || data.Error) {
     return false
   }
-  return true
+
+  const message = String(data.message ?? data.Message ?? "").toLowerCase()
+  if (
+    message.includes("invalid api") ||
+    message.includes("unauthorized") ||
+    message.includes("authentication") ||
+    message.includes("api key")
+  ) {
+    return false
+  }
+
+  if (status === "success" || status === "ok") {
+    return true
+  }
+
+  if (data.message_id || data.messageId || data.id) {
+    return true
+  }
+
+  return false
+}
+
+function extractArkeselError(data: Record<string, unknown>, responseText: string): string {
+  return (
+    (data.message as string) ||
+    (data.Message as string) ||
+    (data.error as string) ||
+    (data.Error as string) ||
+    (data.description as string) ||
+    responseText ||
+    "Arkesel request failed"
+  )
+}
+
+function parseArkeselBalance(data: Record<string, unknown>): number | null {
+  const nested = data.data
+  const nestedObj =
+    nested && typeof nested === "object" && !Array.isArray(nested)
+      ? (nested as Record<string, unknown>)
+      : undefined
+
+  const candidates = [
+    data.balance,
+    data.Balance,
+    data.sms_balance,
+    data.main_balance,
+    data.credit,
+    nestedObj?.balance,
+    nestedObj?.sms_balance,
+    nestedObj?.main_balance,
+  ]
+
+  for (const raw of candidates) {
+    if (raw === undefined || raw === null || raw === "") continue
+    const num = Number(raw)
+    if (Number.isFinite(num)) return num
+  }
+
+  return null
 }
 
 /**
@@ -97,7 +169,7 @@ export async function sendSMS(
 
   try {
     if (!validateSmsConfig()) {
-      const error = "Arkesel SMS API key is not configured"
+      const error = "ARKESEL_API_KEY is not set"
       if (logContext.agentId) {
         await logSmsToDatabase(
           logContext.agentId,
@@ -119,12 +191,13 @@ export async function sendSMS(
       return { success: false, error: "Message cannot be empty" }
     }
 
+    const apiKey = logArkeselKeyDiagnostics("sendSMS")
     const config = getSmsConfig()
     const to = normalizeGhanaSmsPhone(phoneNumber)
 
     const params = new URLSearchParams({
       action: "send-sms",
-      api_key: config.apiKey,
+      api_key: apiKey,
       to,
       from: config.senderId,
       sms: message,
@@ -155,12 +228,14 @@ export async function sendSMS(
       response.ok && (responseData ? parseArkeselSendSuccess(responseData) : responseText.length > 0)
 
     if (!apiOk) {
-      const errorMessage =
-        (responseData?.message as string) ||
-        (responseData?.error as string) ||
-        (responseData?.description as string) ||
-        responseText ||
-        `HTTP ${response.status}`
+      const errorMessage = responseData
+        ? extractArkeselError(responseData, responseText)
+        : responseText || `HTTP ${response.status}`
+
+      console.error("[sms-service] sendSMS Arkesel error:", {
+        httpStatus: response.status,
+        error: errorMessage,
+      })
 
       if (logContext.agentId) {
         await logSmsToDatabase(
@@ -245,50 +320,44 @@ export async function sendSms(params: SendSmsParams): Promise<SendSmsResult> {
  * Check Arkesel SMS balance (response=json).
  */
 export async function checkSmsBalance(): Promise<SmsBalanceResult> {
-  if (!validateSmsConfig()) {
-    throw new Error("Arkesel SMS API key is not configured")
-  }
+  const apiKey = logArkeselKeyDiagnostics("checkSmsBalance")
 
-  const config = getSmsConfig()
   const url = `${ARKESEL_API_BASE}?${new URLSearchParams({
     action: "check-balance",
-    api_key: config.apiKey,
+    api_key: apiKey,
     response: "json",
   }).toString()}`
 
-  const response = await fetch(url, { method: "GET", cache: "no-store" })
-  const responseText = await response.text()
+  let response: Response
+  let responseText: string
+
+  try {
+    response = await fetch(url, { method: "GET", cache: "no-store" })
+    responseText = await response.text()
+  } catch (fetchError) {
+    const msg = fetchError instanceof Error ? fetchError.message : String(fetchError)
+    console.error("[sms-service] checkSmsBalance fetch failed:", msg)
+    throw new Error(`Arkesel balance request failed: ${msg}`)
+  }
 
   let data: Record<string, unknown>
   try {
     data = JSON.parse(responseText) as Record<string, unknown>
   } catch {
-    throw new Error(`Invalid balance response: ${responseText}`)
+    console.error("[sms-service] checkSmsBalance invalid JSON:", responseText.slice(0, 500))
+    throw new Error(`Invalid balance response from Arkesel (HTTP ${response.status})`)
   }
 
-  if (!response.ok) {
-    throw new Error(
-      (data.message as string) ||
-        (data.error as string) ||
-        `Balance check failed: HTTP ${response.status}`,
-    )
-  }
+  const balance = parseArkeselBalance(data)
 
-  const nested = data.data as Record<string, unknown> | undefined
-  const balanceRaw =
-    data.balance ??
-    data.Balance ??
-    data.sms_balance ??
-    nested?.balance ??
-    nested?.sms_balance
-
-  const balance = Number(balanceRaw)
-  if (!Number.isFinite(balance)) {
-    throw new Error(
-      (data.message as string) ||
-        (data.error as string) ||
-        "Balance not found in Arkesel response",
-    )
+  if (!response.ok || balance === null) {
+    const errorMessage = extractArkeselError(data, responseText)
+    console.error("[sms-service] checkSmsBalance Arkesel error:", {
+      httpStatus: response.status,
+      error: errorMessage,
+      parsedBalance: balance,
+    })
+    throw new Error(errorMessage)
   }
 
   return { balance, raw: data }
