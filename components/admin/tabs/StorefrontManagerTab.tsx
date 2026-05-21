@@ -42,7 +42,7 @@ import {
 } from "lucide-react"
 import { StorefrontCompliancePanel } from "@/components/admin/StorefrontCompliancePanel"
 
-const ORDERS_POLL_MS = 15000
+const ORDERS_POLL_MS = 30000
 
 interface StorefrontOrder {
   id: string

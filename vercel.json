@@ -1,0 +1,8 @@
+{
+  "headers": [
+    {
+      "source": "/(.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|woff2?|ttf|eot|otf|mp4|webm|ogg|mp3|wav|flac|aac|pdf|zip|tar|gz|br|docx?|xlsx?|pptx?))",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ]
+}

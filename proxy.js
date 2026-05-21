@@ -152,3 +152,9 @@ export async function proxy(request) {
 
   return NextResponse.next()
 }
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|images/|assets/|fonts/).*)',
+  ],
+}

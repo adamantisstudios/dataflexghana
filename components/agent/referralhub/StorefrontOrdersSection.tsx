@@ -87,7 +87,7 @@ export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceC
 
   useEffect(() => {
     load()
-    const interval = setInterval(() => load(true), 10000)
+    const interval = setInterval(() => load(true), 30000)
     const onVisibility = () => {
       if (document.visibilityState === "visible") load(true)
     }

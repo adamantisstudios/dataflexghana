@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "sonner"
 import { DevConsoleDetector } from "@/components/dev-console-detector"
+import { DisableGlobalLinkPrefetch } from "@/components/disable-global-link-prefetch"
 import { MenuScrollHandler } from "@/components/menu-scroll-handler"
 
 // ==============================
@@ -1187,6 +1188,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           disableTransitionOnChange
           suppressHydrationWarning
         >
+          <DisableGlobalLinkPrefetch />
           <MenuScrollHandler />
           {children}
           <Toaster />
