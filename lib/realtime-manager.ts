@@ -19,14 +19,40 @@ export class RealtimeManager {
   private subscriptions: Map<string, RealtimeSubscription> = new Map()
   private reconnectInterval: NodeJS.Timeout | null = null
   private healthCheckInterval: NodeJS.Timeout | null = null
-  private readonly RECONNECT_INTERVAL = 30000 // 30 seconds
-  private readonly HEALTH_CHECK_INTERVAL = 60000 // 1 minute
+  private readonly RECONNECT_INTERVAL = 30000
+  private readonly HEALTH_CHECK_INTERVAL = 30000
+  private readonly RECONNECT_DELAY_MS = 30000
+  private readonly STALE_SUBSCRIPTION_MS = 300000
   private readonly MAX_RECONNECT_ATTEMPTS = 5
   private isReconnecting: boolean = false
+  private monitoringPaused = false
+
+  private boundHandleOnline = () => {
+    if (!document.hidden) {
+      setTimeout(() => void this.reconnectAll(), 3000)
+    }
+  }
+
+  private boundHandleOffline = () => {
+    this.subscriptions.forEach((subscription) => {
+      subscription.isActive = false
+    })
+  }
+
+  private boundHandleVisibilityChange = () => {
+    if (document.hidden) {
+      this.pauseHealthMonitoring()
+    } else {
+      this.resumeHealthMonitoring()
+      setTimeout(() => this.performHealthCheck(), 3000)
+    }
+  }
 
   private constructor() {
-    this.startHealthMonitoring()
     this.setupConnectionHandlers()
+    if (typeof document === 'undefined' || !document.hidden) {
+      this.startHealthMonitoring()
+    }
   }
 
   public static getInstance(): RealtimeManager {
@@ -36,18 +62,12 @@ export class RealtimeManager {
     return RealtimeManager.instance
   }
 
-  /**
-   * Subscribe to real-time changes on a table
-   */
   public subscribe(
     id: string,
     table: string,
     callback: (payload: RealtimePostgresChangesPayload<any>) => void,
     filter?: string
   ): () => void {
-    console.log(`🔄 Setting up real-time subscription for ${table} (${id})`)
-
-    // Remove existing subscription if it exists
     this.unsubscribe(id)
 
     const subscription: RealtimeSubscription = {
@@ -56,11 +76,10 @@ export class RealtimeManager {
       channel: null,
       callback: (payload) => {
         try {
-          console.log(`📨 Real-time update received for ${table}:`, payload)
           subscription.lastActivity = Date.now()
           callback(payload)
         } catch (error) {
-          console.error(`❌ Error in callback for ${table}:`, error)
+          console.error(`[realtime-manager] Callback error for ${table}:`, error)
         }
       },
       filter,
@@ -70,32 +89,27 @@ export class RealtimeManager {
     }
 
     this.subscriptions.set(id, subscription)
-    this.createChannel(subscription)
+    if (!this.monitoringPaused) {
+      void this.createChannel(subscription)
+    }
 
-    // Return unsubscribe function
     return () => this.unsubscribe(id)
   }
 
-  /**
-   * Create a real-time channel for a subscription
-   */
   private async createChannel(subscription: RealtimeSubscription): Promise<void> {
+    if (typeof document !== 'undefined' && document.hidden) return
+
     try {
-      // Ensure session is valid before creating channel
       const sessionValid = await sessionManager.checkAndRefreshIfNeeded()
       if (!sessionValid) {
-        console.warn(`⚠️ Cannot create channel for ${subscription.table}: invalid session`)
         this.scheduleReconnect(subscription)
         return
       }
 
       const channelName = `${subscription.table}_${subscription.id}_${Date.now()}`
-      console.log(`🔗 Creating channel: ${channelName}`)
-      
       const channel = supabase.channel(channelName)
 
-      // Configure the channel based on filter
-      let channelConfig = channel.on(
+      const channelConfig = channel.on(
         'postgres_changes',
         {
           event: '*',
@@ -106,29 +120,22 @@ export class RealtimeManager {
         subscription.callback
       )
 
-      // Set up channel event handlers with better error handling
       channelConfig.subscribe((status, err) => {
-        console.log(`📡 Channel ${channelName} status:`, status)
-
         if (status === 'SUBSCRIBED') {
           subscription.isActive = true
           subscription.reconnectAttempts = 0
-          console.log(`✅ Successfully subscribed to ${subscription.table} changes`)
         } else if (status === 'CHANNEL_ERROR') {
-          console.error(`❌ Channel error for ${subscription.table}:`, err || 'Unknown channel error')
+          console.error(`[realtime-manager] Channel error for ${subscription.table}:`, err || 'Unknown error')
           subscription.isActive = false
-          // Don't immediately reconnect on channel errors, wait a bit
-          setTimeout(() => this.scheduleReconnect(subscription), 2000)
+          setTimeout(() => this.scheduleReconnect(subscription), this.RECONNECT_DELAY_MS)
         } else if (status === 'TIMED_OUT') {
-          console.error(`⏰ Channel timeout for ${subscription.table}:`, err || 'Connection timed out')
+          console.error(`[realtime-manager] Channel timeout for ${subscription.table}:`, err || 'Timed out')
           subscription.isActive = false
           this.scheduleReconnect(subscription)
         } else if (status === 'CLOSED') {
-          console.log(`🔒 Channel closed for ${subscription.table}`)
           subscription.isActive = false
-          // Only reconnect if this wasn't an intentional close
-          if (this.subscriptions.has(subscription.id)) {
-            setTimeout(() => this.scheduleReconnect(subscription), 1000)
+          if (this.subscriptions.has(subscription.id) && !document.hidden) {
+            setTimeout(() => this.scheduleReconnect(subscription), this.RECONNECT_DELAY_MS)
           }
         }
       })
@@ -137,44 +144,39 @@ export class RealtimeManager {
       this.subscriptions.set(subscription.id, subscription)
 
     } catch (error) {
-      console.error(`💥 Error creating channel for ${subscription.table}:`, error)
-      // Provide more specific error information
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error(`Channel creation failed: ${errorMessage}`)
+      console.error(`[realtime-manager] Error creating channel for ${subscription.table}:`, error)
       this.scheduleReconnect(subscription)
     }
   }
 
-  /**
-   * Schedule reconnection for a failed subscription
-   */
   private scheduleReconnect(subscription: RealtimeSubscription): void {
+    if (typeof document !== 'undefined' && document.hidden) return
+
+    if (subscription.reconnectTimeout) {
+      clearTimeout(subscription.reconnectTimeout)
+      subscription.reconnectTimeout = undefined
+    }
+
     if (subscription.reconnectAttempts >= this.MAX_RECONNECT_ATTEMPTS) {
-      console.warn(`Max reconnect attempts reached for ${subscription.table}. Will retry after longer delay.`)
-      // Instead of giving up, schedule a longer delay and reset attempts
       setTimeout(() => {
         subscription.reconnectAttempts = 0
-        this.reconnectSubscription(subscription)
-      }, 30000) // 30 second delay before resetting
+        void this.reconnectSubscription(subscription)
+      }, this.RECONNECT_DELAY_MS)
       return
     }
 
-    const delay = Math.min(1000 * Math.pow(2, subscription.reconnectAttempts), 30000) // Exponential backoff, max 30s
     subscription.reconnectAttempts++
-    
-    console.log(`Scheduling reconnect for ${subscription.table} in ${delay}ms (attempt ${subscription.reconnectAttempts})`)
-    
+
     subscription.reconnectTimeout = setTimeout(() => {
-      this.reconnectSubscription(subscription)
-    }, delay)
+      subscription.reconnectTimeout = undefined
+      void this.reconnectSubscription(subscription)
+    }, this.RECONNECT_DELAY_MS)
   }
 
-  /**
-   * Reconnect a specific subscription
-   */
   private async reconnectSubscription(subscription: RealtimeSubscription): Promise<void> {
+    if (typeof document !== 'undefined' && document.hidden) return
+
     try {
-      // Clean up existing channel
       if (subscription.channel) {
         await subscription.channel.unsubscribe()
         subscription.channel = null
@@ -183,48 +185,43 @@ export class RealtimeManager {
       subscription.isActive = false
       await this.createChannel(subscription)
     } catch (error) {
-      console.error(`Error reconnecting ${subscription.table}:`, error)
+      console.error(`[realtime-manager] Error reconnecting ${subscription.table}:`, error)
       this.scheduleReconnect(subscription)
     }
   }
 
-  /**
-   * Unsubscribe from a real-time subscription
-   */
   public async unsubscribe(id: string): Promise<void> {
     const subscription = this.subscriptions.get(id)
     if (!subscription) return
 
-    console.log(`Unsubscribing from ${subscription.table} (${id})`)
-
     try {
+      if (subscription.reconnectTimeout) {
+        clearTimeout(subscription.reconnectTimeout)
+        subscription.reconnectTimeout = undefined
+      }
       if (subscription.channel) {
         await subscription.channel.unsubscribe()
       }
     } catch (error) {
-      console.error(`Error unsubscribing from ${subscription.table}:`, error)
+      console.error(`[realtime-manager] Error unsubscribing from ${subscription.table}:`, error)
     }
 
     this.subscriptions.delete(id)
   }
 
-  /**
-   * Reconnect all active subscriptions
-   */
   public async reconnectAll(): Promise<void> {
+    if (typeof document !== 'undefined' && document.hidden) return
+
     if (this.isReconnecting) {
-      console.log('Reconnection already in progress')
       return
     }
 
     this.isReconnecting = true
-    console.log('Reconnecting all real-time subscriptions...')
 
     try {
-      // Ensure session is valid first
       const sessionValid = await sessionManager.checkAndRefreshIfNeeded()
       if (!sessionValid) {
-        console.warn('Cannot reconnect subscriptions: invalid session')
+        console.error('[realtime-manager] Cannot reconnect subscriptions: invalid session')
         return
       }
 
@@ -235,97 +232,81 @@ export class RealtimeManager {
       })
 
       await Promise.all(reconnectPromises)
-      console.log('All subscriptions reconnected')
     } catch (error) {
-      console.error('Error reconnecting subscriptions:', error)
+      console.error('[realtime-manager] Error reconnecting subscriptions:', error)
     } finally {
       this.isReconnecting = false
     }
   }
 
-  /**
-   * Start health monitoring for subscriptions
-   */
   private startHealthMonitoring(): void {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || this.monitoringPaused) return
+    this.pauseHealthMonitoring()
 
     this.healthCheckInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
       this.performHealthCheck()
     }, this.HEALTH_CHECK_INTERVAL)
 
     this.reconnectInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
       this.checkForStaleSubscriptions()
     }, this.RECONNECT_INTERVAL)
   }
 
-  /**
-   * Perform health check on all subscriptions
-   */
-  private performHealthCheck(): void {
-    const now = Date.now()
-    let inactiveCount = 0
-
-    this.subscriptions.forEach((subscription) => {
-      if (!subscription.isActive) {
-        inactiveCount++
-      }
-
-      // Check for stale subscriptions (no activity for 5 minutes)
-      const timeSinceActivity = now - subscription.lastActivity
-      if (timeSinceActivity > 300000 && subscription.isActive) {
-        console.warn(`Subscription ${subscription.table} appears stale, reconnecting...`)
-        this.reconnectSubscription(subscription)
-      }
-    })
-
-    if (inactiveCount > 0) {
-      console.log(`Health check: ${inactiveCount} inactive subscriptions detected`)
+  private pauseHealthMonitoring(): void {
+    this.monitoringPaused = true
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval)
+      this.healthCheckInterval = null
+    }
+    if (this.reconnectInterval) {
+      clearInterval(this.reconnectInterval)
+      this.reconnectInterval = null
     }
   }
 
-  /**
-   * Check for stale subscriptions and attempt reconnection
-   */
-  private checkForStaleSubscriptions(): void {
+  private resumeHealthMonitoring(): void {
+    this.monitoringPaused = false
+    this.startHealthMonitoring()
     this.subscriptions.forEach((subscription) => {
-      if (!subscription.isActive && subscription.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
-        console.log(`Attempting to reconnect stale subscription: ${subscription.table}`)
-        this.reconnectSubscription(subscription)
+      if (!subscription.isActive && !subscription.channel) {
+        void this.createChannel(subscription)
       }
     })
   }
 
-  /**
-   * Setup connection event handlers
-   */
+  private performHealthCheck(): void {
+    if (typeof document !== 'undefined' && document.hidden) return
+
+    const now = Date.now()
+
+    this.subscriptions.forEach((subscription) => {
+      const timeSinceActivity = now - subscription.lastActivity
+      if (timeSinceActivity > this.STALE_SUBSCRIPTION_MS && subscription.isActive) {
+        void this.reconnectSubscription(subscription)
+      }
+    })
+  }
+
+  private checkForStaleSubscriptions(): void {
+    if (typeof document !== 'undefined' && document.hidden) return
+
+    this.subscriptions.forEach((subscription) => {
+      if (!subscription.isActive && subscription.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
+        void this.reconnectSubscription(subscription)
+      }
+    })
+  }
+
   private setupConnectionHandlers(): void {
     if (typeof window === 'undefined') return
 
-    // Handle online/offline events
-    window.addEventListener('online', () => {
-      console.log('Network connection restored, reconnecting subscriptions...')
-      setTimeout(() => this.reconnectAll(), 1000)
-    })
-
-    window.addEventListener('offline', () => {
-      console.log('Network connection lost')
-      this.subscriptions.forEach((subscription) => {
-        subscription.isActive = false
-      })
-    })
-
-    // Handle visibility change (tab focus/blur)
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        console.log('Tab became visible, checking subscription health...')
-        setTimeout(() => this.performHealthCheck(), 2000)
-      }
-    })
+    window.addEventListener('online', this.boundHandleOnline)
+    window.addEventListener('offline', this.boundHandleOffline)
+    document.addEventListener('visibilitychange', this.boundHandleVisibilityChange)
   }
 
-  /**
-   * Get subscription status
-   */
   public getSubscriptionStatus(): {
     total: number
     active: number
@@ -339,7 +320,7 @@ export class RealtimeManager {
     }>
   } {
     const subscriptions = Array.from(this.subscriptions.values())
-    
+
     return {
       total: subscriptions.length,
       active: subscriptions.filter(s => s.isActive).length,
@@ -354,14 +335,13 @@ export class RealtimeManager {
     }
   }
 
-  /**
-   * Clean up all subscriptions and intervals
-   */
   public destroy(): void {
-    console.log('Destroying realtime manager...')
+    this.pauseHealthMonitoring()
 
-    // Unsubscribe from all channels
     this.subscriptions.forEach((subscription) => {
+      if (subscription.reconnectTimeout) {
+        clearTimeout(subscription.reconnectTimeout)
+      }
       if (subscription.channel) {
         subscription.channel.unsubscribe()
       }
@@ -369,30 +349,16 @@ export class RealtimeManager {
 
     this.subscriptions.clear()
 
-    // Clear intervals
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval)
-      this.healthCheckInterval = null
-    }
-
-    if (this.reconnectInterval) {
-      clearInterval(this.reconnectInterval)
-      this.reconnectInterval = null
-    }
-
-    // Remove event listeners
     if (typeof window !== 'undefined') {
-      window.removeEventListener('online', this.reconnectAll)
-      window.removeEventListener('offline', () => {})
-      document.removeEventListener('visibilitychange', this.performHealthCheck)
+      window.removeEventListener('online', this.boundHandleOnline)
+      window.removeEventListener('offline', this.boundHandleOffline)
+      document.removeEventListener('visibilitychange', this.boundHandleVisibilityChange)
     }
   }
 }
 
-// Export singleton instance
 export const realtimeManager = RealtimeManager.getInstance()
 
-// Utility functions for easy access
 export const subscribeToTable = (
   id: string,
   table: string,

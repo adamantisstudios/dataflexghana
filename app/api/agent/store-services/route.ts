@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { jsonWithReadOnlyGetCache } from "@/lib/api-cache-headers"
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { referralServiceAgentCommission } from "@/lib/referral-service-commission"
 import { getAdminClient } from "@/lib/supabase-base"
@@ -51,7 +52,7 @@ export const GET = withUnifiedAuth(async (request: NextRequest) => {
       }
     })
 
-    return NextResponse.json({
+    return jsonWithReadOnlyGetCache({
       success: true,
       services,
       page,

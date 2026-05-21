@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { jsonWithReadOnlyGetCache } from "@/lib/api-cache-headers"
 import { getAdminClient } from "@/lib/supabase-base"
 import { calculateWalletBalance } from "@/lib/earnings-calculator"
 import { computeAgentCommissionSummary } from "@/lib/commission-summary-server"
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     const commission_balance = summary.availableForWithdrawal
 
-    return NextResponse.json({
+    return jsonWithReadOnlyGetCache({
       wallet_balance,
       commission_balance,
       available_balance: commission_balance,

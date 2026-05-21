@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { jsonWithReadOnlyGetCache } from "@/lib/api-cache-headers";
 import { getJobsSupabaseAdmin } from "@/lib/jobs-supabase-admin";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ jobs: data ?? [] });
+    return jsonWithReadOnlyGetCache({ jobs: data ?? [] });
   } catch (error) {
     console.error("[api/jobs] GET failed:", error);
     return NextResponse.json(

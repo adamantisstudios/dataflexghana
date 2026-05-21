@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { jsonWithReadOnlyGetCache } from "@/lib/api-cache-headers"
 import { getAdminClient } from "@/lib/supabase-base"
 import { authenticateAdmin } from "@/lib/api-auth"
 import { isWalletCreditType, isWalletDebitType } from "@/lib/wallet-transaction-types"
@@ -156,7 +157,7 @@ export async function GET(request: NextRequest) {
     totalBalance = Math.round(totalBalance * 100) / 100
     totalCommissionBalance = Math.round(totalCommissionBalance * 100) / 100
 
-    return NextResponse.json({
+    return jsonWithReadOnlyGetCache({
       success: true,
       stats: {
         totalBalance,

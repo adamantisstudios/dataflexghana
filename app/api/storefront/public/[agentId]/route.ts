@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { jsonWithReadOnlyGetCache } from "@/lib/api-cache-headers"
 import { getPublicStorefrontResponse } from "@/lib/storefront-public"
 
 export const dynamic = "force-dynamic"
@@ -10,7 +11,7 @@ export async function GET(
   try {
     const { agentId } = await params
     const payload = await getPublicStorefrontResponse(agentId ?? "")
-    return NextResponse.json(payload)
+    return jsonWithReadOnlyGetCache(payload)
   } catch (error) {
     console.error("public storefront route:", error)
     return NextResponse.json({
