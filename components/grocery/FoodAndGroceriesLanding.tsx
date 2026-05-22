@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { WhatsAppFloatDialog } from "@/components/grocery/WhatsAppFloatDialog"
 import { FadeInSection } from "@/components/grocery/FadeInSection"
+import { GroceryHeroSlider } from "@/components/grocery/GroceryHeroSlider"
 import {
   Loader2,
   Upload,
@@ -34,8 +35,6 @@ import {
 } from "@/lib/grocery-paystack"
 
 const MAX_FILES = 5
-/** Local hero — fresh produce (sourced from Pexels, stored in public/) */
-const HERO_BG_IMAGE = "/images/grocery-hero.jpg"
 
 const STEPS = [
   {
@@ -263,37 +262,37 @@ function FoodAndGroceriesContent() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#0E8F3D]/10 shadow-sm">
+      <header className="sticky top-0 z-50 bg-[#0A5C2A]/95 backdrop-blur-md border-b border-white/10 shadow-lg">
         <div className="max-w-6xl mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <div className="h-9 w-9 rounded-lg bg-[#0E8F3D] flex items-center justify-center text-white">
+            <div className="h-9 w-9 rounded-lg bg-[#0E8F3D] ring-2 ring-white/30 flex items-center justify-center text-white">
               <ShoppingBasket className="h-5 w-5" />
             </div>
-            <span className="font-bold text-[#0E8F3D] hidden sm:inline" style={{ fontFamily: "Poppins, sans-serif" }}>
+            <span className="font-bold text-white hidden sm:inline" style={{ fontFamily: "Poppins, sans-serif" }}>
               DataFlex Ghana
             </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#1F2937]">
-            <button type="button" onClick={() => scrollToId("how-it-works")} className="hover:text-[#0E8F3D]">
+          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-white/90">
+            <button type="button" onClick={() => scrollToId("how-it-works")} className="hover:text-white">
               How It Works
             </button>
-            <button type="button" onClick={() => scrollToId("why-us")} className="hover:text-[#0E8F3D]">
+            <button type="button" onClick={() => scrollToId("why-us")} className="hover:text-white">
               Why Us
             </button>
-            <button type="button" onClick={() => scrollToId("testimonials")} className="hover:text-[#0E8F3D]">
+            <button type="button" onClick={() => scrollToId("testimonials")} className="hover:text-white">
               Reviews
             </button>
             <button
               type="button"
               onClick={() => scrollToId("request-form")}
-              className="text-[#0E8F3D] font-semibold hover:underline"
+              className="text-white font-semibold hover:underline"
             >
               Request Shopping
             </button>
           </nav>
           <Button
             size="sm"
-            className="bg-[#0E8F3D] hover:bg-[#35B24A] rounded-full md:hidden"
+            className="bg-[#0E8F3D] hover:bg-white hover:text-[#0A5C2A] text-white rounded-full md:hidden border-0"
             onClick={() => scrollToId("request-form")}
           >
             Order
@@ -301,71 +300,59 @@ function FoodAndGroceriesContent() {
         </div>
       </header>
 
-      <section
-        id="hero"
-        className="relative min-h-[85vh] flex items-center overflow-hidden bg-[#0E8F3D]"
-        style={{
-          backgroundImage: `linear-gradient(to right, rgba(14, 143, 61, 0.9), rgba(14, 143, 61, 0.75), rgba(53, 178, 74, 0.6)), url(${HERO_BG_IMAGE})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-        aria-label="Fresh groceries and produce"
-      >
-        <div className="relative z-10 max-w-6xl mx-auto px-4 py-20 w-full animate-in fade-in duration-700">
-          <p className="text-white/90 text-sm font-medium uppercase tracking-widest mb-3">
-            Concierge grocery shopping · Accra & beyond
-          </p>
-          <h1
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight max-w-3xl"
-            style={{ fontFamily: "Poppins, sans-serif" }}
+      <GroceryHeroSlider>
+        <p className="text-white/90 text-sm font-medium uppercase tracking-widest mb-3">
+          Concierge grocery shopping · Accra & beyond
+        </p>
+        <h1
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight max-w-3xl drop-shadow-sm"
+          style={{ fontFamily: "Poppins, sans-serif" }}
+        >
+          Your Grocery Shopping Just Got Easier
+        </h1>
+        <p className="mt-5 text-lg sm:text-xl text-white/95 max-w-2xl leading-relaxed">
+          Skip the market queues. Send your list, pay a small commitment fee, and let DataFlex coordinate fresh
+          groceries delivered on your schedule.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Button
+            size="lg"
+            className="h-12 px-8 rounded-full bg-[#0E8F3D] text-white hover:bg-[#0A5C2A] font-semibold shadow-lg border-2 border-white/20"
+            onClick={() => scrollToId("request-form")}
           >
-            Your Grocery Shopping Just Got Easier
-          </h1>
-          <p className="mt-5 text-lg sm:text-xl text-white/95 max-w-2xl leading-relaxed">
-            Skip the market queues. Send your list, pay a small commitment fee, and let DataFlex coordinate fresh
-            groceries delivered on your schedule.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Button
-              size="lg"
-              className="h-12 px-8 rounded-full bg-white text-[#0E8F3D] hover:bg-[#F7FAF7] font-semibold shadow-lg"
-              onClick={() => scrollToId("request-form")}
-            >
-              Request Shopping
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-12 px-8 rounded-full border-2 border-white text-white bg-white/10 hover:bg-white/20"
-              onClick={() => scrollToId("how-it-works")}
-            >
-              How It Works
-            </Button>
-          </div>
+            Request Shopping
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-12 px-8 rounded-full border-2 border-white text-white bg-white/10 hover:bg-white/25"
+            onClick={() => scrollToId("how-it-works")}
+          >
+            How It Works
+          </Button>
         </div>
-      </section>
+      </GroceryHeroSlider>
 
-      <section id="how-it-works" className="py-16 sm:py-20 bg-white">
+      <section id="how-it-works" className="py-16 sm:py-20 bg-[#F9FBF9]">
         <div className="max-w-6xl mx-auto px-4">
           <FadeInSection>
-            <h2 className="text-2xl sm:text-3xl font-bold text-center text-[#1F2937]" style={{ fontFamily: "Poppins, sans-serif" }}>
+            <h2 className="text-2xl sm:text-3xl font-bold text-center text-[#0A5C2A]" style={{ fontFamily: "Poppins, sans-serif" }}>
               How It Works
             </h2>
-            <p className="text-center text-slate-600 mt-3 max-w-2xl mx-auto">
+            <p className="text-center text-[#1F2937]/80 mt-3 max-w-2xl mx-auto">
               Four simple steps from your shopping list to your doorstep.
             </p>
           </FadeInSection>
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {STEPS.map((step, i) => (
               <FadeInSection key={step.title} className={i > 0 ? `delay-[${i * 100}ms]` : ""}>
-                <div className="h-full rounded-2xl border border-[#0E8F3D]/10 bg-[#F7FAF7] p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="h-12 w-12 rounded-xl bg-[#0E8F3D] text-white flex items-center justify-center mb-4">
+                <div className="h-full rounded-2xl border-2 border-[#0E8F3D]/25 bg-white p-6 shadow-md hover:shadow-lg hover:border-[#0E8F3D]/50 transition-all">
+                  <div className="h-12 w-12 rounded-xl bg-[#0E8F3D] text-white flex items-center justify-center mb-4 shadow-sm">
                     <step.icon className="h-6 w-6" />
                   </div>
-                  <p className="text-xs font-bold text-[#35B24A] mb-1">Step {i + 1}</p>
-                  <h3 className="font-semibold text-[#1F2937] mb-2">{step.title}</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">{step.text}</p>
+                  <p className="text-xs font-bold text-[#0E8F3D] mb-1">Step {i + 1}</p>
+                  <h3 className="font-semibold text-[#0A5C2A] mb-2">{step.title}</h3>
+                  <p className="text-sm text-[#1F2937]/80 leading-relaxed">{step.text}</p>
                 </div>
               </FadeInSection>
             ))}
@@ -373,20 +360,26 @@ function FoodAndGroceriesContent() {
         </div>
       </section>
 
-      <section id="why-us" className="py-16 sm:py-20 bg-[#F7FAF7]">
+      <section id="why-us" className="py-16 sm:py-20 bg-[#0E8F3D]">
         <div className="max-w-6xl mx-auto px-4">
           <FadeInSection>
-            <h2 className="text-2xl sm:text-3xl font-bold text-center" style={{ fontFamily: "Poppins, sans-serif" }}>
+            <h2
+              className="text-2xl sm:text-3xl font-bold text-center text-white"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
               Why Choose DataFlex Grocery
             </h2>
+            <p className="text-center text-white/85 mt-3 max-w-2xl mx-auto text-sm sm:text-base">
+              Premium concierge shopping — fresh, fast, and unmistakably Ghanaian.
+            </p>
           </FadeInSection>
           <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {WHY_US.map((item) => (
               <FadeInSection key={item.title}>
-                <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 h-full">
+                <div className="bg-[#F9FBF9] rounded-2xl p-6 shadow-lg border-2 border-white/40 h-full">
                   <item.icon className="h-8 w-8 text-[#0E8F3D] mb-3" />
-                  <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
-                  <p className="text-sm text-slate-600">{item.text}</p>
+                  <h3 className="font-semibold text-lg mb-2 text-[#0A5C2A]">{item.title}</h3>
+                  <p className="text-sm text-[#1F2937]/80">{item.text}</p>
                 </div>
               </FadeInSection>
             ))}
@@ -394,17 +387,20 @@ function FoodAndGroceriesContent() {
         </div>
       </section>
 
-      <section id="testimonials" className="py-16 sm:py-20 bg-white">
+      <section id="testimonials" className="py-16 sm:py-20 bg-[#F9FBF9]">
         <div className="max-w-6xl mx-auto px-4">
           <FadeInSection>
-            <h2 className="text-2xl sm:text-3xl font-bold text-center" style={{ fontFamily: "Poppins, sans-serif" }}>
+            <h2
+              className="text-2xl sm:text-3xl font-bold text-center text-[#0A5C2A]"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
               What Customers Say
             </h2>
           </FadeInSection>
           <div className="mt-12 grid md:grid-cols-2 gap-6">
             {TESTIMONIALS.map((t) => (
               <FadeInSection key={t.name}>
-                <div className="rounded-2xl border border-slate-100 bg-[#F7FAF7] p-6 shadow-md h-full">
+                <div className="rounded-2xl border-2 border-[#0E8F3D]/20 bg-white p-6 shadow-md h-full">
                   <div className="flex gap-1 mb-3">
                     {Array.from({ length: t.rating }).map((_, i) => (
                       <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
@@ -420,21 +416,24 @@ function FoodAndGroceriesContent() {
         </div>
       </section>
 
-      <section id="request-form" className="py-16 sm:py-20 bg-[#F7FAF7] scroll-mt-16">
+      <section id="request-form" className="py-16 sm:py-20 bg-[#0A5C2A] scroll-mt-16">
         <div className="max-w-2xl mx-auto px-4">
           <FadeInSection>
-            <h2 className="text-2xl sm:text-3xl font-bold text-center text-[#0E8F3D]" style={{ fontFamily: "Poppins, sans-serif" }}>
+            <h2
+              className="text-2xl sm:text-3xl font-bold text-center text-white"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
               Submit Your Grocery Request
             </h2>
-            <p className="text-center text-slate-600 mt-2 text-sm">
+            <p className="text-center text-white/85 mt-2 text-sm">
               Pay the commitment fee first, then complete your shopping list.{" "}
-              <Link href="/grocery-terms" className="text-[#0E8F3D] underline font-medium">
+              <Link href="/grocery-terms" className="text-white underline font-medium hover:text-white/90">
                 Grocery terms
               </Link>
             </p>
           </FadeInSection>
 
-          <div className="mt-8 rounded-2xl bg-white border-2 border-[#0E8F3D]/20 shadow-lg p-6 sm:p-8 space-y-6">
+          <div className="mt-8 rounded-2xl bg-[#F9FBF9] border-2 border-[#0E8F3D]/40 shadow-2xl p-6 sm:p-8 space-y-6">
             <div className="rounded-xl bg-gradient-to-br from-[#0E8F3D]/5 to-[#35B24A]/10 border border-[#0E8F3D]/20 p-5">
               <div className="flex items-start gap-3">
                 <CreditCard className="h-8 w-8 text-[#0E8F3D] shrink-0" />
@@ -505,7 +504,7 @@ function FoodAndGroceriesContent() {
                     type="button"
                     onClick={handlePayCommitment}
                     disabled={paying || verifyingPayment}
-                    className="w-full h-12 rounded-xl bg-[#0E8F3D] hover:bg-[#35B24A] text-base font-semibold"
+                    className="w-full h-12 rounded-xl bg-[#0E8F3D] hover:bg-[#0A5C2A] text-white text-base font-semibold"
                   >
                     {paying || verifyingPayment ? (
                       <>
@@ -667,7 +666,7 @@ function FoodAndGroceriesContent() {
                 <Button
                   type="submit"
                   disabled={formLocked}
-                  className="w-full h-14 rounded-2xl text-lg font-semibold bg-[#0E8F3D] hover:bg-[#35B24A]"
+                  className="w-full h-14 rounded-2xl text-lg font-semibold bg-[#0E8F3D] hover:bg-[#0A5C2A] text-white"
                 >
                   {busy ? (
                     <>
@@ -684,7 +683,7 @@ function FoodAndGroceriesContent() {
         </div>
       </section>
 
-      <footer className="bg-[#1F2937] text-slate-300 py-12">
+      <footer className="bg-[#063d1c] text-white/80 py-12 border-t border-[#0E8F3D]/30">
         <div className="max-w-6xl mx-auto px-4 grid sm:grid-cols-2 md:grid-cols-3 gap-8">
           <div>
             <p className="font-bold text-white text-lg" style={{ fontFamily: "Poppins, sans-serif" }}>
@@ -737,7 +736,7 @@ export default function FoodAndGroceriesLanding() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#F7FAF7]">
+        <div className="min-h-screen flex items-center justify-center bg-[#0A5C2A]">
           <Loader2 className="h-10 w-10 animate-spin text-[#0E8F3D]" />
         </div>
       }
