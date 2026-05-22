@@ -300,38 +300,10 @@ function FoodAndGroceriesContent() {
         </div>
       </header>
 
-      <GroceryHeroSlider>
-        <p className="text-white/90 text-sm font-medium uppercase tracking-widest mb-3">
-          Concierge grocery shopping · Accra & beyond
-        </p>
-        <h1
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight max-w-3xl drop-shadow-sm"
-          style={{ fontFamily: "Poppins, sans-serif" }}
-        >
-          Your Grocery Shopping Just Got Easier
-        </h1>
-        <p className="mt-5 text-lg sm:text-xl text-white/95 max-w-2xl leading-relaxed">
-          Skip the market queues. Send your list, pay a small commitment fee, and let DataFlex coordinate fresh
-          groceries delivered on your schedule.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-4">
-          <Button
-            size="lg"
-            className="h-12 px-8 rounded-full bg-[#0E8F3D] text-white hover:bg-[#0A5C2A] font-semibold shadow-lg border-2 border-white/20"
-            onClick={() => scrollToId("request-form")}
-          >
-            Request Shopping
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-12 px-8 rounded-full border-2 border-white text-white bg-white/10 hover:bg-white/25"
-            onClick={() => scrollToId("how-it-works")}
-          >
-            How It Works
-          </Button>
-        </div>
-      </GroceryHeroSlider>
+      <GroceryHeroSlider
+        onRequestClick={() => scrollToId("request-form")}
+        onHowItWorksClick={() => scrollToId("how-it-works")}
+      />
 
       <section id="how-it-works" className="py-16 sm:py-20 bg-[#F9FBF9]">
         <div className="max-w-6xl mx-auto px-4">
