@@ -47,6 +47,7 @@ import { Label } from "@/components/ui/label"
   Mail,
   Shirt,
   Sparkles,
+  ShoppingBasket,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -92,6 +93,7 @@ const FashionProjectRequestsTab = lazy(() => import("@/components/admin/tabs/Fas
 const FashionReferralsTab = lazy(() => import("@/components/admin/tabs/FashionReferralsTab"))
 const SalonTab = lazy(() => import("@/components/admin/tabs/SalonTab"))
 const MaintenancePanelTab = lazy(() => import("@/components/admin/tabs/MaintenancePanelTab"))
+const GroceryRequestsTab = lazy(() => import("@/components/admin/tabs/GroceryRequestsTab"))
 
 // Type definition for tab configuration
 interface TabConfigItem {
@@ -148,6 +150,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "performance", label: "Performance", icon: TrendingUp, component: null },
   { id: "domestic-workers", label: "Domestic Workers", icon: Users, component: DomesticWorkersTab },
   { id: "domestic-worker-requests", label: "Client Requests", icon: Bell, component: DomesticWorkerClientRequestsTab },
+  { id: "grocery-requests", label: "Grocery Requests", icon: ShoppingBasket, component: GroceryRequestsTab },
   { id: "wholesale", label: "Wholesale", icon: ShoppingBag, component: WholesaleTab },
   { id: "properties", label: "Properties", icon: Home, component: PropertiesTab },
   { id: "blogs", label: "Blogs", icon: FileText, component: BlogsTab },
@@ -218,6 +221,7 @@ export default function AdminDashboard() {
     totalPendingAlerts: 0,
     pendingOnlineCourses: 0,
     pendingStorefrontOrders: 0,
+    newGroceryRequests: 0,
   })
   // Settings dialog state
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -374,7 +378,26 @@ export default function AdminDashboard() {
     }
 
     loadStats()
-    const storefrontPoll = setInterval(loadStats, 30000)
+    const loadGroceryCount = async () => {
+      try {
+        const res = await fetch("/api/admin/grocery/requests/count", {
+          headers: getAdminAuthHeaders(),
+          cache: "no-store",
+        })
+        const data = await res.json()
+        if (res.ok && data.success && isMounted) {
+          setStats((prev) => ({ ...prev, newGroceryRequests: Number(data.count) || 0 }))
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    loadGroceryCount()
+    const storefrontPoll = setInterval(() => {
+      loadStats()
+      loadGroceryCount()
+    }, 30000)
 
     const connectionUnsubscribe = connectionManager.addConnectionListener(() => {
       setConnectionHealth(connectionManager.getHealthStatus())
@@ -394,19 +417,22 @@ export default function AdminDashboard() {
         setStats((prev) => ({ ...prev, pendingStorefrontOrders: detail }))
       }
     }
-    window.addEventListener("admin-storefront-pending", onStorefrontPending)
-    return () => window.removeEventListener("admin-storefront-pending", onStorefrontPending)
-  }, [])
-
-  useEffect(() => {
-    const onStorefrontPending = (event: Event) => {
-      const detail = (event as CustomEvent<number>).detail
-      if (typeof detail === "number") {
-        setStats((prev) => ({ ...prev, pendingStorefrontOrders: detail }))
-      }
+    const onGroceryUpdated = () => {
+      fetch("/api/admin/grocery/requests/count", { headers: getAdminAuthHeaders(), cache: "no-store" })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) {
+            setStats((prev) => ({ ...prev, newGroceryRequests: Number(data.count) || 0 }))
+          }
+        })
+        .catch(() => {})
     }
     window.addEventListener("admin-storefront-pending", onStorefrontPending)
-    return () => window.removeEventListener("admin-storefront-pending", onStorefrontPending)
+    window.addEventListener("grocery-requests-updated", onGroceryUpdated)
+    return () => {
+      window.removeEventListener("admin-storefront-pending", onStorefrontPending)
+      window.removeEventListener("grocery-requests-updated", onGroceryUpdated)
+    }
   }, [])
 
   const handleLogout = async () => {
@@ -544,6 +570,8 @@ export default function AdminDashboard() {
         return stats.pendingOnlineCourses
       case "storefront-manager":
         return stats.pendingStorefrontOrders
+      case "grocery-requests":
+        return stats.newGroceryRequests
       default:
         return 0
     }
