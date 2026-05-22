@@ -1,36 +1,63 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
-const siteUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://dataflexghana.com").replace(/\/$/, "")
+const SITE_URL = "https://www.dataflexghana.com"
+const PAGE_PATH = "/foodandGroceries"
+const OG_IMAGE_PATH = "/images/grocery-hero-4/grocery-hero-4.jpg"
+
+const PAGE_TITLE = "Grocery Delivery Accra – Fresh Food, No Stress | Dataflex Ghana"
+const PAGE_DESCRIPTION =
+  "Submit your shopping list and get fresh, hygienic groceries delivered to your door anywhere in Accra. No account needed, one-time commitment fee. Fast, personal concierge service for busy professionals, families, and offices. Try Dataflex Grocery Concierge today!"
+
+const PAGE_KEYWORDS = [
+  "grocery delivery Accra",
+  "foodstuff delivery Ghana",
+  "fresh groceries Accra",
+  "online grocery Accra",
+  "concierge shopping Ghana",
+  "Dataflex Ghana",
+  "Accra grocery service",
+  "home delivery Ghana",
+  "fresh produce",
+  "stress-free shopping",
+]
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: "Grocery Delivery Accra – Submit Your Shopping List | Dataflex Ghana",
-  description:
-    "Request concierge grocery shopping in Ghana. Pay a small commitment fee, send your market list, and DataFlex coordinates fresh groceries and delivery to your door.",
+  metadataBase: new URL(SITE_URL),
+  title: PAGE_TITLE,
+  description: PAGE_DESCRIPTION,
+  keywords: PAGE_KEYWORDS,
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  alternates: {
+    canonical: `${SITE_URL}${PAGE_PATH}`,
+  },
   openGraph: {
-    title: "Dataflex Ghana – Grocery Concierge | Fresh Food, No Stress",
-    description:
-      "Submit your shopping list and get fresh groceries delivered to your door in Accra. No account needed. Try it today!",
+    title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
     type: "website",
-    url: "/foodandGroceries",
+    url: PAGE_PATH,
     siteName: "Dataflex Ghana",
     locale: "en_GH",
     images: [
       {
-        url: "/images/grocery-og.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Fresh groceries and produce — Dataflex Ghana grocery concierge",
+        url: OG_IMAGE_PATH,
+        secureUrl: `${SITE_URL}${OG_IMAGE_PATH}`,
+        width: 1920,
+        height: 1280,
+        alt: "Fresh groceries and produce — Dataflex Ghana grocery concierge in Accra",
+        type: "image/jpeg",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dataflex Ghana – Grocery Concierge | Fresh Food, No Stress",
-    description:
-      "Submit your shopping list and get fresh groceries delivered to your door in Accra. No account needed. Try it today!",
-    images: ["/images/grocery-og.jpg"],
+    title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
+    images: [`${SITE_URL}${OG_IMAGE_PATH}`],
   },
 }
 
