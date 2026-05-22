@@ -6,8 +6,7 @@ export const dynamic = "force-dynamic"
 
 export const GET = withUnifiedAuth(async (request: NextRequest, user: any) => {
   try {
-    const { searchParams } = new URL(request.url)
-    const agentId = searchParams.get("agentId") || user.id
+    const agentId = user.role === "agent" ? user.id : new URL(request.url).searchParams.get("agentId") || user.id
 
     if (user.role === "agent" && agentId !== user.id) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 })

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, X } from "lucide-react"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { linkifyMessage } from "@/lib/linkify-message"
 
 type Frequency = "once_per_day" | "once_per_session" | "always"
 
@@ -109,42 +110,46 @@ export default function AgentDashboardNotification({ agentId }: Props) {
         isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
       }`}
     >
-      <div className="relative bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200 shadow-2xl">
-        <div className="container mx-auto px-4 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex-1 pr-8">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-blue-800">{notification.title}</h3>
-              </div>
-              <p className="text-sm text-gray-700 max-w-2xl whitespace-pre-wrap">{notification.message}</p>
-            </div>
-
-            <div className="flex gap-2 w-full sm:w-auto flex-shrink-0">
-              <Button
-                onClick={handleDismiss}
-                variant="outline"
-                className="flex-1 sm:flex-none border-blue-200 text-blue-700 hover:bg-blue-50 bg-transparent"
-              >
-                Dismiss
-              </Button>
-              <Button
-                onClick={handleDismiss}
-                className="flex-1 sm:flex-none bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold"
-              >
-                Got it
-              </Button>
-            </div>
-
+      <div className="bg-slate-100/95 border-b border-slate-200 shadow-lg backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4 sm:py-5 max-w-4xl">
+          <div className="relative bg-white rounded-xl border border-slate-200 shadow-md p-4 sm:p-5">
             <button
               onClick={handleDismiss}
-              className="absolute top-4 right-4 p-1 hover:bg-blue-100 rounded-lg transition-colors"
+              className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
               type="button"
+              aria-label="Dismiss notification"
             >
-              <X className="h-5 w-5 text-gray-500 hover:text-gray-700" />
+              <X className="h-5 w-5" />
             </button>
+
+            <div className="flex items-start gap-3 pr-10">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0 space-y-3">
+                <h3 className="text-lg font-semibold text-slate-900">{notification.title}</h3>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
+                  {linkifyMessage(notification.message)}
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    onClick={handleDismiss}
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-300 text-slate-700"
+                  >
+                    Dismiss
+                  </Button>
+                  <Button
+                    onClick={handleDismiss}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Got it
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -16,6 +16,7 @@ export interface SendSmsParams {
   agentId?: string
   campaignName?: string
   schedule?: Date | string
+  skipBalanceCheck?: boolean
 }
 
 export interface SendSmsResult {
@@ -41,6 +42,9 @@ export interface SmsBalanceResult {
   balance: number
   raw: Record<string, unknown>
 }
+
+export const INSUFFICIENT_SMS_BALANCE_ERROR =
+  "Insufficient SMS balance. Top up your Arkesel account."
 
 /** Ghana numbers → international 233… without leading + */
 export function normalizeGhanaSmsPhone(phoneNumber: string): string {
@@ -160,6 +164,8 @@ export async function sendSMS(
     schedule?: Date | string
     agentId?: string
     campaignName?: string
+    /** Set when bulk send already validated balance for all recipients */
+    skipBalanceCheck?: boolean
   },
 ): Promise<SendSmsResult> {
   const logContext = {
@@ -189,6 +195,10 @@ export async function sendSMS(
 
     if (!message?.trim()) {
       return { success: false, error: "Message cannot be empty" }
+    }
+
+    if (!options?.skipBalanceCheck) {
+      await assertSmsBalanceForSends(1)
     }
 
     const apiKey = logArkeselKeyDiagnostics("sendSMS")
@@ -313,6 +323,7 @@ export async function sendSms(params: SendSmsParams): Promise<SendSmsResult> {
     schedule: schedule && !Number.isNaN(schedule.getTime()) ? schedule : undefined,
     agentId: params.agentId,
     campaignName: params.campaignName,
+    skipBalanceCheck: params.skipBalanceCheck,
   })
 }
 
@@ -363,6 +374,16 @@ export async function checkSmsBalance(): Promise<SmsBalanceResult> {
   return { balance, raw: data }
 }
 
+/** Ensures Arkesel credits cover the requested send count (1 per recipient). */
+export async function assertSmsBalanceForSends(recipientCount: number = 1): Promise<void> {
+  const needed = Math.max(1, recipientCount)
+  const { balance } = await checkSmsBalance()
+
+  if (balance <= 0 || balance < needed) {
+    throw new Error(INSUFFICIENT_SMS_BALANCE_ERROR)
+  }
+}
+
 export async function logSmsToDatabase(
   agentId: string,
   phoneNumber: string,
@@ -409,10 +430,14 @@ export async function sendBulkSms(
   recipients: SendSmsParams[],
   delayMs: number = 100,
 ): Promise<SendSmsResult[]> {
+  if (recipients.length > 0) {
+    await assertSmsBalanceForSends(recipients.length)
+  }
+
   const results: SendSmsResult[] = []
 
   for (let i = 0; i < recipients.length; i++) {
-    const recipient = recipients[i]
+    const recipient = { ...recipients[i], skipBalanceCheck: true }
     const result = await sendSms(recipient)
     results.push(result)
 

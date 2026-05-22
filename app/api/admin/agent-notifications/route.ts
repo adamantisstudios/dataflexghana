@@ -28,26 +28,33 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { title, message, start_date, end_date, frequency, template_name, is_active } = body
+    const { title, message, start_date, end_date, frequency, template_name, is_active, target_agent_id } =
+      body
 
     if (!title?.trim() || !message?.trim() || !start_date || !end_date || !frequency) {
       return NextResponse.json({ error: "title, message, start_date, end_date, and frequency are required" }, { status: 400 })
     }
 
     const db = getAdminClient()
-    const { data, error } = await db
-      .from("agent_notifications")
-      .insert({
-        title: title.trim(),
-        message: message.trim(),
-        start_date,
-        end_date,
-        frequency,
-        template_name: template_name?.trim() || null,
-        is_active: is_active !== false,
-      })
-      .select()
-      .single()
+    const insertRow: Record<string, unknown> = {
+      title: title.trim(),
+      message: message.trim(),
+      start_date,
+      end_date,
+      frequency,
+      template_name: template_name?.trim() || null,
+      is_active: is_active !== false,
+      target_agent_id: target_agent_id || null,
+    }
+
+    let { data, error } = await db.from("agent_notifications").insert(insertRow).select().single()
+
+    if (error?.message?.includes("target_agent_id")) {
+      delete insertRow.target_agent_id
+      const retry = await db.from("agent_notifications").insert(insertRow).select().single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -67,7 +74,8 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { id, title, message, start_date, end_date, frequency, template_name, is_active } = body
+    const { id, title, message, start_date, end_date, frequency, template_name, is_active, target_agent_id } =
+      body
 
     if (!id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 })
@@ -82,8 +90,16 @@ export async function PUT(request: NextRequest) {
     if (frequency !== undefined) updates.frequency = frequency
     if (template_name !== undefined) updates.template_name = template_name || null
     if (is_active !== undefined) updates.is_active = is_active
+    if (target_agent_id !== undefined) updates.target_agent_id = target_agent_id || null
 
-    const { data, error } = await db.from("agent_notifications").update(updates).eq("id", id).select().single()
+    let { data, error } = await db.from("agent_notifications").update(updates).eq("id", id).select().single()
+
+    if (error?.message?.includes("target_agent_id")) {
+      delete updates.target_agent_id
+      const retry = await db.from("agent_notifications").update(updates).eq("id", id).select().single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

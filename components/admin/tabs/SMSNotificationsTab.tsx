@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, memo } from "react"
+import { useState, memo, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -59,7 +59,7 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
     setShowConfirmDialog(true)
   }
 
-  const fetchSmsBalance = async () => {
+  const fetchSmsBalance = useCallback(async (options?: { showToast?: boolean }) => {
     setBalanceLoading(true)
     try {
       const response = await fetch("/api/admin/sms/balance", {
@@ -71,14 +71,22 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
         throw new Error(data.error || "Failed to fetch balance")
       }
       setSmsBalance(Number(data.balance))
-      toast.success(`Arkesel SMS balance: ${Number(data.balance).toLocaleString()} credits`)
+      if (options?.showToast) {
+        toast.success(`Arkesel SMS balance: ${Number(data.balance).toLocaleString()} credits`)
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Balance check failed"
-      toast.error(msg)
+      if (options?.showToast) {
+        toast.error(msg)
+      }
     } finally {
       setBalanceLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchSmsBalance()
+  }, [fetchSmsBalance])
 
   const handleConfirmSend = async () => {
     setShowConfirmDialog(false)
@@ -154,7 +162,7 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
         )
       }
 
-      await fetchSmsBalance()
+      await fetchSmsBalance({ showToast: true })
 
       // Reset form
       setMessage("")
@@ -272,6 +280,20 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
                   </div>
                 )}
 
+                <p className="text-xs text-center text-gray-600">
+                  {balanceLoading
+                    ? "Checking Arkesel balance…"
+                    : smsBalance != null
+                      ? `Arkesel SMS balance: ${smsBalance.toLocaleString()} credit${smsBalance === 1 ? "" : "s"}`
+                      : "Unable to load Arkesel balance"}
+                  {selectedAgents.length > 0 && smsBalance != null && !balanceLoading && (
+                    <span className="block text-gray-500 mt-0.5">
+                      This send requires {selectedAgents.length} credit
+                      {selectedAgents.length !== 1 ? "s" : ""}.
+                    </span>
+                  )}
+                </p>
+
                 {/* Send Button */}
                 <Button
                   onClick={handleSendClick}
@@ -287,13 +309,6 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
                   <Send className="h-4 w-4 mr-2" />
                   {isSending ? "Sending SMS..." : "Send SMS"}
                 </Button>
-                <p className="text-xs text-center text-gray-500">
-                  {balanceLoading
-                    ? "Checking Arkesel balance…"
-                    : smsBalance != null
-                      ? `Arkesel balance: ${smsBalance.toLocaleString()} credits`
-                      : "Balance updates after each send"}
-                </p>
               </div>
             </CardContent>
           </Card>
