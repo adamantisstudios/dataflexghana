@@ -20,6 +20,14 @@
 - [ ] WhatsApp number +233242799990 is correct
 - [ ] Paystack webhook configured (if applicable)
 
+### Arkesel SMS (Vercel — required for admin SMS)
+- [ ] In **Vercel → Project → Settings → Environment Variables**, set `ARKESEL_API_KEY` for **Production** (and Preview if you test SMS there).
+- [ ] Use the working production key: `VlBLR1lMUlZDSVBHV0FodWFJbHA`
+- [ ] Optional: `ARKESEL_SENDER_ID` (defaults to `MyDataflex` in code if unset).
+- [ ] **Redeploy** after changing env vars so serverless functions pick up the new value.
+- [ ] Code reads the key at **request time** via `getArkeselApiKey()` in `lib/sms-config.ts` (`process.env.ARKESEL_API_KEY`) — do not bake the key into source code.
+- [ ] After deploy: Admin → SMS Notifications → confirm balance loads and a test send succeeds.
+
 ### Database Verification
 - [ ] Agents table has all required columns:
   - [ ] `isapproved` (boolean, default false)

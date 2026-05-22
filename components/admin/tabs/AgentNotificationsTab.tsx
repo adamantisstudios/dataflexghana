@@ -16,17 +16,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Bell, Plus, Pencil, Trash2, RefreshCw, Search } from "lucide-react"
-import { getCurrentAdmin } from "@/lib/auth"
+import { Bell, Plus, Pencil, Trash2, RefreshCw } from "lucide-react"
 import { getAdminAuthHeaders } from "@/lib/api-client"
+import { AdminAgentSearchField } from "@/components/admin/AdminAgentSearchField"
+import { fetchAdminAgentById, type AdminAgentSearchResult } from "@/lib/admin-agent-search"
 
 type Frequency = "once_per_day" | "once_per_session" | "always"
-
-interface AgentOption {
-  id: string
-  full_name: string
-  phone_number?: string | null
-}
 
 interface NotificationRow {
   id: string
@@ -50,7 +45,6 @@ const emptyForm = {
   frequency: "once_per_day" as Frequency,
   template_name: "",
   is_active: true,
-  target_agent_id: "" as string,
 }
 
 function adminHeaders(): HeadersInit {
@@ -72,29 +66,8 @@ export default function AgentNotificationsTab() {
   const [editing, setEditing] = useState<NotificationRow | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
-  const [agents, setAgents] = useState<AgentOption[]>([])
-  const [agentsLoading, setAgentsLoading] = useState(false)
-  const [agentSearch, setAgentSearch] = useState("")
-
-  const loadAgents = useCallback(async () => {
-    setAgentsLoading(true)
-    try {
-      const res = await fetch("/api/admin/agents/list?limit=500", { headers: adminHeaders() })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to load agents")
-      setAgents(
-        (data.agents || []).map((a: AgentOption) => ({
-          id: a.id,
-          full_name: a.full_name,
-          phone_number: a.phone_number,
-        })),
-      )
-    } catch {
-      setAgents([])
-    } finally {
-      setAgentsLoading(false)
-    }
-  }, [])
+  const [targetAgent, setTargetAgent] = useState<AdminAgentSearchResult | null>(null)
+  const [agentNameById, setAgentNameById] = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -112,12 +85,48 @@ export default function AgentNotificationsTab() {
 
   useEffect(() => {
     load()
-    loadAgents()
-  }, [load, loadAgents])
+  }, [load])
+
+  useEffect(() => {
+    const ids = [
+      ...new Set(
+        rows.map((r) => r.target_agent_id).filter((id): id is string => Boolean(id)),
+      ),
+    ]
+    if (ids.length === 0) return
+
+    let cancelled = false
+
+    setAgentNameById((prev) => {
+      const missing = ids.filter((id) => !prev[id])
+      if (missing.length === 0) return prev
+
+      void (async () => {
+        const entries = await Promise.all(
+          missing.map(async (id) => {
+            const agent = await fetchAdminAgentById(id)
+            return [id, agent?.full_name || id.slice(0, 8) + "…"] as const
+          }),
+        )
+        if (cancelled) return
+        setAgentNameById((current) => {
+          const next = { ...current }
+          for (const [id, name] of entries) next[id] = name
+          return next
+        })
+      })()
+
+      return prev
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [rows])
 
   const openCreate = () => {
     setEditing(null)
-    setAgentSearch("")
+    setTargetAgent(null)
     const now = new Date()
     const week = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     setForm({
@@ -128,7 +137,7 @@ export default function AgentNotificationsTab() {
     setDialogOpen(true)
   }
 
-  const openEdit = (row: NotificationRow) => {
+  const openEdit = async (row: NotificationRow) => {
     setEditing(row)
     setForm({
       title: row.title,
@@ -138,9 +147,16 @@ export default function AgentNotificationsTab() {
       frequency: row.frequency,
       template_name: row.template_name || "",
       is_active: row.is_active,
-      target_agent_id: row.target_agent_id || "",
     })
-    setAgentSearch("")
+    if (row.target_agent_id) {
+      const agent = await fetchAdminAgentById(row.target_agent_id)
+      setTargetAgent(agent)
+      if (agent) {
+        setAgentNameById((prev) => ({ ...prev, [agent.id]: agent.full_name }))
+      }
+    } else {
+      setTargetAgent(null)
+    }
     setDialogOpen(true)
   }
 
@@ -168,7 +184,7 @@ export default function AgentNotificationsTab() {
         start_date: new Date(form.start_date).toISOString(),
         end_date: new Date(form.end_date).toISOString(),
         template_name: form.template_name.trim() || null,
-        target_agent_id: form.target_agent_id.trim() || null,
+        target_agent_id: targetAgent?.id || null,
       }
       const res = await fetch("/api/admin/agent-notifications", {
         method: editing ? "PUT" : "POST",
@@ -177,6 +193,9 @@ export default function AgentNotificationsTab() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Save failed")
+      if (targetAgent) {
+        setAgentNameById((prev) => ({ ...prev, [targetAgent.id]: targetAgent.full_name }))
+      }
       toast.success(editing ? "Notification updated" : "Notification created")
       setDialogOpen(false)
       load()
@@ -205,18 +224,8 @@ export default function AgentNotificationsTab() {
 
   const templates = [...new Set(rows.map((r) => r.template_name).filter(Boolean))] as string[]
 
-  const filteredAgents = agents.filter((a) => {
-    const q = agentSearch.trim().toLowerCase()
-    if (!q) return true
-    return (
-      a.full_name?.toLowerCase().includes(q) ||
-      a.phone_number?.toLowerCase().includes(q) ||
-      a.id.toLowerCase().includes(q)
-    )
-  })
-
-  const agentNameById = (id: string | null | undefined) =>
-    id ? agents.find((a) => a.id === id)?.full_name || id.slice(0, 8) + "…" : null
+  const displayAgentName = (id: string | null | undefined) =>
+    id ? agentNameById[id] || id.slice(0, 8) + "…" : null
 
   return (
     <div className="space-y-6">
@@ -268,7 +277,7 @@ export default function AgentNotificationsTab() {
                       )}
                       {row.target_agent_id ? (
                         <Badge className="bg-amber-100 text-amber-900">
-                          Target: {agentNameById(row.target_agent_id)}
+                          Target: {displayAgentName(row.target_agent_id)}
                         </Badge>
                       ) : (
                         <Badge variant="secondary">All agents</Badge>
@@ -338,41 +347,17 @@ export default function AgentNotificationsTab() {
                 placeholder="URLs in the message will appear as clickable links for agents."
               />
             </div>
-            <div>
-              <Label>Target agent (optional)</Label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Leave as broadcast to show this notification to every agent.
-              </p>
-              <Select
-                value={form.target_agent_id || "__all__"}
-                onValueChange={(v) => setForm({ ...form, target_agent_id: v === "__all__" ? "" : v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={agentsLoading ? "Loading agents…" : "All agents (broadcast)"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <div className="p-2 border-b">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        className="pl-8 h-9"
-                        placeholder="Search by name or phone…"
-                        value={agentSearch}
-                        onChange={(e) => setAgentSearch(e.target.value)}
-                        onKeyDown={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
-                  <SelectItem value="__all__">All agents (broadcast)</SelectItem>
-                  {filteredAgents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
-                      {agent.full_name}
-                      {agent.phone_number ? ` · ${agent.phone_number}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
+            <AdminAgentSearchField
+              selected={targetAgent}
+              onSelect={(agent) => {
+                setTargetAgent(agent)
+                if (agent) {
+                  setAgentNameById((prev) => ({ ...prev, [agent.id]: agent.full_name }))
+                }
+              }}
+            />
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Start</Label>

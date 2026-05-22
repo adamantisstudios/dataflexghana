@@ -4,6 +4,12 @@ import { authenticateAdmin } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
+const MIN_SEARCH_LENGTH = 4;
+
+function escapeIlikePattern(term: string): string {
+  return term.replace(/[%_\\]/g, "\\$&");
+}
+
 export async function GET(request: NextRequest) {
   const auth = await authenticateAdmin(request);
   if (!auth.success) {
@@ -12,10 +18,45 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "100", 10);
+    const search = searchParams.get("search")?.trim() || "";
+    const agentId = searchParams.get("id")?.trim() || "";
+    const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10), 100);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
 
     const supabase = getAdminClient();
+
+    if (agentId) {
+      const { data: agent, error } = await supabase
+        .from("agents")
+        .select("*")
+        .eq("id", agentId)
+        .maybeSingle();
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+
+      return NextResponse.json({ agents: agent ? [agent] : [], count: agent ? 1 : 0 });
+    }
+
+    if (search.length >= MIN_SEARCH_LENGTH) {
+      const pattern = `%${escapeIlikePattern(search)}%`;
+      const { data: agents, error } = await supabase
+        .from("agents")
+        .select("*")
+        .or(
+          `full_name.ilike.${pattern},phone_number.ilike.${pattern},momo_number.ilike.${pattern},email.ilike.${pattern}`,
+        )
+        .order("full_name", { ascending: true })
+        .range(0, limit - 1);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+
+      return NextResponse.json({ agents: agents || [], count: agents?.length ?? 0 });
+    }
+
     const { data: agents, error } = await supabase
       .from("agents")
       .select("*")
