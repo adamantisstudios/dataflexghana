@@ -9,37 +9,40 @@ export const metadata: Metadata = {
 
 const SUPPORT_WHATSAPP = "https://wa.me/233246827049?text=Hello%20DataFlex%20support"
 
+const linkClass =
+  "text-emerald-700 font-medium hover:underline break-all inline-block max-w-full"
+
 export default function WelcomeAgentPage() {
   return (
-    <main className="min-h-screen bg-white text-slate-800">
-      <article className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-        <header className="mb-10 border-b border-slate-200 pb-8">
+    <main className="min-h-screen bg-white text-slate-800 overflow-x-hidden">
+      <article className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14 min-w-0">
+        <header className="mb-10 border-b border-slate-200 pb-8 min-w-0">
           <p className="text-sm font-medium text-emerald-700 uppercase tracking-wide mb-2">
             DataFlex Ghana · Agent Welcome
           </p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 leading-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 leading-tight break-words">
             Turn your smartphone into a real business
           </h1>
-          <p className="mt-4 text-lg text-slate-600 leading-relaxed">
+          <p className="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed break-words">
             DataFlex gives you a digital storefront, wholesale agent pricing on data, and dozens of services you can
             promote to customers in your community — all from one dashboard in your browser.
           </p>
         </header>
 
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-3">Your digital storefront</h2>
-          <p className="leading-relaxed mb-4">
+        <section className="mb-10 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-3">Your digital storefront</h2>
+          <p className="leading-relaxed mb-4 break-words">
             Every approved agent can run a branded storefront where customers order data and pay online. Share your
             link on WhatsApp, Facebook, or in person — orders and commissions are tracked for you automatically.
           </p>
-          <ul className="list-disc pl-5 space-y-2 text-slate-700">
+          <ul className="list-disc pl-5 space-y-2 text-slate-700 break-words">
             <li>
               Set your custom store slug in the agent dashboard under{" "}
               <strong>Referral Hub / Storefront</strong>.
             </li>
             <li>
-              Your public store URL format:{" "}
-              <code className="text-sm bg-slate-100 px-1.5 py-0.5 rounded">
+              Your public store URL format:
+              <code className="mt-1 block text-xs sm:text-sm bg-slate-100 px-2 py-2 rounded break-all overflow-x-auto">
                 https://referralpowerhouse.vercel.app/store/your-slug
               </code>
             </li>
@@ -47,61 +50,61 @@ export default function WelcomeAgentPage() {
           </ul>
         </section>
 
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-3">Get started</h2>
-          <ul className="space-y-2">
-            <li>
-              <Link href="https://dataflexghana.com/agent/register" className="text-emerald-700 font-medium hover:underline">
+        <section className="mb-10 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-3">Get started</h2>
+          <ul className="space-y-3 break-words">
+            <li className="min-w-0">
+              <Link href="https://dataflexghana.com/agent/register" className={linkClass}>
                 Register or join as an agent
               </Link>
-              {" · "}
-              <Link href="https://dataflexghana.com" className="text-emerald-700 hover:underline">
+              <span className="text-slate-500"> · </span>
+              <Link href="https://dataflexghana.com" className={linkClass}>
                 dataflexghana.com
               </Link>
             </li>
             <li>
-              <Link href="https://dataflexghana.com/agent/data-order" className="text-emerald-700 font-medium hover:underline">
+              <Link href="https://dataflexghana.com/agent/data-order" className={linkClass}>
                 Order data bundles (agent dashboard)
               </Link>
             </li>
             <li>
-              <Link href="https://dataflexghana.com/agent/wallet" className="text-emerald-700 font-medium hover:underline">
+              <Link href="https://dataflexghana.com/agent/wallet" className={linkClass}>
                 Top up your wallet
               </Link>
             </li>
             <li>
-              <Link href="https://dataflexghana.com/agent/data-orders" className="text-emerald-700 font-medium hover:underline">
+              <Link href="https://dataflexghana.com/agent/data-orders" className={linkClass}>
                 Manage data orders
               </Link>
             </li>
           </ul>
         </section>
 
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-3">Available data bundles</h2>
-          <p className="mb-4 text-slate-600">
+        <section className="mb-10 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-3">Available data bundles</h2>
+          <p className="mb-4 text-slate-600 break-words">
             Agent-only prices are lower than retail. The full live price list is always in your dashboard after login.
             Example MTN agent rate:
           </p>
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="w-full text-sm text-left">
+          <div className="w-full overflow-x-auto -mx-0 rounded-lg border border-slate-200">
+            <table className="w-full min-w-[280px] text-sm text-left">
               <thead className="bg-slate-50 text-slate-900">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Network / bundle</th>
-                  <th className="px-4 py-3 font-semibold">Retail (approx.)</th>
-                  <th className="px-4 py-3 font-semibold">Agent price</th>
+                  <th className="px-3 sm:px-4 py-3 font-semibold whitespace-nowrap">Network / bundle</th>
+                  <th className="px-3 sm:px-4 py-3 font-semibold whitespace-nowrap">Retail (approx.)</th>
+                  <th className="px-3 sm:px-4 py-3 font-semibold whitespace-nowrap">Agent price</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 <tr>
-                  <td className="px-4 py-3">MTN 1GB</td>
-                  <td className="px-4 py-3 text-slate-500 line-through">₵6.50</td>
-                  <td className="px-4 py-3 font-semibold text-emerald-700">₵3.70</td>
+                  <td className="px-3 sm:px-4 py-3">MTN 1GB</td>
+                  <td className="px-3 sm:px-4 py-3 text-slate-500 line-through">₵6.50</td>
+                  <td className="px-3 sm:px-4 py-3 font-semibold text-emerald-700">₵3.70</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 col-span-3 text-slate-600" colSpan={3}>
+                  <td className="px-3 sm:px-4 py-3 text-slate-600 break-words" colSpan={3}>
                     Additional sizes (2GB, 3GB, 5GB, 10GB, etc.) for MTN, Telecel, and AirtelTigo — see{" "}
-                    <Link href="https://dataflexghana.com/agent/data-order" className="text-emerald-700 hover:underline">
+                    <Link href="https://dataflexghana.com/agent/data-order" className={linkClass}>
                       Order Data Bundles
                     </Link>
                   </td>
@@ -109,19 +112,19 @@ export default function WelcomeAgentPage() {
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-sm text-slate-600">
+          <p className="mt-3 text-sm text-slate-600 break-words">
             Delivery is typically within 10 minutes to 24 hours. You do not need to message support for each order —
             the system processes wallet and manual payments automatically.
           </p>
         </section>
 
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-3">Services you can promote</h2>
-          <p className="mb-4 leading-relaxed">
+        <section className="mb-10 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-3">Services you can promote</h2>
+          <p className="mb-4 leading-relaxed break-words">
             Many agents earn <strong>GHS 200–800 per day</strong> by promoting more than data. Share links from your
             dashboard and earn commissions when customers complete orders.
           </p>
-          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2 list-disc pl-5 text-slate-700">
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2 list-disc pl-5 text-slate-700 break-words">
             <li>Cheap data bundles</li>
             <li>Business registration & compliance</li>
             <li>Wholesale & dropshipping</li>
@@ -138,37 +141,37 @@ export default function WelcomeAgentPage() {
             <li>Product promotion & commissions</li>
             <li>Free marketing training</li>
           </ul>
-          <p className="mt-4">
-            <Link href="https://dataflexghana.com/no-registration" className="text-emerald-700 font-medium hover:underline">
+          <p className="mt-4 break-words">
+            <Link href="https://dataflexghana.com/no-registration" className={linkClass}>
               No-registration orders
             </Link>{" "}
             — let customers buy without signing up as agents.
           </p>
         </section>
 
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-3">Wallet, savings & wholesale</h2>
-          <ul className="space-y-2">
+        <section className="mb-10 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-3">Wallet, savings & wholesale</h2>
+          <ul className="space-y-3 break-words">
             <li>
-              <Link href="https://dataflexghana.com/agent/wallet" className="text-emerald-700 font-medium hover:underline">
+              <Link href="https://dataflexghana.com/agent/wallet" className={linkClass}>
                 Wallet top-up
               </Link>{" "}
               — fund orders quickly without repeating MoMo steps each time.
             </li>
             <li>
-              <Link href="https://dataflexghana.com/agent/savings" className="text-emerald-700 font-medium hover:underline">
+              <Link href="https://dataflexghana.com/agent/savings" className={linkClass}>
                 Savings
               </Link>{" "}
               — grow balances toward goals inside the platform.
             </li>
             <li>
-              <Link href="https://dataflexghana.com/agent/wholesale" className="text-emerald-700 font-medium hover:underline">
+              <Link href="https://dataflexghana.com/agent/wholesale" className={linkClass}>
                 Wholesale
               </Link>{" "}
               — bulk pricing for resellers.
             </li>
             <li>
-              <Link href="https://dataflexghana.com/agent/withdraw" className="text-emerald-700 font-medium hover:underline">
+              <Link href="https://dataflexghana.com/agent/withdraw" className={linkClass}>
                 Withdraw earnings
               </Link>{" "}
               — move confirmed commission to Mobile Money.
@@ -176,8 +179,8 @@ export default function WelcomeAgentPage() {
           </ul>
         </section>
 
-        <section className="mb-10 rounded-xl bg-amber-50 border border-amber-200 p-5">
-          <h2 className="text-xl font-semibold text-amber-950 mb-3">Manual data orders</h2>
+        <section className="mb-10 rounded-xl bg-amber-50 border border-amber-200 p-4 sm:p-5 min-w-0 break-words">
+          <h2 className="text-lg sm:text-xl font-semibold text-amber-950 mb-3">Manual data orders</h2>
           <p className="text-amber-900 text-sm leading-relaxed mb-3">
             When you choose <strong>Manual Payment</strong> on the data order page:
           </p>
@@ -194,16 +197,16 @@ export default function WelcomeAgentPage() {
           </p>
         </section>
 
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-3">Troubleshooting</h2>
-          <ul className="list-disc pl-5 space-y-2 text-slate-700">
+        <section className="mb-10 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-3">Troubleshooting</h2>
+          <ul className="list-disc pl-5 space-y-2 text-slate-700 break-words">
             <li>
               <strong>Order stuck?</strong> Confirm payment reference matches, wallet has enough balance, and the
               recipient number is correct (10 digits, correct network).
             </li>
             <li>
               <strong>Payment not recognized?</strong> Wait a few minutes, refresh{" "}
-              <Link href="https://dataflexghana.com/agent/data-orders" className="text-emerald-700 hover:underline">
+              <Link href="https://dataflexghana.com/agent/data-orders" className={linkClass}>
                 Manage orders
               </Link>
               , then contact support with your reference.
@@ -218,11 +221,11 @@ export default function WelcomeAgentPage() {
           </ul>
         </section>
 
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-3">How to get help</h2>
-          <ul className="space-y-2">
+        <section className="mb-10 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-3">How to get help</h2>
+          <ul className="space-y-3 break-words">
             <li>
-              <a href={SUPPORT_WHATSAPP} target="_blank" rel="noopener noreferrer" className="text-emerald-700 font-medium hover:underline">
+              <a href={SUPPORT_WHATSAPP} target="_blank" rel="noopener noreferrer" className={linkClass}>
                 WhatsApp support
               </a>
             </li>
@@ -231,17 +234,17 @@ export default function WelcomeAgentPage() {
               (link shared in your dashboard when available).
             </li>
             <li>
-              <Link href="https://dataflexghana.com/terms" className="text-emerald-700 font-medium hover:underline">
+              <Link href="https://dataflexghana.com/terms" className={linkClass}>
                 Terms & conditions
               </Link>
             </li>
           </ul>
         </section>
 
-        <footer className="pt-6 border-t border-slate-200 text-center text-sm text-slate-500">
+        <footer className="pt-6 border-t border-slate-200 text-center text-sm text-slate-500 min-w-0 break-words">
           <p>Welcome to the DataFlex agent community. Work smart, serve your customers well, and grow with us.</p>
           <p className="mt-2">
-            <Link href="https://dataflexghana.com/agent/register" className="text-emerald-700 font-semibold hover:underline">
+            <Link href="https://dataflexghana.com/agent/register" className={linkClass}>
               Start earning today →
             </Link>
           </p>

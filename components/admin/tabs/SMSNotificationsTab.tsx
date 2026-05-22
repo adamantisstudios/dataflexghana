@@ -89,32 +89,30 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
   }, [fetchSmsBalance])
 
   const handleConfirmSend = async () => {
+    const smsParams: SendSmsParams[] = selectedAgents
+      .map((agent) => {
+        const phoneNumber = agent.selectedPhone || agent.phone_number || agent.momo_number
+        if (!phoneNumber) return null
+
+        return {
+          phoneNumber,
+          message,
+          senderName: "Your Business",
+          agentId: agent.id,
+          campaignName: campaignName || undefined,
+        } as SendSmsParams
+      })
+      .filter((param): param is SendSmsParams => param !== null)
+
+    if (smsParams.length === 0) {
+      toast.error("No valid phone numbers found for selected agents")
+      return
+    }
+
     setShowConfirmDialog(false)
     setIsSending(true)
 
     try {
-      const smsParams: SendSmsParams[] = selectedAgents
-        .map((agent) => {
-          // Use the selectedPhone (formatted with country code) if available
-          const phoneNumber = agent.selectedPhone || agent.phone_number || agent.momo_number
-          if (!phoneNumber) return null
-
-          return {
-            phoneNumber,
-            message,
-            senderName: "Your Business",
-            agentId: agent.id,
-            campaignName: campaignName || undefined,
-          } as SendSmsParams
-        })
-        .filter((param): param is SendSmsParams => param !== null)
-
-      if (smsParams.length === 0) {
-        toast.error("No valid phone numbers found for selected agents")
-        setIsSending(false)
-        return
-      }
-
       const response = await fetch("/api/admin/sms/send", {
         method: "POST",
         headers: getAdminAuthHeaders(),
@@ -122,8 +120,9 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
       })
 
       const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send SMS")
+
+      if (data.balance != null && Number.isFinite(Number(data.balance))) {
+        setSmsBalance(Number(data.balance))
       }
 
       const results: Array<{
@@ -143,35 +142,23 @@ const SMSNotificationsTab = memo(function SMSNotificationsTab() {
         error: results[index]?.error,
       }))
 
-      setSendResults(detailedResults)
-      setShowResultsDialog(true)
-
-      // Summary stats
-      const successCount = detailedResults.filter((r) => r.success).length
-      const failureCount = detailedResults.filter((r) => !r.success).length
-
-      if (successCount > 0) {
-        toast.success(
-          `SMS sent to ${successCount} agent${successCount !== 1 ? "s" : ""}`
-        )
+      if (detailedResults.length > 0) {
+        setSendResults(detailedResults)
+        setShowResultsDialog(true)
       }
 
-      if (failureCount > 0) {
-        toast.error(
-          `Failed to send to ${failureCount} agent${failureCount !== 1 ? "s" : ""}`
-        )
+      if (data.success) {
+        toast.success("Message sent successfully")
+        setMessage("")
+        setSelectedAgents([])
+        setCampaignName("")
+      } else {
+        toast.error(data.error || "Failed to send SMS")
       }
-
-      await fetchSmsBalance({ showToast: true })
-
-      // Reset form
-      setMessage("")
-      setSelectedAgents([])
-      setCampaignName("")
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error("[v0] Error sending SMS:", error)
-      toast.error(`Failed to send SMS: ${errorMessage}`)
+      const errorMessage = error instanceof Error ? error.message : "Failed to send SMS"
+      console.error("[SMSNotificationsTab] send failed:", errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsSending(false)
     }

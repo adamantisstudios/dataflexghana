@@ -25,6 +25,31 @@ export interface SendSmsResult {
   error?: string
   statusCode?: number
   rawResponse?: string
+  /** Remaining SMS credits returned by Arkesel after a successful send */
+  balance?: number
+}
+
+/** Arkesel SMS API V1 error codes (100–111) */
+export const ARKESEL_ERROR_MESSAGES: Record<string, string> = {
+  "100": "Bad gateway request",
+  "101": "Wrong action",
+  "102": "Authentication failed",
+  "103": "Invalid phone number",
+  "104": "Phone coverage not active",
+  "105": "Insufficient balance",
+  "106": "Invalid Sender ID",
+  "107": "Invalid message",
+  "108": "Invalid message type",
+  "109": "Invalid Schedule Time",
+  "110": "Invalid gateway",
+  "111": "SMS contains spam word. Wait for approval",
+}
+
+export interface ParsedArkeselResponse {
+  success: boolean
+  error?: string
+  balance?: number
+  messageId?: string
 }
 
 export interface SmsLog {
@@ -74,57 +99,89 @@ function formatArkeselSchedule(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
-function parseArkeselSendSuccess(data: Record<string, unknown>): boolean {
-  const status = String(data.status ?? data.Status ?? "").toLowerCase()
-  const code = data.code ?? data.status_code
-
-  if (
-    code === 401 ||
-    code === 403 ||
-    code === "401" ||
-    code === "403" ||
-    status === "error" ||
-    status === "failed" ||
-    status === "failure"
-  ) {
-    return false
-  }
-
-  if (data.error || data.Error) {
-    return false
-  }
-
-  const message = String(data.message ?? data.Message ?? "").toLowerCase()
-  if (
-    message.includes("invalid api") ||
-    message.includes("unauthorized") ||
-    message.includes("authentication") ||
-    message.includes("api key")
-  ) {
-    return false
-  }
-
-  if (status === "success" || status === "ok") {
-    return true
-  }
-
-  if (data.message_id || data.messageId || data.id) {
-    return true
-  }
-
-  return false
+function normalizeArkeselCode(code: unknown): string {
+  return String(code ?? "")
+    .trim()
+    .toLowerCase()
 }
 
-function extractArkeselError(data: Record<string, unknown>, responseText: string): string {
+function isArkeselErrorCode(code: string): boolean {
+  const numeric = code.replace(/\D/g, "")
+  if (!numeric) return false
+  const n = Number(numeric)
+  return n >= 100 && n <= 111
+}
+
+function resolveArkeselErrorMessage(data: Record<string, unknown>, responseText: string): string {
+  const rawCode = String(data.code ?? data.Code ?? "").trim()
+  const normalized = normalizeArkeselCode(rawCode)
+
+  if (isArkeselErrorCode(normalized) || (rawCode && ARKESEL_ERROR_MESSAGES[rawCode])) {
+    const docMessage = ARKESEL_ERROR_MESSAGES[rawCode] || ARKESEL_ERROR_MESSAGES[normalized]
+    const apiMessage = String(data.message ?? data.Message ?? "").trim()
+    if (docMessage && apiMessage) {
+      return `${docMessage}: ${apiMessage}`
+    }
+    return docMessage || apiMessage || `Arkesel error (code ${rawCode})`
+  }
+
   return (
-    (data.message as string) ||
-    (data.Message as string) ||
-    (data.error as string) ||
-    (data.Error as string) ||
-    (data.description as string) ||
+    String(data.message ?? data.Message ?? "").trim() ||
+    String(data.error ?? data.Error ?? "").trim() ||
+    String(data.description ?? "").trim() ||
     responseText ||
     "Arkesel request failed"
   )
+}
+
+/** Parse Arkesel JSON after logging raw body; success when `code` is `ok` (case-insensitive). */
+export function parseArkeselSendResponse(
+  data: Record<string, unknown>,
+  responseText: string,
+  context: string,
+): ParsedArkeselResponse {
+  const code = normalizeArkeselCode(data.code ?? data.Code)
+
+  if (code === "ok") {
+    const balance = parseArkeselBalance(data) ?? undefined
+    const messageId =
+      (data.message_id as string) ||
+      (data.messageId as string) ||
+      (data.id as string) ||
+      undefined
+
+    return { success: true, balance, messageId }
+  }
+
+  if (isArkeselErrorCode(code) || (String(data.code ?? data.Code ?? "").trim() && ARKESEL_ERROR_MESSAGES[String(data.code ?? data.Code).trim()])) {
+    return {
+      success: false,
+      error: resolveArkeselErrorMessage(data, responseText),
+    }
+  }
+
+  const status = String(data.status ?? data.Status ?? "").toLowerCase()
+  if (status === "success" || status === "ok") {
+    return {
+      success: true,
+      balance: parseArkeselBalance(data) ?? undefined,
+      messageId: (data.message_id as string) || (data.messageId as string) || undefined,
+    }
+  }
+
+  console.error(`[sms-service] ${context} unrecognized Arkesel response:`, {
+    code: data.code ?? data.Code,
+    status: data.status ?? data.Status,
+  })
+
+  return {
+    success: false,
+    error: resolveArkeselErrorMessage(data, responseText),
+  }
+}
+
+function extractArkeselError(data: Record<string, unknown>, responseText: string): string {
+  return resolveArkeselErrorMessage(data, responseText)
 }
 
 function parseArkeselBalance(data: Record<string, unknown>): number | null {
@@ -227,23 +284,40 @@ export async function sendSMS(
     const response = await fetch(url, { method: "GET", cache: "no-store" })
     const responseText = await response.text()
 
-    let responseData: Record<string, unknown> | null = null
+    console.log("[sms-service] sendSMS Arkesel raw response:", responseText.slice(0, 2000))
+
+    let responseData: Record<string, unknown>
     try {
       responseData = JSON.parse(responseText) as Record<string, unknown>
     } catch {
-      responseData = { raw: responseText }
+      console.error("[sms-service] sendSMS invalid JSON:", responseText.slice(0, 500))
+      const parseError = responseText || `HTTP ${response.status}`
+      if (logContext.agentId) {
+        await logSmsToDatabase(
+          logContext.agentId,
+          to,
+          message,
+          "failed",
+          logContext.campaignName,
+          responseText,
+        )
+      }
+      return {
+        success: false,
+        error: parseError,
+        statusCode: response.status,
+        rawResponse: responseText,
+      }
     }
 
-    const apiOk =
-      response.ok && (responseData ? parseArkeselSendSuccess(responseData) : responseText.length > 0)
+    const parsed = parseArkeselSendResponse(responseData, responseText, "sendSMS")
 
-    if (!apiOk) {
-      const errorMessage = responseData
-        ? extractArkeselError(responseData, responseText)
-        : responseText || `HTTP ${response.status}`
+    if (!response.ok || !parsed.success) {
+      const errorMessage = parsed.error || `HTTP ${response.status}`
 
       console.error("[sms-service] sendSMS Arkesel error:", {
         httpStatus: response.status,
+        code: responseData.code ?? responseData.Code,
         error: errorMessage,
       })
 
@@ -266,11 +340,7 @@ export async function sendSMS(
       }
     }
 
-    const messageId =
-      (responseData?.message_id as string) ||
-      (responseData?.messageId as string) ||
-      (responseData?.id as string) ||
-      "sent"
+    const messageId = parsed.messageId || "sent"
 
     if (logContext.agentId) {
       await logSmsToDatabase(
@@ -287,6 +357,7 @@ export async function sendSMS(
       success: true,
       messageId: String(messageId),
       rawResponse: responseText,
+      balance: parsed.balance,
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -345,6 +416,7 @@ export async function checkSmsBalance(): Promise<SmsBalanceResult> {
   try {
     response = await fetch(url, { method: "GET", cache: "no-store" })
     responseText = await response.text()
+    console.log("[sms-service] checkSmsBalance Arkesel raw response:", responseText.slice(0, 2000))
   } catch (fetchError) {
     const msg = fetchError instanceof Error ? fetchError.message : String(fetchError)
     console.error("[sms-service] checkSmsBalance fetch failed:", msg)
@@ -359,7 +431,12 @@ export async function checkSmsBalance(): Promise<SmsBalanceResult> {
     throw new Error(`Invalid balance response from Arkesel (HTTP ${response.status})`)
   }
 
+  const code = normalizeArkeselCode(data.code ?? data.Code)
   const balance = parseArkeselBalance(data)
+
+  if (code && code !== "ok" && isArkeselErrorCode(code)) {
+    throw new Error(resolveArkeselErrorMessage(data, responseText))
+  }
 
   if (!response.ok || balance === null) {
     const errorMessage = extractArkeselError(data, responseText)
