@@ -1,0 +1,24 @@
+.tutorials-swiper {
+  height: 100dvh !important;
+  width: 100vw;
+  touch-action: pan-y;
+}
+
+.tutorials-swiper .swiper-wrapper {
+  height: 100%;
+}
+
+.tutorials-swiper .swiper-slide {
+  height: 100dvh !important;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.tutorial-embed iframe {
+  pointer-events: none;
+  border: 0;
+}
+
+.tutorial-embed--youtube iframe {
+  pointer-events: auto;
+}
