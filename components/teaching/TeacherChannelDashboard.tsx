@@ -272,7 +272,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
         .eq("channel_id", channelId)
         .order("created_at", { ascending: false })
       if (qaError) {
-        console.error("[v0] Error loading Q&A posts:", qaError)
+        console.error("[v0] Error loading Quiz posts:", qaError)
       } else {
         setQAPosts(qaPostsData || [])
       }
@@ -813,7 +813,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
   }
 
   const handleDeleteQAPost = async (postId: string) => {
-    if (!confirm("Are you sure you want to delete this Q&A post?")) return
+    if (!confirm("Are you sure you want to delete this quiz?")) return
     try {
       const { error } = await supabase
         .from("qa_posts")
@@ -823,31 +823,31 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
         })
         .eq("id", postId)
       if (error) {
-        console.error("[v0] Error deleting Q&A post:", error)
+        console.error("[v0] Error deleting Quiz post:", error)
         throw error
       }
-      toast.success("Q&A post deleted")
+      toast.success("Quiz deleted")
       loadChannelData()
     } catch (error) {
-      console.error("[v0] Error deleting Q&A post:", error)
-      toast.error("Failed to delete Q&A post")
+      console.error("[v0] Error deleting Quiz post:", error)
+      toast.error("Failed to delete quiz")
     }
   }
 
   const handlePermanentlyDeleteQAPost = async (postId: string) => {
-    if (!confirm("Are you sure you want to permanently delete this Q&A post? This cannot be undone.")) return
+    if (!confirm("Are you sure you want to permanently delete this quiz? This cannot be undone.")) return
     try {
       setPermanentlyDeletingId(postId)
       const { error } = await supabase.from("qa_posts").delete().eq("id", postId)
       if (error) {
-        console.error("[v0] Error permanently deleting Q&A post:", error)
+        console.error("[v0] Error permanently deleting Quiz post:", error)
         throw error
       }
-      toast.success("Q&A post permanently deleted")
+      toast.success("Quiz permanently deleted")
       loadChannelData()
     } catch (error) {
-      console.error("[v0] Error permanently deleting Q&A post:", error)
-      toast.error("Failed to permanently delete Q&A post")
+      console.error("[v0] Error permanently deleting Quiz post:", error)
+      toast.error("Failed to permanently delete quiz")
     } finally {
       setPermanentlyDeletingId(null)
     }
@@ -1723,7 +1723,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
               )}
             </div>
           </TabsContent>
-          {/* Q&A Tab */}
+          {/* Quiz Tab */}
           <TabsContent value="qa" className="space-y-2 w-full px-2 sm:px-3">
             <QAPostCreator
               channelId={channelId}
@@ -1732,11 +1732,11 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
               onPostCreated={loadChannelData}
             />
             <div className="space-y-2 w-full">
-              <h3 className="font-semibold text-purple-800 text-sm">Q&A Posts</h3>
+              <h3 className="font-semibold text-purple-800 text-sm">Quizzes</h3>
               {qaPosts.length === 0 ? (
                 <div className="bg-purple-50 border-b-2 border-purple-200 rounded p-3 text-center text-purple-600 text-xs">
                   <FileText className="h-6 w-6 mx-auto mb-1 opacity-50" />
-                  <p>No Q&A posts yet. Create your first question!</p>
+                  <p>No quizzes yet. Create your first quiz!</p>
                 </div>
               ) : (
                 <div className="space-y-2 w-full">

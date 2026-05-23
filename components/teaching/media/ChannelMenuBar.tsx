@@ -20,7 +20,7 @@ export function ChannelMenuBar({ activeTab, onTabChange }: ChannelMenuBarProps) 
       color: "bg-cyan-500",
       hoverColor: "hover:bg-cyan-600",
     },
-    { id: "qa", label: "Q&A", icon: HelpCircle, color: "bg-indigo-500", hoverColor: "hover:bg-indigo-600" },
+    { id: "qa", label: "Quizzes", icon: HelpCircle, color: "bg-indigo-500", hoverColor: "hover:bg-indigo-600" },
     { id: "videos", label: "Videos", icon: Play, color: "bg-red-500", hoverColor: "hover:bg-red-600" },
     { id: "youtube-videos", label: "YouTube", icon: Video, color: "bg-rose-500", hoverColor: "hover:bg-rose-600" },
     { id: "subscriptions", label: "Subscriptions", icon: CreditCard, color: "bg-green-500", hoverColor: "hover:bg-green-600" },

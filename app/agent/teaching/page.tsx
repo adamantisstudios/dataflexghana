@@ -31,7 +31,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { TeacherChannelDashboard } from "@/components/teaching/TeacherChannelDashboard"
 import { ChannelSubscriptionBadge } from "@/components/teaching/channel-subscription-badge"
 
 // Types
@@ -109,6 +108,13 @@ export default function TeachingPlatformPage() {
   const [selectedChannelForJoin, setSelectedChannelForJoin] = useState<TeachingChannel | null>(null)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [showChannelDialog, setShowChannelDialog] = useState(false)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    description: "",
+    category: "General",
+    is_public: true,
+  })
 
   // Load Data
   useEffect(() => {
@@ -287,6 +293,48 @@ export default function TeachingPlatformPage() {
     }
   }
 
+  const handleCreateChannel = async () => {
+    if (!agent || !createForm.name.trim()) {
+      toast.error("Channel name is required")
+      return
+    }
+    try {
+      const { data, error } = await supabase
+        .from("teaching_channels")
+        .insert([
+          {
+            name: createForm.name.trim(),
+            description: createForm.description.trim(),
+            category: createForm.category,
+            is_public: createForm.is_public,
+            max_members: 100,
+            created_by: agent.id,
+            is_active: true,
+          },
+        ])
+        .select("id")
+        .single()
+
+      if (error) throw error
+
+      if (data?.id) {
+        await supabase.from("channel_members").insert({
+          channel_id: data.id,
+          agent_id: agent.id,
+          role: "teacher",
+          status: "active",
+        })
+      }
+
+      toast.success("Channel created successfully")
+      setShowCreateDialog(false)
+      setCreateForm({ name: "", description: "", category: "General", is_public: true })
+      await loadChannels()
+    } catch {
+      toast.error("Failed to create channel")
+    }
+  }
+
   // Open Channel
   const handleOpenChannel = (channel: TeachingChannel) => {
     router.push(`/agent/teaching/${channel.id}`)
@@ -313,55 +361,10 @@ export default function TeachingPlatformPage() {
   // Render
   if (!agent) return null
 
-  if (selectedChannel && (selectedChannel.user_role === "admin" || selectedChannel.user_role === "teacher")) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg border-b-2 border-blue-700">
-          <div className="w-full px-2 py-2 sm:px-3 sm:py-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedChannel(null)}
-                  className="text-white hover:bg-white/20 h-7 px-2 text-xs"
-                >
-                  ← Back
-                </Button>
-                <div className="min-w-0">
-                  <h1 className="text-sm sm:text-base font-bold text-white drop-shadow-lg truncate">
-                    {selectedChannel.name}
-                  </h1>
-                  <p className="text-xs text-blue-100 truncate">Teaching Channel - {selectedChannel.user_role}</p>
-                </div>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleLogout}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-7 px-2 text-xs flex-shrink-0"
-              >
-                <LogOut className="h-3 w-3 mr-1" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-        <div className="w-full px-2 py-4 sm:px-3">
-          <TeacherChannelDashboard
-            channelId={selectedChannel.id}
-            teacherId={agent.id}
-            teacherName={agent.full_name || agent.email}
-          />
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
       {/* Top Navigation */}
-      <div className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg border-b-2 border-blue-700">
+      <div className="w-full bg-gradient-to-r from-[#0E8F3D] to-[#35B24A] shadow-lg border-b-2 border-[#0E8F3D]">
         <div className="w-full px-2 py-2 sm:px-3 sm:py-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -374,11 +377,11 @@ export default function TeachingPlatformPage() {
                 ← Back
               </Button>
               <div className="w-8 h-8 bg-white rounded-lg shadow-lg flex items-center justify-center p-1 flex-shrink-0">
-                <BookOpen className="w-full h-full text-blue-600" />
+                <BookOpen className="w-full h-full text-[#0E8F3D]" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-sm sm:text-base font-bold text-white drop-shadow-lg truncate">Teaching Platform</h1>
-                <p className="text-xs text-blue-100 truncate">Learn from expert teachers</p>
+                <h1 className="text-sm sm:text-base font-bold text-white drop-shadow-lg truncate">Dataflex Channels</h1>
+                <p className="text-xs text-green-100 truncate">Learn, teach, and grow together</p>
               </div>
             </div>
             <Button
@@ -394,6 +397,55 @@ export default function TeachingPlatformPage() {
         </div>
       </div>
 
+      <div className="w-full px-3 py-6 sm:px-6 bg-white/70 border-b border-green-100">
+        <div className="max-w-4xl mx-auto text-center space-y-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#0E8F3D]">Welcome to Dataflex Channels</h2>
+          <p className="text-sm text-gray-600 max-w-2xl mx-auto">
+            Browse public teaching channels, join communities, and access lessons, quizzes, videos, and notes.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 pt-2">
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="bg-[#0E8F3D] hover:bg-[#35B24A] text-white">
+                  <Plus className="h-3 w-3 mr-1" />
+                  Create Channel
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Create Channel</DialogTitle>
+                  <DialogDescription>Start a new teaching channel for your community.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 py-2">
+                  <Input
+                    placeholder="Channel name"
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                  />
+                  <textarea
+                    placeholder="Description"
+                    value={createForm.description}
+                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md text-sm min-h-[80px]"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateChannel} className="bg-[#0E8F3D] hover:bg-[#35B24A]">
+                    Create
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Button size="sm" variant="outline" onClick={() => router.push("/agent/my-subscriptions")}>
+              My Subscriptions
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex-1 overflow-y-auto">
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
@@ -402,14 +454,14 @@ export default function TeachingPlatformPage() {
               <TabsList className="w-full flex items-center justify-start bg-transparent p-0 gap-1 overflow-x-auto">
                 <TabsTrigger
                   value="channels"
-                  className="flex items-center justify-center px-2 py-1 text-xs font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-md whitespace-nowrap flex-shrink-0"
+                  className="flex items-center justify-center px-2 py-1 text-xs font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0E8F3D] data-[state=active]:to-[#35B24A] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-md whitespace-nowrap flex-shrink-0"
                 >
                   <BookOpen className="h-3 w-3 mr-1" />
                   View Channels
                 </TabsTrigger>
                 <TabsTrigger
                   value="my-channels"
-                  className="flex items-center justify-center px-2 py-1 text-xs font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-md whitespace-nowrap flex-shrink-0"
+                  className="flex items-center justify-center px-2 py-1 text-xs font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0E8F3D] data-[state=active]:to-[#35B24A] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-md whitespace-nowrap flex-shrink-0"
                 >
                   <Users className="h-3 w-3 mr-1" />
                   My Channels

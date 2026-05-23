@@ -1,8 +1,8 @@
 export const runtime = "nodejs"
 
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-client";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 
 async function readFileBuffer(file: File): Promise<Buffer> {
   const arrayBuffer = await file.arrayBuffer()
@@ -11,14 +11,16 @@ async function readFileBuffer(file: File): Promise<Buffer> {
 
 export async function POST(request: NextRequest) {
   try {
-    const authToken =
-      request.headers.get("x-agent-id") || request.headers.get("authorization")?.split(" ")[1] || "mobile-user"
-    const agentPhone = request.headers.get("x-agent-phone") || "unknown"
+    const authResult = await authenticateAgent(request)
+    if (!authResult.success || !authResult.user) {
+      return createAuthErrorResponse(authResult.error || "Agent authentication required")
+    }
+    const agent = authResult.user
 
     const userAgent = request.headers.get("user-agent") || ""
     const isMobileRequest = /mobile|android|iphone|ipad/i.test(userAgent)
 
-    console.log("[v0] Video upload request - Mobile:", isMobileRequest, "Agent:", authToken, "Phone:", agentPhone)
+    console.log("[v0] Video upload request - Mobile:", isMobileRequest, "Agent:", agent.id)
 
     const formData = await request.formData()
     const file = formData.get("file") as File
@@ -106,9 +108,12 @@ export async function POST(request: NextRequest) {
       setTimeout(() => reject(new Error("Upload timeout - please try again")), uploadTimeoutMs),
     )
 
-    const { error: uploadError } = (await Promise.race([uploadPromise, timeoutPromise])) as any
+    const { data: uploadData, error: uploadError } = (await Promise.race([uploadPromise, timeoutPromise])) as {
+      data: { path: string } | null
+      error: { message?: string } | null
+    }
 
-    if (uploadError) {
+    if (uploadError || !uploadData?.path) {
       console.error("[v0] Storage upload error:", uploadError)
 
       let errorMessage = uploadError.message || "Storage error"
@@ -155,7 +160,7 @@ export async function POST(request: NextRequest) {
       .from("videos")
       .insert({
         channel_id: channelId,
-        created_by: authToken,
+        created_by: agent.id,
         title,
         description: description || "",
         video_url: videoUrl,

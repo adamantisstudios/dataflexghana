@@ -197,8 +197,8 @@ export function QAPostDisplay({
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-1 flex-wrap">
           <div className="flex-1 min-w-0">
-            <Badge className="mb-1 bg-purple-100 text-purple-800 text-xs">Q&A Post</Badge>
-            <CardTitle className="text-sm text-purple-800">Question</CardTitle>
+            <Badge className="mb-1 bg-purple-100 text-purple-800 text-xs">Quiz</Badge>
+            <CardTitle className="text-sm text-purple-800">Quiz Question</CardTitle>
             <p className="text-xs text-gray-600 mt-0.5">
               by {authorName} • {new Date(createdAt).toLocaleDateString()}
             </p>

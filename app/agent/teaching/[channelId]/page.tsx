@@ -1,8 +1,10 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import Link from "next/link"
 import { AlertCircle } from "lucide-react"
 import { getStoredAgent } from "@/lib/unified-auth-system"
+import { checkChannelSubscriptionAccess } from "@/lib/channel-subscription-access"
 import { TeacherChannelDashboard } from "@/components/teaching/TeacherChannelDashboard"
 import { MemberChannelView } from "@/components/teaching/MemberChannelView"
 import { ChannelChatWidget } from "@/components/teaching/ChannelChatWidget"
@@ -19,6 +21,10 @@ export default function ChannelPage() {
   const [userRole, setUserRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
+  const [subscriptionBlocked, setSubscriptionBlocked] = useState<{
+    reason: "subscription_required" | "subscription_expired"
+    channelId: string
+  } | null>(null)
 
   useEffect(() => {
     if (!agent) {
@@ -38,6 +44,14 @@ export default function ChannelPage() {
           setLoading(false)
           return
         }
+
+        const subAccess = await checkChannelSubscriptionAccess(channelId, agent.id, membership.role)
+        if (!subAccess.allowed) {
+          setSubscriptionBlocked({ reason: subAccess.reason, channelId })
+          setLoading(false)
+          return
+        }
+
         setUserRole(membership.role)
         setLoading(false)
       } catch (err) {
@@ -59,6 +73,54 @@ export default function ChannelPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
           <p className="text-gray-600 text-xs">Loading channel...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (subscriptionBlocked) {
+    const isExpired = subscriptionBlocked.reason === "subscription_expired"
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50">
+        <div className="w-full bg-gradient-to-r from-[#0E8F3D] to-[#35B24A] shadow-lg border-b-2 border-[#0E8F3D]">
+          <div className="w-full px-2 py-2 sm:px-3">
+            <h1 className="text-sm font-bold text-white drop-shadow-lg">Channel Access</h1>
+          </div>
+        </div>
+        <div className="w-full px-2 py-4 sm:px-3">
+          <div className="max-w-2xl">
+            <Card className="border-amber-200 bg-amber-50">
+              <CardContent className="pt-3">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h2 className="text-sm font-semibold text-amber-900 mb-1">
+                      {isExpired ? "Subscription Expired" : "Subscription Required"}
+                    </h2>
+                    <p className="text-amber-800 mb-3 text-xs">
+                      {isExpired
+                        ? "Your subscription has expired. Renew to regain access to this channel."
+                        : "This channel requires an active subscription. Complete payment to access channel content."}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild className="bg-[#0E8F3D] hover:bg-[#35B24A] text-white text-xs h-7">
+                        <Link href={`/agent/teaching/channels/${channelId}/join`}>
+                          {isExpired ? "Renew Subscription" : "Subscribe Now"}
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push("/agent/teaching")}
+                        className="text-xs h-7"
+                      >
+                        Back to Channels
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     )

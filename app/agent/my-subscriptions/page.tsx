@@ -7,24 +7,26 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabase-client";
-import { useAuth } from "@/hooks/use-auth"
-import { RefreshCw, AlertCircle } from "lucide-react"
+import { getStoredAgent } from "@/lib/unified-auth-system"
+import { RefreshCw, AlertCircle, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { useRouter } from "next/navigation"
 
 interface Subscription {
   id: string
   channel_id: string
   channel_name: string
-  subscription_start_date: string
-  subscription_end_date: string
-  monthly_fee: number
-  subscription_status: string
-  is_renewal_due: boolean
+  subscription_starts_at: string
+  subscription_expires_at: string
+  payment_amount: number
+  is_active: boolean
   days_remaining: number
 }
 
 export default function MySubscriptionsPage() {
+  const router = useRouter()
+  const agent = getStoredAgent()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
   const [renewingId, setRenewingId] = useState<string | null>(null)
@@ -32,52 +34,53 @@ export default function MySubscriptionsPage() {
     amount: 0,
     notes: "",
   })
-  const { user } = useAuth()
 
   useEffect(() => {
-    if (user?.id) {
-      loadSubscriptions()
+    if (!agent) {
+      router.push("/agent/login")
+      return
     }
-  }, [user?.id])
+    loadSubscriptions()
+  }, [agent, router])
 
   const loadSubscriptions = async () => {
-    if (!user?.id) return
+    if (!agent?.id) return
 
     try {
       setLoading(true)
       const now = new Date()
 
       const { data, error } = await supabase
-        .from("channel_subscriptions")
+        .from("member_subscription_status")
         .select(`
           id,
           channel_id,
-          subscription_start_date,
-          subscription_end_date,
-          monthly_fee,
-          subscription_status,
-          is_renewal_due,
+          subscription_starts_at,
+          subscription_expires_at,
+          payment_amount,
+          is_active,
           teaching_channels(name)
         `)
-        .eq("agent_id", user.id)
-        .order("subscription_end_date", { ascending: true })
+        .eq("agent_id", agent.id)
+        .order("subscription_expires_at", { ascending: true })
 
       if (error) throw error
 
       const enriched = (data || []).map((item: any) => {
+        const expiresAt = new Date(item.subscription_expires_at)
         const daysRemaining = Math.ceil(
-          (new Date(item.subscription_end_date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+          (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
         )
+        const isActive = item.is_active && expiresAt.getTime() > now.getTime()
 
         return {
           id: item.id,
           channel_id: item.channel_id,
           channel_name: item.teaching_channels?.name,
-          subscription_start_date: item.subscription_start_date,
-          subscription_end_date: item.subscription_end_date,
-          monthly_fee: item.monthly_fee,
-          subscription_status: item.subscription_status,
-          is_renewal_due: item.is_renewal_due,
+          subscription_starts_at: item.subscription_starts_at,
+          subscription_expires_at: item.subscription_expires_at,
+          payment_amount: Number(item.payment_amount) || 0,
+          is_active: isActive,
           days_remaining: daysRemaining,
         }
       })
@@ -91,7 +94,7 @@ export default function MySubscriptionsPage() {
     }
   }
 
-  const handleRequestRenewal = async (subscriptionId: string) => {
+  const handleRequestRenewal = async (subscriptionId: string, channelId: string) => {
     if (!renewalData.amount || renewalData.amount <= 0) {
       toast.error("Please enter a valid renewal amount")
       return
@@ -101,9 +104,9 @@ export default function MySubscriptionsPage() {
       setRenewingId(subscriptionId)
 
       const { error } = await supabase.from("subscription_renewal_requests").insert({
-        subscription_id: subscriptionId,
-        channel_id: subscriptions.find((s) => s.id === subscriptionId)?.channel_id,
-        agent_id: user?.id,
+        member_subscription_id: subscriptionId,
+        channel_id: channelId,
+        agent_id: agent?.id,
         renewal_start_date: new Date().toISOString(),
         renewal_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         renewal_amount: renewalData.amount,
@@ -124,6 +127,8 @@ export default function MySubscriptionsPage() {
     }
   }
 
+  if (!agent) return null
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -135,7 +140,13 @@ export default function MySubscriptionsPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-3xl font-bold mb-8 text-gray-800">My Channel Subscriptions</h1>
+        <div className="flex items-center gap-3 mb-8">
+          <Button variant="ghost" size="sm" onClick={() => router.push("/agent/teaching")}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold text-gray-800">My Channel Subscriptions</h1>
+        </div>
 
         {subscriptions.length === 0 ? (
           <Card className="bg-blue-50 border-blue-200 text-center py-12">
@@ -152,22 +163,22 @@ export default function MySubscriptionsPage() {
                     <div>
                       <CardTitle className="text-lg text-blue-900">{sub.channel_name}</CardTitle>
                       <p className="text-xs text-blue-700 mt-1">
-                        Joined {new Date(sub.subscription_start_date).toLocaleDateString()}
+                        Joined {new Date(sub.subscription_starts_at).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge
                         className={
-                          sub.subscription_status === "active"
+                          sub.is_active
                             ? "bg-green-100 text-green-800"
-                            : sub.subscription_status === "expired"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-gray-100 text-gray-800"
+                            : "bg-red-100 text-red-800"
                         }
                       >
-                        {sub.subscription_status.toUpperCase()}
+                        {sub.is_active ? "ACTIVE" : "EXPIRED"}
                       </Badge>
-                      {sub.is_renewal_due && <Badge className="bg-amber-100 text-amber-800">RENEW SOON</Badge>}
+                      {sub.is_active && sub.days_remaining <= 3 && (
+                        <Badge className="bg-amber-100 text-amber-800">RENEW SOON</Badge>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -176,7 +187,7 @@ export default function MySubscriptionsPage() {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="bg-gray-50 rounded p-3">
                       <p className="text-xs text-gray-600 mb-1">Monthly Fee</p>
-                      <p className="text-lg font-bold text-gray-800">GHS {sub.monthly_fee.toFixed(2)}</p>
+                      <p className="text-lg font-bold text-gray-800">GHS {sub.payment_amount.toFixed(2)}</p>
                     </div>
                     <div className="bg-gray-50 rounded p-3">
                       <p className="text-xs text-gray-600 mb-1">Days Remaining</p>
@@ -185,12 +196,12 @@ export default function MySubscriptionsPage() {
                     <div className="bg-gray-50 rounded p-3">
                       <p className="text-xs text-gray-600 mb-1">Expires</p>
                       <p className="text-lg font-bold text-gray-800">
-                        {new Date(sub.subscription_end_date).toLocaleDateString()}
+                        {new Date(sub.subscription_expires_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
 
-                  {sub.subscription_status === "active" && sub.days_remaining <= 3 && (
+                  {sub.is_active && sub.days_remaining <= 3 && (
                     <div className="bg-amber-50 border border-amber-200 rounded p-3 flex gap-2">
                       <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                       <p className="text-sm text-amber-800">
@@ -199,7 +210,7 @@ export default function MySubscriptionsPage() {
                     </div>
                   )}
 
-                  {sub.subscription_status === "expired" && (
+                  {!sub.is_active && (
                     <div className="bg-red-50 border border-red-200 rounded p-3 flex gap-2">
                       <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
                       <p className="text-sm text-red-800">
@@ -208,7 +219,7 @@ export default function MySubscriptionsPage() {
                     </div>
                   )}
 
-                  {sub.subscription_status === "active" && (
+                  {sub.is_active && (
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
@@ -224,7 +235,7 @@ export default function MySubscriptionsPage() {
                         <div className="space-y-4 py-4">
                           <div className="bg-gray-50 rounded p-3">
                             <p className="text-xs text-gray-600">Monthly Fee</p>
-                            <p className="text-2xl font-bold text-gray-800 mt-1">GHS {sub.monthly_fee.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-gray-800 mt-1">GHS {sub.payment_amount.toFixed(2)}</p>
                           </div>
 
                           <div className="space-y-2">
@@ -246,7 +257,7 @@ export default function MySubscriptionsPage() {
                           </div>
 
                           <Button
-                            onClick={() => handleRequestRenewal(sub.id)}
+                            onClick={() => handleRequestRenewal(sub.id, sub.channel_id)}
                             disabled={renewingId === sub.id}
                             className="w-full bg-green-600 hover:bg-green-700 text-white text-sm"
                           >

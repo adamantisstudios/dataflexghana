@@ -68,12 +68,12 @@ export function QAPostCreator({ channelId, teacherId, teacherName, onPostCreated
         .single()
 
       if (memberError || !membership) {
-        toast.error("You don't have permission to create Q&A posts in this channel")
+        toast.error("You don't have permission to create quiz posts in this channel")
         return
       }
 
       if (membership.role !== "admin" && membership.role !== "teacher") {
-        toast.error("Only admins and teachers can create Q&A posts")
+        toast.error("Only admins and teachers can create quiz posts")
         return
       }
 
@@ -102,11 +102,11 @@ export function QAPostCreator({ channelId, teacherId, teacherName, onPostCreated
       ])
 
       if (error) {
-        console.error("[v0] Error creating Q&A post:", error)
+        console.error("[v0] Error creating quiz post:", error)
         throw error
       }
 
-      toast.success("Q&A post created successfully!")
+      toast.success("quiz post created successfully!")
       setOpen(false)
       setForm({
         question: "",
@@ -127,8 +127,8 @@ export function QAPostCreator({ channelId, teacherId, teacherName, onPostCreated
       })
       onPostCreated()
     } catch (error) {
-      console.error("[v0] Error creating Q&A post:", error)
-      toast.error("Failed to create Q&A post")
+      console.error("[v0] Error creating quiz post:", error)
+      toast.error("Failed to create quiz post")
     } finally {
       setIsSubmitting(false)
     }
@@ -139,14 +139,14 @@ export function QAPostCreator({ channelId, teacherId, teacherName, onPostCreated
       <DialogTrigger asChild>
         <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
           <Plus className="h-4 w-4 mr-2" />
-          Create Q&A Post
+          Create Quiz
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-base">Create Question & Answer Post</DialogTitle>
+          <DialogTitle className="text-base">Create Quiz</DialogTitle>
           <DialogDescription className="text-xs">
-            Create a multiple-choice question post with LaTeX support
+            Create a multiple-choice quiz with LaTeX support
           </DialogDescription>
         </DialogHeader>
 
@@ -301,7 +301,7 @@ export function QAPostCreator({ channelId, teacherId, teacherName, onPostCreated
             disabled={isSubmitting}
             className="bg-purple-600 hover:bg-purple-700 text-xs h-8"
           >
-            {isSubmitting ? "Creating..." : "Create Q&A Post"}
+            {isSubmitting ? "Creating..." : "Create Quiz"}
           </Button>
         </DialogFooter>
       </DialogContent>

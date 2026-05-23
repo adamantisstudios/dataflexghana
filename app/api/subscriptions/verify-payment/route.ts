@@ -1,64 +1,84 @@
-import { supabase } from "@/lib/supabase-client";
 import { type NextRequest, NextResponse } from "next/server"
+import { getAdminClient } from "@/lib/supabase-base"
+import { requireAdminSession } from "@/lib/api-auth"
+
+export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest) {
-  try {
-    const { subscriptionId, channelId, agentId, amountVerified, verifiedBy, notes } = await request.json()
+  const session = await requireAdminSession(request)
+  if (!session.ok) return session.response
 
-    if (!subscriptionId || !channelId || !agentId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+  try {
+    const { channelId, agentId, amountVerified, notes, joinRequestId } = await request.json()
+
+    if (!channelId || !agentId) {
+      return NextResponse.json({ error: "channelId and agentId are required" }, { status: 400 })
     }
 
+    const db = getAdminClient()
     const now = new Date()
     const expiryDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-    const { error: subError } = await supabase
-      .from("channel_subscriptions")
-      .update({
-        subscription_status: "active",
-        payment_status: "verified",
-        payment_verified_at: now.toISOString(),
-        payment_verified_by: verifiedBy,
-        verified_payment_amount: amountVerified,
-        subscription_start_date: now.toISOString(),
-        subscription_end_date: expiryDate.toISOString(),
-        is_active: true,
-        payment_date: now.toISOString(),
-      })
-      .eq("id", subscriptionId)
+    const { data: subscription, error: subError } = await db
+      .from("member_subscription_status")
+      .upsert(
+        {
+          channel_id: channelId,
+          agent_id: agentId,
+          join_request_id: joinRequestId || null,
+          subscription_starts_at: now.toISOString(),
+          subscription_expires_at: expiryDate.toISOString(),
+          payment_verified_at: now.toISOString(),
+          payment_amount: amountVerified ?? 0,
+          payment_notes: notes || null,
+          is_active: true,
+          updated_at: now.toISOString(),
+        },
+        { onConflict: "channel_id,agent_id" },
+      )
+      .select()
+      .single()
 
-    if (subError) throw subError
+    if (subError) {
+      return NextResponse.json({ error: subError.message }, { status: 500 })
+    }
 
-    const { error: memberError } = await supabase
+    const { data: existingMember } = await db
       .from("channel_members")
-      .insert({
+      .select("id")
+      .eq("channel_id", channelId)
+      .eq("agent_id", agentId)
+      .maybeSingle()
+
+    if (!existingMember) {
+      const { error: memberError } = await db.from("channel_members").insert({
         channel_id: channelId,
         agent_id: agentId,
         role: "member",
         status: "active",
       })
-      .select()
-      .single()
+      if (memberError && !memberError.message.includes("duplicate")) {
+        return NextResponse.json({ error: memberError.message }, { status: 500 })
+      }
+    }
 
-    if (memberError && !memberError.message.includes("duplicate")) throw memberError
-
-    await supabase.from("subscription_verification_log").insert({
-      subscription_id: subscriptionId,
+    await db.from("subscription_verification_log").insert({
+      subscription_id: subscription?.id || null,
       channel_id: channelId,
       agent_id: agentId,
-      verified_by: verifiedBy,
+      verified_by: String(session.admin.id),
       action: "approved",
-      amount_verified: amountVerified,
-      notes,
+      amount_verified: amountVerified ?? 0,
+      notes: notes || null,
     })
 
     return NextResponse.json({
       success: true,
-      message: "Payment verified! Member added to channel. 30-day subscription timer started.",
-      expiryDate: expiryDate.toISOString(),
+      message: "Payment verified. Member subscription active for 30 days.",
+      expiresAt: expiryDate.toISOString(),
     })
-  } catch (error: any) {
-    console.error("[v0] Error verifying payment:", error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    console.error("verify-payment:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

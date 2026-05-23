@@ -74,7 +74,6 @@ import { ProductSlider } from "@/components/agent/ProductSlider"
 import AgentPropertiesShowcase from "@/components/agent/dashboard/AgentPropertiesShowcase"
 import { ComplianceTab } from "@/components/agent/compliance/ComplianceTab"
 import { ProfessionalWritingTab } from "@/components/agent/professional-writing/ProfessionalWritingTab"
-import TeachingPlatformPage from "@/app/agent/teaching/page"
 import { useAgentDashboardCache } from "@/hooks/use-agent-dashboard-cache"
 import { loadAgentDashboardData, loadTabData } from "@/lib/agent-dashboard-loader"
 import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
@@ -2634,18 +2633,6 @@ DataFlex Ghana Agent 🇬🇭`
                   courses={tabData.onlineCourses || []}
                   loading={tabLoadingStates["online-courses"]}
                 />
-              </TabsContent>
-              <TabsContent value="Channels" className="space-y-4">
-                <Suspense
-                  fallback={
-                    <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-                      <span className="ml-3 text-blue-700">Loading teaching platform...</span>
-                    </div>
-                  }
-                >
-                  <TeachingPlatformPage />
-                </Suspense>
               </TabsContent>
             </Tabs>
           </div>

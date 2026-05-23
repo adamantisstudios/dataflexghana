@@ -11,6 +11,8 @@ import { CommentThread } from "./CommentThread"
 import { FontSizeControl } from "./FontSizeControl"
 import { QAPostDisplay } from "./qa"
 import { YouTubeVideoDisplay } from "./youtube/YouTubeVideoDisplay"
+import { VideoPostDisplay } from "./VideoPostDisplay"
+import { LessonNotesViewer } from "./lesson-notes/LessonNotesViewer"
 
 interface Channel {
   id: string
@@ -44,12 +46,13 @@ interface MemberChannelViewProps {
 }
 
 export function MemberChannelView({ channelId, memberId, memberName }: MemberChannelViewProps) {
-  const [activeTab, setActiveTab] = useState<"feeds" | "saved">("feeds")
+  const [activeTab, setActiveTab] = useState<"feeds" | "videos" | "notes" | "saved">("feeds")
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
   const [channel, setChannel] = useState<Channel | null>(null)
   const [posts, setPosts] = useState<ChannelPost[]>([])
   const [qaPosts, setQAPosts] = useState<any[]>([])
   const [youtubeVideos, setYoutubeVideos] = useState<any[]>([])
+  const [uploadedVideos, setUploadedVideos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [fontSize, setFontSize] = useState(16)
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set())
@@ -102,7 +105,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         .order("created_at", { ascending: false })
 
       if (qaError) {
-        console.error("[v0] Error loading Q&A posts:", qaError)
+        console.error("[v0] Error loading quiz posts:", qaError)
       } else {
         setQAPosts(qaPostsData || [])
       }
@@ -118,6 +121,20 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         console.error("[v0] Error loading YouTube videos:", youtubeError)
       } else {
         setYoutubeVideos(youtubeData || [])
+      }
+
+      const { data: videosData, error: videosError } = await supabase
+        .from("videos")
+        .select("*")
+        .eq("channel_id", channelId)
+        .order("created_at", { ascending: false })
+
+      if (videosError) {
+        console.error("[v0] Error loading uploaded videos:", videosError)
+      } else {
+        setUploadedVideos(
+          (videosData || []).filter((v) => v.is_published !== false && v.is_deleted !== true),
+        )
       }
 
       const { data: likesData } = await supabase.from("post_likes").select("post_id").eq("user_id", memberId)
@@ -293,8 +310,10 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4 w-full">
-          <TabsList className="grid w-full grid-cols-2 px-4 sm:px-6 lg:px-8">
+          <TabsList className="grid w-full grid-cols-4 px-4 sm:px-6 lg:px-8">
             <TabsTrigger value="feeds">Feeds</TabsTrigger>
+            <TabsTrigger value="videos">Uploaded Videos</TabsTrigger>
+            <TabsTrigger value="notes">Lesson Notes</TabsTrigger>
             <TabsTrigger value="saved">Saved Posts</TabsTrigger>
           </TabsList>
 
@@ -438,18 +457,18 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                         </div>
                       )}
 
-                      {/* Q&A Posts */}
+                      {/* Quiz Posts */}
                       {item.type === "qa" && (
                         <div className="border-b-2 border-purple-200 pb-4">
                           <div className="flex items-start justify-between gap-2 mb-3">
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-lg font-semibold text-purple-800 break-words">Q&A Question</h4>
+                              <h4 className="text-lg font-semibold text-purple-800 break-words">Quiz</h4>
                               <p className="text-xs text-gray-500 mt-1">
-                                Q&A • {formatDateTime(item.created_at)} • By {item.author_name}
+                                Quiz • {formatDateTime(item.created_at)} • By {item.author_name}
                               </p>
                             </div>
                             <Badge variant="secondary" className="bg-purple-100 text-purple-800">
-                              Q&A
+                              Quiz
                             </Badge>
                           </div>
                           <QAPostDisplay
@@ -495,6 +514,42 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                 })()}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="videos" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
+            <h3 className="text-lg font-semibold text-[#0E8F3D]">Uploaded Videos</h3>
+            {uploadedVideos.length === 0 ? (
+              <div className="bg-green-50 border border-green-200 rounded p-6 text-center text-green-700">
+                <p>No uploaded videos yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {uploadedVideos.map((video) => (
+                  <div key={video.id} className="border border-green-100 rounded-lg p-3 bg-white">
+                    <VideoPostDisplay
+                      id={video.id}
+                      title={video.title}
+                      description={video.description || ""}
+                      videoUrl={video.video_url}
+                      thumbnailUrl={video.thumbnail_url}
+                      duration={video.duration || 0}
+                      viewCount={video.view_count}
+                      likeCount={video.like_count}
+                      commentCount={video.comment_count}
+                      authorName={video.created_by_name || "Teacher"}
+                      createdAt={video.created_at}
+                      isTeacher={false}
+                      currentUserId={memberId}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="notes" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
+            <h3 className="text-lg font-semibold text-[#0E8F3D]">Lesson Notes</h3>
+            <LessonNotesViewer channelId={channelId} />
           </TabsContent>
 
           {/* Saved Posts Tab */}

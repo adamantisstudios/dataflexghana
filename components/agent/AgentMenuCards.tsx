@@ -111,7 +111,7 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       title: "Video Tutorials",
       description: "Learn how to use the platform",
       icon: <Play className="h-12 w-12" />,
-      image: "/images/teaching-platform.png",
+      image: "/images/tutorial.png",
       gradient: "linear-gradient(135deg, #6366F1, #4338CA)",
       buttonText: "WATCH NOW",
       onClick: () => router.push("/agent/tutorials"),
@@ -132,9 +132,9 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       description: "Follow Or Join Channels",
       icon: <BookOpen className="h-12 w-12" />,
       image: "/images/teaching-platform.png",
-      gradient: "linear-gradient(135deg, #3B82F6, #1E40AF)",
+      gradient: "linear-gradient(135deg, #0E8F3D, #35B24A)",
       buttonText: "EXPLORE CHANNELS",
-      onClick: () => handleMenuCardClick("Channels"), // Fixed
+      onClick: () => router.push("/agent/teaching"),
     },
     {
       id: "voucher",
