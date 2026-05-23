@@ -200,7 +200,7 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       title: "Real Estate",
       description: "Promote listings on your storefront",
       icon: <Building2 className="h-12 w-12" />,
-      image: "/images/publish-properties.png",
+      image: "/images/promote-listings.png",
       gradient: "linear-gradient(135deg, #F59E0B, #D97706)",
       buttonText: "OPEN HUB",
       onClick: () => router.push("/agent/referralhub?hubTab=marketplace&marketplaceTab=real-estate"),
