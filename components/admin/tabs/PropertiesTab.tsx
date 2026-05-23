@@ -18,6 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { supabase } from "@/lib/supabase-client";
+import { getAdminAuthHeaders } from "@/lib/api-client"
+import { toast } from "sonner"
   import {
   Trash2,
   Edit,
@@ -35,6 +37,10 @@ import { supabase } from "@/lib/supabase-client";
   X,
   Home,
   Phone,
+  CheckCircle,
+  XCircle,
+  HandCoins,
+  Loader2,
 } from "lucide-react"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { ImageModal } from "@/components/ui/image-modal"
@@ -139,7 +145,20 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
   const [statusFilter, setStatusFilter] = useState("All Status")
   const [agentFilter, setAgentFilter] = useState("All")
   const [agents, setAgents] = useState<Array<{ id: string; full_name: string }>>([])
+  const [dealAgents, setDealAgents] = useState<Array<{ id: string; full_name: string }>>([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [propertyActionLoading, setPropertyActionLoading] = useState<string | null>(null)
+  const [showDealDialog, setShowDealDialog] = useState(false)
+  const [dealProperty, setDealProperty] = useState<Property | null>(null)
+  const [dealSubmitting, setDealSubmitting] = useState(false)
+  const [dealForm, setDealForm] = useState({
+    agent_id: "",
+    deal_type: "sale" as "sale" | "rent" | "agent_owes_platform",
+    final_price: "",
+    platform_commission: "",
+    agent_commission: "",
+    notes: "",
+  })
   const [showPropertyDialog, setShowPropertyDialog] = useState(false)
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -329,6 +348,125 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
   }, [])
 
   useEffect(() => {
+    const loadDealAgents = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("agents")
+          .select("id, full_name")
+          .eq("isapproved", true)
+          .order("full_name")
+        if (error) throw error
+        setDealAgents(data || [])
+      } catch (error) {
+        console.error("Error loading deal agents:", error)
+      }
+    }
+    loadDealAgents()
+  }, [])
+
+  const refreshProperties = async () => {
+    const { data: propertiesData, error: propertiesError } = await supabase
+      .from("properties")
+      .select("*")
+      .order("created_at", { ascending: false })
+    if (propertiesError) throw propertiesError
+    const data = propertiesData || []
+    setProperties(data)
+    if (typeof setCachedData === "function") setCachedData(data)
+  }
+
+  const handleApproveProperty = async (propertyId: string) => {
+    setPropertyActionLoading(propertyId)
+    try {
+      const res = await fetch("/api/admin/properties/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify({ property_id: propertyId }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || "Approval failed")
+      toast.success("Property approved and published")
+      await refreshProperties()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Approval failed")
+    } finally {
+      setPropertyActionLoading(null)
+    }
+  }
+
+  const handleRejectProperty = async (propertyId: string) => {
+    if (!confirm("Reject this listing? It will be unpublished.")) return
+    setPropertyActionLoading(propertyId)
+    try {
+      const res = await fetch("/api/admin/properties/reject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify({ property_id: propertyId }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || "Rejection failed")
+      toast.success("Property rejected")
+      await refreshProperties()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Rejection failed")
+    } finally {
+      setPropertyActionLoading(null)
+    }
+  }
+
+  const openDealDialog = (property: Property) => {
+    const isAgentListing = Boolean(property.published_by_agent_id)
+    setDealProperty(property)
+    setDealForm({
+      agent_id: property.published_by_agent_id || "",
+      deal_type: isAgentListing ? "agent_owes_platform" : "sale",
+      final_price: String(property.price ?? ""),
+      platform_commission: isAgentListing ? String(property.commission ?? "") : "0",
+      agent_commission: isAgentListing ? "0" : String(property.commission ?? ""),
+      notes: "",
+    })
+    setShowDealDialog(true)
+  }
+
+  const handleMarkDeal = async () => {
+    if (!dealProperty) return
+    if (!dealForm.agent_id) {
+      toast.error("Select the agent who facilitated the deal")
+      return
+    }
+    setDealSubmitting(true)
+    try {
+      const res = await fetch("/api/admin/properties/mark-deal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify({
+          property_id: dealProperty.id,
+          agent_id: dealForm.agent_id,
+          deal_type: dealForm.deal_type,
+          final_price: dealForm.final_price === "" ? null : dealForm.final_price,
+          platform_commission: dealForm.platform_commission,
+          agent_commission: dealForm.agent_commission === "" ? 0 : dealForm.agent_commission,
+          notes: dealForm.notes,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to record deal")
+      toast.success(
+        data.agent_commission_credited > 0
+          ? `Deal recorded. ₵${Number(data.agent_commission_credited).toFixed(2)} credited to agent commission balance.`
+          : "Deal recorded successfully",
+      )
+      setShowDealDialog(false)
+      setDealProperty(null)
+      await refreshProperties()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to record deal")
+    } finally {
+      setDealSubmitting(false)
+    }
+  }
+
+  useEffect(() => {
     const filtered = properties.filter((property) => {
       const matchesSearch =
         property.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -338,11 +476,12 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
       const matchesCategory = categoryFilter === "All Categories" || property.category === categoryFilter
       const matchesCurrency = currencyFilter === "All Currencies" || property.currency === currencyFilter
 
-      // Only apply status filter when agent filter is "All", otherwise show all statuses for the selected agent
       const matchesStatus =
-        statusFilter === "All Status" && agentFilter === "All"
-          ? true
-          : statusFilter === "All Status" || property.status === statusFilter
+        statusFilter === "Pending Approval"
+          ? property.is_approved === false
+          : statusFilter === "All Status" && agentFilter === "All"
+            ? true
+            : statusFilter === "All Status" || property.status === statusFilter
 
       // Apply agent filter - shows ALL properties (all statuses) for the selected agent
       const matchesAgent = agentFilter === "All" || property.published_by_agent_id === agentFilter
@@ -717,6 +856,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All Status">All Status</SelectItem>
+                <SelectItem value="Pending Approval">Pending Approval</SelectItem>
                 <SelectItem value="Published">Published</SelectItem>
                 <SelectItem value="Unpublished">Unpublished</SelectItem>
                 <SelectItem value="Featured">Featured</SelectItem>
@@ -771,6 +911,9 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
                           >
                             {property.status}
                           </Badge>
+                          {property.is_approved === false && (
+                            <Badge className="bg-orange-100 text-orange-800 border-orange-200">Pending approval</Badge>
+                          )}
                           {property.commission && property.commission > 0 && (
                             <Badge className="bg-blue-100 text-blue-800 border-blue-200" title="Commission paid in Ghana Cedis">
                               Commission: ₵{property.commission.toLocaleString()}
@@ -847,7 +990,48 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
 
                     {property.description && <PropertyDescription description={property.description} />}
 
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-3 border-t border-emerald-100">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-3 border-t border-emerald-100">
+                      {property.is_approved === false && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveProperty(property.id)}
+                            disabled={propertyActionLoading === property.id}
+                            className="bg-green-600 hover:bg-green-700 text-xs"
+                          >
+                            {propertyActionLoading === property.id ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                            )}
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRejectProperty(property.id)}
+                            disabled={propertyActionLoading === property.id}
+                            className="border-red-300 text-red-600 hover:bg-red-50 text-xs"
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+
+                      {property.is_approved !== false &&
+                        (property.status === "Published" || property.status === "Featured") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openDealDialog(property)}
+                            className="border-violet-300 text-violet-700 hover:bg-violet-50 text-xs"
+                          >
+                            <HandCoins className="h-3 w-3 mr-1" />
+                            Sold/Rented
+                          </Button>
+                        )}
+
                       <Button
                         size="sm"
                         onClick={() => openPropertyDialog(property)}
@@ -1163,6 +1347,115 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
         onIndexChange={handleModalIndexChange}
         alt={modalImageAlt}
       />
+
+      <Dialog open={showDealDialog} onOpenChange={setShowDealDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark as sold / rented</DialogTitle>
+          </DialogHeader>
+          {dealProperty && (
+            <div className="space-y-4 text-sm">
+              <p className="text-muted-foreground">
+                Recording a deal for <strong>{dealProperty.title}</strong>. The listing will be unpublished.
+              </p>
+              <div className="space-y-2">
+                <Label>Agent (facilitated deal)</Label>
+                <Select
+                  value={dealForm.agent_id}
+                  onValueChange={(v) => setDealForm((f) => ({ ...f, agent_id: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select agent" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dealAgents.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Deal type</Label>
+                <Select
+                  value={dealForm.deal_type}
+                  onValueChange={(v) =>
+                    setDealForm((f) => ({
+                      ...f,
+                      deal_type: v as "sale" | "rent" | "agent_owes_platform",
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sale">Sale (platform listing)</SelectItem>
+                    <SelectItem value="rent">Rent (platform listing)</SelectItem>
+                    <SelectItem value="agent_owes_platform">Agent owes platform (agent listing)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Final price</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={dealForm.final_price}
+                  onChange={(e) => setDealForm((f) => ({ ...f, final_price: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Platform commission (₵)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={dealForm.platform_commission}
+                  onChange={(e) => setDealForm((f) => ({ ...f, platform_commission: e.target.value }))}
+                />
+              </div>
+              {dealForm.deal_type !== "agent_owes_platform" && (
+                <div className="space-y-2">
+                  <Label>Agent commission (₵) — credited to storefront balance</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={dealForm.agent_commission}
+                    onChange={(e) => setDealForm((f) => ({ ...f, agent_commission: e.target.value }))}
+                  />
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Notes (optional)</Label>
+                <Textarea
+                  rows={2}
+                  value={dealForm.notes}
+                  onChange={(e) => setDealForm((f) => ({ ...f, notes: e.target.value }))}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDealDialog(false)} disabled={dealSubmitting}>
+              Cancel
+            </Button>
+            <Button onClick={handleMarkDeal} disabled={dealSubmitting} className="bg-violet-700 hover:bg-violet-800">
+              {dealSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                "Record deal"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

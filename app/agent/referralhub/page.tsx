@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,9 @@ import { MarketplaceWholesaleSection } from "@/components/agent/referralhub/Mark
 import { MarketplaceComplianceSection } from "@/components/agent/referralhub/MarketplaceComplianceSection"
 import { MarketplaceSubTabs } from "@/components/agent/referralhub/MarketplaceSubTabs"
 import { MarketplaceAdvertisingSection } from "@/components/agent/referralhub/MarketplaceAdvertisingSection"
+import { MarketplaceWritingSection } from "@/components/agent/referralhub/MarketplaceWritingSection"
+import { MarketplaceRealEstateSection } from "@/components/agent/referralhub/MarketplaceRealEstateSection"
+import { FarmersFriendHub } from "@/components/agent/farmersfriend/FarmersFriendHub"
 import { Switch } from "@/components/ui/switch"
 
 interface AgentSession {
@@ -59,6 +62,7 @@ interface DataBundle {
 
 export default function ReferralHubPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [agent, setAgent] = useState<AgentSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<StoreProfile>({
@@ -81,7 +85,11 @@ export default function ReferralHubPage() {
   const [slugInput, setSlugInput] = useState("")
   const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "ok" | "bad">("idle")
   const [slugMessage, setSlugMessage] = useState("")
-  const [hubTab, setHubTab] = useState("profile")
+  const hubTabFromUrl = searchParams.get("hubTab")
+  const marketplaceTabFromUrl = searchParams.get("marketplaceTab")
+  const [hubTab, setHubTab] = useState(
+    hubTabFromUrl === "marketplace" || marketplaceTabFromUrl === "real-estate" ? "marketplace" : "profile",
+  )
 
   useEffect(() => {
     const raw = localStorage.getItem("agent")
@@ -241,7 +249,7 @@ export default function ReferralHubPage() {
           <ReferralHubSkeleton />
         ) : (
           <Tabs value={hubTab} onValueChange={setHubTab} className="w-full">
-            <TabsList className="w-full h-auto grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl bg-white border shadow-sm">
+            <TabsList className="w-full h-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 p-1 rounded-xl bg-white border shadow-sm">
               <TabsTrigger
                 value="profile"
                 className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
@@ -253,6 +261,12 @@ export default function ReferralHubPage() {
                 className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
               >
                 Marketplace
+              </TabsTrigger>
+              <TabsTrigger
+                value="farmers-friend"
+                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+              >
+                Farmers Friend
               </TabsTrigger>
               <TabsTrigger
                 value="orders"
@@ -385,9 +399,14 @@ export default function ReferralHubPage() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="farmers-friend" className="mt-4">
+              {agent?.id && <FarmersFriendHub agentId={agent.id} />}
+            </TabsContent>
+
             <TabsContent value="marketplace" className="mt-4">
               {agent?.id && (
                 <MarketplaceSubTabs
+                  defaultSubTab={marketplaceTabFromUrl === "real-estate" ? "real-estate" : "bundles"}
                   bundles={
                     <MarketplaceBundlesSection
                       agentId={agent.id}
@@ -420,6 +439,20 @@ export default function ReferralHubPage() {
                   }
                   advertising={
                     <MarketplaceAdvertisingSection
+                      agentId={agent.id}
+                      settings={settings}
+                      onSettingsChange={() => loadSettings(agent.id)}
+                    />
+                  }
+                  writing={
+                    <MarketplaceWritingSection
+                      agentId={agent.id}
+                      settings={settings}
+                      onSettingsChange={() => loadSettings(agent.id)}
+                    />
+                  }
+                  realEstate={
+                    <MarketplaceRealEstateSection
                       agentId={agent.id}
                       settings={settings}
                       onSettingsChange={() => loadSettings(agent.id)}

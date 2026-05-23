@@ -58,6 +58,7 @@ interface Agent {
   can_update_products?: boolean
   can_publish_properties?: boolean
   can_update_properties?: boolean
+  isbanned?: boolean
 }
 
 interface AgentTransactionSummary {
@@ -108,7 +109,7 @@ export default function AgentManagementTab() {
 
       let query = supabase
         .from("agents")
-        .select("id, full_name, phone_number, wallet_balance, created_at, last_login, isapproved, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties", { count: "exact" })
+        .select("id, full_name, phone_number, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties", { count: "exact" })
         .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%`)
         .order("created_at", { ascending: false })
         .range(offset, offset + ITEMS_PER_PAGE - 1)
@@ -173,6 +174,7 @@ export default function AgentManagementTab() {
             can_update_products: agent.can_update_products || false,
             can_publish_properties: agent.can_publish_properties || false,
             can_update_properties: agent.can_update_properties || false,
+            isbanned: agent.isbanned === true,
           }
         })
       )
@@ -385,6 +387,47 @@ export default function AgentManagementTab() {
     }
   }
 
+  const suspendStorefront = async (agent: Agent) => {
+    if (!confirm(`Suspend storefront for ${agent.full_name}? All products, services, and listings will be hidden.`)) {
+      return
+    }
+    try {
+      setOperationLoading(true)
+      const response = await fetch(`/api/admin/agents/${agent.id}/suspend-storefront`, {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.success) throw new Error(data.error || "Suspend failed")
+      await refreshCurrentPage()
+      if (selectedAgent?.id === agent.id) setSelectedAgent({ ...selectedAgent, isbanned: true })
+      toast.success("Storefront suspended")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to suspend storefront")
+    } finally {
+      setOperationLoading(false)
+    }
+  }
+
+  const reactivateStorefront = async (agent: Agent) => {
+    try {
+      setOperationLoading(true)
+      const response = await fetch(`/api/admin/agents/${agent.id}/reactivate-storefront`, {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.success) throw new Error(data.error || "Reactivate failed")
+      await refreshCurrentPage()
+      if (selectedAgent?.id === agent.id) setSelectedAgent({ ...selectedAgent, isbanned: false })
+      toast.success("Storefront reactivated")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to reactivate storefront")
+    } finally {
+      setOperationLoading(false)
+    }
+  }
+
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
   const PaginationControls = () => {
     if (totalPages <= 1) return null
@@ -588,6 +631,29 @@ export default function AgentManagementTab() {
                     <div className="font-semibold text-sm text-amber-600 flex items-center gap-2 pt-3 border-t"><Home className="h-4 w-4" />Properties</div>
                     <div className="flex items-center justify-between pl-4"><div className="flex items-center gap-2"><Upload className="h-4 w-4 text-amber-600" /><strong>Publish:</strong></div><Switch checked={selectedAgent.can_publish_properties || false} onCheckedChange={(c) => togglePublishPropertyPermission(selectedAgent, c)} disabled={operationLoading} /></div>
                     <div className="flex items-center justify-between pl-4"><div className="flex items-center gap-2"><Upload className="h-4 w-4 text-orange-600" /><strong>Edit:</strong></div><Switch checked={selectedAgent.can_update_properties || false} onCheckedChange={(c) => toggleUpdatePropertyPermission(selectedAgent, c)} disabled={operationLoading} /></div>
+                    <div className="font-semibold text-sm text-red-600 flex items-center gap-2 pt-3 border-t"><Shield className="h-4 w-4" />Storefront</div>
+                    {selectedAgent.isbanned ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        disabled={operationLoading}
+                        onClick={() => reactivateStorefront(selectedAgent)}
+                      >
+                        Reactivate Storefront
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        className="w-full"
+                        disabled={operationLoading}
+                        onClick={() => suspendStorefront(selectedAgent)}
+                      >
+                        Suspend Storefront
+                      </Button>
+                    )}
                   </div>
                 </CardContent></Card>
                 <Card><CardHeader><CardTitle className="text-sm">Account Summary</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">

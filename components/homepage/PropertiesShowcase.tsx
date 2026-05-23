@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Building2, MapPin, Bed, Bath, Square, ArrowRight, Home, MessageCircle, Phone } from "lucide-react"
+import { Building2, MapPin, Bed, Bath, Square, ArrowRight, Home } from "lucide-react"
 import { supabase } from "@/lib/supabase-client";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import Link from "next/link"
@@ -184,38 +184,14 @@ export default function PropertiesShowcase() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="mt-6 space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700 text-xs"
-                      onClick={() => window.open("tel:0246827049", "_self")}
-                    >
-                      <Phone className="h-3 w-3 mr-1" />
-                      Call Admin
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-xs"
-                      onClick={() => {
-                        const whatsappNumber = "+233242799990"
-                        const message = `Hello Admin, I'm interested in this property:\n\nProperty: ${latestProperty.title}\nPrice: ${formatPrice(latestProperty.price, latestProperty.currency)}\nLocation: ${latestProperty.location || "Not specified"}\n\nPlease provide more details.`
-                        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
-                        window.open(whatsappUrl, "_blank")
-                      }}
-                    >
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      WhatsApp
-                    </Button>
-                  </div>
-
+                <div className="mt-6">
                   <Button
                     asChild
                     className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   >
                     <Link href="/properties">
                       <Home className="h-4 w-4 mr-2" />
-                      Browse More Properties
+                      Browse properties & find an agent
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
@@ -230,8 +206,8 @@ export default function PropertiesShowcase() {
           <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200 p-6 max-w-2xl mx-auto">
             <h3 className="text-xl font-bold text-blue-800 mb-2">🏠 Find Your Perfect Property in Ghana</h3>
             <p className="text-blue-600 mb-4">
-              Browse hundreds of verified properties across Accra, Tema, Kumasi, and all regions of Ghana. Contact
-              property owners directly via WhatsApp for instant communication!
+              Browse verified listings across Ghana and connect with local agents through their Referral Powerhouse
+              storefronts.
             </p>
             <div className="flex flex-wrap justify-center gap-2 text-sm text-blue-700">
               <span className="bg-blue-100 px-3 py-1 rounded-full">Houses for Sale</span>

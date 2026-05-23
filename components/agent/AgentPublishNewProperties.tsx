@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState } from "react"
+import Link from "next/link"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -51,6 +53,7 @@ export default function AgentPublishNewProperties({ agentId }: AgentPublishNewPr
     savings: string
   } | null>(null)
   const [currentStep, setCurrentStep] = useState(1)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -190,8 +193,12 @@ export default function AgentPublishNewProperties({ agentId }: AgentPublishNewPr
       return true
     }
     if (step === 3) {
-      if (formData.image_urls.length === 0) {
-        toast.error("At least one property image is required")
+      if (formData.image_urls.length < 2) {
+        toast.error("At least two property images are required")
+        return false
+      }
+      if (!acceptedTerms) {
+        toast.error("You must accept the real estate listing terms before submitting")
         return false
       }
       return true
@@ -272,6 +279,7 @@ export default function AgentPublishNewProperties({ agentId }: AgentPublishNewPr
       })
       setShowDialog(false)
       setCurrentStep(1)
+      setAcceptedTerms(false)
     } catch (error) {
       console.error("Error submitting property:", error)
       toast.error(error instanceof Error ? error.message : "Failed to submit property")
@@ -580,6 +588,25 @@ export default function AgentPublishNewProperties({ agentId }: AgentPublishNewPr
               </AlertDescription>
             </Alert>
 
+            {currentStep === 3 && (
+              <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50/80 p-3">
+                <Checkbox
+                  id="property-terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={(v) => setAcceptedTerms(v === true)}
+                  disabled={submitting}
+                />
+                <label htmlFor="property-terms" className="text-sm text-amber-950 leading-snug cursor-pointer">
+                  I confirm I personally know the property owner and have their permission to list this property. I
+                  understand that posting fake or random properties will lead to my storefront being permanently
+                  suspended.{" "}
+                  <Link href="/real-estate-terms" className="font-semibold underline" target="_blank">
+                    Read full terms
+                  </Link>
+                </label>
+              </div>
+            )}
+
             {/* Navigation Buttons */}
             <div className="flex gap-2 justify-between">
               <Button
@@ -639,18 +666,25 @@ export default function AgentPublishNewProperties({ agentId }: AgentPublishNewPr
               <p className="text-sm text-gray-600 mt-2">
                 Your property has been submitted for admin review.
               </p>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3 text-sm text-amber-900">
-                <p className="font-semibold mb-1">📌 Important:</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3 text-sm text-amber-900 text-left">
+                <p className="font-semibold mb-1">📌 Next steps</p>
                 <p className="text-xs leading-relaxed">
-                  Your property will remain <strong>unpublished</strong> until our admin team reviews and approves it. You'll be notified when it's live and visible to other agents.
+                  Your property is <strong>pending admin approval</strong>. Once approved, enable it on your public
+                  storefront from the Referral Hub → Real Estate section.
                 </p>
               </div>
             </div>
+            <Button asChild className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white">
+              <Link href="/agent/referralhub?hubTab=marketplace&marketplaceTab=real-estate">
+                Open Referral Hub → Real Estate
+              </Link>
+            </Button>
             <Button
               onClick={() => setShowSuccessModal(false)}
-              className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white"
+              variant="outline"
+              className="w-full"
             >
-              Got It!
+              Got it
             </Button>
           </div>
         </DialogContent>

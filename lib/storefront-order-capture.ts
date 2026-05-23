@@ -12,6 +12,9 @@ import {
 } from "@/lib/storefront-paystack-meta"
 import { COMPLIANCE_FORM_SOLE_PROPRIETORSHIP } from "@/lib/storefront-catalog"
 import { captureAdOrderFromPaystack } from "@/lib/advertising-capture"
+import { captureFarmOrdersFromPaystack, type FarmCartLineMeta } from "@/lib/farm-capture"
+import { captureWritingOrderFromPaystack } from "@/lib/writing-capture"
+import { parseCvFields } from "@/lib/writing-types"
 
 export type StorefrontCaptureResult = {
   ok: boolean
@@ -287,6 +290,71 @@ export async function captureStorefrontFromPaystackMetadata(params: {
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
     })
+  }
+
+  if (orderType === "farm_produce") {
+    let items: FarmCartLineMeta[] = []
+    try {
+      const raw = metadataValue(params.metadata, "farm_items_json") || params.metadata.farm_items_json
+      items = typeof raw === "string" ? JSON.parse(raw) : Array.isArray(raw) ? raw : []
+    } catch {
+      items = []
+    }
+
+    const result = await captureFarmOrdersFromPaystack({
+      reference: params.reference,
+      buyerName: String(metadataValue(params.metadata, "buyer_name") || ""),
+      buyerPhone: String(metadataValue(params.metadata, "buyer_phone") || ""),
+      buyerEmail: String(metadataValue(params.metadata, "buyer_email") || "") || null,
+      deliveryAddress: String(metadataValue(params.metadata, "delivery_address") || ""),
+      deliveryFee: Number(params.metadata.delivery_fee ?? 0),
+      items,
+      actorType: params.actorType,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    })
+
+    return {
+      ok: result.ok,
+      alreadyRecorded: result.alreadyRecorded,
+      orderIds: result.orderIds,
+      insertedCount: result.ok && !result.alreadyRecorded ? result.orderIds.length : 0,
+      error: result.error,
+    }
+  }
+
+  if (orderType === "writing_service") {
+    let cvFields = {}
+    try {
+      const raw = metadataValue(params.metadata, "cv_fields_json") || params.metadata.cv_fields_json
+      cvFields = typeof raw === "string" ? parseCvFields(JSON.parse(raw)) : parseCvFields(raw)
+    } catch {
+      cvFields = {}
+    }
+
+    const result = await captureWritingOrderFromPaystack({
+      reference: params.reference,
+      agentId,
+      serviceId: String(metadataValue(params.metadata, "service_id") || params.metadata.service_id || ""),
+      customerName: String(metadataValue(params.metadata, "customer_name") || ""),
+      customerPhone: String(metadataValue(params.metadata, "customer_phone") || ""),
+      customerEmail: String(metadataValue(params.metadata, "customer_email") || "") || null,
+      instructions: String(metadataValue(params.metadata, "instructions") || "") || null,
+      cvFields,
+      attachedFileUrl: String(metadataValue(params.metadata, "attached_file_url") || "") || null,
+      totalPaid: Number(params.metadata.cart_total ?? params.metadata.amount ?? 0),
+      agentCommission: Number(params.metadata.agent_commission ?? 0),
+      actorType: params.actorType,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    })
+    return {
+      ok: result.ok,
+      alreadyRecorded: result.alreadyRecorded,
+      orderIds: result.orderId ? [result.orderId] : [],
+      insertedCount: result.ok && !result.alreadyRecorded ? 1 : 0,
+      error: result.error,
+    }
   }
 
   if (orderType === "ad_package" || orderType === "advertising") {

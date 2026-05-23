@@ -2585,60 +2585,6 @@ DataFlex Ghana Agent 🇬🇭`
                   onPageChange={(page) => handlePageChange(page, setCurrentPaidWithdrawalsPage)}
                 />
               </TabsContent>
-              <TabsContent value="properties" className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <h2 className="text-2xl font-bold text-emerald-800">Property Promotion</h2>
-                  <Button
-                    asChild
-                    className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 w-full sm:w-auto"
-                  >
-                    <Link href="/agent/properties">
-                      <Building2 className="h-4 w-4 mr-2" />
-                      Browse Properties
-                    </Link>
-                  </Button>
-                </div>
-                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
-                  <CardContent className="pt-6 text-center py-12">
-                    <Building2 className="h-16 w-16 mx-auto mb-4 text-emerald-300" />
-                    <h3 className="text-xl font-semibold text-emerald-800 mb-2">Property Promotion Platform</h3>
-                    <p className="text-emerald-600 mb-6">
-                      Browse and promote real estate properties to earn commissions. Connect with potential buyers and
-                      sellers through our platform.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
-                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                        <Building2 className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                        <h4 className="font-semibold text-emerald-800">Quality Properties</h4>
-                        <p className="text-sm text-emerald-600">
-                          Verified properties across multiple categories and price ranges
-                        </p>
-                      </div>
-                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                        <DollarSign className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                        <h4 className="font-semibold text-emerald-800">Dual Currency</h4>
-                        <p className="text-sm text-emerald-600">Properties listed in both Ghana Cedi and US Dollars</p>
-                      </div>
-                      <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                        <TrendingUp className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
-                        <h4 className="font-semibold text-emerald-800">Earn Commissions</h4>
-                        <p className="text-sm text-emerald-600">
-                          Connect buyers with properties and earn referral commissions
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      asChild
-                      className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
-                    >
-                      <Link href="/agent/properties">
-                        <Building2 className="h-4 w-4 mr-2" />
-                        Start Promoting Properties
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </TabsContent>
               <TabsContent value="compliance" className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-emerald-800">Compliance & Registration</h2>

@@ -69,6 +69,12 @@ import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 import type { PublicWholesaleProduct, PublicComplianceForm, BuyerDetails } from "@/lib/storefront-catalog"
 import type { PublicAdPackage } from "@/lib/advertising-types"
 import { StorefrontAdvertisingTab } from "@/components/storefront/StorefrontAdvertisingTab"
+import type { PublicFarmListing } from "@/lib/farm-types"
+import { StorefrontFarmProduceTab } from "@/components/storefront/StorefrontFarmProduceTab"
+import { StorefrontWritingTab } from "@/components/storefront/StorefrontWritingTab"
+import { StorefrontRealEstateTab } from "@/components/storefront/StorefrontRealEstateTab"
+import type { PublicWritingService } from "@/lib/writing-types"
+import type { PublicPropertyListing } from "@/lib/property-types"
 
 interface DataBundle {
   id: string
@@ -140,6 +146,9 @@ type PublicAgentStorefrontProps = {
   initialWholesaleProducts?: PublicWholesaleProduct[]
   initialComplianceForms?: PublicComplianceForm[]
   initialAdPackages?: PublicAdPackage[]
+  initialFarmListings?: PublicFarmListing[]
+  initialWritingServices?: PublicWritingService[]
+  initialProperties?: PublicPropertyListing[]
 }
 
 function mapApiBundles(raw: Array<DataBundle & { final_price?: number }>): DataBundle[] {
@@ -157,6 +166,9 @@ function applyStorefrontPayload(
     wholesaleProducts?: PublicWholesaleProduct[]
     complianceForms?: PublicComplianceForm[]
     adPackages?: PublicAdPackage[]
+    farmListings?: PublicFarmListing[]
+    writingServices?: PublicWritingService[]
+    properties?: PublicPropertyListing[]
     unavailable?: boolean
   },
   setters: {
@@ -166,6 +178,9 @@ function applyStorefrontPayload(
     setWholesaleProducts: (p: PublicWholesaleProduct[]) => void
     setComplianceForms: (f: PublicComplianceForm[]) => void
     setAdPackages: (a: PublicAdPackage[]) => void
+    setFarmListings: (f: PublicFarmListing[]) => void
+    setWritingServices: (w: PublicWritingService[]) => void
+    setProperties: (p: PublicPropertyListing[]) => void
     setNetworkTab: (t: string) => void
     setMainTab: (t: MainStoreTab) => void
     setLoadError: (e: string | null) => void
@@ -179,6 +194,9 @@ function applyStorefrontPayload(
     setters.setWholesaleProducts([])
     setters.setComplianceForms([])
     setters.setAdPackages([])
+    setters.setFarmListings([])
+    setters.setWritingServices([])
+    setters.setProperties([])
     return false
   }
 
@@ -191,6 +209,9 @@ function applyStorefrontPayload(
   setters.setWholesaleProducts(data.wholesaleProducts || [])
   setters.setComplianceForms(data.complianceForms || [])
   setters.setAdPackages(data.adPackages || [])
+  setters.setFarmListings(data.farmListings || [])
+  setters.setWritingServices(data.writingServices || [])
+  setters.setProperties(data.properties || [])
   setters.setLoadError(null)
 
   const providers = apiBundles.map((b) => normalizeProvider(b.provider))
@@ -212,6 +233,9 @@ export default function PublicAgentStorefront({
   initialWholesaleProducts,
   initialComplianceForms,
   initialAdPackages,
+  initialFarmListings,
+  initialWritingServices,
+  initialProperties,
 }: PublicAgentStorefrontProps) {
   const params = useParams()
   const router = useRouter()
@@ -236,6 +260,11 @@ export default function PublicAgentStorefront({
     initialComplianceForms ?? [],
   )
   const [adPackages, setAdPackages] = useState<PublicAdPackage[]>(initialAdPackages ?? [])
+  const [farmListings, setFarmListings] = useState<PublicFarmListing[]>(initialFarmListings ?? [])
+  const [writingServices, setWritingServices] = useState<PublicWritingService[]>(
+    initialWritingServices ?? [],
+  )
+  const [properties, setProperties] = useState<PublicPropertyListing[]>(initialProperties ?? [])
   const [wholesaleCart, setWholesaleCart] = useState<WholesaleCartLine[]>([])
   const [compliancePaidRef, setCompliancePaidRef] = useState<string | null>(null)
   const [activeBundleId, setActiveBundleId] = useState<string | null>(null)
@@ -284,6 +313,12 @@ export default function PublicAgentStorefront({
   useEffect(() => {
     if (searchParams.get("ad_payment") === "success") {
       setMainTab("advertise")
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (searchParams.get("farm_payment") === "success") {
+      setMainTab("farm")
     }
   }, [searchParams])
 
@@ -368,6 +403,9 @@ export default function PublicAgentStorefront({
           wholesaleProducts: initialWholesaleProducts,
           complianceForms: initialComplianceForms,
           adPackages: initialAdPackages,
+          farmListings: initialFarmListings,
+          writingServices: initialWritingServices,
+          properties: initialProperties,
         },
         {
           setProfile,
@@ -376,6 +414,9 @@ export default function PublicAgentStorefront({
           setWholesaleProducts,
           setComplianceForms,
           setAdPackages,
+          setFarmListings,
+          setWritingServices,
+          setProperties,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -398,6 +439,9 @@ export default function PublicAgentStorefront({
           setWholesaleProducts,
           setComplianceForms,
           setAdPackages,
+          setFarmListings,
+          setWritingServices,
+          setProperties,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -420,6 +464,7 @@ export default function PublicAgentStorefront({
     initialWholesaleProducts,
     initialComplianceForms,
     initialAdPackages,
+    initialFarmListings,
   ])
 
   const displayProfile: StoreProfile = profile ?? {
@@ -486,8 +531,20 @@ export default function PublicAgentStorefront({
       products: wholesaleProducts.length > 0,
       business: complianceForms.length > 0,
       advertise: adPackages.length > 0,
+      writing: writingServices.length > 0,
+      farm: farmListings.length > 0,
+      "real-estate": properties.length > 0,
     }),
-    [bundles.length, services.length, wholesaleProducts.length, complianceForms.length, adPackages.length],
+    [
+      bundles.length,
+      services.length,
+      wholesaleProducts.length,
+      complianceForms.length,
+      adPackages.length,
+      writingServices.length,
+      farmListings.length,
+      properties.length,
+    ],
   )
 
   const tabCounts = useMemo(
@@ -497,8 +554,20 @@ export default function PublicAgentStorefront({
       products: wholesaleProducts.length,
       business: complianceForms.length,
       advertise: adPackages.length,
+      writing: writingServices.length,
+      farm: farmListings.length,
+      "real-estate": properties.length,
     }),
-    [bundles.length, services.length, wholesaleProducts.length, complianceForms.length, adPackages.length],
+    [
+      bundles.length,
+      services.length,
+      wholesaleProducts.length,
+      complianceForms.length,
+      adPackages.length,
+      writingServices.length,
+      farmListings.length,
+      properties.length,
+    ],
   )
 
   useEffect(() => {
@@ -523,7 +592,16 @@ export default function PublicAgentStorefront({
   }, [bundlePage, bundlePagination.totalPages])
 
   useEffect(() => {
-    const order: MainStoreTab[] = ["bundles", "services", "products", "business", "advertise"]
+    const order: MainStoreTab[] = [
+      "bundles",
+      "services",
+      "products",
+      "business",
+      "advertise",
+      "writing",
+      "farm",
+      "real-estate",
+    ]
     if (order.includes(mainTab) && tabVisibility[mainTab]) return
     const first = order.find((t) => tabVisibility[t])
     if (first) setMainTab(first)
@@ -1122,6 +1200,41 @@ export default function PublicAgentStorefront({
                 storeSegment={storeSegment}
                 accent={accent}
                 packages={adPackages}
+              />
+            </TabsContent>
+          )}
+
+          {tabVisibility.writing && (
+            <TabsContent value="writing" className="mt-2 focus-visible:outline-none">
+              <StorefrontWritingTab
+                agentId={agentId}
+                storeSegment={storeSegment}
+                accent={accent}
+                services={writingServices}
+              />
+            </TabsContent>
+          )}
+
+          {tabVisibility.farm && (
+            <TabsContent value="farm" className="mt-2 focus-visible:outline-none">
+              <StorefrontFarmProduceTab
+                agentId={agentId}
+                storeSegment={storeSegment}
+                accent={accent}
+              />
+            </TabsContent>
+          )}
+
+          {tabVisibility["real-estate"] && (
+            <TabsContent value="real-estate" className="mt-2 focus-visible:outline-none">
+              <StorefrontRealEstateTab
+                agentId={agentId}
+                storeSegment={storeSegment}
+                storeSlug={profile?.store_slug}
+                accent={accent}
+                properties={properties}
+                agentWhatsApp={profile?.whatsapp_number}
+                agentPhone={profile?.phone_number}
               />
             </TabsContent>
           )}

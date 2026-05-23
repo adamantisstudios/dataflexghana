@@ -7,6 +7,12 @@ import {
 } from "@/lib/storefront-catalog"
 import { getVisibleAdPackagesForAgent } from "@/lib/advertising-server"
 import type { PublicAdPackage } from "@/lib/advertising-types"
+import { listPublishedFarmListings } from "@/lib/farm-server"
+import type { PublicFarmListing } from "@/lib/farm-types"
+import { getVisibleWritingServicesForAgent } from "@/lib/writing-server"
+import type { PublicWritingService } from "@/lib/writing-types"
+import { getVisiblePropertiesForAgent, isAgentStorefrontSuspended } from "@/lib/property-server"
+import type { PublicPropertyListing } from "@/lib/property-types"
 
 export type PublicBundle = {
   id: string
@@ -45,6 +51,9 @@ export type PublicStorefrontResponse = {
   wholesaleProducts: PublicWholesaleProduct[]
   complianceForms: PublicComplianceForm[]
   adPackages: PublicAdPackage[]
+  farmListings: PublicFarmListing[]
+  writingServices: PublicWritingService[]
+  properties: PublicPropertyListing[]
   unavailable?: boolean
 }
 
@@ -55,6 +64,9 @@ const EMPTY_RESPONSE: PublicStorefrontResponse = {
   wholesaleProducts: [],
   complianceForms: [],
   adPackages: [],
+  farmListings: [],
+  writingServices: [],
+  properties: [],
 }
 
 /** Server-side payload for /api/storefront/public/[agentId] and /store/[segment] page. */
@@ -92,11 +104,15 @@ export async function getPublicStorefrontResponse(
 
     const { data: agentDetails } = await db
       .from("agents")
-      .select("full_name, phone_number, momo_number, isapproved")
+      .select("full_name, phone_number, momo_number, isapproved, isbanned")
       .eq("id", agentId)
       .maybeSingle()
 
     if (!agentDetails) {
+      return { ...EMPTY_RESPONSE, unavailable: true }
+    }
+
+    if (agentDetails.isbanned) {
       return { ...EMPTY_RESPONSE, unavailable: true }
     }
 
@@ -142,6 +158,24 @@ export async function getPublicStorefrontResponse(
         wholesaleProducts: [],
         complianceForms: [],
         adPackages: [],
+        farmListings: [],
+        writingServices: [],
+        properties: [],
+        unavailable: true,
+      }
+    }
+
+    if (await isAgentStorefrontSuspended(agentId)) {
+      return {
+        profile,
+        bundles: [],
+        services: [],
+        wholesaleProducts: [],
+        complianceForms: [],
+        adPackages: [],
+        farmListings: [],
+        writingServices: [],
+        properties: [],
         unavailable: true,
       }
     }
@@ -154,7 +188,17 @@ export async function getPublicStorefrontResponse(
 
     if (settingsError) {
       console.error("public storefront settings:", settingsError)
-      return { profile, bundles: [], services: [], wholesaleProducts: [], complianceForms: [], adPackages: [] }
+      return {
+        profile,
+        bundles: [],
+        services: [],
+        wholesaleProducts: [],
+        complianceForms: [],
+        adPackages: [],
+        farmListings: [],
+        writingServices: [],
+        properties: [],
+      }
     }
 
     const visibleSettings = settings ?? []
@@ -289,6 +333,27 @@ export async function getPublicStorefrontResponse(
       console.error("public storefront ad packages:", adErr)
     }
 
+    let farmListings: PublicFarmListing[] = []
+    try {
+      farmListings = await listPublishedFarmListings({ agentId })
+    } catch (farmErr) {
+      console.error("public storefront farm listings:", farmErr)
+    }
+
+    let writingServices: PublicWritingService[] = []
+    try {
+      writingServices = await getVisibleWritingServicesForAgent(agentId)
+    } catch (writingErr) {
+      console.error("public storefront writing services:", writingErr)
+    }
+
+    let properties: PublicPropertyListing[] = []
+    try {
+      properties = await getVisiblePropertiesForAgent(agentId)
+    } catch (propertyErr) {
+      console.error("public storefront properties:", propertyErr)
+    }
+
     return {
       profile,
       bundles,
@@ -296,6 +361,9 @@ export async function getPublicStorefrontResponse(
       wholesaleProducts,
       complianceForms,
       adPackages,
+      farmListings,
+      writingServices,
+      properties,
       unavailable: false,
     }
   } catch (error) {

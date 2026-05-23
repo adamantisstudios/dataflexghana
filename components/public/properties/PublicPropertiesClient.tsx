@@ -20,8 +20,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
   Bed,
   Bath,
   Square,
-  Phone,
-  MessageCircle,
   Search,
   Filter,
   Plus,
@@ -29,11 +27,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
   ChevronLeft,
   ChevronRight,
   Home,
+  Store,
+  ExternalLink,
+  Users,
 } from "lucide-react"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { PropertyDescription } from "@/components/ui/property-description"
 import Link from "next/link"
 import PropertiesHeroSlider from "@/components/agent/properties/PropertiesHeroSlider"
+
+export interface PropertyListingAgent {
+  agent_id: string
+  store_name: string | null
+  store_slug: string | null
+  storefront_url: string
+}
 
 export interface Property {
   id: string
@@ -62,6 +70,17 @@ export interface Property {
   image_urls?: string[]
   created_at: string
   updated_at: string
+  published_by_agent_id?: string | null
+  listing_agent?: PropertyListingAgent | null
+}
+
+export interface FeaturedRealEstateAgent {
+  agent_id: string
+  full_name: string
+  store_name: string | null
+  store_slug: string | null
+  storefront_url: string
+  listing_count: number
 }
 
 const propertyCategories = [
@@ -102,6 +121,8 @@ const priceRanges = {
 export default function PublicPropertiesClient() {
   const [properties, setProperties] = useState<Property[]>([])
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([])
+  const [featuredAgents, setFeaturedAgents] = useState<FeaturedRealEstateAgent[]>([])
+  const [storefrontHomeUrl, setStorefrontHomeUrl] = useState("")
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All Categories")
@@ -124,6 +145,8 @@ export default function PublicPropertiesClient() {
           throw new Error(json.error || "Failed to load properties")
         }
         setProperties(json.properties || [])
+        setFeaturedAgents(json.featured_agents || [])
+        setStorefrontHomeUrl(json.storefront_home_url || "")
       } catch (error) {
         console.error("Error loading properties:", error)
       } finally {
@@ -246,25 +269,6 @@ export default function PublicPropertiesClient() {
   const formatPrice = (price: number, currency: string) => {
     const symbol = currency === "GHS" ? "₵" : "$"
     return `${symbol}${price.toLocaleString()}`
-  }
-
-  const handleCallAdmin = (property: Property) => {
-    const phone = "0246827049"
-    window.open(`tel:${phone}`, "_self")
-  }
-
-  const handleWhatsAppAdmin = (property: Property) => {
-    const whatsappNumber = "+233242799990"
-    const message = `Hello Admin, I'm interested in this property:
-
-Property ID: ${property.id}
-Property: ${property.title}
-Price: ${formatPrice(property.price, property.currency)}
-Location: ${property.location || "Not specified"}
-
-Please provide more details and arrange a viewing.`
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, "_blank")
   }
 
   const PaginationControls = ({
@@ -398,9 +402,53 @@ Please provide more details and arrange a viewing.`
               Discover Premium Properties Across Ghana
             </h2>
             <p className="text-emerald-600 text-lg mb-4">
-              Browse houses, apartments, land, and commercial properties. Contact owners directly via WhatsApp!
+              Browse verified listings across Ghana. Connect with a local agent through their Referral Powerhouse
+              storefront for viewings and negotiations.
             </p>
           </div>
+        </div>
+
+        {/* Contact an agent / storefront funnel */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-emerald-200 p-6 mb-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-emerald-800 flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Contact an Agent
+              </h3>
+              <p className="text-sm text-emerald-700 max-w-xl">
+                Properties are promoted by independent agents on Referral Powerhouse. Visit an agent&apos;s store to
+                enquire, book viewings, and get local support — not the platform admin.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+              <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+                <a href={storefrontHomeUrl || "/store"} target="_blank" rel="noopener noreferrer">
+                  <Store className="h-4 w-4 mr-2" />
+                  Browse Agent Stores
+                </a>
+              </Button>
+            </div>
+          </div>
+          {featuredAgents.length > 0 && (
+            <div className="mt-5 pt-5 border-t border-emerald-100">
+              <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide mb-3">
+                Featured agents with listings on their store
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {featuredAgents.map((agent) => (
+                  <Button key={agent.agent_id} variant="outline" size="sm" asChild className="border-emerald-200">
+                    <a href={agent.storefront_url} target="_blank" rel="noopener noreferrer">
+                      <Store className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                      {agent.store_name || agent.full_name}
+                      <span className="ml-1.5 text-emerald-600 tabular-nums">({agent.listing_count})</span>
+                      <ExternalLink className="h-3 w-3 ml-1 opacity-60" />
+                    </a>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Filters */}
@@ -519,9 +567,19 @@ Please provide more details and arrange a viewing.`
                     </div>
                   </div>
                 </div>
-                <Badge variant="secondary" className="w-fit mb-2">
-                  {property.category}
-                </Badge>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <Badge variant="secondary" className="w-fit">
+                    {property.category}
+                  </Badge>
+                  {property.listing_agent && (
+                    <Button variant="outline" size="sm" className="h-7 text-xs border-emerald-200" asChild>
+                      <a href={property.listing_agent.storefront_url} target="_blank" rel="noopener noreferrer">
+                        <Store className="h-3 w-3 mr-1 text-emerald-600" />
+                        {property.listing_agent.store_name || "Agent store"}
+                      </a>
+                    </Button>
+                  )}
+                </div>
                 {property.badges && property.badges.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-2">
                     {property.badges.map((badge, index) => (
@@ -563,23 +621,23 @@ Please provide more details and arrange a viewing.`
                     </div>
                   )}
                   {property.description && <PropertyDescription description={property.description} />}
-                  <div className="grid grid-cols-2 gap-2 pt-3 border-t border-emerald-100">
-                    <Button
-                      size="sm"
-                      onClick={() => handleCallAdmin(property)}
-                      className="bg-blue-600 hover:bg-blue-700 text-xs"
-                    >
-                      <Phone className="h-3 w-3 mr-1" />
-                      Call Admin
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleWhatsAppAdmin(property)}
-                      className="bg-green-600 hover:bg-green-700 text-xs"
-                    >
-                      <MessageCircle className="h-3 w-3 mr-1" />
-                      WhatsApp Admin
-                    </Button>
+                  <div className="pt-3 border-t border-emerald-100">
+                    {property.listing_agent ? (
+                      <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 text-xs" asChild>
+                        <a href={property.listing_agent.storefront_url} target="_blank" rel="noopener noreferrer">
+                          <Store className="h-3 w-3 mr-1" />
+                          View on {property.listing_agent.store_name || "agent store"}
+                          <ExternalLink className="h-3 w-3 ml-1 opacity-80" />
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline" className="w-full text-xs border-emerald-200" asChild>
+                        <a href={storefrontHomeUrl || "/store"} target="_blank" rel="noopener noreferrer">
+                          <Users className="h-3 w-3 mr-1" />
+                          Find an agent on Referral Powerhouse
+                        </a>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

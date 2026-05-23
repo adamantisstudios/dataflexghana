@@ -190,19 +190,29 @@ function GroceryRequestsTab() {
   }
 
   const handleDeleteRequest = async (row: GroceryRequest) => {
+    const deletedId = row.id
     setDeletingRequest(true)
     try {
-      const res = await fetch(`/api/admin/grocery/requests/${row.id}`, {
+      const res = await fetch(`/api/admin/grocery/requests/${deletedId}`, {
         method: "DELETE",
         headers: getAdminAuthHeaders(),
       })
-      const data = await res.json()
+      let data: { success?: boolean; error?: string } = {}
+      const text = await res.text()
+      if (text) {
+        try {
+          data = JSON.parse(text) as { success?: boolean; error?: string }
+        } catch {
+          throw new Error("Invalid response from server")
+        }
+      }
       if (!res.ok || !data.success) throw new Error(data.error || "Delete failed")
-      toast.success("Grocery request deleted")
+
+      setRequests((prev) => prev.filter((r) => r.id !== deletedId))
       setConfirmDeleteRequest(null)
       setSheetOpen(false)
       setSelected(null)
-      loadRequests()
+      toast.success("Grocery request deleted")
       window.dispatchEvent(new CustomEvent("grocery-requests-updated"))
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Delete failed")
@@ -434,9 +444,15 @@ function GroceryRequestsTab() {
         </CardContent>
       </Card>
 
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          setSheetOpen(open)
+          if (!open) setSelected(null)
+        }}
+      >
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          {selected && (
+          {selected && requests.some((r) => r.id === selected.id) && (
             <>
               <SheetHeader>
                 <SheetTitle>{selected.full_name}</SheetTitle>

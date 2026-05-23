@@ -117,6 +117,51 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(buildFailureRedirect(verifiedReference))
   }
 
+  if (orderType === "farm_produce") {
+    const clientMeta = getRequestClientMeta(request)
+    const capture = await captureStorefrontFromPaystackMetadata({
+      reference: verifiedReference,
+      metadata: meta,
+      actorType: "system",
+      ipAddress: clientMeta.ipAddress,
+      userAgent: clientMeta.userAgent,
+    })
+    if (!capture.ok && !capture.alreadyRecorded) {
+      console.error("[storefront callback] farm capture:", capture.error)
+    }
+
+    const isStorefront = Boolean(
+      metadataValue(meta, "store_segment") &&
+        String(metadataValue(meta, "store_segment")) !== agentId,
+    )
+    const redirectUrl = new URL(
+      isStorefront
+        ? buildStorefrontPathUrl(getStorefrontOrigin(), segment)
+        : `${getStorefrontOrigin()}/farmersfriend`,
+    )
+    redirectUrl.searchParams.set("farm_payment", "success")
+    redirectUrl.searchParams.set("ref", verifiedReference)
+    return NextResponse.redirect(redirectUrl.toString())
+  }
+
+  if (orderType === "writing_service") {
+    const clientMeta = getRequestClientMeta(request)
+    const capture = await captureStorefrontFromPaystackMetadata({
+      reference: verifiedReference,
+      metadata: meta,
+      actorType: "system",
+      ipAddress: clientMeta.ipAddress,
+      userAgent: clientMeta.userAgent,
+    })
+    if (!capture.ok && !capture.alreadyRecorded) {
+      console.error("[storefront callback] writing capture:", capture.error)
+    }
+    const redirectUrl = new URL(buildStorefrontPathUrl(getStorefrontOrigin(), segment))
+    redirectUrl.searchParams.set("writing_payment", "success")
+    redirectUrl.searchParams.set("ref", verifiedReference)
+    return NextResponse.redirect(redirectUrl.toString())
+  }
+
   if (orderType === "ad_package" || orderType === "advertising") {
     const clientMeta = getRequestClientMeta(request)
     const capture = await captureStorefrontFromPaystackMetadata({

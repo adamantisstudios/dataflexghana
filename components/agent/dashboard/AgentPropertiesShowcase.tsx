@@ -186,9 +186,9 @@ export default function AgentPropertiesShowcase() {
                 asChild
                 className="w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 h-7 text-xs"
               >
-                <Link href="/agent/properties">
+                <Link href="/agent/referralhub?hubTab=marketplace&marketplaceTab=real-estate">
                   <Home className="h-3 w-3 mr-1" />
-                  Browse More Properties
+                  Manage on your storefront
                   <ArrowRight className="ml-1 h-3 w-3" />
                 </Link>
               </Button>

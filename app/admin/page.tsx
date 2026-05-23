@@ -49,6 +49,7 @@ import { Label } from "@/components/ui/label"
   Sparkles,
   ShoppingBasket,
   Megaphone,
+  Leaf,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -81,7 +82,7 @@ const ComplianceTab = lazy(() => import("@/components/admin/tabs/ComplianceTab")
 const TeacherHubTab = lazy(() => import("@/components/admin/tabs/TeacherHubTab"))
 const AudioManagementTab = lazy(() => import("@/components/admin/tabs/AudioManagementTab"))
 const LinkCacheManagementTab = lazy(() => import("@/components/admin/tabs/LinkCacheManagementTab"))
-const ProfessionalWritingTab = lazy(() => import("@/components/admin/tabs/ProfessionalWritingTab"))
+const WritingServicesAdminTab = lazy(() => import("@/components/admin/tabs/WritingServicesAdminTab"))
 const InvitationManagementTab = lazy(() => import("@/components/admin/tabs/InvitationManagementTab"))
 const AgentNotificationsTab = lazy(() => import("@/components/admin/tabs/AgentNotificationsTab"))
 const StorefrontManagerTab = lazy(() => import("@/components/admin/tabs/StorefrontManagerTab"))
@@ -96,6 +97,7 @@ const SalonTab = lazy(() => import("@/components/admin/tabs/SalonTab"))
 const MaintenancePanelTab = lazy(() => import("@/components/admin/tabs/MaintenancePanelTab"))
 const GroceryRequestsTab = lazy(() => import("@/components/admin/tabs/GroceryRequestsTab"))
 const AdvertisingAdminTab = lazy(() => import("@/components/admin/tabs/AdvertisingAdminTab"))
+const FarmersFriendAdminTab = lazy(() => import("@/components/admin/tabs/FarmersFriendAdminTab"))
 
 // Type definition for tab configuration
 interface TabConfigItem {
@@ -154,6 +156,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "domestic-worker-requests", label: "Client Requests", icon: Bell, component: DomesticWorkerClientRequestsTab },
   { id: "grocery-requests", label: "Grocery Requests", icon: ShoppingBasket, component: GroceryRequestsTab },
   { id: "advertising", label: "Advertising", icon: Megaphone, component: AdvertisingAdminTab },
+  { id: "farmers-friend", label: "Farmers Friend", icon: Leaf, component: FarmersFriendAdminTab },
   { id: "wholesale", label: "Wholesale", icon: ShoppingBag, component: WholesaleTab },
   { id: "properties", label: "Properties", icon: Home, component: PropertiesTab },
   { id: "blogs", label: "Blogs", icon: FileText, component: BlogsTab },
@@ -168,7 +171,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "wallets", label: "Wallets", icon: Wallet, component: WalletsTab },
   { id: "savings", label: "Savings", icon: PiggyBank, component: SavingsTab },
   { id: "compliance", label: "Compliance", icon: FileText, component: ComplianceTab },
-  { id: "professional-writing", label: "Professional Writing", icon: FileText, component: ProfessionalWritingTab },
+  { id: "professional-writing", label: "Professional Writing", icon: FileText, component: WritingServicesAdminTab },
   { id: "maintenance", label: "Maintenance", icon: Wrench, component: null },
   { id: "settings", label: "Settings", icon: Settings, component: null },
   { id: "invitation-management", label: "Invitation Management", icon: Mail, component: InvitationManagementTab },

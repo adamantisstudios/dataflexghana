@@ -146,16 +146,6 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       onClick: () => handleMenuCardClick("referral-program"),
     },
     {
-      id: "properties",
-      title: "Promote Properties",
-      description: "Promote and earn commissions",
-      icon: <Building2 className="h-12 w-12" />,
-      image: "/images/properties.png",
-      gradient: "linear-gradient(135deg, #059669, #047857)",
-      buttonText: "VISIT PLATFORM",
-      onClick: () => handleMenuCardClick("properties"),
-    },
-    {
       id: "withdrawals",
       title: "Withdrawals",
       description: "Withdraw your earnings",
@@ -204,6 +194,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       gradient: "linear-gradient(135deg, #D97706, #B45309)",
       buttonText: "PUBLISH NOW",
       onClick: () => handleMenuCardClick("publish-properties"),
+    },
+    {
+      id: "real-estate-store",
+      title: "Real Estate",
+      description: "Promote listings on your storefront",
+      icon: <Building2 className="h-12 w-12" />,
+      image: "/images/publish-properties.png",
+      gradient: "linear-gradient(135deg, #F59E0B, #D97706)",
+      buttonText: "OPEN HUB",
+      onClick: () => router.push("/agent/referralhub?hubTab=marketplace&marketplaceTab=real-estate"),
     },
     {
       id: "fashion-avenue",

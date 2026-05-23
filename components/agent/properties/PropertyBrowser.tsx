@@ -32,7 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 } from "lucide-react"
 import { supabase } from "@/lib/supabase-client";
 import type { Agent  } from "@/lib/supabase"
-import type { Property } from "../../../app/agent/properties/page"
+import type { AgentBrowseProperty as Property } from "@/lib/agent-property-browse-types"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { PropertyDescription } from "@/components/ui/property-description"
 

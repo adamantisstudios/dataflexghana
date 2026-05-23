@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { MapPin, Bed, Bath, Square, Heart, Phone, MessageCircle, PhoneCall, Plus } from "lucide-react"
 import { supabase } from "@/lib/supabase-client";
 import type { Agent  } from "@/lib/supabase"
-import type { Property } from "../../../app/agent/properties/page"
+import type { AgentBrowseProperty as Property } from "@/lib/agent-property-browse-types"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { ImageModal } from "@/components/ui/image-modal"
 import { PropertyDescription } from "@/components/ui/property-description"

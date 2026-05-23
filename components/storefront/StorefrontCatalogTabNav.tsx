@@ -2,10 +2,18 @@
 
 import type { CSSProperties } from "react"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Smartphone, Users, ShoppingBag, FileText, Megaphone } from "lucide-react"
+import { Smartphone, Users, ShoppingBag, FileText, Megaphone, Leaf, PenLine, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type StorefrontTabId = "bundles" | "services" | "products" | "business" | "advertise"
+export type StorefrontTabId =
+  | "bundles"
+  | "services"
+  | "products"
+  | "business"
+  | "advertise"
+  | "writing"
+  | "farm"
+  | "real-estate"
 
 const TABS: {
   id: StorefrontTabId
@@ -55,6 +63,30 @@ const TABS: {
     iconClass: "text-[#0E8F3D]",
     inactiveBg: "bg-gradient-to-br from-emerald-100 to-green-50",
   },
+  {
+    id: "writing",
+    label: "Writing Services",
+    short: "Writing",
+    icon: PenLine,
+    iconClass: "text-violet-600",
+    inactiveBg: "bg-gradient-to-br from-violet-100 to-indigo-50",
+  },
+  {
+    id: "farm",
+    label: "Farm Produce",
+    short: "Farm",
+    icon: Leaf,
+    iconClass: "text-lime-700",
+    inactiveBg: "bg-gradient-to-br from-lime-100 to-green-50",
+  },
+  {
+    id: "real-estate",
+    label: "Real Estate",
+    short: "Property",
+    icon: Home,
+    iconClass: "text-amber-700",
+    inactiveBg: "bg-gradient-to-br from-amber-100 to-orange-50",
+  },
 ]
 
 type Props = {
@@ -79,7 +111,13 @@ export function StorefrontCatalogTabNav({ activeTab, accent, visible, counts }: 
             ? "grid grid-cols-3"
             : tabs.length === 4
               ? "grid grid-cols-2 sm:grid-cols-4"
-              : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+              : tabs.length >= 8
+                ? "grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8"
+                : tabs.length >= 7
+                  ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7"
+                  : tabs.length >= 6
+                    ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+                    : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
       )}
     >
       {tabs.map((tab) => {
