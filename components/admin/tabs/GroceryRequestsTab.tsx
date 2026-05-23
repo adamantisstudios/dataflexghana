@@ -21,6 +21,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import {
   GROCERY_STATUSES,
@@ -39,6 +48,7 @@ import {
   ShoppingBasket,
   Ban,
   ShieldOff,
+  Trash2,
 } from "lucide-react"
 
 function statusBadgeClass(status: GroceryRequestStatus): string {
@@ -70,6 +80,8 @@ function GroceryRequestsTab() {
   const [blockedPhones, setBlockedPhones] = useState<{ phone: string; blocked_at: string }[]>([])
   const [loadingBlocked, setLoadingBlocked] = useState(false)
   const [unblockingPhone, setUnblockingPhone] = useState<string | null>(null)
+  const [confirmDeleteRequest, setConfirmDeleteRequest] = useState<GroceryRequest | null>(null)
+  const [deletingRequest, setDeletingRequest] = useState(false)
   const [edit, setEdit] = useState({
     status: "new_request" as GroceryRequestStatus,
     estimated_price: "",
@@ -175,6 +187,28 @@ function GroceryRequestsTab() {
       admin_notes: row.admin_notes || "",
     })
     setSheetOpen(true)
+  }
+
+  const handleDeleteRequest = async (row: GroceryRequest) => {
+    setDeletingRequest(true)
+    try {
+      const res = await fetch(`/api/admin/grocery/requests/${row.id}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || "Delete failed")
+      toast.success("Grocery request deleted")
+      setConfirmDeleteRequest(null)
+      setSheetOpen(false)
+      setSelected(null)
+      loadRequests()
+      window.dispatchEvent(new CustomEvent("grocery-requests-updated"))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed")
+    } finally {
+      setDeletingRequest(false)
+    }
   }
 
   const handleSave = async () => {
@@ -567,12 +601,60 @@ function GroceryRequestsTab() {
                       "Save changes"
                     )}
                   </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="w-full"
+                    disabled={deletingRequest}
+                    onClick={() => setConfirmDeleteRequest(selected)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Request
+                  </Button>
                 </div>
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
+
+      <AlertDialog
+        open={!!confirmDeleteRequest}
+        onOpenChange={(open) => !open && setConfirmDeleteRequest(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete grocery request?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  Permanently delete the request from <strong>{confirmDeleteRequest?.full_name}</strong> (
+                  {confirmDeleteRequest?.phone})? This cannot be undone.
+                </p>
+                {confirmDeleteRequest &&
+                  confirmDeleteRequest.status !== "delivered" &&
+                  confirmDeleteRequest.status !== "cancelled" && (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                      <strong>Warning:</strong> This request is still &quot;
+                      {GROCERY_STATUS_LABELS[confirmDeleteRequest.status]}&quot;. Deleting active requests may
+                      affect customer follow-up.
+                    </p>
+                  )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingRequest}>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={deletingRequest}
+              onClick={() => confirmDeleteRequest && void handleDeleteRequest(confirmDeleteRequest)}
+            >
+              {deletingRequest ? "Deleting…" : "Delete request"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

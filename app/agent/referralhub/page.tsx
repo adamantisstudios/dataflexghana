@@ -22,6 +22,7 @@ import { ReferralHubEarningsTip } from "@/components/agent/referralhub/ReferralH
 import { MarketplaceWholesaleSection } from "@/components/agent/referralhub/MarketplaceWholesaleSection"
 import { MarketplaceComplianceSection } from "@/components/agent/referralhub/MarketplaceComplianceSection"
 import { MarketplaceSubTabs } from "@/components/agent/referralhub/MarketplaceSubTabs"
+import { MarketplaceAdvertisingSection } from "@/components/agent/referralhub/MarketplaceAdvertisingSection"
 import { Switch } from "@/components/ui/switch"
 
 interface AgentSession {
@@ -412,6 +413,13 @@ export default function ReferralHubPage() {
                   }
                   compliance={
                     <MarketplaceComplianceSection
+                      agentId={agent.id}
+                      settings={settings}
+                      onSettingsChange={() => loadSettings(agent.id)}
+                    />
+                  }
+                  advertising={
+                    <MarketplaceAdvertisingSection
                       agentId={agent.id}
                       settings={settings}
                       onSettingsChange={() => loadSettings(agent.id)}

@@ -5,6 +5,7 @@ export const STORE_ITEM_TYPES = [
   "referral_service",
   "wholesale_product",
   "compliance_form",
+  "ad_package",
 ] as const
 
 export type StoreItemType = (typeof STORE_ITEM_TYPES)[number]
@@ -86,6 +87,8 @@ export function isStoreItemType(value: string): value is StoreItemType {
 }
 
 export function marginForItemType(itemType: StoreItemType, customMargin: number): number {
-  if (itemType === "referral_service" || itemType === "compliance_form") return 0
+  if (itemType === "referral_service" || itemType === "compliance_form" || itemType === "ad_package") {
+    return 0
+  }
   return Number(customMargin ?? 0)
 }

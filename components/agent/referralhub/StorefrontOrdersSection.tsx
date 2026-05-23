@@ -15,7 +15,8 @@ import {
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { STOREFRONT_ORDERS_CHANGED_EVENT } from "@/lib/storefront-events"
-import { Loader2, Wallet } from "lucide-react"
+import { Loader2, Wallet, Megaphone } from "lucide-react"
+import { AD_MEDIA_LABELS } from "@/lib/advertising-types"
 
 interface StorefrontOrder {
   id: string
@@ -29,6 +30,20 @@ interface StorefrontOrder {
   data_bundles?: { name: string; provider: string } | null
 }
 
+interface AdOrderRow {
+  id: string
+  customer_name: string
+  customer_phone: string
+  total_paid: number
+  status: string
+  created_at: string
+  package_name: string
+  station_name: string
+  media_type: string
+  agent_commission: number
+  paystack_reference: string | null
+}
+
 interface Props {
   agentId: string
   commissionBalance: number
@@ -38,9 +53,11 @@ interface Props {
 export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceChange }: Props) {
   const [requestingPayout, setRequestingPayout] = useState(false)
   const [orders, setOrders] = useState<StorefrontOrder[]>([])
+  const [adOrders, setAdOrders] = useState<AdOrderRow[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [loadingAds, setLoadingAds] = useState(true)
 
   const requestPayout = async () => {
     if (commissionBalance <= 0) {
@@ -85,15 +102,39 @@ export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceC
     }
   }, [agentId, page])
 
+  const loadAdOrders = useCallback(async (silent = false) => {
+    if (!silent) setLoadingAds(true)
+    try {
+      const headers = getAgentAuthHeaders()
+      const res = await fetch(`/api/agent/advertising/orders?agentId=${agentId}&limit=20`, {
+        headers,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setAdOrders(data.orders || [])
+    } catch {
+      setAdOrders([])
+    } finally {
+      if (!silent) setLoadingAds(false)
+    }
+  }, [agentId])
+
   useEffect(() => {
     load()
-    const interval = setInterval(() => load(true), 30000)
+    loadAdOrders()
+    const interval = setInterval(() => {
+      load(true)
+      loadAdOrders(true)
+    }, 30000)
     const onVisibility = () => {
       if (document.visibilityState === "visible") load(true)
     }
     const onOrdersChanged = (event: Event) => {
       const detail = (event as CustomEvent<{ agentId?: string }>).detail
-      if (!detail?.agentId || detail.agentId === agentId) load(true)
+      if (!detail?.agentId || detail.agentId === agentId) {
+        load(true)
+        loadAdOrders(true)
+      }
     }
     document.addEventListener("visibilitychange", onVisibility)
     window.addEventListener(STOREFRONT_ORDERS_CHANGED_EVENT, onOrdersChanged)
@@ -102,7 +143,7 @@ export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceC
       document.removeEventListener("visibilitychange", onVisibility)
       window.removeEventListener(STOREFRONT_ORDERS_CHANGED_EVENT, onOrdersChanged)
     }
-  }, [load, agentId])
+  }, [load, loadAdOrders, agentId])
 
   return (
     <div className="space-y-4">
@@ -225,6 +266,56 @@ export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceC
                 </div>
               )}
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Megaphone className="h-5 w-5 text-[#0E8F3D]" />
+            Advertising orders
+          </CardTitle>
+          <CardDescription>
+            Radio, TV, and media bookings — commission credits when admin marks completed
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingAds ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-[#0E8F3D]" />
+            </div>
+          ) : adOrders.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No advertising orders yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {adOrders.map((o) => (
+                <div key={o.id} className="border rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <p className="font-medium">{o.package_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {o.station_name} · {AD_MEDIA_LABELS[o.media_type as keyof typeof AD_MEDIA_LABELS] || o.media_type}
+                      </p>
+                    </div>
+                    <Badge variant="outline">{o.status}</Badge>
+                  </div>
+                  <p className="text-sm">{o.customer_name} · {o.customer_phone}</p>
+                  <div className="flex justify-between text-sm">
+                    <span>Paid ₵{Number(o.total_paid).toFixed(2)}</span>
+                    <span className="text-[#0E8F3D] font-medium">
+                      Commission ₵{Number(o.agent_commission).toFixed(2)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(o.created_at).toLocaleString()}
+                    {o.paystack_reference && (
+                      <span className="block font-mono mt-0.5">{o.paystack_reference}</span>
+                    )}
+                  </p>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

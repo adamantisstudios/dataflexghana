@@ -11,6 +11,7 @@ import {
   parseBuyerDetailsFromMetadata,
 } from "@/lib/storefront-paystack-meta"
 import { COMPLIANCE_FORM_SOLE_PROPRIETORSHIP } from "@/lib/storefront-catalog"
+import { captureAdOrderFromPaystack } from "@/lib/advertising-capture"
 
 export type StorefrontCaptureResult = {
   ok: boolean
@@ -286,6 +287,30 @@ export async function captureStorefrontFromPaystackMetadata(params: {
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
     })
+  }
+
+  if (orderType === "ad_package" || orderType === "advertising") {
+    const result = await captureAdOrderFromPaystack({
+      reference: params.reference,
+      agentId,
+      packageId: String(metadataValue(params.metadata, "package_id") || params.metadata.package_id || ""),
+      customerName: String(metadataValue(params.metadata, "customer_name") || ""),
+      customerPhone: String(metadataValue(params.metadata, "customer_phone") || ""),
+      customerEmail: String(metadataValue(params.metadata, "customer_email") || "") || null,
+      customerBusiness: String(metadataValue(params.metadata, "customer_business") || "") || null,
+      adMessage: String(metadataValue(params.metadata, "ad_message") || "") || null,
+      totalPaid: Number(params.metadata.cart_total ?? params.metadata.amount ?? 0),
+      actorType: params.actorType,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    })
+    return {
+      ok: result.ok,
+      alreadyRecorded: result.alreadyRecorded,
+      orderIds: result.orderId ? [result.orderId] : [],
+      insertedCount: result.ok && !result.alreadyRecorded ? 1 : 0,
+      error: result.error,
+    }
   }
 
   if (orderType === "compliance") {

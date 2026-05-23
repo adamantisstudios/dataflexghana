@@ -14,8 +14,17 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { getAdminAuthHeaders } from "@/lib/api-client"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import { Download, Search } from "lucide-react"
+import { Download, Search, Trash2 } from "lucide-react"
 
 type Submission = {
   id: string
@@ -54,6 +63,8 @@ export function StorefrontCompliancePanel() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteRow, setConfirmDeleteRow] = useState<Submission | null>(null)
   const [exportingCsv, setExportingCsv] = useState(false)
 
   useEffect(() => {
@@ -106,6 +117,25 @@ export function StorefrontCompliancePanel() {
       toast.error(e instanceof Error ? e.message : "Update failed")
     } finally {
       setUpdatingId(null)
+    }
+  }
+
+  const deleteSubmission = async (row: Submission) => {
+    setDeletingId(row.id)
+    try {
+      const res = await fetch(`/api/admin/storefront/compliance?id=${encodeURIComponent(row.id)}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || "Delete failed")
+      toast.success("Compliance submission deleted")
+      setConfirmDeleteRow(null)
+      load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed")
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -214,6 +244,7 @@ export function StorefrontCompliancePanel() {
                   <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -243,6 +274,18 @@ export function StorefrontCompliancePanel() {
                     </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       {new Date(row.created_at).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                        disabled={deletingId === row.id || updatingId === row.id}
+                        onClick={() => setConfirmDeleteRow(row)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -279,6 +322,16 @@ export function StorefrontCompliancePanel() {
                 <p className="text-xs text-muted-foreground">
                   {new Date(row.created_at).toLocaleString()}
                 </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                  disabled={deletingId === row.id || updatingId === row.id}
+                  onClick={() => setConfirmDeleteRow(row)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete submission
+                </Button>
               </div>
             ))}
           </div>
@@ -303,6 +356,30 @@ export function StorefrontCompliancePanel() {
           )}
         </>
       )}
+
+      <AlertDialog open={!!confirmDeleteRow} onOpenChange={(open) => !open && setConfirmDeleteRow(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete compliance submission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the{" "}
+              <strong>{confirmDeleteRow?.form_type || "compliance"}</strong> submission for{" "}
+              <strong>{confirmDeleteRow?.agent?.full_name || confirmDeleteRow?.agent_id}</strong>. This cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingId === confirmDeleteRow?.id}>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={deletingId === confirmDeleteRow?.id}
+              onClick={() => confirmDeleteRow && void deleteSubmission(confirmDeleteRow)}
+            >
+              {deletingId === confirmDeleteRow?.id ? "Deleting…" : "Delete"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

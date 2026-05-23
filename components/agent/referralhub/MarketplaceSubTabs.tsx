@@ -9,6 +9,7 @@ type Props = {
   services: ReactNode
   wholesale: ReactNode
   compliance: ReactNode
+  advertising: ReactNode
 }
 
 const tabTriggerClass =
@@ -17,12 +18,12 @@ const tabTriggerClass =
   "data-[state=active]:border-slate-900 " +
   "data-[state=inactive]:text-slate-600 data-[state=inactive]:hover:bg-slate-100"
 
-export function MarketplaceSubTabs({ bundles, services, wholesale, compliance }: Props) {
+export function MarketplaceSubTabs({ bundles, services, wholesale, compliance, advertising }: Props) {
   return (
     <Tabs defaultValue="bundles" className="w-full">
       <TabsList
         className={cn(
-          "w-full h-auto grid grid-cols-2 lg:grid-cols-4 gap-1.5 p-1.5 rounded-xl",
+          "w-full h-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 p-1.5 rounded-xl",
           "bg-slate-100/80 border border-slate-200 shadow-inner mb-4",
         )}
       >
@@ -38,6 +39,9 @@ export function MarketplaceSubTabs({ bundles, services, wholesale, compliance }:
         <TabsTrigger value="compliance" className={tabTriggerClass}>
           Compliance
         </TabsTrigger>
+        <TabsTrigger value="advertising" className={tabTriggerClass}>
+          Advertising
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="bundles" className="mt-0 space-y-6 focus-visible:outline-none">
         {bundles}
@@ -50,6 +54,9 @@ export function MarketplaceSubTabs({ bundles, services, wholesale, compliance }:
       </TabsContent>
       <TabsContent value="compliance" className="mt-0 focus-visible:outline-none">
         {compliance}
+      </TabsContent>
+      <TabsContent value="advertising" className="mt-0 focus-visible:outline-none">
+        {advertising}
       </TabsContent>
     </Tabs>
   )

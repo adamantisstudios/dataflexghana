@@ -116,3 +116,49 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const session = await requireAdminSession(request)
+  if (!session.ok) return session.response
+
+  const { id } = await context.params
+
+  try {
+    const db = getAdminClient()
+    const { data: existing, error: fetchError } = await db
+      .from("grocery_requests")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle()
+
+    if (fetchError) {
+      return NextResponse.json({ success: false, error: fetchError.message }, { status: 500 })
+    }
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "Request not found" }, { status: 404 })
+    }
+
+    const { error: deleteError } = await db.from("grocery_requests").delete().eq("id", id)
+
+    if (deleteError) {
+      return NextResponse.json({ success: false, error: deleteError.message }, { status: 500 })
+    }
+
+    await logAuditFromRequest(request, {
+      actorId: session.admin?.id ?? null,
+      actorType: "admin",
+      action: "admin_deleted_grocery_request",
+      targetTable: "grocery_requests",
+      targetId: id,
+      oldData: existing as Record<string, unknown>,
+      newData: null,
+    })
+
+    return NextResponse.json({ success: true, id })
+  } catch (err) {
+    return NextResponse.json(
+      { success: false, error: err instanceof Error ? err.message : "Failed to delete request" },
+      { status: 500 },
+    )
+  }
+}

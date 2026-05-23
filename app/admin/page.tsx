@@ -48,6 +48,7 @@ import { Label } from "@/components/ui/label"
   Shirt,
   Sparkles,
   ShoppingBasket,
+  Megaphone,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -94,6 +95,7 @@ const FashionReferralsTab = lazy(() => import("@/components/admin/tabs/FashionRe
 const SalonTab = lazy(() => import("@/components/admin/tabs/SalonTab"))
 const MaintenancePanelTab = lazy(() => import("@/components/admin/tabs/MaintenancePanelTab"))
 const GroceryRequestsTab = lazy(() => import("@/components/admin/tabs/GroceryRequestsTab"))
+const AdvertisingAdminTab = lazy(() => import("@/components/admin/tabs/AdvertisingAdminTab"))
 
 // Type definition for tab configuration
 interface TabConfigItem {
@@ -151,6 +153,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "domestic-workers", label: "Domestic Workers", icon: Users, component: DomesticWorkersTab },
   { id: "domestic-worker-requests", label: "Client Requests", icon: Bell, component: DomesticWorkerClientRequestsTab },
   { id: "grocery-requests", label: "Grocery Requests", icon: ShoppingBasket, component: GroceryRequestsTab },
+  { id: "advertising", label: "Advertising", icon: Megaphone, component: AdvertisingAdminTab },
   { id: "wholesale", label: "Wholesale", icon: ShoppingBag, component: WholesaleTab },
   { id: "properties", label: "Properties", icon: Home, component: PropertiesTab },
   { id: "blogs", label: "Blogs", icon: FileText, component: BlogsTab },

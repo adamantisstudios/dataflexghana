@@ -127,6 +127,8 @@ export default function StorefrontManagerTab() {
   const [pendingCount, setPendingCount] = useState(0)
 
   const [confirmPaidAgent, setConfirmPaidAgent] = useState<StoreProfile | null>(null)
+  const [confirmDeleteCashout, setConfirmDeleteCashout] = useState<StoreProfile | null>(null)
+  const [cashoutDeleteAcknowledgeBalance, setCashoutDeleteAcknowledgeBalance] = useState(false)
   const [confirmDeleteCompleted, setConfirmDeleteCompleted] = useState(false)
   const [deletingCompleted, setDeletingCompleted] = useState(false)
 
@@ -429,6 +431,37 @@ export default function StorefrontManagerTab() {
     }
   }
 
+  const deleteCashoutEntry = async (profile: StoreProfile) => {
+    const balance = Number(profile.storefront_commission_balance ?? 0)
+    const needsAck = balance > 0 && !cashoutDeleteAcknowledgeBalance
+    if (needsAck) {
+      toast.error("Confirm that you understand you are clearing the commission balance")
+      return
+    }
+
+    setProcessingId(profile.agent_id)
+    try {
+      const res = await fetch("/api/admin/storefront/cashout", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", ...adminHeaders() },
+        body: JSON.stringify({
+          agent_id: profile.agent_id,
+          confirm_clear_balance: balance > 0 || cashoutDeleteAcknowledgeBalance,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || data.message)
+      toast.success(data.message || "Cashout entry removed")
+      setConfirmDeleteCashout(null)
+      setCashoutDeleteAcknowledgeBalance(false)
+      loadProfiles()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed")
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
   const formatLastOrderDate = (date: string | null | undefined) => {
     if (!date) return "—"
     return new Date(date).toLocaleString()
@@ -563,16 +596,31 @@ export default function StorefrontManagerTab() {
                               {formatLastOrderDate(p.last_order_date)}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                size="sm"
-                                disabled={
-                                  processingId === p.agent_id ||
-                                  Number(p.storefront_commission_balance) <= 0
-                                }
-                                onClick={() => setConfirmPaidAgent(p)}
-                              >
-                                Mark as Paid
-                              </Button>
+                              <div className="flex justify-end gap-2 flex-wrap">
+                                <Button
+                                  size="sm"
+                                  disabled={
+                                    processingId === p.agent_id ||
+                                    Number(p.storefront_commission_balance) <= 0
+                                  }
+                                  onClick={() => setConfirmPaidAgent(p)}
+                                >
+                                  Mark as Paid
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 border-red-200 hover:bg-red-50"
+                                  disabled={processingId === p.agent_id}
+                                  onClick={() => {
+                                    setCashoutDeleteAcknowledgeBalance(false)
+                                    setConfirmDeleteCashout(p)
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -591,17 +639,31 @@ export default function StorefrontManagerTab() {
                         <p className="text-xs text-muted-foreground">
                           Last order: {formatLastOrderDate(p.last_order_date)}
                         </p>
-                        <Button
-                          size="sm"
-                          className="w-full"
-                          disabled={
-                            processingId === p.agent_id ||
-                            Number(p.storefront_commission_balance) <= 0
-                          }
-                          onClick={() => setConfirmPaidAgent(p)}
-                        >
-                          Mark as Paid
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1"
+                            disabled={
+                              processingId === p.agent_id ||
+                              Number(p.storefront_commission_balance) <= 0
+                            }
+                            onClick={() => setConfirmPaidAgent(p)}
+                          >
+                            Mark as Paid
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                            disabled={processingId === p.agent_id}
+                            onClick={() => {
+                              setCashoutDeleteAcknowledgeBalance(false)
+                              setConfirmDeleteCashout(p)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -874,6 +936,68 @@ export default function StorefrontManagerTab() {
               onClick={() => confirmPaidAgent && void markCashoutPaid(confirmPaidAgent.agent_id)}
             >
               {processingId === confirmPaidAgent?.agent_id ? "Processing…" : "Confirm payment"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmDeleteCashout}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDeleteCashout(null)
+            setCashoutDeleteAcknowledgeBalance(false)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete cashout entry?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  This resets{" "}
+                  <strong>{confirmDeleteCashout?.agent_name || "this agent"}</strong>&apos;s storefront
+                  commission balance to ₵0. The agent will no longer appear in the positive-balance cashout
+                  list.
+                </p>
+                {Number(confirmDeleteCashout?.storefront_commission_balance ?? 0) > 0 && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                    <p className="font-medium">
+                      Current balance: ₵
+                      {Number(confirmDeleteCashout?.storefront_commission_balance ?? 0).toFixed(2)}
+                    </p>
+                    <label className="mt-2 flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={cashoutDeleteAcknowledgeBalance}
+                        onChange={(e) => setCashoutDeleteAcknowledgeBalance(e.target.checked)}
+                      />
+                      <span>
+                        I understand this permanently clears the unpaid commission balance without marking it
+                        as paid.
+                      </span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processingId === confirmDeleteCashout?.agent_id}>
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={
+                processingId === confirmDeleteCashout?.agent_id ||
+                (Number(confirmDeleteCashout?.storefront_commission_balance ?? 0) > 0 &&
+                  !cashoutDeleteAcknowledgeBalance)
+              }
+              onClick={() => confirmDeleteCashout && void deleteCashoutEntry(confirmDeleteCashout)}
+            >
+              {processingId === confirmDeleteCashout?.agent_id ? "Deleting…" : "Delete entry"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

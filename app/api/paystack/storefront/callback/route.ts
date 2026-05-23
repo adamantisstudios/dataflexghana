@@ -117,6 +117,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(buildFailureRedirect(verifiedReference))
   }
 
+  if (orderType === "ad_package" || orderType === "advertising") {
+    const clientMeta = getRequestClientMeta(request)
+    const capture = await captureStorefrontFromPaystackMetadata({
+      reference: verifiedReference,
+      metadata: meta,
+      actorType: "system",
+      ipAddress: clientMeta.ipAddress,
+      userAgent: clientMeta.userAgent,
+    })
+    if (!capture.ok && !capture.alreadyRecorded) {
+      console.error("[storefront callback] ad capture:", capture.error)
+    }
+    const redirectUrl = new URL(buildStorefrontPathUrl(getStorefrontOrigin(), segment))
+    redirectUrl.searchParams.set("ad_payment", "success")
+    redirectUrl.searchParams.set("ref", verifiedReference)
+    return NextResponse.redirect(redirectUrl.toString())
+  }
+
   if (orderType === "compliance") {
     const clientMeta = getRequestClientMeta(request)
     const capture = await captureStorefrontFromPaystackMetadata({

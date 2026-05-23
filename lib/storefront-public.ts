@@ -5,6 +5,8 @@ import {
   type PublicComplianceForm,
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
 } from "@/lib/storefront-catalog"
+import { getVisibleAdPackagesForAgent } from "@/lib/advertising-server"
+import type { PublicAdPackage } from "@/lib/advertising-types"
 
 export type PublicBundle = {
   id: string
@@ -42,6 +44,7 @@ export type PublicStorefrontResponse = {
   services: PublicService[]
   wholesaleProducts: PublicWholesaleProduct[]
   complianceForms: PublicComplianceForm[]
+  adPackages: PublicAdPackage[]
   unavailable?: boolean
 }
 
@@ -51,6 +54,7 @@ const EMPTY_RESPONSE: PublicStorefrontResponse = {
   services: [],
   wholesaleProducts: [],
   complianceForms: [],
+  adPackages: [],
 }
 
 /** Server-side payload for /api/storefront/public/[agentId] and /store/[segment] page. */
@@ -131,7 +135,15 @@ export async function getPublicStorefrontResponse(
         }
 
     if (!agentDetails.isapproved) {
-      return { profile, bundles: [], services: [], wholesaleProducts: [], complianceForms: [], unavailable: true }
+      return {
+        profile,
+        bundles: [],
+        services: [],
+        wholesaleProducts: [],
+        complianceForms: [],
+        adPackages: [],
+        unavailable: true,
+      }
     }
 
     const { data: settings, error: settingsError } = await db
@@ -142,7 +154,7 @@ export async function getPublicStorefrontResponse(
 
     if (settingsError) {
       console.error("public storefront settings:", settingsError)
-      return { profile, bundles: [], services: [], wholesaleProducts: [], complianceForms: [] }
+      return { profile, bundles: [], services: [], wholesaleProducts: [], complianceForms: [], adPackages: [] }
     }
 
     const visibleSettings = settings ?? []
@@ -270,12 +282,20 @@ export async function getPublicStorefrontResponse(
         ]
       : []
 
+    let adPackages: PublicAdPackage[] = []
+    try {
+      adPackages = await getVisibleAdPackagesForAgent(agentId)
+    } catch (adErr) {
+      console.error("public storefront ad packages:", adErr)
+    }
+
     return {
       profile,
       bundles,
       services,
       wholesaleProducts,
       complianceForms,
+      adPackages,
       unavailable: false,
     }
   } catch (error) {

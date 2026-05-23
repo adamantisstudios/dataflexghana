@@ -2,10 +2,10 @@
 
 import type { CSSProperties } from "react"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Smartphone, Users, ShoppingBag, FileText } from "lucide-react"
+import { Smartphone, Users, ShoppingBag, FileText, Megaphone } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export type StorefrontTabId = "bundles" | "services" | "products" | "business"
+export type StorefrontTabId = "bundles" | "services" | "products" | "business" | "advertise"
 
 const TABS: {
   id: StorefrontTabId
@@ -47,6 +47,14 @@ const TABS: {
     iconClass: "text-indigo-600",
     inactiveBg: "bg-gradient-to-br from-indigo-100 to-violet-50",
   },
+  {
+    id: "advertise",
+    label: "Advertise",
+    short: "Advertise",
+    icon: Megaphone,
+    iconClass: "text-[#0E8F3D]",
+    inactiveBg: "bg-gradient-to-br from-emerald-100 to-green-50",
+  },
 ]
 
 type Props = {
@@ -69,7 +77,9 @@ export function StorefrontCatalogTabNav({ activeTab, accent, visible, counts }: 
           ? "grid grid-cols-2"
           : tabs.length === 3
             ? "grid grid-cols-3"
-            : "grid grid-cols-2 sm:grid-cols-4",
+            : tabs.length === 4
+              ? "grid grid-cols-2 sm:grid-cols-4"
+              : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
       )}
     >
       {tabs.map((tab) => {

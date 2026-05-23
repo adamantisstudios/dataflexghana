@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { authenticateAdmin } from "@/lib/api-auth"
+import { authenticateAdmin, requireAdminSession } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
+import { logAuditFromRequest } from "@/lib/audit-logger"
 
 export const dynamic = "force-dynamic"
 
@@ -124,5 +125,63 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, submission: data })
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const session = await requireAdminSession(request)
+  if (!session.ok) return session.response
+
+  try {
+    let id = request.nextUrl.searchParams.get("id")?.trim()
+    if (!id) {
+      try {
+        const body = await request.json()
+        if (body?.id) id = String(body.id).trim()
+      } catch {
+        // ignore
+      }
+    }
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "id is required" }, { status: 400 })
+    }
+
+    const db = getAdminClient()
+    const { data: existing, error: fetchError } = await db
+      .from("storefront_compliance_submissions")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle()
+
+    if (fetchError) {
+      return NextResponse.json({ success: false, error: fetchError.message }, { status: 500 })
+    }
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "Submission not found" }, { status: 404 })
+    }
+
+    const { error: deleteError } = await db.from("storefront_compliance_submissions").delete().eq("id", id)
+
+    if (deleteError) {
+      return NextResponse.json({ success: false, error: deleteError.message }, { status: 500 })
+    }
+
+    await logAuditFromRequest(request, {
+      actorId: session.admin?.id ?? null,
+      actorType: "admin",
+      action: "admin_deleted_storefront_compliance_submission",
+      targetTable: "storefront_compliance_submissions",
+      targetId: id,
+      oldData: existing as Record<string, unknown>,
+      newData: null,
+    })
+
+    return NextResponse.json({ success: true, id })
+  } catch (err) {
+    return NextResponse.json(
+      { success: false, error: err instanceof Error ? err.message : "Delete failed" },
+      { status: 500 },
+    )
   }
 }

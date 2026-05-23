@@ -67,6 +67,8 @@ import {
 } from "@/lib/storefront-wholesale-cart"
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 import type { PublicWholesaleProduct, PublicComplianceForm, BuyerDetails } from "@/lib/storefront-catalog"
+import type { PublicAdPackage } from "@/lib/advertising-types"
+import { StorefrontAdvertisingTab } from "@/components/storefront/StorefrontAdvertisingTab"
 
 interface DataBundle {
   id: string
@@ -137,6 +139,7 @@ type PublicAgentStorefrontProps = {
   initialServices?: ReferralService[]
   initialWholesaleProducts?: PublicWholesaleProduct[]
   initialComplianceForms?: PublicComplianceForm[]
+  initialAdPackages?: PublicAdPackage[]
 }
 
 function mapApiBundles(raw: Array<DataBundle & { final_price?: number }>): DataBundle[] {
@@ -153,6 +156,7 @@ function applyStorefrontPayload(
     services?: ReferralService[]
     wholesaleProducts?: PublicWholesaleProduct[]
     complianceForms?: PublicComplianceForm[]
+    adPackages?: PublicAdPackage[]
     unavailable?: boolean
   },
   setters: {
@@ -161,6 +165,7 @@ function applyStorefrontPayload(
     setServices: (s: ReferralService[]) => void
     setWholesaleProducts: (p: PublicWholesaleProduct[]) => void
     setComplianceForms: (f: PublicComplianceForm[]) => void
+    setAdPackages: (a: PublicAdPackage[]) => void
     setNetworkTab: (t: string) => void
     setMainTab: (t: MainStoreTab) => void
     setLoadError: (e: string | null) => void
@@ -173,6 +178,7 @@ function applyStorefrontPayload(
     setters.setServices([])
     setters.setWholesaleProducts([])
     setters.setComplianceForms([])
+    setters.setAdPackages([])
     return false
   }
 
@@ -184,12 +190,16 @@ function applyStorefrontPayload(
   setters.setServices(apiServices)
   setters.setWholesaleProducts(data.wholesaleProducts || [])
   setters.setComplianceForms(data.complianceForms || [])
+  setters.setAdPackages(data.adPackages || [])
   setters.setLoadError(null)
 
   const providers = apiBundles.map((b) => normalizeProvider(b.provider))
   if (providers.includes("MTN")) setters.setNetworkTab("MTN")
   else if (providers[0]) setters.setNetworkTab(normalizeProvider(providers[0]))
   if (apiServices.length > 0 && apiBundles.length === 0) setters.setMainTab("services")
+  else if ((data.adPackages?.length ?? 0) > 0 && apiBundles.length === 0 && apiServices.length === 0) {
+    setters.setMainTab("advertise")
+  }
   return true
 }
 
@@ -201,6 +211,7 @@ export default function PublicAgentStorefront({
   initialServices,
   initialWholesaleProducts,
   initialComplianceForms,
+  initialAdPackages,
 }: PublicAgentStorefrontProps) {
   const params = useParams()
   const router = useRouter()
@@ -224,6 +235,7 @@ export default function PublicAgentStorefront({
   const [complianceForms, setComplianceForms] = useState<PublicComplianceForm[]>(
     initialComplianceForms ?? [],
   )
+  const [adPackages, setAdPackages] = useState<PublicAdPackage[]>(initialAdPackages ?? [])
   const [wholesaleCart, setWholesaleCart] = useState<WholesaleCartLine[]>([])
   const [compliancePaidRef, setCompliancePaidRef] = useState<string | null>(null)
   const [activeBundleId, setActiveBundleId] = useState<string | null>(null)
@@ -266,6 +278,12 @@ export default function PublicAgentStorefront({
       setCompliancePaidRef(complianceRef)
       setMainTab("business")
       toast.success("Payment received — you can complete the registration form below.")
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (searchParams.get("ad_payment") === "success") {
+      setMainTab("advertise")
     }
   }, [searchParams])
 
@@ -349,6 +367,7 @@ export default function PublicAgentStorefront({
           services: initialServices,
           wholesaleProducts: initialWholesaleProducts,
           complianceForms: initialComplianceForms,
+          adPackages: initialAdPackages,
         },
         {
           setProfile,
@@ -356,6 +375,7 @@ export default function PublicAgentStorefront({
           setServices,
           setWholesaleProducts,
           setComplianceForms,
+          setAdPackages,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -377,6 +397,7 @@ export default function PublicAgentStorefront({
           setServices,
           setWholesaleProducts,
           setComplianceForms,
+          setAdPackages,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -398,6 +419,7 @@ export default function PublicAgentStorefront({
     initialServices,
     initialWholesaleProducts,
     initialComplianceForms,
+    initialAdPackages,
   ])
 
   const displayProfile: StoreProfile = profile ?? {
@@ -463,8 +485,9 @@ export default function PublicAgentStorefront({
       services: services.length > 0,
       products: wholesaleProducts.length > 0,
       business: complianceForms.length > 0,
+      advertise: adPackages.length > 0,
     }),
-    [bundles.length, services.length, wholesaleProducts.length, complianceForms.length],
+    [bundles.length, services.length, wholesaleProducts.length, complianceForms.length, adPackages.length],
   )
 
   const tabCounts = useMemo(
@@ -473,8 +496,9 @@ export default function PublicAgentStorefront({
       services: services.length,
       products: wholesaleProducts.length,
       business: complianceForms.length,
+      advertise: adPackages.length,
     }),
-    [bundles.length, services.length, wholesaleProducts.length, complianceForms.length],
+    [bundles.length, services.length, wholesaleProducts.length, complianceForms.length, adPackages.length],
   )
 
   useEffect(() => {
@@ -499,7 +523,7 @@ export default function PublicAgentStorefront({
   }, [bundlePage, bundlePagination.totalPages])
 
   useEffect(() => {
-    const order: MainStoreTab[] = ["bundles", "services", "products", "business"]
+    const order: MainStoreTab[] = ["bundles", "services", "products", "business", "advertise"]
     if (order.includes(mainTab) && tabVisibility[mainTab]) return
     const first = order.find((t) => tabVisibility[t])
     if (first) setMainTab(first)
@@ -1087,6 +1111,17 @@ export default function PublicAgentStorefront({
                 compliancePaidRef={compliancePaidRef}
                 customerEmail={customerEmail}
                 onComplianceSubmitted={() => setCompliancePaidRef(null)}
+              />
+            </TabsContent>
+          )}
+
+          {tabVisibility.advertise && (
+            <TabsContent value="advertise" className="mt-2 focus-visible:outline-none">
+              <StorefrontAdvertisingTab
+                agentId={agentId}
+                storeSegment={storeSegment}
+                accent={accent}
+                packages={adPackages}
               />
             </TabsContent>
           )}
