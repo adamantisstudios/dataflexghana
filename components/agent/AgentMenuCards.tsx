@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
   Upload,
   Store,
   Ticket,
+  Play,
 } from "lucide-react";
 
 interface MenuCard {
@@ -104,6 +105,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       gradient: "linear-gradient(135deg, #EC4899, #BE185D)",
       buttonText: "WRITING SERVICES",
       onClick: () => handleMenuCardClick("professional-writing"),
+    },
+    {
+      id: "tutorials",
+      title: "Video Tutorials",
+      description: "Learn how to use the platform",
+      icon: <Play className="h-12 w-12" />,
+      image: "/images/teaching-platform.png",
+      gradient: "linear-gradient(135deg, #6366F1, #4338CA)",
+      buttonText: "WATCH NOW",
+      onClick: () => router.push("/agent/tutorials"),
     },
     {
       id: "online-courses",

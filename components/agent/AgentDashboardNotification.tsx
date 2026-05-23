@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { AlertCircle, X } from "lucide-react"
+import { X } from "lucide-react"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { linkifyMessage } from "@/lib/linkify-message"
 
@@ -106,51 +105,25 @@ export default function AgentDashboardNotification({ agentId }: Props) {
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out transform ${
-        isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
+      className={`fixed top-0 left-0 right-0 z-50 px-4 pt-3 transition-all duration-300 ease-out ${
+        isVisible ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0 pointer-events-none"
       }`}
     >
-      <div className="bg-slate-100/95 border-b border-slate-200 shadow-lg backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 sm:py-5 max-w-4xl">
-          <div className="relative bg-white rounded-xl border border-slate-200 shadow-md p-4 sm:p-5">
-            <button
-              onClick={handleDismiss}
-              className="absolute top-3 right-3 p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-              type="button"
-              aria-label="Dismiss notification"
-            >
-              <X className="h-5 w-5" />
-            </button>
+      <div className="relative mx-auto w-full max-w-md rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
+        <button
+          onClick={handleDismiss}
+          className="absolute top-3 right-3 text-gray-400 transition-colors hover:text-gray-600"
+          type="button"
+          aria-label="Dismiss notification"
+        >
+          <X className="h-4 w-4" />
+        </button>
 
-            <div className="flex items-start gap-3 pr-10">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0 space-y-3">
-                <h3 className="text-lg font-semibold text-slate-900">{notification.title}</h3>
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
-                  {linkifyMessage(notification.message)}
-                </p>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <Button
-                    onClick={handleDismiss}
-                    variant="outline"
-                    size="sm"
-                    className="border-slate-300 text-slate-700"
-                  >
-                    Dismiss
-                  </Button>
-                  <Button
-                    onClick={handleDismiss}
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    Got it
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="pr-6">
+          <h3 className="text-sm font-semibold text-gray-900">{notification.title}</h3>
+          <p className="mt-1 text-sm leading-relaxed text-gray-600 whitespace-pre-wrap break-words">
+            {linkifyMessage(notification.message)}
+          </p>
         </div>
       </div>
     </div>

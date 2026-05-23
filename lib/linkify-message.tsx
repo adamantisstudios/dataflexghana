@@ -22,7 +22,7 @@ export function linkifyMessage(message: string): ReactNode[] {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-700 underline underline-offset-2 hover:text-blue-900 break-all"
+        className="text-blue-600 underline break-all"
       >
         {url}
       </a>,

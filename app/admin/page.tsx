@@ -50,6 +50,7 @@ import { Label } from "@/components/ui/label"
   ShoppingBasket,
   Megaphone,
   Leaf,
+  Play,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -98,6 +99,7 @@ const MaintenancePanelTab = lazy(() => import("@/components/admin/tabs/Maintenan
 const GroceryRequestsTab = lazy(() => import("@/components/admin/tabs/GroceryRequestsTab"))
 const AdvertisingAdminTab = lazy(() => import("@/components/admin/tabs/AdvertisingAdminTab"))
 const FarmersFriendAdminTab = lazy(() => import("@/components/admin/tabs/FarmersFriendAdminTab"))
+const TutorialsAdminTab = lazy(() => import("@/components/admin/tabs/TutorialsAdminTab"))
 
 // Type definition for tab configuration
 interface TabConfigItem {
@@ -176,6 +178,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "settings", label: "Settings", icon: Settings, component: null },
   { id: "invitation-management", label: "Invitation Management", icon: Mail, component: InvitationManagementTab },
   { id: "agent-notifications", label: "Agent Notifications", icon: Bell, component: AgentNotificationsTab },
+  { id: "tutorials", label: "Tutorials", icon: Play, component: TutorialsAdminTab },
   { id: "online-courses", label: "Online Courses", icon: BookOpen, component: OnlineCoursesTab },
   { id: "fashion-avenue", label: "Fashion Avenue", icon: Shirt, component: FashionAvenueTab },
   { id: "fashion-project-requests", label: "Fashion Requests", icon: MessageCircle, component: FashionProjectRequestsTab },
