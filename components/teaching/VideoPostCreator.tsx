@@ -42,15 +42,17 @@ export function VideoPostCreator({ channelId, teacherId, teacherName, onVideoCre
     duration: 0,
   })
 
+  const MAX_VIDEO_BYTES = 100 * 1024 * 1024
+
   const validateVideo = (file: File, width: number, height: number, duration: number): string[] => {
     const errors: string[] = []
 
-    if (!file.type.startsWith("video/")) {
+    if (!file.type.startsWith("video/") && file.type !== "application/octet-stream") {
       errors.push("File must be a valid video format")
     }
 
-    if (file.size > 1000 * 1024 * 1024) {
-      errors.push(`File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Max 1GB.`)
+    if (file.size > MAX_VIDEO_BYTES) {
+      errors.push("Video too large. Please record at a lower quality or trim the video.")
     }
 
     if (duration > 120) {
@@ -63,6 +65,12 @@ export function VideoPostCreator({ channelId, teacherId, teacherName, onVideoCre
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (file.size > MAX_VIDEO_BYTES) {
+      toast.error("Video too large. Please record at a lower quality or trim the video.")
+      e.target.value = ""
+      return
+    }
 
     setValidationErrors([])
     const previewURL = URL.createObjectURL(file)
@@ -153,6 +161,11 @@ export function VideoPostCreator({ channelId, teacherId, teacherName, onVideoCre
     }
     if (!videoFile) {
       errors.push("Video file is required")
+    }
+
+    if (videoFile && videoFile.size > MAX_VIDEO_BYTES) {
+      toast.error("Video too large. Please record at a lower quality or trim the video.")
+      return
     }
 
     if (errors.length > 0) {
@@ -276,7 +289,7 @@ export function VideoPostCreator({ channelId, teacherId, teacherName, onVideoCre
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto w-full">
         <DialogHeader>
           <DialogTitle>Post Video</DialogTitle>
-          <DialogDescription>Upload an educational video (max 2 minutes, max 1GB)</DialogDescription>
+          <DialogDescription>Upload an educational video (max 2 minutes, max 100MB)</DialogDescription>
         </DialogHeader>
 
         {validationErrors.length > 0 && (
@@ -311,7 +324,7 @@ export function VideoPostCreator({ channelId, teacherId, teacherName, onVideoCre
               <label htmlFor="video-input" className="cursor-pointer block">
                 <Upload className="h-8 w-8 mx-auto mb-2 text-purple-600" />
                 <p className="text-sm font-medium">Click to upload or drag a file</p>
-                <p className="text-xs text-gray-500 mt-1">Max 2 min • Max 1GB • With sound</p>
+                <p className="text-xs text-gray-500 mt-1">Max 2 min • Max 100MB • With sound</p>
               </label>
             </div>
 

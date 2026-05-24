@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, Eye, MessageSquare, ThumbsUp, MoreVertical, Download, Share2, Play, X } from 'lucide-react';
+import { Trash2, Eye, ThumbsUp, MoreVertical, Share2, Play, X } from 'lucide-react';
 import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner";
   import {
@@ -58,10 +58,6 @@ export function VideoPostDisplay({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
-  const [newComment, setNewComment] = useState("");
-  const [isPostingComment, setIsPostingComment] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [currentLikes, setCurrentLikes] = useState(likeCount);
   const [videoError, setVideoError] = useState<string | null>(null);
@@ -94,26 +90,6 @@ export function VideoPostDisplay({
       incrementViews();
     }
   }, [isPlaying, id]);
-
-  useEffect(() => {
-    loadComments();
-  }, [id]);
-
-  const loadComments = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("video_comments")
-        .select("*")
-        .eq("video_id", id)
-        .order("created_at", { ascending: false });
-
-      if (!error) {
-        setComments(data || []);
-      }
-    } catch (err) {
-      console.warn("[v0] Failed to load comments:", err);
-    }
-  }, [id]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -199,44 +175,6 @@ export function VideoPostDisplay({
       console.error("[v0] Error updating likes:", err);
       setIsLiked(isLiked);
       setCurrentLikes(isLiked ? currentLikes + 1 : currentLikes - 1);
-    }
-  };
-
-  const handlePostComment = async () => {
-    if (!newComment.trim()) {
-      toast.error("Comment cannot be empty");
-      return;
-    }
-
-    try {
-      setIsPostingComment(true);
-
-      const { data, error } = await supabase
-        .from("video_comments")
-        .insert({
-          video_id: id,
-          user_id: currentUserId,
-          content: newComment.trim(),
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setNewComment("");
-      setComments([data, ...comments]);
-
-      await supabase
-        .from("videos")
-        .update({ comment_count: (commentCount || 0) + 1 })
-        .eq("id", id);
-
-      toast.success("Comment posted!");
-    } catch (err: any) {
-      console.error("[v0] Error posting comment:", err);
-      toast.error(err.message || "Failed to post comment");
-    } finally {
-      setIsPostingComment(false);
     }
   };
 
@@ -483,56 +421,6 @@ export function VideoPostDisplay({
             </button>
           </div>
 
-          {/* Comments Section */}
-          {showComments && (
-            <div className="pt-3 border-t border-gray-200 space-y-3">
-              {/* Comment Input */}
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handlePostComment()}
-                    placeholder="Share your thoughts..."
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    disabled={isPostingComment}
-                  />
-                  <Button
-                    onClick={handlePostComment}
-                    disabled={isPostingComment || !newComment.trim()}
-                    size="sm"
-                    className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium px-3"
-                  >
-                    {isPostingComment ? "..." : "Send"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Comments List */}
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {comments.length === 0 ? (
-                  <p className="text-xs text-gray-500 text-center py-4">No comments yet. Be the first to comment!</p>
-                ) : (
-                  comments.map((comment) => (
-                    <div key={comment.id} className="bg-gradient-to-r from-gray-50 to-gray-100 p-3 rounded-lg border border-gray-200 hover:border-purple-200 transition-colors">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-gray-900 truncate">
-                            {comment.user_name || comment.user_id || "Anonymous"}
-                          </p>
-                          <p className="text-sm text-gray-700 mt-1 break-words">{comment.content}</p>
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        {comment.created_at ? new Date(comment.created_at).toLocaleDateString() : "Just now"}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

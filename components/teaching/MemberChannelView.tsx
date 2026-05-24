@@ -12,6 +12,9 @@ import { FontSizeControl } from "./FontSizeControl"
 import { QAPostDisplay } from "./qa"
 import { YouTubeVideoDisplay } from "./youtube/YouTubeVideoDisplay"
 import { VideoPostDisplay } from "./VideoPostDisplay"
+import { ChannelVideoWithComments } from "@/components/channel/ChannelVideoWithComments"
+import { ChannelEmbedVideoDisplay } from "@/components/channel/ChannelEmbedVideoDisplay"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { LessonNotesViewer } from "./lesson-notes/LessonNotesViewer"
 
 interface Channel {
@@ -53,6 +56,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
   const [qaPosts, setQAPosts] = useState<any[]>([])
   const [youtubeVideos, setYoutubeVideos] = useState<any[]>([])
   const [uploadedVideos, setUploadedVideos] = useState<any[]>([])
+  const [embedVideos, setEmbedVideos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [fontSize, setFontSize] = useState(16)
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set())
@@ -135,6 +139,16 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         setUploadedVideos(
           (videosData || []).filter((v) => v.is_published !== false && v.is_deleted !== true),
         )
+      }
+
+      try {
+        const embedRes = await fetch(`/api/channel/embed-videos?channelId=${encodeURIComponent(channelId)}`, {
+          headers: getAgentAuthHeaders(),
+        })
+        const embedJson = await embedRes.json()
+        if (embedRes.ok) setEmbedVideos(embedJson.videos || [])
+      } catch {
+        setEmbedVideos([])
       }
 
       const { data: likesData } = await supabase.from("post_likes").select("post_id").eq("user_id", memberId)
@@ -517,15 +531,26 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
           </TabsContent>
 
           <TabsContent value="videos" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
-            <h3 className="text-lg font-semibold text-[#0E8F3D]">Uploaded Videos</h3>
-            {uploadedVideos.length === 0 ? (
+            <h3 className="text-lg font-semibold text-[#0E8F3D]">Channel Videos</h3>
+            {uploadedVideos.length === 0 && embedVideos.length === 0 ? (
               <div className="bg-green-50 border border-green-200 rounded p-6 text-center text-green-700">
-                <p>No uploaded videos yet.</p>
+                <p>No videos yet.</p>
               </div>
             ) : (
               <div className="space-y-4">
+                {embedVideos.map((video) => (
+                  <ChannelVideoWithComments key={`embed-${video.id}`} videoId={video.id} source="embed">
+                    <ChannelEmbedVideoDisplay
+                      id={video.id}
+                      title={video.title}
+                      embedCode={video.embed_code}
+                      platform={video.platform}
+                      createdAt={video.created_at}
+                    />
+                  </ChannelVideoWithComments>
+                ))}
                 {uploadedVideos.map((video) => (
-                  <div key={video.id} className="border border-green-100 rounded-lg p-3 bg-white">
+                  <ChannelVideoWithComments key={video.id} videoId={video.id} source="upload">
                     <VideoPostDisplay
                       id={video.id}
                       title={video.title}
@@ -541,7 +566,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                       isTeacher={false}
                       currentUserId={memberId}
                     />
-                  </div>
+                  </ChannelVideoWithComments>
                 ))}
               </div>
             )}

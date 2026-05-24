@@ -101,8 +101,15 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
     }
   }
 
+  const MAX_VIDEO_BYTES = 100 * 1024 * 1024
+
   const uploadVideo = async (title = "Untitled Video") => {
     if (!recordedBlob) return
+
+    if (recordedBlob.size > MAX_VIDEO_BYTES) {
+      toast.error("Video too large. Please record at a lower quality or trim the video.")
+      return
+    }
 
     setIsUploading(true)
     setError(null)

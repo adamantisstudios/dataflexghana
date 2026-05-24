@@ -6,6 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  serverExternalPackages: ["fluent-ffmpeg", "@ffmpeg-installer/ffmpeg"],
 }
 
 export default nextConfig

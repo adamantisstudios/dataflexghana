@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
-import { BookOpen, CheckCircle2, Trash2, Plus, Eye, UserPlus, Edit2, ImageIcon, MoreVertical, X, RefreshCw, GraduationCap, CreditCard } from "lucide-react"
+import { BookOpen, CheckCircle2, Trash2, Plus, Eye, UserPlus, Edit2, ImageIcon, MoreVertical, X, RefreshCw, GraduationCap, CreditCard, Video } from "lucide-react"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase-client";
 import { getAdminAuthHeaders } from "@/lib/api-client"
@@ -73,12 +73,18 @@ type TeacherHubTabProps = {
 
 export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherHubTabProps) {
   // State
-  const [activeSubTab, setActiveSubTab] = useState<"channels" | "join-requests" | "teachers" | "verifications">("channels")
+  const [activeSubTab, setActiveSubTab] = useState<
+    "channels" | "join-requests" | "teachers" | "verifications" | "embed-videos"
+  >("channels")
   const [channels, setChannels] = useState<TeachingChannel[]>([])
   const [agents, setAgents] = useState<Agent[]>([])
   const [joinRequests, setJoinRequests] = useState<any[]>([])
   const [pendingVerifications, setPendingVerifications] = useState<any[]>([])
   const [expiryRunning, setExpiryRunning] = useState(false)
+  const [embedVideos, setEmbedVideos] = useState<any[]>([])
+  const [embedChannelId, setEmbedChannelId] = useState("")
+  const [embedForm, setEmbedForm] = useState({ title: "", embedCode: "" })
+  const [embedLoading, setEmbedLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -411,6 +417,67 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     }
   }
 
+  const loadEmbedVideos = async (channelId: string) => {
+    if (!channelId) {
+      setEmbedVideos([])
+      return
+    }
+    try {
+      setEmbedLoading(true)
+      const res = await fetch(`/api/admin/channel-embed-videos?channelId=${encodeURIComponent(channelId)}`, {
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await res.json()
+      if (res.ok) setEmbedVideos(data.videos || [])
+      else toast.error(data.error || "Failed to load embed videos")
+    } catch {
+      toast.error("Failed to load embed videos")
+    } finally {
+      setEmbedLoading(false)
+    }
+  }
+
+  const handleCreateEmbedVideo = async () => {
+    if (!embedChannelId || !embedForm.title.trim() || !embedForm.embedCode.trim()) {
+      toast.error("Channel, title, and embed code are required")
+      return
+    }
+    try {
+      const res = await fetch("/api/admin/channel-embed-videos", {
+        method: "POST",
+        headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId: embedChannelId,
+          title: embedForm.title,
+          embedCode: embedForm.embedCode,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to create embed video")
+      toast.success("Embed video added to channel")
+      setEmbedForm({ title: "", embedCode: "" })
+      loadEmbedVideos(embedChannelId)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create embed video")
+    }
+  }
+
+  const handleDeleteEmbedVideo = async (id: string) => {
+    if (!confirm("Delete this embed video?")) return
+    try {
+      const res = await fetch(`/api/admin/channel-embed-videos/${id}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Delete failed")
+      toast.success("Embed video deleted")
+      loadEmbedVideos(embedChannelId)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete")
+    }
+  }
+
   const handleRunExpiryCheck = async () => {
     try {
       setExpiryRunning(true)
@@ -453,6 +520,9 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           a.full_name.toLowerCase().includes(searchLower) ||
           a.phone_number?.toLowerCase().includes(searchLower),
       )
+    }
+    if (activeSubTab === "embed-videos") {
+      return embedVideos
     }
     if (activeSubTab === "verifications") {
       const searchLower = searchTerm.toLowerCase()
@@ -638,6 +708,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           { id: "join-requests" as const, icon: UserPlus, label: "Join Requests" },
           { id: "teachers" as const, icon: GraduationCap, label: "Teachers" },
           { id: "verifications" as const, icon: CreditCard, label: "Pending Verifications" },
+          { id: "embed-videos" as const, icon: Video, label: "Embed Videos" },
         ].map(({ id, icon: Icon, label }) => (
           <button
             key={id}
@@ -836,6 +907,96 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                   </CardContent>
                 </Card>
               ))
+            )}
+          </div>
+        )}
+
+        {activeSubTab === "embed-videos" && (
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                <div className="grid gap-2">
+                  <Label>Channel</Label>
+                  <Select
+                    value={embedChannelId}
+                    onValueChange={(val) => {
+                      setEmbedChannelId(val)
+                      loadEmbedVideos(val)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select channel..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {channels.map((ch) => (
+                        <SelectItem key={ch.id} value={ch.id}>
+                          {ch.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={embedForm.title}
+                    onChange={(e) => setEmbedForm({ ...embedForm, title: e.target.value })}
+                    placeholder="Video title"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Vimeo / YouTube embed code</Label>
+                  <Textarea
+                    rows={4}
+                    value={embedForm.embedCode}
+                    onChange={(e) => setEmbedForm({ ...embedForm, embedCode: e.target.value })}
+                    placeholder='<iframe src="https://player.vimeo.com/video/..." ...></iframe>'
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <Button
+                  className="w-full bg-[#0E8F3D] hover:bg-[#35B24A]"
+                  onClick={handleCreateEmbedVideo}
+                  disabled={!embedChannelId}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Embed Video
+                </Button>
+              </CardContent>
+            </Card>
+
+            {embedLoading ? (
+              <p className="text-center text-gray-500 py-8">Loading embed videos...</p>
+            ) : embedVideos.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <Video className="h-12 w-12 mx-auto text-gray-300" />
+                  <p className="mt-2 text-gray-500">No embed videos for this channel</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {embedVideos.map((video: any) => (
+                  <Card key={video.id}>
+                    <CardContent className="p-4 space-y-2">
+                      <p className="font-medium">{video.title}</p>
+                      <Badge variant="outline" className="capitalize">{video.platform}</Badge>
+                      <p className="text-xs text-gray-500">
+                        {new Date(video.created_at).toLocaleString()}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => handleDeleteEmbedVideo(video.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
           </div>
         )}

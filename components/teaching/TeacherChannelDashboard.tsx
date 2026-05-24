@@ -43,6 +43,9 @@ import { QAPostCreator, QAPostDisplay } from "./qa"
 import { LessonNotesManager } from "./lesson-notes/LessonNotesManager"
 import { VideoPostCreator } from "./VideoPostCreator"
 import { VideoPostDisplay } from "./VideoPostDisplay"
+import { ChannelVideoWithComments } from "@/components/channel/ChannelVideoWithComments"
+import { ChannelEmbedVideoDisplay } from "@/components/channel/ChannelEmbedVideoDisplay"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { DetailedMathExampleModal } from "./media/DetailedMathExampleModal"
 import { YouTubeVideoCreator } from "./youtube/YouTubeVideoCreator"
 import { YouTubeVideoDisplay } from "./youtube/YouTubeVideoDisplay"
@@ -161,6 +164,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
   })
   const [qaPosts, setQAPosts] = useState<any[]>([])
   const [videos, setVideos] = useState<any[]>([])
+  const [embedVideos, setEmbedVideos] = useState<any[]>([])
   const [youtubeVideos, setYoutubeVideos] = useState<any[]>([])
   const [permanentlyDeletingId, setPermanentlyDeletingId] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
@@ -286,6 +290,17 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
       } else {
         setVideos(videosData || [])
       }
+
+      try {
+        const embedRes = await fetch(`/api/channel/embed-videos?channelId=${encodeURIComponent(channelId)}`, {
+          headers: getAgentAuthHeaders(),
+        })
+        const embedJson = await embedRes.json()
+        if (embedRes.ok) setEmbedVideos(embedJson.videos || [])
+      } catch {
+        setEmbedVideos([])
+      }
+
       const { data: youtubeVideosData, error: youtubeError } = await supabase
         .from("youtube_videos")
         .select("*")
@@ -317,10 +332,16 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
       ...posts.map((p) => ({ ...p, type: "post", timestamp: new Date(p.created_at).getTime() })),
       ...messages.map((m) => ({ ...m, type: "message", timestamp: new Date(m.created_at).getTime() })),
       ...videos.map((v) => ({ ...v, type: "video", timestamp: new Date(v.created_at).getTime() })),
+      ...embedVideos.map((v) => ({
+        ...v,
+        type: "embed",
+        author_name: "Admin",
+        timestamp: new Date(v.created_at).getTime(),
+      })),
       ...youtubeVideos.map((v) => ({ ...v, type: "youtube", timestamp: new Date(v.created_at).getTime() })),
       ...qaPosts.map((q) => ({ ...q, type: "qa", timestamp: new Date(q.created_at).getTime() })),
     ].sort((a, b) => b.timestamp - a.timestamp)
-  }, [posts, messages, videos, youtubeVideos, qaPosts])
+  }, [posts, messages, videos, embedVideos, youtubeVideos, qaPosts])
 
   const handleCreatePost = async () => {
     if (!postForm.title.trim() || !postForm.content.trim()) {
@@ -1243,24 +1264,36 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                           )}
                         </>
                       ) : item.type === "video" ? (
-                        <VideoPostDisplay
-                          id={item.id}
-                          title={item.title}
-                          description={item.description}
-                          videoType={item.video_type || "lesson"}
-                          videoUrl={item.video_url}
-                          thumbnailUrl={item.thumbnail_url}
-                          duration={item.duration}
-                          viewCount={item.view_count || 0}
-                          likeCount={item.like_count || 0}
-                          commentCount={item.comment_count || 0}
-                          authorName={item.author_name}
-                          createdAt={item.created_at}
-                          isTeacher={true}
-                          currentUserId={teacherId}
-                          onDelete={handleDeleteVideo}
-                          onPermanentDelete={handlePermanentlyDeleteVideo}
-                        />
+                        <ChannelVideoWithComments videoId={item.id} source="upload">
+                          <VideoPostDisplay
+                            id={item.id}
+                            title={item.title}
+                            description={item.description}
+                            videoType={item.video_type || "lesson"}
+                            videoUrl={item.video_url}
+                            thumbnailUrl={item.thumbnail_url}
+                            duration={item.duration}
+                            viewCount={item.view_count || 0}
+                            likeCount={item.like_count || 0}
+                            commentCount={item.comment_count || 0}
+                            authorName={item.author_name}
+                            createdAt={item.created_at}
+                            isTeacher={true}
+                            currentUserId={teacherId}
+                            onDelete={handleDeleteVideo}
+                            onPermanentDelete={handlePermanentlyDeleteVideo}
+                          />
+                        </ChannelVideoWithComments>
+                      ) : item.type === "embed" ? (
+                        <ChannelVideoWithComments videoId={item.id} source="embed">
+                          <ChannelEmbedVideoDisplay
+                            id={item.id}
+                            title={item.title}
+                            embedCode={item.embed_code}
+                            platform={item.platform}
+                            createdAt={item.created_at}
+                          />
+                        </ChannelVideoWithComments>
                       ) : item.type === "youtube" ? (
                         <YouTubeVideoDisplay
                           id={item.id}
@@ -1691,33 +1724,45 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             />
             <div className="space-y-2 w-full">
               <h3 className="font-semibold text-purple-800 text-sm">Channel Videos</h3>
-              {videos.length === 0 ? (
+              {videos.length === 0 && embedVideos.length === 0 ? (
                 <div className="bg-purple-50 border-b-2 border-purple-200 rounded p-3 text-center text-purple-600 text-xs">
                   <Play className="h-6 w-6 mx-auto mb-1 opacity-50" />
                   <p>No videos yet. Post your first educational video!</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 w-full">
+                  {embedVideos.map((video) => (
+                    <ChannelVideoWithComments key={`embed-${video.id}`} videoId={video.id} source="embed">
+                      <ChannelEmbedVideoDisplay
+                        id={video.id}
+                        title={video.title}
+                        embedCode={video.embed_code}
+                        platform={video.platform}
+                        createdAt={video.created_at}
+                      />
+                    </ChannelVideoWithComments>
+                  ))}
                   {videos.map((video) => (
-                    <VideoPostDisplay
-                      key={video.id}
-                      id={video.id}
-                      title={video.title}
-                      description={video.description}
-                      videoType={video.video_type}
-                      videoUrl={video.video_url}
-                      thumbnailUrl={video.thumbnail_url}
-                      duration={video.duration}
-                      viewCount={video.view_count || 0}
-                      likeCount={video.like_count || 0}
-                      commentCount={video.comment_count || 0}
-                      authorName={video.author_name}
-                      createdAt={video.created_at}
-                      isTeacher={true}
-                      currentUserId={teacherId}
-                      onDelete={handleDeleteVideo}
-                      onPermanentDelete={handlePermanentlyDeleteVideo}
-                    />
+                    <ChannelVideoWithComments key={video.id} videoId={video.id} source="upload">
+                      <VideoPostDisplay
+                        id={video.id}
+                        title={video.title}
+                        description={video.description}
+                        videoType={video.video_type}
+                        videoUrl={video.video_url}
+                        thumbnailUrl={video.thumbnail_url}
+                        duration={video.duration}
+                        viewCount={video.view_count || 0}
+                        likeCount={video.like_count || 0}
+                        commentCount={video.comment_count || 0}
+                        authorName={video.author_name}
+                        createdAt={video.created_at}
+                        isTeacher={true}
+                        currentUserId={teacherId}
+                        onDelete={handleDeleteVideo}
+                        onPermanentDelete={handlePermanentlyDeleteVideo}
+                      />
+                    </ChannelVideoWithComments>
                   ))}
                 </div>
               )}
