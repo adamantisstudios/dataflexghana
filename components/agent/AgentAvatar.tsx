@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { getAgentInitials } from "@/lib/agent-profile-completion"
@@ -20,16 +21,24 @@ const sizeMap = {
 export function AgentAvatar({ name, imageUrl, size = "md", className }: Props) {
   const s = sizeMap[size]
   const initials = getAgentInitials(name)
+  const [loaded, setLoaded] = useState(false)
 
   if (imageUrl?.trim()) {
     return (
-      <Image
-        src={imageUrl}
-        alt={name ? `${name} profile` : "Agent profile"}
-        width={s.img}
-        height={s.img}
-        className={cn(s.box, "rounded-full object-cover border-2 border-white/30 shrink-0", className)}
-      />
+      <div
+        className={cn(s.box, "relative rounded-full overflow-hidden shrink-0 bg-[#e8f5ec] border-2 border-white/30", className)}
+      >
+        {!loaded && <div className="absolute inset-0 animate-pulse bg-[#c8e6d0]" />}
+        <Image
+          src={imageUrl}
+          alt={name ? `${name} profile` : "Agent profile"}
+          width={s.img}
+          height={s.img}
+          loading="lazy"
+          className={cn("object-cover transition-opacity duration-300", loaded ? "opacity-100" : "opacity-0")}
+          onLoad={() => setLoaded(true)}
+        />
+      </div>
     )
   }
 

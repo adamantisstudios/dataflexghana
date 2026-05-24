@@ -1,25 +1,17 @@
-const WHATSAPP_POPUP_KEY = "df_whatsapp_popup_tracking"
-const MAX_SHOWS = 2
+const WHATSAPP_POPUP_LAST_DISMISSED_KEY = "df_whatsapp_popup_last_dismissed"
 const WINDOW_MS = 24 * 60 * 60 * 1000
-
-interface PopupTracking {
-  count: number
-  firstShownAt: number
-  lastShownAt: number
-}
 
 export function shouldShowWhatsAppPopup(isApproved: boolean): boolean {
   if (!isApproved || typeof window === "undefined") return false
 
   try {
-    const raw = localStorage.getItem(WHATSAPP_POPUP_KEY)
+    const raw = localStorage.getItem(WHATSAPP_POPUP_LAST_DISMISSED_KEY)
     if (!raw) return true
 
-    const tracking: PopupTracking = JSON.parse(raw)
-    const now = Date.now()
+    const lastDismissed = Number.parseInt(raw, 10)
+    if (Number.isNaN(lastDismissed)) return true
 
-    if (now - tracking.firstShownAt > WINDOW_MS) return true
-    return tracking.count < MAX_SHOWS
+    return Date.now() - lastDismissed >= WINDOW_MS
   } catch {
     return true
   }
@@ -29,35 +21,7 @@ export function recordWhatsAppPopupDismissed(): void {
   if (typeof window === "undefined") return
 
   try {
-    const raw = localStorage.getItem(WHATSAPP_POPUP_KEY)
-    const now = Date.now()
-
-    if (!raw) {
-      localStorage.setItem(
-        WHATSAPP_POPUP_KEY,
-        JSON.stringify({ count: 1, firstShownAt: now, lastShownAt: now } satisfies PopupTracking),
-      )
-      return
-    }
-
-    const tracking: PopupTracking = JSON.parse(raw)
-
-    if (now - tracking.firstShownAt > WINDOW_MS) {
-      localStorage.setItem(
-        WHATSAPP_POPUP_KEY,
-        JSON.stringify({ count: 1, firstShownAt: now, lastShownAt: now }),
-      )
-      return
-    }
-
-    localStorage.setItem(
-      WHATSAPP_POPUP_KEY,
-      JSON.stringify({
-        count: tracking.count + 1,
-        firstShownAt: tracking.firstShownAt,
-        lastShownAt: now,
-      }),
-    )
+    localStorage.setItem(WHATSAPP_POPUP_LAST_DISMISSED_KEY, String(Date.now()))
   } catch {
     // ignore storage errors
   }

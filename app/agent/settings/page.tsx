@@ -22,10 +22,11 @@ import { hashPassword, verifyPassword } from "@/lib/supabase";
 import type { Agent } from "@/lib/supabase";
 import { ArrowLeft, Eye, EyeOff, Trash2, Key, User, Shield, AlertTriangle, Upload, Loader2 } from "lucide-react"
 import Link from "next/link"
-import Image from "next/image"
 import { toast } from "sonner"
 import { AGENT_PROFILE_PRIVACY_NOTICE } from "@/lib/agent-profile-completion"
 import { AgentAvatar } from "@/components/agent/AgentAvatar"
+import { LazyProfileImage } from "@/components/ui/lazy-profile-image"
+import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
 
 export default function AgentSettingsPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -267,13 +268,23 @@ export default function AgentSettingsPage() {
       <main className="p-3 sm:p-4 md:p-6 max-w-6xl mx-auto">
         <div className="space-y-4 sm:space-y-6">
           {/* Complete profile */}
-          <Card className="overflow-hidden border border-emerald-200 shadow-sm">
-            <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 pb-3">
-              <div className="flex items-center gap-3">
-                <AgentAvatar name={agent.full_name} imageUrl={profileForm.profile_image_url} size="lg" />
+          <Card className="overflow-hidden border border-emerald-200 shadow-md rounded-2xl">
+            <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 pb-4 text-center">
+              <div className="flex flex-col items-center gap-3">
+                {profileForm.profile_image_url ? (
+                  <LazyProfileImage
+                    src={profileForm.profile_image_url}
+                    alt="Profile photo"
+                    width={112}
+                    height={112}
+                    className="border-4 border-white shadow-md"
+                  />
+                ) : (
+                  <AgentAvatar name={agent.full_name} imageUrl={null} size="lg" className="h-28 w-28 text-xl" />
+                )}
                 <div>
                   <CardTitle className="text-lg sm:text-xl text-gray-900">Complete Your Profile</CardTitle>
-                  <CardDescription className="text-sm">
+                  <CardDescription className="text-sm mt-1">
                     Required after approval — helps verify your identity in our community.
                   </CardDescription>
                 </div>
@@ -283,7 +294,22 @@ export default function AgentSettingsPage() {
               <p className="text-xs text-muted-foreground rounded-lg bg-slate-50 border p-3">
                 {AGENT_PROFILE_PRIVACY_NOTICE}
               </p>
-              <form onSubmit={handleSaveProfile} className="space-y-4">
+              <form onSubmit={handleSaveProfile} className="space-y-4 max-w-md mx-auto">
+                <div className="space-y-2 text-center sm:text-left">
+                  <Label>Profile photo</Label>
+                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg p-3 leading-relaxed">
+                    Please upload a clear, well-lit photo of yourself with your face clearly visible.
+                  </p>
+                  <div className="flex justify-center sm:justify-start">
+                    <MobilePhotoUpload
+                      label="Choose Photo"
+                      uploading={photoUploading}
+                      disabled={photoUploading}
+                      onFile={uploadProfilePhoto}
+                      className="border-[#0E8F3D]/30 text-[#0E8F3D] hover:bg-emerald-50 w-full sm:w-auto"
+                    />
+                  </div>
+                </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -315,40 +341,10 @@ export default function AgentSettingsPage() {
                     placeholder="e.g. Madina, Accra"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Profile photo</Label>
-                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg p-3 leading-relaxed">
-                    Please upload a clear, well-lit photo of yourself with your face clearly visible. Avoid dark or
-                    blurry images. This helps us verify your identity.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {profileForm.profile_image_url ? (
-                      <Image
-                        src={profileForm.profile_image_url}
-                        alt="Profile preview"
-                        width={80}
-                        height={80}
-                        className="h-20 w-20 rounded-full object-cover border"
-                      />
-                    ) : (
-                      <AgentAvatar name={agent.full_name} size="lg" />
-                    )}
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      disabled={photoUploading}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0]
-                        if (f) uploadProfilePhoto(f)
-                      }}
-                    />
-                    {photoUploading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
-                  </div>
-                </div>
                 <Button
                   type="submit"
                   disabled={profileSaving}
-                  className="w-full sm:w-auto bg-[#0E8F3D] hover:bg-[#35B24A] text-white"
+                  className="w-full bg-[#0E8F3D] hover:bg-[#35B24A] text-white"
                 >
                   {profileSaving ? (
                     <>

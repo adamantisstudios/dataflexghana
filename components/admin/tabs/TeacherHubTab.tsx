@@ -81,6 +81,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   const [agents, setAgents] = useState<Agent[]>([])
   const [joinRequests, setJoinRequests] = useState<any[]>([])
   const [pendingVerifications, setPendingVerifications] = useState<any[]>([])
+  const [paidChannelIds, setPaidChannelIds] = useState<Set<string>>(new Set())
   const [expiryRunning, setExpiryRunning] = useState(false)
   const [embedVideos, setEmbedVideos] = useState<any[]>([])
   const [embedChannelId, setEmbedChannelId] = useState("")
@@ -129,7 +130,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   const loadData = async () => {
     setLoading(true)
     try {
-      const [channelsRes, agentsRes, joinRequestsRes, renewalsRes] = await Promise.all([
+      const [channelsRes, agentsRes, joinRequestsRes, verificationsRes] = await Promise.all([
         supabase.from("teaching_channels").select("*").order("created_at", { ascending: false }),
         supabase
           .from("agents")
@@ -142,11 +143,10 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           )
           .eq("status", "pending")
           .order("requested_at", { ascending: false }),
-        supabase
-          .from("subscription_renewal_requests")
-          .select("id, channel_id, agent_id, renewal_amount, payment_status, created_at, teaching_channels(name)")
-          .eq("payment_status", "pending")
-          .order("created_at", { ascending: false }),
+        fetch("/api/admin/subscriptions/pending-verifications", {
+          headers: getAdminAuthHeaders(),
+          cache: "no-store",
+        }),
       ])
       const { data: memberCounts } = await supabase.from("channel_members").select("channel_id")
       const countMap = new Map()
@@ -159,7 +159,14 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       setChannels(channelsWithCounts)
       setAgents(agentsRes.data || [])
       setJoinRequests(joinRequestsRes.data || [])
-      setPendingVerifications(renewalsRes.data || [])
+
+      if (verificationsRes.ok) {
+        const verificationsData = await verificationsRes.json()
+        setPendingVerifications(verificationsData.verifications || [])
+        setPaidChannelIds(new Set(verificationsData.paidChannelIds || []))
+      } else {
+        setPendingVerifications([])
+      }
     } catch (error) {
       toast.error("Failed to load data. Please try again.")
     } finally {
@@ -366,22 +373,54 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
 
   // Approve/Reject Join Request
   const handleApproveJoinRequest = async (requestId: string, agentId: string, channelId: string) => {
+    if (paidChannelIds.has(channelId)) {
+      toast.error("Paid channel — verify payment in Pending Verifications first.")
+      setActiveSubTab("verifications")
+      return
+    }
     try {
-      const response = await fetch("/api/subscriptions/handle-request", {
+      const response = await fetch("/api/channel-join-requests/approve", {
         method: "POST",
         headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve", channelId, agentId, joinRequestId: requestId }),
+        body: JSON.stringify({ requestId }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Approval failed")
-      toast.success("Join request approved with subscription!")
+      toast.success("Join request approved!")
       loadData()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to approve request.")
     }
   }
 
-  const handleVerifyRenewal = async (item: { id: string; channel_id: string; agent_id: string; renewal_amount?: number }) => {
+  const handleVerifyJoinPayment = async (item: {
+    id: string
+    channel_id: string
+    agent_id: string
+    amount?: number
+  }) => {
+    try {
+      const response = await fetch("/api/subscriptions/verify-and-approve", {
+        method: "POST",
+        headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          joinRequestId: item.id,
+          channelId: item.channel_id,
+          agentId: item.agent_id,
+          amountVerified: item.amount ?? 0,
+          notes: "Initial join payment verified",
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Verification failed")
+      toast.success("Payment verified — member added with 30-day subscription!")
+      loadData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to verify payment")
+    }
+  }
+
+  const handleVerifyRenewal = async (item: { id: string; channel_id: string; agent_id: string; amount?: number }) => {
     try {
       const response = await fetch("/api/subscriptions/verify-payment", {
         method: "POST",
@@ -389,7 +428,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         body: JSON.stringify({
           channelId: item.channel_id,
           agentId: item.agent_id,
-          amountVerified: item.renewal_amount,
+          amountVerified: item.amount ?? 0,
           notes: `Renewal request ${item.id}`,
         }),
       })
@@ -531,7 +570,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       return pendingVerifications.filter(
         (item: any) =>
           item.agent_id?.toLowerCase().includes(searchLower) ||
-          item.teaching_channels?.name?.toLowerCase().includes(searchLower),
+          item.agent_name?.toLowerCase().includes(searchLower) ||
+          item.channel_name?.toLowerCase().includes(searchLower),
       )
     }
     const data = activeSubTab === "channels" ? channels : joinRequests
@@ -857,18 +897,24 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       </div>
                     </div>
                     <div className="flex gap-2 mt-3">
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => handleApproveJoinRequest(request.id, request.agent_id, request.channel_id)}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Approve
-                      </Button>
+                      {paidChannelIds.has(request.channel_id) ? (
+                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 flex-1">
+                          Paid channel — verify payment in <strong>Pending Verifications</strong> after the agent pays.
+                        </p>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={() => handleApproveJoinRequest(request.id, request.agent_id, request.channel_id)}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Approve
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="destructive"
-                        className="flex-1"
+                        className={paidChannelIds.has(request.channel_id) ? "shrink-0" : "flex-1"}
                         onClick={() => handleRejectJoinRequest(request.id)}
                       >
                         <X className="h-4 w-4 mr-1" />
@@ -1014,18 +1060,40 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               </Card>
             ) : (
               paginatedData.map((item: any) => (
-                <Card key={item.id} className="shadow-sm">
+                <Card key={`${item.type}-${item.id}`} className="shadow-sm">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <p className="font-medium">{item.teaching_channels?.name || "Channel"}</p>
-                        <p className="text-xs text-gray-500">Agent ID: {item.agent_id?.slice(0, 8)}...</p>
-                        <p className="text-sm text-[#0E8F3D] font-semibold mt-1">GH₵ {Number(item.renewal_amount || 0).toFixed(2)}</p>
+                        <p className="font-medium">{item.channel_name || "Channel"}</p>
+                        {item.type === "join" ? (
+                          <>
+                            <p className="text-sm text-gray-700">{item.agent_name}</p>
+                            <p className="text-xs text-gray-500">{item.agent_phone}</p>
+                            {item.request_message && (
+                              <p className="text-xs text-gray-600 mt-2 italic">&quot;{item.request_message}&quot;</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-xs text-gray-500">Agent ID: {item.agent_id?.slice(0, 8)}…</p>
+                        )}
+                        <p className="text-sm text-[#0E8F3D] font-semibold mt-1">
+                          GH₵ {Number(item.amount || 0).toFixed(2)}
+                        </p>
                       </div>
-                      <Badge variant="outline">Pending</Badge>
+                      <Badge variant="outline">
+                        {item.type === "join" ? "Join payment" : "Renewal"}
+                      </Badge>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" className="flex-1 bg-[#0E8F3D] hover:bg-[#35B24A]" onClick={() => handleVerifyRenewal(item)}>
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-[#0E8F3D] hover:bg-[#35B24A]"
+                        onClick={() =>
+                          item.type === "join"
+                            ? handleVerifyJoinPayment(item)
+                            : handleVerifyRenewal(item)
+                        }
+                      >
                         <CheckCircle2 className="h-4 w-4 mr-1" /> Verify Payment
                       </Button>
                     </div>

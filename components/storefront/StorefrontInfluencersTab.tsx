@@ -177,7 +177,11 @@ export function StorefrontInfluencersTab({ agentId, storeSegment, accent, influe
       </section>
 
       {influencer.packages.length === 0 ? (
-        <p className="text-center text-muted-foreground py-8">No active packages at the moment.</p>
+        <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/40 p-12 text-center">
+          <Sparkles className="h-12 w-12 mx-auto mb-3 text-[#0E8F3D]/40" />
+          <p className="font-medium text-gray-800">No packages available yet</p>
+          <p className="text-sm text-muted-foreground mt-1">Check back soon for influencer service packages.</p>
+        </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {influencer.packages.map((pkg) => (
@@ -212,6 +216,17 @@ export function StorefrontInfluencersTab({ agentId, storeSegment, accent, influe
           <DialogHeader>
             <DialogTitle>{selected?.title}</DialogTitle>
           </DialogHeader>
+          {selected && (
+            <div className="rounded-lg border bg-slate-50 p-4 text-sm space-y-2 mb-2">
+              <p className="text-2xl font-bold" style={{ color: BRAND }}>
+                ₵{selected.price.toFixed(2)}
+              </p>
+              <p className="text-muted-foreground">{selected.delivery_days} day delivery</p>
+              {selected.description && (
+                <p className="text-slate-700 leading-relaxed pt-2 border-t">{selected.description}</p>
+              )}
+            </div>
+          )}
           <div className="space-y-3 py-2">
             <div>
               <Label>Your name</Label>
@@ -269,11 +284,11 @@ export function StorefrontInfluencersTab({ agentId, storeSegment, accent, influe
             <Button
               onClick={startCheckout}
               disabled={paying}
-              className="text-white"
+              className="text-white w-full sm:w-auto"
               style={{ backgroundColor: accent }}
             >
               {paying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Pay with Paystack
+              Request This Package
             </Button>
           </DialogFooter>
         </DialogContent>

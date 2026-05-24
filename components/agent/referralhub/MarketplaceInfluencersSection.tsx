@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState, type ChangeEvent } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,8 +22,9 @@ import {
   type InfluencerProfile,
   type SocialHandles,
 } from "@/lib/influencer-types"
-import { Loader2, Plus, Trash2, Upload, Sparkles, Package, Camera } from "lucide-react"
+import { Loader2, Plus, Trash2, Upload, Sparkles, Package } from "lucide-react"
 import { parseJsonResponse } from "@/lib/agent-auth-utils"
+import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
 
 const BRAND = "#0E8F3D"
 
@@ -57,7 +58,6 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
     delivery_days: "7",
     terms: "",
   })
-  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -148,11 +148,10 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
       toast.error(e instanceof Error ? e.message : "Upload failed")
     } finally {
       setUploading(false)
-      if (photoInputRef.current) photoInputRef.current.value = ""
     }
   }
 
-  const onPhotoSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPhotoSelected = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (f) uploadPhoto(f)
   }
@@ -297,7 +296,7 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
             <CardContent className="space-y-4">
               <div>
                 <Label>Profile photo</Label>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-1">
+                <div className="flex flex-col items-center sm:flex-row sm:items-center gap-4 mt-2">
                   {applyForm.photo_url ? (
                     <Image
                       src={applyForm.photo_url}
@@ -311,29 +310,13 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
                       <Upload className="h-5 w-5 text-slate-400" />
                     </div>
                   )}
-                  <input
-                    ref={photoInputRef}
-                    id="influencer-photo-input"
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,image/*"
-                    className="sr-only"
-                    onChange={onPhotoSelected}
+                  <MobilePhotoUpload
+                    label="Choose Photo"
+                    uploading={uploading}
                     disabled={uploading}
+                    onFile={(file) => onPhotoSelected({ target: { files: [file] } } as ChangeEvent<HTMLInputElement>)}
+                    className="border-[#0E8F3D]/30 text-[#0E8F3D] hover:bg-emerald-50"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full sm:w-auto"
-                    disabled={uploading}
-                    onClick={() => photoInputRef.current?.click()}
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Camera className="h-4 w-4 mr-2" />
-                    )}
-                    {uploading ? "Uploading…" : "Choose photo from gallery"}
-                  </Button>
                 </div>
               </div>
               <div>
@@ -491,24 +474,58 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
             </CardContent>
           </Card>
 
-          <div className="grid sm:grid-cols-2 gap-3">
-            {packages.map((pkg) => (
-              <Card key={pkg.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start gap-2">
-                    <CardTitle className="text-base">{pkg.title}</CardTitle>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Switch checked={pkg.is_active} onCheckedChange={(v) => togglePackage(pkg.id, v)} />
-                      <span className="text-xs text-muted-foreground">{pkg.is_active ? "Active" : "Off"}</span>
-                    </div>
-                  </div>
-                  <CardDescription>₵{Number(pkg.price).toFixed(2)} · {pkg.delivery_days} days</CardDescription>
-                </CardHeader>
-                {pkg.description && (
-                  <CardContent className="pt-0 text-sm text-muted-foreground">{pkg.description}</CardContent>
-                )}
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+              <Package className="h-4 w-4 text-[#0E8F3D]" />
+              Your packages ({packages.length})
+            </h3>
+            {packages.length === 0 ? (
+              <Card className="border-dashed border-emerald-200 bg-emerald-50/30">
+                <CardContent className="py-10 text-center text-muted-foreground">
+                  <Package className="h-10 w-10 mx-auto mb-2 text-[#0E8F3D]/40" />
+                  <p>No packages yet. Create your first package above.</p>
+                </CardContent>
               </Card>
-            ))}
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {packages.map((pkg) => (
+                  <Card
+                    key={pkg.id}
+                    className="overflow-hidden border border-emerald-100 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="h-1 bg-gradient-to-r from-[#0E8F3D] to-[#35B24A]" />
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <CardTitle className="text-base text-gray-900 leading-snug">{pkg.title}</CardTitle>
+                        <Badge
+                          variant="outline"
+                          className={
+                            pkg.is_active
+                              ? "border-[#0E8F3D] text-[#0E8F3D] bg-emerald-50"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {pkg.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-baseline gap-2 mt-2">
+                        <span className="text-2xl font-bold text-[#0E8F3D]">₵{Number(pkg.price).toFixed(2)}</span>
+                        <span className="text-xs text-muted-foreground">{pkg.delivery_days} day delivery</span>
+                      </div>
+                    </CardHeader>
+                    {pkg.description && (
+                      <CardContent className="pt-0 pb-3">
+                        <p className="text-sm text-gray-600 line-clamp-3">{pkg.description}</p>
+                      </CardContent>
+                    )}
+                    <CardContent className="pt-0 pb-4 flex items-center justify-between border-t border-emerald-50 mt-1 pt-3">
+                      <span className="text-xs text-muted-foreground">Visible on storefront</span>
+                      <Switch checked={pkg.is_active} onCheckedChange={(v) => togglePackage(pkg.id, v)} />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </TabsContent>
 

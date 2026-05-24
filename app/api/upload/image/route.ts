@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabaseAdmin.storage.from("teaching-media").upload(`images/${fileName}`, buffer, {
       contentType: file.type,
       upsert: false,
+      cacheControl: "31536000",
     })
 
     if (error) {
@@ -38,13 +39,20 @@ export async function POST(request: NextRequest) {
 
     const { data: urlData } = supabaseAdmin.storage.from("teaching-media").getPublicUrl(`images/${fileName}`)
 
-    return NextResponse.json({
-      url: urlData.publicUrl,
-      filename: file.name,
-      path: `images/${fileName}`,
-      size: buffer.byteLength,
-      type: file.type,
-    })
+    return NextResponse.json(
+      {
+        url: urlData.publicUrl,
+        filename: file.name,
+        path: `images/${fileName}`,
+        size: buffer.byteLength,
+        type: file.type,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      },
+    )
   } catch (error) {
     console.error("[v0] Image upload error:", error)
     return NextResponse.json(

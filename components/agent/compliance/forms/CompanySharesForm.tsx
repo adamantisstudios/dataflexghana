@@ -1055,6 +1055,7 @@ export function CompanySharesForm({ agentId, onComplete, onCancel }: CompanyShar
                             <input
                               type="file"
                               accept="image/*"
+                              capture="environment"
                               className="hidden"
                               onChange={(e) => handleGhanaCardChange(person, e.target.files?.[0] || null, "front")}
                             />
@@ -1093,6 +1094,7 @@ export function CompanySharesForm({ agentId, onComplete, onCancel }: CompanyShar
                             <input
                               type="file"
                               accept="image/*"
+                              capture="environment"
                               className="hidden"
                               onChange={(e) => handleGhanaCardChange(person, e.target.files?.[0] || null, "back")}
                             />

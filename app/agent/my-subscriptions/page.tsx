@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { supabase } from "@/lib/supabase-client";
 import { getStoredAgent } from "@/lib/unified-auth-system"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { RefreshCw, AlertCircle, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -48,46 +48,16 @@ export default function MySubscriptionsPage() {
 
     try {
       setLoading(true)
-      const now = new Date()
-
-      const { data, error } = await supabase
-        .from("member_subscription_status")
-        .select(`
-          id,
-          channel_id,
-          subscription_starts_at,
-          subscription_expires_at,
-          payment_amount,
-          is_active,
-          teaching_channels(name)
-        `)
-        .eq("agent_id", agent.id)
-        .order("subscription_expires_at", { ascending: true })
-
-      if (error) throw error
-
-      const enriched = (data || []).map((item: any) => {
-        const expiresAt = new Date(item.subscription_expires_at)
-        const daysRemaining = Math.ceil(
-          (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-        )
-        const isActive = item.is_active && expiresAt.getTime() > now.getTime()
-
-        return {
-          id: item.id,
-          channel_id: item.channel_id,
-          channel_name: item.teaching_channels?.name,
-          subscription_starts_at: item.subscription_starts_at,
-          subscription_expires_at: item.subscription_expires_at,
-          payment_amount: Number(item.payment_amount) || 0,
-          is_active: isActive,
-          days_remaining: daysRemaining,
-        }
+      const res = await fetch("/api/agent/subscriptions", {
+        headers: getAgentAuthHeaders(),
+        cache: "no-store",
       })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to load")
 
-      setSubscriptions(enriched)
+      setSubscriptions(data.subscriptions || [])
     } catch (error) {
-      console.error("[v0] Error loading subscriptions:", error)
+      console.error("[my-subscriptions] load error:", error)
       toast.error("Failed to load subscriptions")
     } finally {
       setLoading(false)
@@ -103,17 +73,17 @@ export default function MySubscriptionsPage() {
     try {
       setRenewingId(subscriptionId)
 
-      const { error } = await supabase.from("subscription_renewal_requests").insert({
-        member_subscription_id: subscriptionId,
-        channel_id: channelId,
-        agent_id: agent?.id,
-        renewal_start_date: new Date().toISOString(),
-        renewal_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        renewal_amount: renewalData.amount,
-        payment_status: "pending",
+      const res = await fetch("/api/agent/subscriptions", {
+        method: "POST",
+        headers: { ...getAgentAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subscriptionId,
+          channelId,
+          amount: renewalData.amount,
+        }),
       })
-
-      if (error) throw error
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to request renewal")
 
       toast.success("Renewal request sent! Awaiting admin approval.")
       setRenewingId(null)
@@ -219,10 +189,10 @@ export default function MySubscriptionsPage() {
                     </div>
                   )}
 
-                  {sub.is_active && (
+                  {(sub.is_active || sub.days_remaining <= 0) && (
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button className="w-full bg-[#0E8F3D] hover:bg-[#35B24A] text-white">
                           <RefreshCw className="h-4 w-4 mr-2" />
                           Renew Subscription
                         </Button>

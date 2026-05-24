@@ -33,6 +33,38 @@ import {
 import { Download, Loader2, RefreshCw, Check, X } from "lucide-react"
 
 const BRAND = "#0E8F3D"
+const PAGE_SIZE = 8
+
+function paginate<T>(items: T[], page: number) {
+  const start = (page - 1) * PAGE_SIZE
+  return items.slice(start, start + PAGE_SIZE)
+}
+
+function PaginationBar({
+  page,
+  total,
+  onPage,
+}: {
+  page: number
+  total: number
+  onPage: (p: number) => void
+}) {
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  if (pages <= 1) return null
+  return (
+    <div className="flex items-center justify-center gap-2 pt-2">
+      <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+        Previous
+      </Button>
+      <span className="text-xs text-muted-foreground">
+        Page {page} of {pages}
+      </span>
+      <Button variant="outline" size="sm" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+        Next
+      </Button>
+    </div>
+  )
+}
 
 type ProfileRow = {
   id: string
@@ -80,6 +112,10 @@ export default function InfluencersAdminTab() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>("all")
+  const [packageSearch, setPackageSearch] = useState("")
+  const [profilePage, setProfilePage] = useState(1)
+  const [packagePage, setPackagePage] = useState(1)
+  const [orderPage, setOrderPage] = useState(1)
 
   const loadProfiles = useCallback(async () => {
     const params = new URLSearchParams()
@@ -215,6 +251,16 @@ export default function InfluencersAdminTab() {
     }
   }
 
+  const filteredPackages = packages.filter(
+    (p) =>
+      !packageSearch.trim() ||
+      p.title.toLowerCase().includes(packageSearch.toLowerCase()) ||
+      p.agent_name.toLowerCase().includes(packageSearch.toLowerCase()),
+  )
+  const pagedProfiles = paginate(profiles, profilePage)
+  const pagedPackages = paginate(filteredPackages, packagePage)
+  const pagedOrders = paginate(orders, orderPage)
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -247,6 +293,12 @@ export default function InfluencersAdminTab() {
           </TabsList>
 
           <TabsContent value="profiles" className="mt-4 space-y-4">
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 mb-1" style={{ color: BRAND }}>
+                Influencer profiles
+              </h3>
+              <p className="text-xs text-muted-foreground mb-3">Review applications and approve micro-influencers.</p>
+            </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 placeholder="Search name or phone…"
@@ -270,8 +322,13 @@ export default function InfluencersAdminTab() {
             </div>
 
             <div className="grid gap-4">
-              {profiles.map((p) => (
-                <Card key={p.id}>
+              {pagedProfiles.length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="py-10 text-center text-muted-foreground">No profiles found.</CardContent>
+                </Card>
+              ) : (
+                pagedProfiles.map((p) => (
+                <Card key={p.id} className="border-emerald-100 shadow-sm">
                   <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
                     {p.photo_url ? (
                       <Image
@@ -323,12 +380,28 @@ export default function InfluencersAdminTab() {
                     )}
                   </CardContent>
                 </Card>
-              ))}
+              ))
+              )}
             </div>
+            <PaginationBar page={profilePage} total={profiles.length} onPage={setProfilePage} />
           </TabsContent>
 
-          <TabsContent value="packages" className="mt-4">
-            <Card>
+          <TabsContent value="packages" className="mt-4 space-y-4">
+            <div>
+              <h3 className="text-base font-semibold mb-1" style={{ color: BRAND }}>
+                All packages
+              </h3>
+              <p className="text-xs text-muted-foreground mb-3">Manage influencer service packages across the marketplace.</p>
+            </div>
+            <Input
+              placeholder="Search package or influencer…"
+              value={packageSearch}
+              onChange={(e) => {
+                setPackageSearch(e.target.value)
+                setPackagePage(1)
+              }}
+            />
+            <Card className="border-emerald-100 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-base">All packages</CardTitle>
               </CardHeader>
@@ -344,7 +417,7 @@ export default function InfluencersAdminTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {packages.map((pkg) => (
+                    {pagedPackages.map((pkg) => (
                       <TableRow key={pkg.id}>
                         <TableCell className="text-sm">{pkg.agent_name}</TableCell>
                         <TableCell>{pkg.title}</TableCell>
@@ -362,10 +435,17 @@ export default function InfluencersAdminTab() {
                 </Table>
               </CardContent>
             </Card>
+            <PaginationBar page={packagePage} total={filteredPackages.length} onPage={setPackagePage} />
           </TabsContent>
 
           <TabsContent value="orders" className="mt-4 space-y-4">
-            <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
+            <div>
+              <h3 className="text-base font-semibold mb-1" style={{ color: BRAND }}>
+                Orders &amp; escrow
+              </h3>
+              <p className="text-xs text-muted-foreground mb-3">Track client orders and release influencer payouts.</p>
+            </div>
+            <Select value={orderStatusFilter} onValueChange={(v) => { setOrderStatusFilter(v); setOrderPage(1) }}>
               <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Filter status" />
               </SelectTrigger>
@@ -379,8 +459,13 @@ export default function InfluencersAdminTab() {
               </SelectContent>
             </Select>
 
-            {orders.map((o) => (
-              <Card key={o.id}>
+            {pagedOrders.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-10 text-center text-muted-foreground">No orders found.</CardContent>
+              </Card>
+            ) : (
+              pagedOrders.map((o) => (
+              <Card key={o.id} className="border-emerald-100 shadow-sm">
                 <CardHeader className="pb-2">
                   <div className="flex flex-wrap justify-between gap-2">
                     <div>
@@ -446,7 +531,9 @@ export default function InfluencersAdminTab() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            ))
+            )}
+            <PaginationBar page={orderPage} total={orders.length} onPage={setOrderPage} />
           </TabsContent>
         </Tabs>
       )}

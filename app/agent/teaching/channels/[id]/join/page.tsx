@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { supabase } from "@/lib/supabase-client";
 import { useAuth } from "@/hooks/use-auth"
-import { ArrowLeft, AlertCircle, Check, Lock, DollarSign } from "lucide-react"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { ArrowLeft, AlertCircle, Check, Lock, DollarSign, CreditCard } from "lucide-react"
 import { toast } from "sonner"
 import { SubscriptionPaymentNotification } from "@/components/teaching/subscription-payment-notification"
 
@@ -34,6 +34,7 @@ interface JoinRequest {
   id: string
   status: "pending" | "approved" | "rejected"
   created_at: string
+  request_message?: string | null
 }
 
 export default function JoinChannelPage() {
@@ -61,44 +62,23 @@ export default function JoinChannelPage() {
 
     try {
       setLoading(true)
-      console.log("[v0] Loading channel data for:", channelId)
+      const res = await fetch(`/api/agent/channels/${channelId}/join`, {
+        headers: getAgentAuthHeaders(),
+        cache: "no-store",
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to load channel")
 
-      const { data: channelData, error: channelError } = await supabase
-        .from("teaching_channels")
-        .select("*")
-        .eq("id", channelId)
-        .single()
-
-      if (channelError) throw channelError
-      console.log("[v0] Channel loaded:", channelData)
-      setChannel(channelData)
-
-      const { data: subData } = await supabase
-        .from("channel_subscription_settings")
-        .select("*")
-        .eq("channel_id", channelId)
-        .maybeSingle()
-
-      console.log("[v0] Subscription settings loaded:", subData)
-      setSubscription(subData)
-
-      const { data: requestData } = await supabase
-        .from("channel_join_requests")
-        .select("*")
-        .eq("channel_id", channelId)
-        .eq("agent_id", user.id)
-        .maybeSingle()
-
-      console.log("[v0] Existing join request:", requestData)
-      if (requestData) {
-        setJoinRequest(requestData)
-        if (requestData.status === "pending" && subData?.is_enabled) {
-          console.log("[v0] Setting payment notification from existing request")
+      setChannel(data.channel)
+      setSubscription(data.subscription)
+      if (data.joinRequest) {
+        setJoinRequest(data.joinRequest)
+        if (data.joinRequest.status === "pending" && data.subscription?.is_enabled) {
           setShowPaymentNotification(true)
         }
       }
     } catch (error) {
-      console.error("[v0] Error loading data:", error)
+      console.error("[join] load error:", error)
       toast.error("Failed to load channel information")
     } finally {
       setLoading(false)
@@ -115,49 +95,25 @@ export default function JoinChannelPage() {
 
     try {
       setSubmitting(true)
-      console.log("[v0] Submitting join request:", {
-        channelId,
-        userId: user.id,
-        subscriptionEnabled: subscription?.is_enabled,
-        subscriptionFee: subscription?.monthly_fee,
+      const res = await fetch(`/api/agent/channels/${channelId}/join`, {
+        method: "POST",
+        headers: { ...getAgentAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ request_message: requestMessage }),
       })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to submit join request")
 
-      const { data: newRequest, error } = await supabase
-        .from("channel_join_requests")
-        .insert([
-          {
-            channel_id: channelId,
-            agent_id: user.id,
-            request_message: requestMessage || null,
-            status: "pending",
-            requested_at: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single()
+      setJoinRequest(data.joinRequest)
+      setShowPaymentNotification(data.requiresPayment || false)
 
-      if (error) {
-        console.log("[v0] Error inserting join request:", error)
-        throw error
-      }
-
-      console.log("[v0] Join request created successfully:", newRequest)
-      setJoinRequest(newRequest)
-      setShowPaymentNotification(subscription?.is_enabled || false)
-      console.log("[v0] Setting showPaymentNotification to:", subscription?.is_enabled)
-
-      if (subscription?.is_enabled) {
-        toast.success("Join request sent! Please proceed with payment.")
+      if (data.requiresPayment) {
+        toast.success("Join request sent! Please complete payment using the instructions below.")
       } else {
         toast.success("Join request sent! Awaiting approval.")
       }
-    } catch (error: any) {
-      console.error("[v0] Error submitting join request:", error)
-      if (error.code === "23505") {
-        toast.error("You have already requested to join this channel")
-      } else {
-        toast.error("Failed to submit join request: " + (error.message || "Unknown error"))
-      }
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Failed to submit join request"
+      toast.error(msg)
     } finally {
       setSubmitting(false)
     }
@@ -184,30 +140,31 @@ export default function JoinChannelPage() {
     )
   }
 
+  const isPaid = Boolean(subscription?.is_enabled)
+
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-2xl">
-        {/* Header */}
         <Button variant="ghost" onClick={() => router.back()} className="mb-6 text-gray-600 hover:text-gray-800">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
 
-        {/* Main Content */}
         {showPaymentNotification ? (
-          // AFTER submission - show confirmation and payment notification
           <div className="space-y-6">
             <Card className="bg-green-50 border-green-200">
               <CardContent className="p-6 flex items-center gap-3">
-                <Check className="h-6 w-6 text-green-600 shrink-0" />
+                <Check className="h-6 w-6 text-[#0E8F3D] shrink-0" />
                 <div>
                   <p className="font-semibold text-green-900">Join Request Submitted</p>
-                  <p className="text-sm text-green-800">Your request to join "{channel.name}" has been sent.</p>
+                  <p className="text-sm text-green-800">
+                    Your request to join &quot;{channel.name}&quot; has been sent.
+                  </p>
                 </div>
               </CardContent>
             </Card>
 
-            {subscription?.is_enabled && (
+            {isPaid && subscription && (
               <SubscriptionPaymentNotification
                 channelName={channel.name}
                 channelId={channelId}
@@ -227,14 +184,13 @@ export default function JoinChannelPage() {
               />
             )}
 
-            {!subscription?.is_enabled && (
+            {!isPaid && (
               <Alert className="bg-blue-50 border-blue-200">
                 <AlertCircle className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-800">
                   <p className="font-semibold mb-2">Waiting for Approval</p>
                   <p className="text-sm">
-                    The channel admin/teacher will review your request and approve or reject it. You'll be notified once
-                    they respond. Check back here or your notifications for updates.
+                    The channel admin will review your request. You will be notified once they respond.
                   </p>
                 </AlertDescription>
               </Alert>
@@ -245,57 +201,66 @@ export default function JoinChannelPage() {
             </Button>
           </div>
         ) : (
-          // BEFORE submission - show the join request form
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50">
+          <Card className="shadow-md overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 border-b">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <CardTitle className="text-2xl text-blue-900">{channel.name}</CardTitle>
-                  <p className="text-sm text-blue-700 mt-2">{channel.description}</p>
+                  <CardTitle className="text-2xl text-gray-900">{channel.name}</CardTitle>
+                  <p className="text-sm text-gray-600 mt-2">{channel.description}</p>
                 </div>
-                {subscription?.is_enabled && (
-                  <Badge className="bg-red-100 text-red-800 shrink-0">
+                {isPaid && (
+                  <Badge className="bg-amber-100 text-amber-900 shrink-0 border-amber-200">
                     <Lock className="h-3 w-3 mr-1" />
-                    Paid Channel
+                    Paid
                   </Badge>
                 )}
               </div>
             </CardHeader>
 
             <CardContent className="space-y-6 pt-6">
-              {/* Subscription Info */}
-              {subscription?.is_enabled && (
-                <Alert className="bg-amber-50 border-amber-200">
-                  <DollarSign className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-amber-800 space-y-2">
-                    <p className="font-semibold">Monthly Subscription Required</p>
-                    <p className="text-sm">
-                      This is a paid channel. You must pay{" "}
-                      <span className="font-bold">GHS {subscription.monthly_fee.toFixed(2)}</span> monthly to access the
-                      content. After your request is approved and payment verified, your 30-day access countdown begins.
+              {isPaid && subscription && (
+                <Card className="border-2 border-[#0E8F3D]/30 bg-gradient-to-br from-emerald-50 to-white">
+                  <CardContent className="p-5 space-y-3">
+                    <div className="flex items-center gap-2 text-[#0E8F3D]">
+                      <CreditCard className="h-5 w-5" />
+                      <p className="font-semibold">Subscription required before access</p>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">
+                      GHS {Number(subscription.monthly_fee).toFixed(2)}
+                      <span className="text-sm font-normal text-gray-500"> / month</span>
                     </p>
-                  </AlertDescription>
-                </Alert>
+                    <p className="text-sm text-gray-600">
+                      After you submit your request, pay using the instructions shown. An admin will verify your
+                      payment and grant 30 days of access.
+                    </p>
+                    {subscription.payment_instructions && (
+                      <Alert className="bg-white border-amber-200">
+                        <DollarSign className="h-4 w-4 text-amber-600" />
+                        <AlertDescription className="text-sm text-amber-900">
+                          <p className="font-medium mb-1">Payment instructions (preview)</p>
+                          {subscription.payment_instructions}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </CardContent>
+                </Card>
               )}
 
-              {/* Join Request Form */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-800">Request to Join</h3>
 
                 <div className="space-y-2">
                   <Label htmlFor="message" className="text-sm font-medium">
-                    {subscription?.is_enabled
-                      ? "Message to Admin/Teacher (Required)"
-                      : "Message to Admin/Teacher (Optional)"}
+                    {isPaid ? "Message to Admin (Required)" : "Message to Admin (Optional)"}
                   </Label>
                   <Textarea
                     id="message"
                     value={requestMessage}
-                    onChange={(e) => setRequestMessage(e.target.value)}
+                    onChange={(e) => setRequestMessage(e.target.value.slice(0, 500))}
                     placeholder={
-                      subscription?.is_enabled
-                        ? "Introduce yourself and confirm you're ready to make payment..."
-                        : "Tell the channel admin why you want to join (optional)..."
+                      isPaid
+                        ? "Introduce yourself and confirm you are ready to pay the monthly fee…"
+                        : "Tell the channel admin why you want to join (optional)…"
                     }
                     rows={4}
                     className="resize-none"
@@ -306,18 +271,18 @@ export default function JoinChannelPage() {
                 <Alert className="bg-blue-50 border-blue-200">
                   <AlertCircle className="h-4 w-4 text-blue-600" />
                   <AlertDescription className="text-xs text-blue-800">
-                    {subscription?.is_enabled
-                      ? "After submitting, you'll see payment instructions. Complete payment and wait for admin verification and approval."
-                      : "After submitting, the channel admin/teacher will review your request and approve or reject it."}
+                    {isPaid
+                      ? "Step 1: Submit request → Step 2: Pay using instructions → Step 3: Admin verifies → Step 4: 30-day access begins."
+                      : "After submitting, the channel admin will review and approve or reject your request."}
                   </AlertDescription>
                 </Alert>
 
                 <Button
                   onClick={handleSubmitJoinRequest}
                   disabled={submitting}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10 text-sm"
+                  className="w-full bg-[#0E8F3D] hover:bg-[#35B24A] text-white h-11"
                 >
-                  {submitting ? "Sending..." : "Send Join Request"}
+                  {submitting ? "Sending…" : isPaid ? "Submit Request & View Payment Info" : "Send Join Request"}
                 </Button>
               </div>
             </CardContent>
