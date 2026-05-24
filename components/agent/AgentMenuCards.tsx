@@ -47,6 +47,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
 
   const menuCards: MenuCard[] = [
     {
+      id: "tutorials",
+      title: "Video Tutorials",
+      description: "Learn how to use the platform",
+      icon: <Play className="h-12 w-12" />,
+      image: "/images/tutorial.png",
+      gradient: "linear-gradient(135deg, #6366F1, #4338CA)",
+      buttonText: "WATCH NOW",
+      onClick: () => router.push("/agent/tutorials"),
+    },
+    {
       id: "referral-hub",
       title: "Referral Hub",
       description: "Your white-label storefront & QR",
@@ -105,16 +115,6 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       gradient: "linear-gradient(135deg, #EC4899, #BE185D)",
       buttonText: "WRITING SERVICES",
       onClick: () => handleMenuCardClick("professional-writing"),
-    },
-    {
-      id: "tutorials",
-      title: "Video Tutorials",
-      description: "Learn how to use the platform",
-      icon: <Play className="h-12 w-12" />,
-      image: "/images/tutorial.png",
-      gradient: "linear-gradient(135deg, #6366F1, #4338CA)",
-      buttonText: "WATCH NOW",
-      onClick: () => router.push("/agent/tutorials"),
     },
     {
       id: "online-courses",

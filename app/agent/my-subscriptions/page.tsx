@@ -138,14 +138,14 @@ export default function MySubscriptionsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="flex items-center gap-3 mb-8">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/agent/teaching")}>
+    <main className="min-h-screen bg-gray-50 py-4 sm:py-8">
+      <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 sm:mb-8">
+          <Button variant="ghost" size="sm" onClick={() => router.push("/agent/teaching")} className="self-start">
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back
           </Button>
-          <h1 className="text-3xl font-bold text-gray-800">My Channel Subscriptions</h1>
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-800">My Channel Subscriptions</h1>
         </div>
 
         {subscriptions.length === 0 ? (
@@ -184,7 +184,7 @@ export default function MySubscriptionsPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4 pt-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                     <div className="bg-gray-50 rounded p-3">
                       <p className="text-xs text-gray-600 mb-1">Monthly Fee</p>
                       <p className="text-lg font-bold text-gray-800">GHS {sub.payment_amount.toFixed(2)}</p>

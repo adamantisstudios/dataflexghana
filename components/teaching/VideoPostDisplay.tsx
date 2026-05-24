@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, Eye, MessageSquare, ThumbsUp, MoreVertical, Download, Share2 } from 'lucide-react';
+import { Trash2, Eye, MessageSquare, ThumbsUp, MoreVertical, Download, Share2, Play, X } from 'lucide-react';
 import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner";
   import {
@@ -65,6 +65,7 @@ export function VideoPostDisplay({
   const [isLiked, setIsLiked] = useState(false);
   const [currentLikes, setCurrentLikes] = useState(likeCount);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const validVideoUrl = videoUrl && videoUrl.trim() !== '' ? videoUrl : null;
   const validThumbnailUrl = thumbnailUrl && thumbnailUrl.trim() !== '' ? thumbnailUrl : null;
@@ -149,12 +150,22 @@ export function VideoPostDisplay({
 
 
   const handlePlayPause = () => {
+    if (!isPlaying && !isFullscreen) {
+      setIsFullscreen(true);
+    }
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
         videoRef.current.play();
       }
+    }
+  };
+
+  const closeFullscreen = () => {
+    setIsFullscreen(false);
+    if (videoRef.current) {
+      videoRef.current.pause();
     }
   };
 
@@ -327,7 +338,8 @@ export function VideoPostDisplay({
   }
 
   return (
-    <Card className="border-purple-200 overflow-hidden hover:shadow-lg transition-shadow">
+    <>
+    <Card className="border-[#0E8F3D]/20 overflow-hidden hover:shadow-lg transition-shadow rounded-xl">
       <CardContent className="p-0">
         {/* Video Container - Vertical Aspect Ratio 9:16 */}
         <div className="relative bg-black w-full max-w-xs mx-auto aspect-[9/16] rounded-lg overflow-hidden group">
@@ -356,23 +368,13 @@ export function VideoPostDisplay({
               aria-label={isPlaying ? "Pause video" : "Play video"}
             />
 
-            {/* Play/Pause Icon */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <button
-                disabled
-                className="bg-white/80 rounded-full p-3"
-              >
-                {isPlaying ? (
-                  <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                )}
-              </button>
-            </div>
+            {!isPlaying && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="bg-[#0E8F3D]/90 rounded-full p-4 shadow-lg">
+                  <Play className="w-8 h-8 text-white fill-white" />
+                </div>
+              </div>
+            )}
 
             {/* Duration Badge */}
             <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
@@ -534,5 +536,29 @@ export function VideoPostDisplay({
         </div>
       </CardContent>
     </Card>
+
+    {isFullscreen && validVideoUrl && (
+      <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+        <button
+          type="button"
+          onClick={closeFullscreen}
+          className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+          aria-label="Close video"
+        >
+          <X className="h-5 w-5" />
+        </button>
+        <video
+          src={validVideoUrl}
+          poster={validThumbnailUrl || undefined}
+          className="w-full h-full object-contain"
+          playsInline
+          controls
+          autoPlay
+          onEnded={closeFullscreen}
+        />
+        <p className="absolute bottom-4 left-4 right-4 text-white text-sm font-medium truncate">{title}</p>
+      </div>
+    )}
+    </>
   );
 }

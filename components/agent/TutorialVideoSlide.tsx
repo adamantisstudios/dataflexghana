@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Player from "@vimeo/player"
-import { Pause, Play } from "lucide-react"
+import { Pause, Play, MessageCircle } from "lucide-react"
 import { detectPlatformFromEmbed, prepareAgentFeedEmbed } from "@/lib/tutorial-embed"
 
 export interface TutorialVideoItem {
@@ -18,6 +18,8 @@ interface TutorialVideoSlideProps {
   shouldMount: boolean
   soundEnabled: boolean
   onRegisterPlayer: (id: string, player: Player | null) => void
+  onCommentClick?: () => void
+  commentsOpen?: boolean
 }
 
 function formatTime(seconds: number): string {
@@ -33,6 +35,8 @@ export function TutorialVideoSlide({
   shouldMount,
   soundEnabled,
   onRegisterPlayer,
+  onCommentClick,
+  commentsOpen = false,
 }: TutorialVideoSlideProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<Player | null>(null)
@@ -119,6 +123,20 @@ export function TutorialVideoSlide({
 
   return (
     <div className="relative h-full w-full bg-black">
+      {onCommentClick && (
+        <button
+          type="button"
+          onClick={onCommentClick}
+          className="absolute right-4 bottom-28 z-30 flex flex-col items-center gap-1 text-white/90 hover:text-white transition-colors"
+          aria-label="Comments"
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+            <MessageCircle className="h-5 w-5" />
+          </span>
+          <span className="text-[10px] font-medium">Comments</span>
+        </button>
+      )}
+
       {shouldMount ? (
         <div
           ref={containerRef}

@@ -1,8 +1,9 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
-import { BookOpen, CheckCircle2, Trash2, Plus, Eye, UserPlus, Edit2, ImageIcon, MoreVertical, X } from "lucide-react"
+import { BookOpen, CheckCircle2, Trash2, Plus, Eye, UserPlus, Edit2, ImageIcon, MoreVertical, X, RefreshCw, GraduationCap, CreditCard } from "lucide-react"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase-client";
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
   import {
   Pagination,
@@ -53,6 +55,7 @@ type Agent = {
   id: string
   full_name: string
   phone_number: string
+  can_teach?: boolean
 }
 type ChannelMember = {
   id: string
@@ -70,10 +73,12 @@ type TeacherHubTabProps = {
 
 export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherHubTabProps) {
   // State
-  const [activeSubTab, setActiveSubTab] = useState<"channels" | "join-requests">("channels")
+  const [activeSubTab, setActiveSubTab] = useState<"channels" | "join-requests" | "teachers" | "verifications">("channels")
   const [channels, setChannels] = useState<TeachingChannel[]>([])
   const [agents, setAgents] = useState<Agent[]>([])
   const [joinRequests, setJoinRequests] = useState<any[]>([])
+  const [pendingVerifications, setPendingVerifications] = useState<any[]>([])
+  const [expiryRunning, setExpiryRunning] = useState(false)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -117,12 +122,12 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   const loadData = async () => {
     setLoading(true)
     try {
-      const [channelsRes, agentsRes, joinRequestsRes] = await Promise.all([
+      const [channelsRes, agentsRes, joinRequestsRes, renewalsRes] = await Promise.all([
         supabase.from("teaching_channels").select("*").order("created_at", { ascending: false }),
         supabase
           .from("agents")
-          .select("id, full_name, phone_number")
-          .eq("isapproved", true), // This line is actually kept from existing code, but agents are not used for teachers tab
+          .select("id, full_name, phone_number, can_teach")
+          .eq("isapproved", true),
         supabase
           .from("channel_join_requests_with_agents")
           .select(
@@ -130,6 +135,11 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           )
           .eq("status", "pending")
           .order("requested_at", { ascending: false }),
+        supabase
+          .from("subscription_renewal_requests")
+          .select("id, channel_id, agent_id, renewal_amount, payment_status, created_at, teaching_channels(name)")
+          .eq("payment_status", "pending")
+          .order("created_at", { ascending: false }),
       ])
       const { data: memberCounts } = await supabase.from("channel_members").select("channel_id")
       const countMap = new Map()
@@ -142,6 +152,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       setChannels(channelsWithCounts)
       setAgents(agentsRes.data || [])
       setJoinRequests(joinRequestsRes.data || [])
+      setPendingVerifications(renewalsRes.data || [])
     } catch (error) {
       toast.error("Failed to load data. Please try again.")
     } finally {
@@ -349,26 +360,72 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   // Approve/Reject Join Request
   const handleApproveJoinRequest = async (requestId: string, agentId: string, channelId: string) => {
     try {
-      await supabase.from("channel_members").insert([
-        {
-          channel_id: channelId,
-          agent_id: agentId,
-          role: "member",
-          status: "active",
-          joined_at: new Date().toISOString(),
-        },
-      ])
-      await supabase
-        .from("channel_join_requests")
-        .update({
-          status: "approved",
-          responded_at: new Date().toISOString(),
-        })
-        .eq("id", requestId)
-      toast.success("Join request approved!")
+      const response = await fetch("/api/subscriptions/handle-request", {
+        method: "POST",
+        headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve", channelId, agentId, joinRequestId: requestId }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Approval failed")
+      toast.success("Join request approved with subscription!")
       loadData()
     } catch (error) {
-      toast.error("Failed to approve request.")
+      toast.error(error instanceof Error ? error.message : "Failed to approve request.")
+    }
+  }
+
+  const handleVerifyRenewal = async (item: { id: string; channel_id: string; agent_id: string; renewal_amount?: number }) => {
+    try {
+      const response = await fetch("/api/subscriptions/verify-payment", {
+        method: "POST",
+        headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId: item.channel_id,
+          agentId: item.agent_id,
+          amountVerified: item.renewal_amount,
+          notes: `Renewal request ${item.id}`,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Verification failed")
+      await supabase.from("subscription_renewal_requests").update({ payment_status: "verified" }).eq("id", item.id)
+      toast.success("Payment verified and subscription renewed!")
+      loadData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to verify payment")
+    }
+  }
+
+  const toggleAgentCanTeach = async (agentId: string, canTeach: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/agents/${agentId}/teach-permission`, {
+        method: "PUT",
+        headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ can_teach: canTeach }),
+      })
+      if (!response.ok) throw new Error("Update failed")
+      setAgents((prev) => prev.map((a) => (a.id === agentId ? { ...a, can_teach: canTeach } : a)))
+      toast.success(canTeach ? "Teacher approval granted" : "Teacher approval revoked")
+    } catch {
+      toast.error("Failed to update teacher permission")
+    }
+  }
+
+  const handleRunExpiryCheck = async () => {
+    try {
+      setExpiryRunning(true)
+      const response = await fetch("/api/subscriptions/check-expiration", {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Expiry check failed")
+      toast.success(`Expiry check complete: ${data.expired || 0} expired, ${data.reminders || 0} reminders sent`)
+      loadData()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Expiry check failed")
+    } finally {
+      setExpiryRunning(false)
     }
   }
   const handleRejectJoinRequest = async (requestId: string) => {
@@ -389,6 +446,22 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
 
   // Filter Data
   const getFilteredData = () => {
+    if (activeSubTab === "teachers") {
+      const searchLower = searchTerm.toLowerCase()
+      return agents.filter(
+        (a) =>
+          a.full_name.toLowerCase().includes(searchLower) ||
+          a.phone_number?.toLowerCase().includes(searchLower),
+      )
+    }
+    if (activeSubTab === "verifications") {
+      const searchLower = searchTerm.toLowerCase()
+      return pendingVerifications.filter(
+        (item: any) =>
+          item.agent_id?.toLowerCase().includes(searchLower) ||
+          item.teaching_channels?.name?.toLowerCase().includes(searchLower),
+      )
+    }
     const data = activeSubTab === "channels" ? channels : joinRequests
     const searchLower = searchTerm.toLowerCase()
     return data.filter((item: any) => {
@@ -423,17 +496,27 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col min-h-0 h-full bg-gray-50">
       {/* Top Navigation */}
-      <div className="flex items-center justify-between p-4 bg-white shadow-sm">
-        <h1 className="text-xl font-bold text-blue-600">Teacher Hub</h1>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 bg-white shadow-sm">
+        <h1 className="text-lg sm:text-xl font-bold text-[#0E8F3D]">Teacher Hub</h1>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Input
             placeholder="Search..."
-            className="w-auto"
+            className="w-full sm:w-auto flex-1 min-w-[140px]"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRunExpiryCheck}
+            disabled={expiryRunning}
+            className="whitespace-nowrap"
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${expiryRunning ? "animate-spin" : ""}`} />
+            Run Expiry Check
+          </Button>
           {activeSubTab === "channels" && (
             <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
               <DialogTrigger asChild>
@@ -549,27 +632,25 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       </div>
 
       {/* Sub-Tabs */}
-      <div className="flex border-b bg-white">
-        <button
-          onClick={() => {
-            setActiveSubTab("channels")
-            setCurrentPage(1)
-          }}
-          className={`flex-1 p-3 text-center ${activeSubTab === "channels" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
-        >
-          <BookOpen className="h-5 w-5 mx-auto" />
-          <span className="text-xs">Channels</span>
-        </button>
-        <button
-          onClick={() => {
-            setActiveSubTab("join-requests")
-            setCurrentPage(1)
-          }}
-          className={`flex-1 p-3 text-center ${activeSubTab === "join-requests" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
-        >
-          <UserPlus className="h-5 w-5 mx-auto" />
-          <span className="text-xs">Join Requests</span>
-        </button>
+      <div className="flex border-b bg-white overflow-x-auto">
+        {[
+          { id: "channels" as const, icon: BookOpen, label: "Channels" },
+          { id: "join-requests" as const, icon: UserPlus, label: "Join Requests" },
+          { id: "teachers" as const, icon: GraduationCap, label: "Teachers" },
+          { id: "verifications" as const, icon: CreditCard, label: "Pending Verifications" },
+        ].map(({ id, icon: Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => {
+              setActiveSubTab(id)
+              setCurrentPage(1)
+            }}
+            className={`flex-1 min-w-[88px] p-3 text-center shrink-0 ${activeSubTab === id ? "text-[#0E8F3D] border-b-2 border-[#0E8F3D]" : "text-gray-500"}`}
+          >
+            <Icon className="h-5 w-5 mx-auto" />
+            <span className="text-xs">{label}</span>
+          </button>
+        ))}
       </div>
 
       {/* Content */}
@@ -719,6 +800,70 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       >
                         <X className="h-4 w-4 mr-1" />
                         Reject
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeSubTab === "teachers" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {paginatedData.length === 0 ? (
+              <Card className="text-center py-12 col-span-full">
+                <CardContent>
+                  <GraduationCap className="h-12 w-12 mx-auto text-gray-300" />
+                  <p className="mt-2 text-gray-500">No approved agents found</p>
+                </CardContent>
+              </Card>
+            ) : (
+              (paginatedData as Agent[]).map((agent) => (
+                <Card key={agent.id} className="shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{agent.full_name}</p>
+                      <p className="text-xs text-gray-500">{agent.phone_number}</p>
+                      <Badge className={`mt-2 ${agent.can_teach ? "bg-[#0E8F3D]/10 text-[#0E8F3D]" : "bg-gray-100 text-gray-600"}`}>
+                        {agent.can_teach ? "Approved Teacher" : "Not Approved"}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="text-xs text-gray-500">Can teach</span>
+                      <Switch checked={Boolean(agent.can_teach)} onCheckedChange={(v) => toggleAgentCanTeach(agent.id, v)} />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        {activeSubTab === "verifications" && (
+          <div className="space-y-3">
+            {paginatedData.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <CreditCard className="h-12 w-12 mx-auto text-gray-300" />
+                  <p className="mt-2 text-gray-500">No pending payment verifications</p>
+                </CardContent>
+              </Card>
+            ) : (
+              paginatedData.map((item: any) => (
+                <Card key={item.id} className="shadow-sm">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium">{item.teaching_channels?.name || "Channel"}</p>
+                        <p className="text-xs text-gray-500">Agent ID: {item.agent_id?.slice(0, 8)}...</p>
+                        <p className="text-sm text-[#0E8F3D] font-semibold mt-1">GH₵ {Number(item.renewal_amount || 0).toFixed(2)}</p>
+                      </div>
+                      <Badge variant="outline">Pending</Badge>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" className="flex-1 bg-[#0E8F3D] hover:bg-[#35B24A]" onClick={() => handleVerifyRenewal(item)}>
+                        <CheckCircle2 className="h-4 w-4 mr-1" /> Verify Payment
                       </Button>
                     </div>
                   </CardContent>

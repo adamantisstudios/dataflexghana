@@ -32,6 +32,7 @@ import { Switch } from "@/components/ui/switch"
   Database,
   Upload,
   Home,
+  BookOpen,
   CheckCircle,
   Clock,
   ArrowRight,
@@ -58,6 +59,7 @@ interface Agent {
   can_update_products?: boolean
   can_publish_properties?: boolean
   can_update_properties?: boolean
+  can_teach?: boolean
   isbanned?: boolean
 }
 
@@ -109,7 +111,7 @@ export default function AgentManagementTab() {
 
       let query = supabase
         .from("agents")
-        .select("id, full_name, phone_number, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties", { count: "exact" })
+        .select("id, full_name, phone_number, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties, can_teach", { count: "exact" })
         .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%`)
         .order("created_at", { ascending: false })
         .range(offset, offset + ITEMS_PER_PAGE - 1)
@@ -387,6 +389,25 @@ export default function AgentManagementTab() {
     }
   }
 
+  const toggleTeachPermission = async (agent: Agent, newValue: boolean) => {
+    try {
+      setOperationLoading(true)
+      const response = await fetch(`/api/admin/agents/${agent.id}/teach-permission`, {
+        method: "PUT",
+        headers: getAdminAuthHeaders(),
+        body: JSON.stringify({ can_teach: newValue }),
+      })
+      if (!response.ok) throw new Error("Update failed")
+      await refreshCurrentPage()
+      if (selectedAgent?.id === agent.id) setSelectedAgent({ ...selectedAgent, can_teach: newValue })
+      toast.success(`${newValue ? "Granted" : "Revoked"} teacher approval`)
+    } catch {
+      toast.error("Failed to update teacher permission")
+    } finally {
+      setOperationLoading(false)
+    }
+  }
+
   const suspendStorefront = async (agent: Agent) => {
     if (!confirm(`Suspend storefront for ${agent.full_name}? All products, services, and listings will be hidden.`)) {
       return
@@ -613,7 +634,7 @@ export default function AgentManagementTab() {
 
       {/* Dialogs – identical to original */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Agent Details: {selectedAgent?.full_name}</DialogTitle><DialogDescription>Comprehensive overview</DialogDescription></DialogHeader>
           {selectedAgent && (
             <div className="space-y-6">
@@ -631,6 +652,8 @@ export default function AgentManagementTab() {
                     <div className="font-semibold text-sm text-amber-600 flex items-center gap-2 pt-3 border-t"><Home className="h-4 w-4" />Properties</div>
                     <div className="flex items-center justify-between pl-4"><div className="flex items-center gap-2"><Upload className="h-4 w-4 text-amber-600" /><strong>Publish:</strong></div><Switch checked={selectedAgent.can_publish_properties || false} onCheckedChange={(c) => togglePublishPropertyPermission(selectedAgent, c)} disabled={operationLoading} /></div>
                     <div className="flex items-center justify-between pl-4"><div className="flex items-center gap-2"><Upload className="h-4 w-4 text-orange-600" /><strong>Edit:</strong></div><Switch checked={selectedAgent.can_update_properties || false} onCheckedChange={(c) => toggleUpdatePropertyPermission(selectedAgent, c)} disabled={operationLoading} /></div>
+                    <div className="font-semibold text-sm text-[#0E8F3D] flex items-center gap-2 pt-3 border-t"><BookOpen className="h-4 w-4" />Dataflex Channels</div>
+                    <div className="flex items-center justify-between pl-4"><div className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-[#0E8F3D]" /><strong>Can Teach:</strong></div><Switch checked={selectedAgent.can_teach || false} onCheckedChange={(c) => toggleTeachPermission(selectedAgent, c)} disabled={operationLoading} /></div>
                     <div className="font-semibold text-sm text-red-600 flex items-center gap-2 pt-3 border-t"><Shield className="h-4 w-4" />Storefront</div>
                     {selectedAgent.isbanned ? (
                       <Button

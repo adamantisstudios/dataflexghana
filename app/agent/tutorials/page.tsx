@@ -9,6 +9,7 @@ import Player from "@vimeo/player"
 import { ArrowLeft, ChevronDown, ChevronUp, Volume2 } from "lucide-react"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { TutorialVideoSlide, type TutorialVideoItem } from "@/components/agent/TutorialVideoSlide"
+import { TutorialCommentsPanel } from "@/components/agent/TutorialCommentsPanel"
 import "swiper/css"
 import "./tutorials.css"
 
@@ -30,6 +31,7 @@ export default function AgentTutorialsPage() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [soundEnabled, setSoundEnabled] = useState(false)
   const [showSoundPrompt, setShowSoundPrompt] = useState(true)
+  const [commentsOpen, setCommentsOpen] = useState(false)
   const playersRef = useRef<Map<string, Player>>(new Map())
   const soundEnabledRef = useRef(false)
 
@@ -88,6 +90,7 @@ export default function AgentTutorialsPage() {
     async (swiper: SwiperType) => {
       const index = swiper.activeIndex
       setActiveIndex(index)
+      setCommentsOpen(false)
 
       await Promise.all(
         Array.from(playersRef.current.values()).map((player) => player.pause().catch(() => {})),
@@ -205,13 +208,40 @@ export default function AgentTutorialsPage() {
       >
         {videos.map((video, index) => (
           <SwiperSlide key={video.id} className="!h-[100dvh] !w-screen">
-            <TutorialVideoSlide
-              video={video}
-              isActive={index === activeIndex}
-              shouldMount={Math.abs(index - activeIndex) <= 1}
-              soundEnabled={soundEnabled}
-              onRegisterPlayer={handleRegisterPlayer}
-            />
+            <div className="flex flex-col h-full w-full transition-all duration-300 ease-out">
+              <div
+                className={`relative w-full transition-all duration-300 ease-out ${
+                  commentsOpen && index === activeIndex ? "h-[40%] shrink-0" : "flex-1 min-h-0"
+                }`}
+                onClick={() => commentsOpen && index === activeIndex && setCommentsOpen(false)}
+                onKeyDown={() => {}}
+                role={commentsOpen && index === activeIndex ? "button" : undefined}
+                tabIndex={commentsOpen && index === activeIndex ? 0 : undefined}
+              >
+                <TutorialVideoSlide
+                  video={video}
+                  isActive={index === activeIndex}
+                  shouldMount={Math.abs(index - activeIndex) <= 1}
+                  soundEnabled={soundEnabled}
+                  onRegisterPlayer={handleRegisterPlayer}
+                  onCommentClick={index === activeIndex ? () => setCommentsOpen(true) : undefined}
+                  commentsOpen={commentsOpen && index === activeIndex}
+                />
+              </div>
+              {index === activeIndex && (
+                <div
+                  className={`shrink-0 overflow-hidden transition-all duration-300 ease-out ${
+                    commentsOpen ? "h-[60%]" : "h-0"
+                  }`}
+                >
+                  <TutorialCommentsPanel
+                    videoId={video.id}
+                    isOpen={commentsOpen}
+                    onClose={() => setCommentsOpen(false)}
+                  />
+                </div>
+              )}
+            </div>
           </SwiperSlide>
         ))}
       </Swiper>

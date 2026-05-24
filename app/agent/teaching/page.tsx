@@ -32,6 +32,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { ChannelSubscriptionBadge } from "@/components/teaching/channel-subscription-badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 
 // Types
 interface TeachingChannel {
@@ -115,6 +117,7 @@ export default function TeachingPlatformPage() {
     category: "General",
     is_public: true,
   })
+  const [canTeach, setCanTeach] = useState(false)
 
   // Load Data
   useEffect(() => {
@@ -124,9 +127,20 @@ export default function TeachingPlatformPage() {
     }
     if (!hasLoaded) {
       loadChannels()
+      loadCanTeach()
       setHasLoaded(true)
     }
   }, [agent, router, hasLoaded])
+
+  const loadCanTeach = async () => {
+    if (!agent?.id) return
+    try {
+      const { data } = await supabase.from("agents").select("can_teach").eq("id", agent.id).single()
+      setCanTeach(Boolean(data?.can_teach))
+    } catch {
+      setCanTeach(Boolean((agent as { can_teach?: boolean }).can_teach))
+    }
+  }
 
   const loadChannels = async () => {
     setLoading(true)
@@ -298,40 +312,26 @@ export default function TeachingPlatformPage() {
       toast.error("Channel name is required")
       return
     }
+    if (!canTeach) {
+      toast.error("Only approved teachers can create channels. Contact admin for approval.")
+      return
+    }
     try {
-      const { data, error } = await supabase
-        .from("teaching_channels")
-        .insert([
-          {
-            name: createForm.name.trim(),
-            description: createForm.description.trim(),
-            category: createForm.category,
-            is_public: createForm.is_public,
-            max_members: 100,
-            created_by: agent.id,
-            is_active: true,
-          },
-        ])
-        .select("id")
-        .single()
-
-      if (error) throw error
-
-      if (data?.id) {
-        await supabase.from("channel_members").insert({
-          channel_id: data.id,
-          agent_id: agent.id,
-          role: "teacher",
-          status: "active",
-        })
-      }
+      const response = await fetch("/api/agent/channels/create", {
+        method: "POST",
+        headers: { ...getAgentAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify(createForm),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Failed to create channel")
 
       toast.success("Channel created successfully")
       setShowCreateDialog(false)
       setCreateForm({ name: "", description: "", category: "General", is_public: true })
       await loadChannels()
-    } catch {
-      toast.error("Failed to create channel")
+      if (data.channelId) router.push(`/agent/teaching/${data.channelId}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create channel")
     }
   }
 
@@ -404,41 +404,59 @@ export default function TeachingPlatformPage() {
             Browse public teaching channels, join communities, and access lessons, quizzes, videos, and notes.
           </p>
           <div className="flex flex-wrap justify-center gap-2 pt-2">
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="bg-[#0E8F3D] hover:bg-[#35B24A] text-white">
-                  <Plus className="h-3 w-3 mr-1" />
-                  Create Channel
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Create Channel</DialogTitle>
-                  <DialogDescription>Start a new teaching channel for your community.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-3 py-2">
-                  <Input
-                    placeholder="Channel name"
-                    value={createForm.name}
-                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  />
-                  <textarea
-                    placeholder="Description"
-                    value={createForm.description}
-                    onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md text-sm min-h-[80px]"
-                  />
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateChannel} className="bg-[#0E8F3D] hover:bg-[#35B24A]">
-                    Create
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <TooltipProvider>
+              {canTeach ? (
+                <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="bg-[#0E8F3D] hover:bg-[#35B24A] text-white">
+                      <Plus className="h-3 w-3 mr-1" />
+                      Create Channel
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Create Channel</DialogTitle>
+                      <DialogDescription>Start a new teaching channel for your community.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                      <Input
+                        placeholder="Channel name"
+                        value={createForm.name}
+                        onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                      />
+                      <textarea
+                        placeholder="Description"
+                        value={createForm.description}
+                        onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-md text-sm min-h-[80px]"
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleCreateChannel} className="bg-[#0E8F3D] hover:bg-[#35B24A]">
+                        Create
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0}>
+                      <Button size="sm" className="bg-gray-300 text-gray-600 cursor-not-allowed" disabled>
+                        <Plus className="h-3 w-3 mr-1" />
+                        Create Channel
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Only approved teachers can create channels. Contact admin for approval.</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </TooltipProvider>
             <Button size="sm" variant="outline" onClick={() => router.push("/agent/my-subscriptions")}>
               My Subscriptions
             </Button>

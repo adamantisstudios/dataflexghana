@@ -279,7 +279,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
   }
 
   return (
-    <div className="w-full min-h-screen bg-white" style={{ fontSize: `${fontSize}px` }}>
+    <div className="w-full min-h-screen bg-gradient-to-b from-green-50/50 to-white" style={{ fontSize: `${fontSize}px` }}>
       <FontSizeControl onFontSizeChange={setFontSize} initialSize={16} />
 
       <div className="w-full py-6">
@@ -296,9 +296,9 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         )}
 
         {/* Channel Header */}
-        <div className="border-b-2 border-blue-200 pb-4 w-full mb-6 px-4 sm:px-6 lg:px-8">
+        <div className="border-b-2 border-[#0E8F3D]/20 pb-4 w-full mb-6 px-4 sm:px-6 lg:px-8">
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-blue-800">{channel.name}</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-[#0E8F3D]">{channel.name}</h2>
             <p className="text-sm text-gray-600">{channel.description}</p>
             <div className="flex flex-wrap gap-2 pt-2">
               <Badge variant="secondary">{channel.category}</Badge>
@@ -310,11 +310,11 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4 w-full">
-          <TabsList className="grid w-full grid-cols-4 px-4 sm:px-6 lg:px-8">
-            <TabsTrigger value="feeds">Feeds</TabsTrigger>
-            <TabsTrigger value="videos">Uploaded Videos</TabsTrigger>
-            <TabsTrigger value="notes">Lesson Notes</TabsTrigger>
-            <TabsTrigger value="saved">Saved Posts</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 h-auto p-1 bg-white/80 shadow-sm rounded-xl mx-4 sm:mx-6 lg:mx-8">
+            <TabsTrigger value="feeds" className="text-xs sm:text-sm data-[state=active]:bg-[#0E8F3D] data-[state=active]:text-white rounded-lg">Feeds</TabsTrigger>
+            <TabsTrigger value="videos" className="text-xs sm:text-sm data-[state=active]:bg-[#0E8F3D] data-[state=active]:text-white rounded-lg">Videos</TabsTrigger>
+            <TabsTrigger value="notes" className="text-xs sm:text-sm data-[state=active]:bg-[#0E8F3D] data-[state=active]:text-white rounded-lg">Notes</TabsTrigger>
+            <TabsTrigger value="saved" className="text-xs sm:text-sm data-[state=active]:bg-[#0E8F3D] data-[state=active]:text-white rounded-lg">Saved</TabsTrigger>
           </TabsList>
 
           <TabsContent value="feeds" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">

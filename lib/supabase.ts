@@ -44,6 +44,7 @@ export interface Agent {
   can_update_products?: boolean
   can_publish_properties?: boolean
   can_update_properties?: boolean
+  can_teach?: boolean
 }
 export interface Service {
   id: string

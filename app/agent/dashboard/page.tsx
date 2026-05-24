@@ -82,6 +82,7 @@ import Image from "next/image"
 import { ImageModal } from "@/components/ui/image-modal"
 import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
 import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
+import { shouldShowWhatsAppPopup, recordWhatsAppPopupDismissed } from "@/lib/whatsapp-popup-limit"
 import AgentOnlineCoursesDisplay from "@/components/agent/online-courses/AgentOnlineCoursesDisplay"
 import AdminPortalAccess from "@/components/agent/AdminPortalAccess"
 
@@ -137,14 +138,6 @@ const generateSlug = (text: string) => {
 export default function AgentDashboard() {
   const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false)
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowWhatsAppPopup(true)
-    }, 10000) // 10 seconds
-
-    return () => clearTimeout(timer)
-  }, [])
-
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
   const [expandedReferrals, setExpandedReferrals] = useState<Set<string>>(new Set())
   const [serviceImageIndices, setServiceImageIndices] = useState<Record<string, number>>({})
@@ -174,6 +167,18 @@ export default function AgentDashboard() {
   const { getFromCache, setInCache } = useAgentDashboardCache()
   const [agent, setAgent] = useState(null)
   const { unreadCount, getUnreadCount, markAsRead } = useUnreadMessages(agent?.id || "", "agent")
+
+  useEffect(() => {
+    if (!agent?.isapproved) return
+    if (!shouldShowWhatsAppPopup(agent.isapproved)) return
+
+    const timer = setTimeout(() => {
+      setShowWhatsAppPopup(true)
+    }, 10000)
+
+    return () => clearTimeout(timer)
+  }, [agent?.isapproved])
+
   const [loading, setLoading] = useState(true)
   const [earningsData, setEarningsData] = useState({
     totalEarnings: 0,
@@ -965,7 +970,16 @@ DataFlex Ghana Agent 🇬🇭`
           onClose={handleCloseAudioPlayer}
         />
       )}
-      {showWhatsAppPopup && <WhatsAppChannelPopup onClose={() => setShowWhatsAppPopup(false)} />}
+      {showWhatsAppPopup && (
+        <WhatsAppChannelPopup
+          controlled
+          isVisible={showWhatsAppPopup}
+          onClose={() => {
+            recordWhatsAppPopupDismissed()
+            setShowWhatsAppPopup(false)
+          }}
+        />
+      )}
       {/* START: HERO SECTION WITH ADMIN PORTAL ACCESS - MOBILE OPTIMIZED */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg border-b border-slate-700">
         <div className="w-full max-w-full px-3 sm:px-4 py-3">

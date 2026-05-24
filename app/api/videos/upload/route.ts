@@ -17,6 +17,15 @@ export async function POST(request: NextRequest) {
     }
     const agent = authResult.user
 
+    const db = supabaseAdmin
+    const { data: agentRow } = await db.from("agents").select("can_teach").eq("id", agent.id).single()
+    if (!agentRow?.can_teach) {
+      return NextResponse.json(
+        { success: false, error: "Only approved teachers can upload videos" },
+        { status: 403 },
+      )
+    }
+
     const userAgent = request.headers.get("user-agent") || ""
     const isMobileRequest = /mobile|android|iphone|ipad/i.test(userAgent)
 
