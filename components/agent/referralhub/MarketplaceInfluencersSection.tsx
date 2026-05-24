@@ -22,9 +22,26 @@ import {
   type InfluencerProfile,
   type SocialHandles,
 } from "@/lib/influencer-types"
-import { Loader2, Plus, Trash2, Upload, Sparkles, Package } from "lucide-react"
+import { Loader2, Plus, Trash2, Upload, Sparkles, Package, Pencil } from "lucide-react"
 import { parseJsonResponse } from "@/lib/agent-auth-utils"
 import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const BRAND = "#0E8F3D"
 
@@ -58,6 +75,15 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
     delivery_days: "7",
     terms: "",
   })
+  const [editingPackage, setEditingPackage] = useState<InfluencerPackage | null>(null)
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    price: "",
+    delivery_days: "7",
+    terms: "",
+  })
+  const [deleteTarget, setDeleteTarget] = useState<InfluencerPackage | null>(null)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -236,6 +262,69 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
       loadAll()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update")
+    }
+  }
+
+  const openEditPackage = (pkg: InfluencerPackage) => {
+    setEditingPackage(pkg)
+    setEditForm({
+      title: pkg.title,
+      description: pkg.description || "",
+      price: String(pkg.price),
+      delivery_days: String(pkg.delivery_days),
+      terms: pkg.terms || "",
+    })
+  }
+
+  const saveEditPackage = async () => {
+    if (!editingPackage) return
+    if (!editForm.title.trim() || !editForm.price) {
+      toast.error("Title and price are required")
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/agent/influencer/packages/${editingPackage.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
+        body: JSON.stringify({
+          agentId,
+          title: editForm.title.trim(),
+          description: editForm.description.trim() || null,
+          price: Number(editForm.price),
+          delivery_days: Number(editForm.delivery_days),
+          terms: editForm.terms.trim() || null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Update failed")
+      toast.success("Package updated")
+      setEditingPackage(null)
+      loadAll()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deletePackage = async () => {
+    if (!deleteTarget) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/agent/influencer/packages/${deleteTarget.id}`, {
+        method: "DELETE",
+        headers: getAgentAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Delete failed")
+      toast.success("Package deleted")
+      setDeleteTarget(null)
+      loadAll()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -518,9 +607,33 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
                         <p className="text-sm text-gray-600 line-clamp-3">{pkg.description}</p>
                       </CardContent>
                     )}
-                    <CardContent className="pt-0 pb-4 flex items-center justify-between border-t border-emerald-50 mt-1 pt-3">
-                      <span className="text-xs text-muted-foreground">Visible on storefront</span>
-                      <Switch checked={pkg.is_active} onCheckedChange={(v) => togglePackage(pkg.id, v)} />
+                    <CardContent className="pt-0 pb-4 space-y-3 border-t border-emerald-50 mt-1 pt-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Visible on storefront</span>
+                        <Switch checked={pkg.is_active} onCheckedChange={(v) => togglePackage(pkg.id, v)} />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 border-[#0E8F3D]/30 text-[#0E8F3D] hover:bg-emerald-50"
+                          onClick={() => openEditPackage(pkg)}
+                        >
+                          <Pencil className="h-3.5 w-3.5 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                          onClick={() => setDeleteTarget(pkg)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -559,6 +672,93 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!editingPackage} onOpenChange={(open) => !open && setEditingPackage(null)}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit package</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label>Title</Label>
+              <Input
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                rows={3}
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Price (GHS)</Label>
+                <Input
+                  type="number"
+                  value={editForm.price}
+                  onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Delivery days</Label>
+                <Input
+                  type="number"
+                  value={editForm.delivery_days}
+                  onChange={(e) => setEditForm({ ...editForm, delivery_days: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Custom terms (optional)</Label>
+              <Textarea
+                rows={2}
+                value={editForm.terms}
+                onChange={(e) => setEditForm({ ...editForm, terms: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingPackage(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={saveEditPackage}
+              disabled={saving}
+              className="text-white"
+              style={{ backgroundColor: BRAND }}
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete package?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove &quot;{deleteTarget?.title}&quot;. Packages with existing orders cannot be
+              deleted — deactivate them instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={deletePackage}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={saving}
+            >
+              {saving ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

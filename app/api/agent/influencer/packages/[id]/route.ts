@@ -64,3 +64,55 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await authenticateAgent(request)
+  if (!auth.success) return createAuthErrorResponse(auth.error!)
+
+  const { id } = await params
+  try {
+    const sessionAgentId = getAuthAgentId(auth)
+    if (!sessionAgentId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const profile = await getInfluencerProfileByAgentId(sessionAgentId)
+    if (!profile?.approved) {
+      return NextResponse.json({ error: "Profile not approved" }, { status: 403 })
+    }
+
+    const db = getAdminClient()
+    const { data: pkg } = await db
+      .from("influencer_packages")
+      .select("profile_id")
+      .eq("id", id)
+      .maybeSingle()
+
+    if (!pkg || pkg.profile_id !== profile.id) {
+      return NextResponse.json({ error: "Package not found" }, { status: 404 })
+    }
+
+    const { count } = await db
+      .from("influencer_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("package_id", id)
+
+    if (count && count > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete a package that has orders. Deactivate it instead." },
+        { status: 409 },
+      )
+    }
+
+    const { error } = await db.from("influencer_packages").delete().eq("id", id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ success: true })
+  } catch (e) {
+    console.error("[agent influencer package DELETE]", e)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

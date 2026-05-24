@@ -616,6 +616,7 @@ export default function PublicAgentStorefront({
       "writing",
       "farm",
       "real-estate",
+      "influencers",
     ]
     if (order.includes(mainTab) && tabVisibility[mainTab]) return
     const first = order.find((t) => tabVisibility[t])
