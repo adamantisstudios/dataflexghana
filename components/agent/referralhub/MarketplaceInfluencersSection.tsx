@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,7 +22,8 @@ import {
   type InfluencerProfile,
   type SocialHandles,
 } from "@/lib/influencer-types"
-import { Loader2, Plus, Trash2, Upload, Sparkles, Package } from "lucide-react"
+import { Loader2, Plus, Trash2, Upload, Sparkles, Package, Camera } from "lucide-react"
+import { parseJsonResponse } from "@/lib/agent-auth-utils"
 
 const BRAND = "#0E8F3D"
 
@@ -56,6 +57,7 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
     delivery_days: "7",
     terms: "",
   })
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -66,11 +68,35 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
         fetch(`/api/agent/influencer/packages?agentId=${agentId}`, { headers }),
         fetch(`/api/agent/influencer/orders?agentId=${agentId}`, { headers }),
       ])
-      const profData = await profRes.json()
-      const pkgData = await pkgRes.json()
-      const ordData = await ordRes.json()
 
-      const p = profData.profile as InfluencerProfile | null
+      const profParsed = await parseJsonResponse(profRes)
+      const pkgParsed = await parseJsonResponse(pkgRes)
+      const ordParsed = await parseJsonResponse(ordRes)
+
+      if (!profParsed.ok || !profRes.ok) {
+        throw new Error(
+          (profParsed.data as { error?: string }).error ||
+            `Could not load profile (${profParsed.status})`,
+        )
+      }
+      if (!pkgParsed.ok || !pkgRes.ok) {
+        throw new Error(
+          (pkgParsed.data as { error?: string }).error ||
+            `Could not load packages (${pkgParsed.status})`,
+        )
+      }
+      if (!ordParsed.ok || !ordRes.ok) {
+        throw new Error(
+          (ordParsed.data as { error?: string }).error ||
+            `Could not load orders (${ordParsed.status})`,
+        )
+      }
+
+      const profData = profParsed.data as { profile?: InfluencerProfile | null }
+      const pkgData = pkgParsed.data as { packages?: InfluencerPackage[] }
+      const ordData = ordParsed.data as { orders?: InfluencerOrder[] }
+
+      const p = profData.profile ?? null
       setProfile(p)
       if (p) {
         setApplyForm({
@@ -86,7 +112,11 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
       setPackages(pkgData.packages || [])
       setOrders(ordData.orders || [])
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load")
+      const message = e instanceof Error ? e.message : "Failed to load Micro-Influencers"
+      toast.error(message)
+      setProfile(null)
+      setPackages([])
+      setOrders([])
     } finally {
       setLoading(false)
     }
@@ -103,23 +133,28 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
       const agent = agentRaw ? JSON.parse(agentRaw) : null
       const fd = new FormData()
       fd.append("file", file)
+      const headers = getAgentAuthHeaders() as Record<string, string>
       const res = await fetch("/api/upload/image", {
         method: "POST",
-        headers: {
-          "x-agent-id": agent?.id || agentId,
-          "x-agent-phone": agent?.phone_number || "",
-        },
+        headers,
         body: fd,
       })
-      const data = await res.json()
+      const parsed = await parseJsonResponse<{ url?: string; error?: string }>(res)
+      const data = parsed.data
       if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
-      setApplyForm((f) => ({ ...f, photo_url: data.url }))
+      setApplyForm((f) => ({ ...f, photo_url: data.url! }))
       toast.success("Photo uploaded")
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed")
     } finally {
       setUploading(false)
+      if (photoInputRef.current) photoInputRef.current.value = ""
     }
+  }
+
+  const onPhotoSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (f) uploadPhoto(f)
   }
 
   const buildSocialHandles = (): SocialHandles => {
@@ -262,7 +297,7 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
             <CardContent className="space-y-4">
               <div>
                 <Label>Profile photo</Label>
-                <div className="flex items-center gap-3 mt-1">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-1">
                   {applyForm.photo_url ? (
                     <Image
                       src={applyForm.photo_url}
@@ -276,16 +311,29 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
                       <Upload className="h-5 w-5 text-slate-400" />
                     </div>
                   )}
-                  <Input
+                  <input
+                    ref={photoInputRef}
+                    id="influencer-photo-input"
                     type="file"
-                    accept="image/*"
-                    className="max-w-xs"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,image/*"
+                    className="sr-only"
+                    onChange={onPhotoSelected}
                     disabled={uploading}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0]
-                      if (f) uploadPhoto(f)
-                    }}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    disabled={uploading}
+                    onClick={() => photoInputRef.current?.click()}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Camera className="h-4 w-4 mr-2" />
+                    )}
+                    {uploading ? "Uploading…" : "Choose photo from gallery"}
+                  </Button>
                 </div>
               </div>
               <div>

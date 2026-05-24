@@ -87,7 +87,7 @@ export function StorefrontInfluencersTab({ agentId, storeSegment, accent, influe
     return (
       <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-muted-foreground">
         <Sparkles className="h-10 w-10 mx-auto mb-3 text-slate-300" />
-        <p>This store does not have an approved micro-influencer profile yet.</p>
+        <p>This agent has not set up influencer services yet.</p>
       </div>
     )
   }

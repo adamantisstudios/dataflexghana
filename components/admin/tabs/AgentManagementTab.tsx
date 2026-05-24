@@ -111,8 +111,8 @@ export default function AgentManagementTab() {
 
       let query = supabase
         .from("agents")
-        .select("id, full_name, phone_number, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties, can_teach", { count: "exact" })
-        .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%`)
+        .select("id, full_name, phone_number, email, profession, exact_location, profile_image_url, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties, can_teach", { count: "exact" })
+        .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%,email.ilike.%${search}%,profession.ilike.%${search}%,exact_location.ilike.%${search}%`)
         .order("created_at", { ascending: false })
         .range(offset, offset + ITEMS_PER_PAGE - 1)
 
@@ -495,7 +495,7 @@ export default function AgentManagementTab() {
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input placeholder="Search by name, phone, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+          <Input placeholder="Search by name, phone, email, profession, or location..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
         </div>
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -517,7 +517,7 @@ export default function AgentManagementTab() {
       </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input placeholder="Search by name, phone, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+        <Input placeholder="Search by name, phone, email, profession, or location..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
       </div>
 
       {searchInitiated && (

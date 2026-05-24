@@ -45,6 +45,10 @@ export interface Agent {
   can_publish_properties?: boolean
   can_update_properties?: boolean
   can_teach?: boolean
+  email?: string | null
+  profession?: string | null
+  exact_location?: string | null
+  profile_image_url?: string | null
 }
 export interface Service {
   id: string

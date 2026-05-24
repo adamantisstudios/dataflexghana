@@ -35,7 +35,9 @@ import { getAdminAuthHeaders } from "@/lib/api-client";
   Phone,
   MapPin,
   Calendar,
+  Info,
 } from "lucide-react";
+import { AgentProfileDetailDialog } from "@/components/admin/AgentProfileDetailDialog";
 import Link from "next/link";
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances";
 import { exportAgentsToCsv, fetchAllAgentsWithPagination } from "@/lib/csv-export";
@@ -67,6 +69,8 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
   const [showAgentDialog, setShowAgentDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentWithWallet | null>(null);
+  const [profileDetailAgent, setProfileDetailAgent] = useState<AgentWithWallet | null>(null);
+  const [profileDetailOpen, setProfileDetailOpen] = useState(false);
   const [agentPasswordReset, setAgentPasswordReset] = useState("");
   const [clearDataType, setClearDataType] = useState<"day" | "month">("day");
   const [loadingEarnings, setLoadingEarnings] = useState<Set<string>>(new Set());
@@ -159,7 +163,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
 
         if (searchTerm && searchTerm.trim()) {
           query = query.or(
-            `full_name.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,momo_number.ilike.%${searchTerm}%,region.ilike.%${searchTerm}%`
+            `full_name.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,profession.ilike.%${searchTerm}%,exact_location.ilike.%${searchTerm}%,momo_number.ilike.%${searchTerm}%,region.ilike.%${searchTerm}%`
           );
           query = query.limit(100);
         } else {
@@ -707,8 +711,22 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
           >
             <CardContent className="p-4">
               {/* Header: Name + Status Badge */}
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="text-base font-semibold text-gray-900">{agent.full_name}</h3>
+              <div className="flex items-start justify-between mb-3 gap-2">
+                <h3 className="text-base font-semibold text-gray-900 flex-1 min-w-0">{agent.full_name}</h3>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-slate-500 hover:text-emerald-700"
+                    onClick={() => {
+                      setProfileDetailAgent(agent)
+                      setProfileDetailOpen(true)
+                    }}
+                    aria-label="View profile"
+                  >
+                    <Info className="h-4 w-4" />
+                  </Button>
                 <Badge
                   className={
                     agent.isbanned && agent.auto_deactivated_at
@@ -724,6 +742,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                       ? "Approved"
                       : "Pending"}
                 </Badge>
+                </div>
               </div>
 
               {/* Balance Cards - Side by Side */}
@@ -765,6 +784,12 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                   <MapPin className="h-4 w-4 text-gray-400" />
                   <span className="font-medium">Region:</span> {agent.region}
                 </div>
+                {agent.email && (
+                  <div className="flex items-center gap-2 text-gray-600 sm:col-span-2">
+                    <span className="font-medium text-xs">Email:</span>{" "}
+                    <span className="truncate">{agent.email}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-gray-500">
                   <Calendar className="h-4 w-4 text-gray-400" />
                   <span className="font-medium">Joined:</span> {formatTimestamp(agent.created_at)}
@@ -1000,6 +1025,15 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AgentProfileDetailDialog
+        agent={profileDetailAgent}
+        open={profileDetailOpen}
+        onOpenChange={(open) => {
+          setProfileDetailOpen(open)
+          if (!open) setProfileDetailAgent(null)
+        }}
+      />
     </div>
   );
 });

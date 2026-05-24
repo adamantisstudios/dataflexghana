@@ -59,6 +59,9 @@ export async function POST(request: NextRequest) {
     const filters: string[] = [
       `full_name.ilike.${searchPattern}`,
       `phone_number.ilike.${searchPattern}`,
+      `email.ilike.${searchPattern}`,
+      `profession.ilike.${searchPattern}`,
+      `exact_location.ilike.${searchPattern}`,
     ]
 
     // Only include ID search if valid UUID

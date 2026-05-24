@@ -51,6 +51,7 @@ import { Label } from "@/components/ui/label"
   Megaphone,
   Leaf,
   Play,
+  Award,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -99,6 +100,7 @@ const MaintenancePanelTab = lazy(() => import("@/components/admin/tabs/Maintenan
 const GroceryRequestsTab = lazy(() => import("@/components/admin/tabs/GroceryRequestsTab"))
 const AdvertisingAdminTab = lazy(() => import("@/components/admin/tabs/AdvertisingAdminTab"))
 const FarmersFriendAdminTab = lazy(() => import("@/components/admin/tabs/FarmersFriendAdminTab"))
+const InfluencersAdminTab = lazy(() => import("@/components/admin/tabs/InfluencersAdminTab"))
 const TutorialsAdminTab = lazy(() => import("@/components/admin/tabs/TutorialsAdminTab"))
 
 // Type definition for tab configuration
@@ -158,6 +160,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "domestic-worker-requests", label: "Client Requests", icon: Bell, component: DomesticWorkerClientRequestsTab },
   { id: "grocery-requests", label: "Grocery Requests", icon: ShoppingBasket, component: GroceryRequestsTab },
   { id: "advertising", label: "Advertising", icon: Megaphone, component: AdvertisingAdminTab },
+  { id: "micro-influencers", label: "Micro-Influencers", icon: Award, component: InfluencersAdminTab },
   { id: "farmers-friend", label: "Farmers Friend", icon: Leaf, component: FarmersFriendAdminTab },
   { id: "wholesale", label: "Wholesale", icon: ShoppingBag, component: WholesaleTab },
   { id: "properties", label: "Properties", icon: Home, component: PropertiesTab },

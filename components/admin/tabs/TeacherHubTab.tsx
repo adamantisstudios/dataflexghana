@@ -4,6 +4,7 @@ import { BookOpen, CheckCircle2, Trash2, Plus, Eye, UserPlus, Edit2, ImageIcon, 
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase-client";
 import { getAdminAuthHeaders } from "@/lib/api-client"
+import { parseJsonResponse } from "@/lib/agent-auth-utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -427,7 +428,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       const res = await fetch(`/api/admin/channel-embed-videos?channelId=${encodeURIComponent(channelId)}`, {
         headers: getAdminAuthHeaders(),
       })
-      const data = await res.json()
+      const parsed = await parseJsonResponse<{ videos?: unknown[]; error?: string }>(res)
+      const data = parsed.data
       if (res.ok) setEmbedVideos(data.videos || [])
       else toast.error(data.error || "Failed to load embed videos")
     } catch {

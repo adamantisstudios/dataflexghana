@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
+import { getAuthAgentId } from "@/lib/agent-auth-utils"
 import { getAdminClient } from "@/lib/supabase-base"
 import { getInfluencerProfileByAgentId } from "@/lib/influencer-server"
 
@@ -15,8 +16,13 @@ export async function PATCH(
   const { id } = await params
   try {
     const body = await request.json()
-    const agentId = String(body.agentId ?? auth.agent!.id).trim()
-    if (agentId !== auth.agent!.id) {
+    const sessionAgentId = getAuthAgentId(auth)
+    if (!sessionAgentId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const agentId = String(body.agentId ?? sessionAgentId).trim()
+    if (agentId !== sessionAgentId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

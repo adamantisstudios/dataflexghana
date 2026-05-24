@@ -8,6 +8,10 @@ interface AgentData {
   phone_number: string
   momo_number?: string
   region?: string
+  email?: string | null
+  profession?: string | null
+  exact_location?: string | null
+  profile_image_url?: string | null
   created_at: string
   isapproved?: boolean
   wallet_balance?: number
@@ -61,7 +65,12 @@ function generateAgentsCsv(agents: AgentData[]): string {
   const headers = [
     "Agent Name",
     "Phone Number",
+    "Email",
+    "Profession",
+    "Exact Location",
+    "Profile Image URL",
     "Momo Number",
+    "Region",
     "Joined Date",
     "Status",
     "Current Wallet Balance",
@@ -85,7 +94,12 @@ function generateAgentsCsv(agents: AgentData[]): string {
     const row = [
       `"${(agent.full_name || "").replace(/"/g, '""')}"`,
       `"${(agent.phone_number || "").replace(/"/g, '""')}"`,
+      `"${(agent.email || "").replace(/"/g, '""')}"`,
+      `"${(agent.profession || "").replace(/"/g, '""')}"`,
+      `"${(agent.exact_location || "").replace(/"/g, '""')}"`,
+      `"${(agent.profile_image_url || "").replace(/"/g, '""')}"`,
       `"${momo.replace(/"/g, '""')}"`,
+      `"${(agent.region || "").replace(/"/g, '""')}"`,
       joinedDate,
       status,
       walletBalance,

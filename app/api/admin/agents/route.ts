@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from("agents")
       .select("*")
-      .or(`full_name.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%,id.ilike.%${searchTerm}%`)
+      .or(
+        `full_name.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,profession.ilike.%${searchTerm}%,exact_location.ilike.%${searchTerm}%,id.ilike.%${searchTerm}%`,
+      )
       .order("created_at", { ascending: false })
       .limit(50)
 

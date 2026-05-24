@@ -85,6 +85,9 @@ import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
 import { shouldShowWhatsAppPopup, recordWhatsAppPopupDismissed } from "@/lib/whatsapp-popup-limit"
 import AgentOnlineCoursesDisplay from "@/components/agent/online-courses/AgentOnlineCoursesDisplay"
 import AdminPortalAccess from "@/components/agent/AdminPortalAccess"
+import { ProfileCompletionBanner } from "@/components/agent/ProfileCompletionBanner"
+import { AgentAvatar } from "@/components/agent/AgentAvatar"
+import { agentNeedsProfileCompletion } from "@/lib/agent-profile-completion"
 
 interface SimpleAgent {
   name: string
@@ -390,8 +393,17 @@ export default function AgentDashboard() {
           return
         }
         const parsedAgent = JSON.parse(agentData)
-        setAgent(parsedAgent)
         setAgentId(parsedAgent.id)
+
+        const { data: profileRow } = await supabase
+          .from("agents")
+          .select("email, profession, exact_location, profile_image_url, isapproved, full_name")
+          .eq("id", parsedAgent.id)
+          .maybeSingle()
+
+        const mergedAgent = profileRow ? { ...parsedAgent, ...profileRow } : parsedAgent
+        setAgent(mergedAgent)
+        localStorage.setItem("agent", JSON.stringify(mergedAgent))
         const cachedData = getFromCache(`dashboard-${parsedAgent.id}`)
         if (cachedData) {
           setEarningsData(cachedData.earnings)
@@ -413,7 +425,7 @@ export default function AgentDashboard() {
           setLoading(false)
           return
         }
-        const dashboardData = await loadAgentDashboardData(parsedAgent.id)
+        const dashboardData = await loadAgentDashboardData(mergedAgent.id)
         const balances =
           dashboardData.displayBalances ??
           (await getAgentDisplayBalances(parsedAgent.id))
@@ -986,9 +998,12 @@ DataFlex Ghana Agent 🇬🇭`
           <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
             {/* Logo and User Info */}
             <div className="flex items-center gap-3 w-full xs:w-auto">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/10 backdrop-blur-sm rounded-xl shadow-lg flex items-center justify-center p-1.5 shrink-0 border border-white/20">
-                <img src="/images/logo.png" alt="DataFlex Logo" className="w-full h-full object-contain" />
-              </div>
+              <AgentAvatar
+                name={agent?.full_name}
+                imageUrl={agent?.profile_image_url}
+                size="md"
+                className="border-white/40"
+              />
               <div className="min-w-0 flex-1 xs:flex-none">
                 <h1 className="text-base sm:text-lg md:text-xl font-bold text-white drop-shadow-sm truncate">
                   Data Flex Agent
@@ -1029,6 +1044,8 @@ DataFlex Ghana Agent 🇬🇭`
       {/* END: HERO SECTION WITH ADMIN PORTAL ACCESS */}
       <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SecurityNoticeBanner />
+
+        {agentNeedsProfileCompletion(agent) && <ProfileCompletionBanner />}
 
         <Suspense fallback={<div className="h-24 w-full animate-pulse bg-indigo-100 rounded-xl" />}>
 

@@ -6,7 +6,11 @@ export function getAgentAuthHeaders(): HeadersInit {
     if (!raw) return {}
     const agent = JSON.parse(raw)
     if (!agent?.id) return {}
-    return { Authorization: `Bearer ${btoa(JSON.stringify(agent))}` }
+    return {
+      Authorization: `Bearer ${btoa(JSON.stringify(agent))}`,
+      "x-agent-id": String(agent.id),
+      ...(agent.phone_number ? { "x-agent-phone": String(agent.phone_number) } : {}),
+    }
   } catch {
     return {}
   }

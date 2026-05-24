@@ -20,11 +20,23 @@ import { Label } from "@/components/ui/label"
 import { supabase } from "@/lib/supabase-client";
 import { hashPassword, verifyPassword } from "@/lib/supabase";
 import type { Agent } from "@/lib/supabase";
-import { ArrowLeft, Eye, EyeOff, Trash2, Key, User, Shield, AlertTriangle } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, Trash2, Key, User, Shield, AlertTriangle, Upload, Loader2 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
+import { toast } from "sonner"
+import { AGENT_PROFILE_PRIVACY_NOTICE } from "@/lib/agent-profile-completion"
+import { AgentAvatar } from "@/components/agent/AgentAvatar"
 
 export default function AgentSettingsPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
+  const [profileForm, setProfileForm] = useState({
+    email: "",
+    profession: "",
+    exact_location: "",
+    profile_image_url: "",
+  })
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -41,13 +53,94 @@ export default function AgentSettingsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const agentData = localStorage.getItem("agent")
-    if (!agentData) {
-      router.push("/agent/login")
+    const load = async () => {
+      const agentData = localStorage.getItem("agent")
+      if (!agentData) {
+        router.push("/agent/login")
+        return
+      }
+      const parsed = JSON.parse(agentData) as Agent
+      setAgent(parsed)
+
+      const { data, error } = await supabase
+        .from("agents")
+        .select("email, profession, exact_location, profile_image_url, full_name, isapproved")
+        .eq("id", parsed.id)
+        .single()
+
+      if (!error && data) {
+        setProfileForm({
+          email: data.email || "",
+          profession: data.profession || "",
+          exact_location: data.exact_location || "",
+          profile_image_url: data.profile_image_url || "",
+        })
+        const merged = { ...parsed, ...data }
+        setAgent(merged)
+        localStorage.setItem("agent", JSON.stringify(merged))
+      }
+    }
+    load()
+  }, [router])
+
+  const uploadProfilePhoto = async (file: File) => {
+    if (!agent) return
+    setPhotoUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/upload/image", {
+        method: "POST",
+        headers: {
+          "x-agent-id": agent.id,
+          "x-agent-phone": agent.phone_number,
+        },
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
+      setProfileForm((f) => ({ ...f, profile_image_url: data.url }))
+      toast.success("Photo uploaded — save profile to apply")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed")
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!agent) return
+    const email = profileForm.email.trim()
+    const profession = profileForm.profession.trim()
+    const exact_location = profileForm.exact_location.trim()
+    const profile_image_url = profileForm.profile_image_url.trim()
+
+    if (!email || !profession || !exact_location || !profile_image_url) {
+      toast.error("Please complete all profile fields including your photo")
       return
     }
-    setAgent(JSON.parse(agentData))
-  }, [router])
+
+    setProfileSaving(true)
+    try {
+      const { error } = await supabase
+        .from("agents")
+        .update({ email, profession, exact_location, profile_image_url })
+        .eq("id", agent.id)
+
+      if (error) throw error
+
+      const updated = { ...agent, email, profession, exact_location, profile_image_url }
+      setAgent(updated)
+      localStorage.setItem("agent", JSON.stringify(updated))
+      toast.success("Profile saved successfully")
+    } catch (err) {
+      console.error("Profile save error:", err)
+      toast.error("Failed to save profile")
+    } finally {
+      setProfileSaving(false)
+    }
+  }
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -173,6 +266,103 @@ export default function AgentSettingsPage() {
 
       <main className="p-3 sm:p-4 md:p-6 max-w-6xl mx-auto">
         <div className="space-y-4 sm:space-y-6">
+          {/* Complete profile */}
+          <Card className="overflow-hidden border border-emerald-200 shadow-sm">
+            <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 pb-3">
+              <div className="flex items-center gap-3">
+                <AgentAvatar name={agent.full_name} imageUrl={profileForm.profile_image_url} size="lg" />
+                <div>
+                  <CardTitle className="text-lg sm:text-xl text-gray-900">Complete Your Profile</CardTitle>
+                  <CardDescription className="text-sm">
+                    Required after approval — helps verify your identity in our community.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <p className="text-xs text-muted-foreground rounded-lg bg-slate-50 border p-3">
+                {AGENT_PROFILE_PRIVACY_NOTICE}
+              </p>
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="profession">Profession</Label>
+                  <Input
+                    id="profession"
+                    required
+                    value={profileForm.profession}
+                    onChange={(e) => setProfileForm({ ...profileForm, profession: e.target.value })}
+                    placeholder="e.g. Teacher, Trader, Student"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="exact_location">Exact location</Label>
+                  <Input
+                    id="exact_location"
+                    required
+                    value={profileForm.exact_location}
+                    onChange={(e) => setProfileForm({ ...profileForm, exact_location: e.target.value })}
+                    placeholder="e.g. Madina, Accra"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Profile photo</Label>
+                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg p-3 leading-relaxed">
+                    Please upload a clear, well-lit photo of yourself with your face clearly visible. Avoid dark or
+                    blurry images. This helps us verify your identity.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {profileForm.profile_image_url ? (
+                      <Image
+                        src={profileForm.profile_image_url}
+                        alt="Profile preview"
+                        width={80}
+                        height={80}
+                        className="h-20 w-20 rounded-full object-cover border"
+                      />
+                    ) : (
+                      <AgentAvatar name={agent.full_name} size="lg" />
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      disabled={photoUploading}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0]
+                        if (f) uploadProfilePhoto(f)
+                      }}
+                    />
+                    {photoUploading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={profileSaving}
+                  className="w-full sm:w-auto bg-[#0E8F3D] hover:bg-[#35B24A] text-white"
+                >
+                  {profileSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Saving…
+                    </>
+                  ) : (
+                    "Save profile"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
           {/* Account Info Card */}
           <Card className="overflow-hidden border border-gray-200 shadow-sm">
             <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-3">

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
+import { getAuthAgentId } from "@/lib/agent-auth-utils"
 import { getAdminClient } from "@/lib/supabase-base"
 import { MIN_INFLUENCER_AUDIENCE, parseSocialHandles } from "@/lib/influencer-types"
 import { getInfluencerProfileByAgentId } from "@/lib/influencer-server"
@@ -7,16 +8,29 @@ import { getInfluencerProfileByAgentId } from "@/lib/influencer-server"
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
-  const auth = await authenticateAgent(request)
-  if (!auth.success) return createAuthErrorResponse(auth.error!)
+  try {
+    const auth = await authenticateAgent(request)
+    if (!auth.success) return createAuthErrorResponse(auth.error!)
 
-  const agentId = request.nextUrl.searchParams.get("agentId")?.trim() || auth.agent!.id
-  if (agentId !== auth.agent!.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const sessionAgentId = getAuthAgentId(auth)
+    if (!sessionAgentId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const agentId = request.nextUrl.searchParams.get("agentId")?.trim() || sessionAgentId
+    if (agentId !== sessionAgentId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    const profile = await getInfluencerProfileByAgentId(agentId)
+    return NextResponse.json({ success: true, profile })
+  } catch (e) {
+    console.error("[agent influencer profile GET]", e)
+    return NextResponse.json(
+      { success: true, profile: null, error: "Influencer service temporarily unavailable" },
+      { status: 200 },
+    )
   }
-
-  const profile = await getInfluencerProfileByAgentId(agentId)
-  return NextResponse.json({ success: true, profile })
 }
 
 export async function POST(request: NextRequest) {
@@ -25,8 +39,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const agentId = String(body.agentId ?? auth.agent!.id).trim()
-    if (agentId !== auth.agent!.id) {
+    const sessionAgentId = getAuthAgentId(auth)
+    if (!sessionAgentId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const agentId = String(body.agentId ?? sessionAgentId).trim()
+    if (agentId !== sessionAgentId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
