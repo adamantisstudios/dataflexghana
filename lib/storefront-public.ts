@@ -13,6 +13,8 @@ import { getVisibleWritingServicesForAgent } from "@/lib/writing-server"
 import type { PublicWritingService } from "@/lib/writing-types"
 import { getVisiblePropertiesForAgent, isAgentStorefrontSuspended } from "@/lib/property-server"
 import type { PublicPropertyListing } from "@/lib/property-types"
+import { getPublicInfluencerForAgent } from "@/lib/influencer-server"
+import type { PublicInfluencerProfile } from "@/lib/influencer-types"
 
 export type PublicBundle = {
   id: string
@@ -54,6 +56,7 @@ export type PublicStorefrontResponse = {
   farmListings: PublicFarmListing[]
   writingServices: PublicWritingService[]
   properties: PublicPropertyListing[]
+  influencer: PublicInfluencerProfile | null
   unavailable?: boolean
 }
 
@@ -67,6 +70,7 @@ const EMPTY_RESPONSE: PublicStorefrontResponse = {
   farmListings: [],
   writingServices: [],
   properties: [],
+  influencer: null,
 }
 
 /** Server-side payload for /api/storefront/public/[agentId] and /store/[segment] page. */
@@ -161,6 +165,7 @@ export async function getPublicStorefrontResponse(
         farmListings: [],
         writingServices: [],
         properties: [],
+        influencer: null,
         unavailable: true,
       }
     }
@@ -176,6 +181,7 @@ export async function getPublicStorefrontResponse(
         farmListings: [],
         writingServices: [],
         properties: [],
+        influencer: null,
         unavailable: true,
       }
     }
@@ -198,6 +204,7 @@ export async function getPublicStorefrontResponse(
         farmListings: [],
         writingServices: [],
         properties: [],
+        influencer: null,
       }
     }
 
@@ -354,6 +361,13 @@ export async function getPublicStorefrontResponse(
       console.error("public storefront properties:", propertyErr)
     }
 
+    let influencer: PublicInfluencerProfile | null = null
+    try {
+      influencer = await getPublicInfluencerForAgent(agentId)
+    } catch (influencerErr) {
+      console.error("public storefront influencer:", influencerErr)
+    }
+
     return {
       profile,
       bundles,
@@ -364,6 +378,7 @@ export async function getPublicStorefrontResponse(
       farmListings,
       writingServices,
       properties,
+      influencer,
       unavailable: false,
     }
   } catch (error) {

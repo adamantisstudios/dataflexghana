@@ -1,0 +1,499 @@
+"use client"
+
+import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "sonner"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import {
+  INFLUENCER_ORDER_STATUS_LABELS,
+  MIN_INFLUENCER_AUDIENCE,
+  type InfluencerOrder,
+  type InfluencerPackage,
+  type InfluencerProfile,
+  type SocialHandles,
+} from "@/lib/influencer-types"
+import { Loader2, Plus, Trash2, Upload, Sparkles, Package } from "lucide-react"
+
+const BRAND = "#0E8F3D"
+
+type Props = { agentId: string }
+
+const SOCIAL_PLATFORMS = ["Instagram", "TikTok", "YouTube", "Facebook", "Twitter/X", "LinkedIn"]
+
+export function MarketplaceInfluencersSection({ agentId }: Props) {
+  const [profile, setProfile] = useState<InfluencerProfile | null>(null)
+  const [packages, setPackages] = useState<InfluencerPackage[]>([])
+  const [orders, setOrders] = useState<InfluencerOrder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+
+  const [applyForm, setApplyForm] = useState({
+    bio: "",
+    photo_url: "",
+    niche: "",
+    audience_size: "",
+  })
+  const [socialRows, setSocialRows] = useState<{ platform: string; url: string }[]>([
+    { platform: "Instagram", url: "" },
+  ])
+
+  const [pkgForm, setPkgForm] = useState({
+    title: "",
+    description: "",
+    price: "",
+    delivery_days: "7",
+    terms: "",
+  })
+
+  const loadAll = useCallback(async () => {
+    setLoading(true)
+    try {
+      const headers = getAgentAuthHeaders()
+      const [profRes, pkgRes, ordRes] = await Promise.all([
+        fetch(`/api/agent/influencer/profile?agentId=${agentId}`, { headers }),
+        fetch(`/api/agent/influencer/packages?agentId=${agentId}`, { headers }),
+        fetch(`/api/agent/influencer/orders?agentId=${agentId}`, { headers }),
+      ])
+      const profData = await profRes.json()
+      const pkgData = await pkgRes.json()
+      const ordData = await ordRes.json()
+
+      const p = profData.profile as InfluencerProfile | null
+      setProfile(p)
+      if (p) {
+        setApplyForm({
+          bio: p.bio || "",
+          photo_url: p.photo_url || "",
+          niche: p.niche || "",
+          audience_size: String(p.audience_size || ""),
+        })
+        const handles = p.social_handles || {}
+        const rows = Object.entries(handles).map(([platform, url]) => ({ platform, url }))
+        setSocialRows(rows.length ? rows : [{ platform: "Instagram", url: "" }])
+      }
+      setPackages(pkgData.packages || [])
+      setOrders(ordData.orders || [])
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load")
+    } finally {
+      setLoading(false)
+    }
+  }, [agentId])
+
+  useEffect(() => {
+    loadAll()
+  }, [loadAll])
+
+  const uploadPhoto = async (file: File) => {
+    setUploading(true)
+    try {
+      const agentRaw = localStorage.getItem("agent")
+      const agent = agentRaw ? JSON.parse(agentRaw) : null
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/upload/image", {
+        method: "POST",
+        headers: {
+          "x-agent-id": agent?.id || agentId,
+          "x-agent-phone": agent?.phone_number || "",
+        },
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
+      setApplyForm((f) => ({ ...f, photo_url: data.url }))
+      toast.success("Photo uploaded")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed")
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const buildSocialHandles = (): SocialHandles => {
+    const out: SocialHandles = {}
+    for (const row of socialRows) {
+      const platform = row.platform.trim()
+      const url = row.url.trim()
+      if (platform && url) out[platform] = url
+    }
+    return out
+  }
+
+  const submitApplication = async () => {
+    if (!termsAccepted) {
+      toast.error("You must accept the Influencer Terms")
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch("/api/agent/influencer/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
+        body: JSON.stringify({
+          agentId,
+          bio: applyForm.bio,
+          photo_url: applyForm.photo_url || null,
+          niche: applyForm.niche,
+          audience_size: Number(applyForm.audience_size),
+          social_handles: buildSocialHandles(),
+          terms_accepted: true,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to submit")
+      toast.success(data.message || "Application submitted")
+      loadAll()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to submit")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const createPackage = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch("/api/agent/influencer/packages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
+        body: JSON.stringify({
+          agentId,
+          title: pkgForm.title,
+          description: pkgForm.description,
+          price: Number(pkgForm.price),
+          delivery_days: Number(pkgForm.delivery_days),
+          terms: pkgForm.terms || null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to create package")
+      toast.success("Package created")
+      setPkgForm({ title: "", description: "", price: "", delivery_days: "7", terms: "" })
+      loadAll()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const togglePackage = async (id: string, is_active: boolean) => {
+    try {
+      const res = await fetch(`/api/agent/influencer/packages/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
+        body: JSON.stringify({ agentId, is_active }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      loadAll()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update")
+    }
+  }
+
+  const approved = Boolean(profile?.approved)
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-emerald-100 bg-emerald-50/80 p-4 text-sm text-emerald-900">
+        <p className="font-semibold flex items-center gap-2">
+          <Sparkles className="h-4 w-4" style={{ color: BRAND }} />
+          For influencers
+        </p>
+        <p className="mt-1">
+          We bring verified clients to you, handle payment collection, and ensure you get paid for your work. No chasing
+          payments.
+        </p>
+      </div>
+
+      {!approved && (
+        <Badge variant="outline" className="border-amber-300 text-amber-800 bg-amber-50">
+          {profile ? "Application pending admin approval" : "Not yet applied"}
+        </Badge>
+      )}
+      {approved && (
+        <Badge className="text-white" style={{ backgroundColor: BRAND }}>
+          Approved influencer
+        </Badge>
+      )}
+
+      <Tabs defaultValue={approved ? "packages" : "apply"} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 h-auto">
+          <TabsTrigger value="apply">Apply</TabsTrigger>
+          <TabsTrigger value="packages" disabled={!approved}>
+            My packages
+          </TabsTrigger>
+          <TabsTrigger value="orders" disabled={!approved}>
+            Orders
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="apply" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Apply as influencer</CardTitle>
+              <CardDescription>
+                Minimum audience: {MIN_INFLUENCER_AUDIENCE.toLocaleString()} followers. 8% platform fee applies on
+                payouts.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Profile photo</Label>
+                <div className="flex items-center gap-3 mt-1">
+                  {applyForm.photo_url ? (
+                    <Image
+                      src={applyForm.photo_url}
+                      alt="Profile"
+                      width={64}
+                      height={64}
+                      className="rounded-full object-cover h-16 w-16 border"
+                    />
+                  ) : (
+                    <div className="h-16 w-16 rounded-full bg-slate-100 border flex items-center justify-center">
+                      <Upload className="h-5 w-5 text-slate-400" />
+                    </div>
+                  )}
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="max-w-xs"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) uploadPhoto(f)
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Bio</Label>
+                <Textarea
+                  rows={3}
+                  value={applyForm.bio}
+                  onChange={(e) => setApplyForm({ ...applyForm, bio: e.target.value })}
+                  placeholder="Tell clients about your content style and audience…"
+                />
+              </div>
+              <div>
+                <Label>Niche</Label>
+                <Input
+                  value={applyForm.niche}
+                  onChange={(e) => setApplyForm({ ...applyForm, niche: e.target.value })}
+                  placeholder="e.g. Fashion, Tech, Comedy"
+                />
+              </div>
+              <div>
+                <Label>Audience size</Label>
+                <Input
+                  type="number"
+                  min={MIN_INFLUENCER_AUDIENCE}
+                  value={applyForm.audience_size}
+                  onChange={(e) => setApplyForm({ ...applyForm, audience_size: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Social handles</Label>
+                {socialRows.map((row, i) => (
+                  <div key={i} className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      placeholder="Platform"
+                      value={row.platform}
+                      list="social-platforms"
+                      onChange={(e) => {
+                        const next = [...socialRows]
+                        next[i] = { ...next[i], platform: e.target.value }
+                        setSocialRows(next)
+                      }}
+                    />
+                    <datalist id="social-platforms">
+                      {SOCIAL_PLATFORMS.map((p) => (
+                        <option key={p} value={p} />
+                      ))}
+                    </datalist>
+                    <Input
+                      placeholder="Profile URL"
+                      value={row.url}
+                      onChange={(e) => {
+                        const next = [...socialRows]
+                        next[i] = { ...next[i], url: e.target.value }
+                        setSocialRows(next)
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSocialRows(socialRows.filter((_, j) => j !== i))}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSocialRows([...socialRows, { platform: "", url: "" }])}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add platform
+                </Button>
+              </div>
+              <div className="flex items-start gap-2 rounded-lg border p-3">
+                <Checkbox
+                  id="terms"
+                  checked={termsAccepted}
+                  onCheckedChange={(v) => setTermsAccepted(Boolean(v))}
+                />
+                <label htmlFor="terms" className="text-sm leading-snug cursor-pointer">
+                  I agree to the{" "}
+                  <Link href="/influencer-terms" className="font-semibold underline" style={{ color: BRAND }}>
+                    Influencer Terms
+                  </Link>{" "}
+                  and understand the 8% platform fee.
+                </label>
+              </div>
+              <Button
+                onClick={submitApplication}
+                disabled={saving}
+                className="w-full sm:w-auto text-white"
+                style={{ backgroundColor: BRAND }}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {profile ? "Update application" : "Submit application"}
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="packages" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="h-4 w-4" /> Create package
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <Label>Title</Label>
+                <Input value={pkgForm.title} onChange={(e) => setPkgForm({ ...pkgForm, title: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Description</Label>
+                <Textarea
+                  rows={2}
+                  value={pkgForm.description}
+                  onChange={(e) => setPkgForm({ ...pkgForm, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Price (GHS)</Label>
+                <Input
+                  type="number"
+                  value={pkgForm.price}
+                  onChange={(e) => setPkgForm({ ...pkgForm, price: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Delivery days</Label>
+                <Input
+                  type="number"
+                  value={pkgForm.delivery_days}
+                  onChange={(e) => setPkgForm({ ...pkgForm, delivery_days: e.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label>Custom terms (optional)</Label>
+                <Textarea
+                  rows={2}
+                  value={pkgForm.terms}
+                  onChange={(e) => setPkgForm({ ...pkgForm, terms: e.target.value })}
+                />
+              </div>
+              <Button
+                onClick={createPackage}
+                disabled={saving}
+                className="sm:col-span-2 text-white"
+                style={{ backgroundColor: BRAND }}
+              >
+                Add package
+              </Button>
+            </CardContent>
+          </Card>
+
+          <div className="grid sm:grid-cols-2 gap-3">
+            {packages.map((pkg) => (
+              <Card key={pkg.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <CardTitle className="text-base">{pkg.title}</CardTitle>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Switch checked={pkg.is_active} onCheckedChange={(v) => togglePackage(pkg.id, v)} />
+                      <span className="text-xs text-muted-foreground">{pkg.is_active ? "Active" : "Off"}</span>
+                    </div>
+                  </div>
+                  <CardDescription>₵{Number(pkg.price).toFixed(2)} · {pkg.delivery_days} days</CardDescription>
+                </CardHeader>
+                {pkg.description && (
+                  <CardContent className="pt-0 text-sm text-muted-foreground">{pkg.description}</CardContent>
+                )}
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="orders" className="mt-4 space-y-3">
+          {orders.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No orders yet.</p>
+          ) : (
+            orders.map((o) => (
+              <Card key={o.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between gap-2">
+                    <CardTitle className="text-base">{o.client_name}</CardTitle>
+                    <Badge variant="outline">{INFLUENCER_ORDER_STATUS_LABELS[o.status]}</Badge>
+                  </div>
+                  <CardDescription>
+                    Payout: ₵{Number(o.influencer_payout).toFixed(2)} · Total paid: ₵
+                    {Number(o.total_price).toFixed(2)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-sm space-y-1">
+                  <p>
+                    <span className="text-muted-foreground">Requirements:</span> {o.requirements}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {o.client_phone}
+                    {o.client_email ? ` · ${o.client_email}` : ""}
+                  </p>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}

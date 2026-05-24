@@ -64,6 +64,7 @@ export default async function StorePage({ params }: PageProps) {
         initialFarmListings={storefront.farmListings}
         initialWritingServices={storefront.writingServices}
         initialProperties={storefront.properties}
+        initialInfluencer={storefront.influencer}
       />
     </Suspense>
   )

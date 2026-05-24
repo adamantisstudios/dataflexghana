@@ -73,8 +73,10 @@ import type { PublicFarmListing } from "@/lib/farm-types"
 import { StorefrontFarmProduceTab } from "@/components/storefront/StorefrontFarmProduceTab"
 import { StorefrontWritingTab } from "@/components/storefront/StorefrontWritingTab"
 import { StorefrontRealEstateTab } from "@/components/storefront/StorefrontRealEstateTab"
+import { StorefrontInfluencersTab } from "@/components/storefront/StorefrontInfluencersTab"
 import type { PublicWritingService } from "@/lib/writing-types"
 import type { PublicPropertyListing } from "@/lib/property-types"
+import type { PublicInfluencerProfile } from "@/lib/influencer-types"
 
 interface DataBundle {
   id: string
@@ -149,6 +151,7 @@ type PublicAgentStorefrontProps = {
   initialFarmListings?: PublicFarmListing[]
   initialWritingServices?: PublicWritingService[]
   initialProperties?: PublicPropertyListing[]
+  initialInfluencer?: PublicInfluencerProfile | null
 }
 
 function mapApiBundles(raw: Array<DataBundle & { final_price?: number }>): DataBundle[] {
@@ -169,6 +172,7 @@ function applyStorefrontPayload(
     farmListings?: PublicFarmListing[]
     writingServices?: PublicWritingService[]
     properties?: PublicPropertyListing[]
+    influencer?: PublicInfluencerProfile | null
     unavailable?: boolean
   },
   setters: {
@@ -181,6 +185,7 @@ function applyStorefrontPayload(
     setFarmListings: (f: PublicFarmListing[]) => void
     setWritingServices: (w: PublicWritingService[]) => void
     setProperties: (p: PublicPropertyListing[]) => void
+    setInfluencer: (i: PublicInfluencerProfile | null) => void
     setNetworkTab: (t: string) => void
     setMainTab: (t: MainStoreTab) => void
     setLoadError: (e: string | null) => void
@@ -197,6 +202,7 @@ function applyStorefrontPayload(
     setters.setFarmListings([])
     setters.setWritingServices([])
     setters.setProperties([])
+    setters.setInfluencer(null)
     return false
   }
 
@@ -212,6 +218,7 @@ function applyStorefrontPayload(
   setters.setFarmListings(data.farmListings || [])
   setters.setWritingServices(data.writingServices || [])
   setters.setProperties(data.properties || [])
+  setters.setInfluencer(data.influencer ?? null)
   setters.setLoadError(null)
 
   const providers = apiBundles.map((b) => normalizeProvider(b.provider))
@@ -236,6 +243,7 @@ export default function PublicAgentStorefront({
   initialFarmListings,
   initialWritingServices,
   initialProperties,
+  initialInfluencer,
 }: PublicAgentStorefrontProps) {
   const params = useParams()
   const router = useRouter()
@@ -265,6 +273,7 @@ export default function PublicAgentStorefront({
     initialWritingServices ?? [],
   )
   const [properties, setProperties] = useState<PublicPropertyListing[]>(initialProperties ?? [])
+  const [influencer, setInfluencer] = useState<PublicInfluencerProfile | null>(initialInfluencer ?? null)
   const [wholesaleCart, setWholesaleCart] = useState<WholesaleCartLine[]>([])
   const [compliancePaidRef, setCompliancePaidRef] = useState<string | null>(null)
   const [activeBundleId, setActiveBundleId] = useState<string | null>(null)
@@ -406,6 +415,7 @@ export default function PublicAgentStorefront({
           farmListings: initialFarmListings,
           writingServices: initialWritingServices,
           properties: initialProperties,
+          influencer: initialInfluencer,
         },
         {
           setProfile,
@@ -417,6 +427,7 @@ export default function PublicAgentStorefront({
           setFarmListings,
           setWritingServices,
           setProperties,
+          setInfluencer,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -442,6 +453,7 @@ export default function PublicAgentStorefront({
           setFarmListings,
           setWritingServices,
           setProperties,
+          setInfluencer,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -534,6 +546,7 @@ export default function PublicAgentStorefront({
       writing: writingServices.length > 0,
       farm: farmListings.length > 0,
       "real-estate": properties.length > 0,
+      influencers: true,
     }),
     [
       bundles.length,
@@ -557,6 +570,7 @@ export default function PublicAgentStorefront({
       writing: writingServices.length,
       farm: farmListings.length,
       "real-estate": properties.length,
+      influencers: influencer?.packages?.length ?? 0,
     }),
     [
       bundles.length,
@@ -567,6 +581,7 @@ export default function PublicAgentStorefront({
       writingServices.length,
       farmListings.length,
       properties.length,
+      influencer?.packages?.length,
     ],
   )
 
@@ -1235,6 +1250,17 @@ export default function PublicAgentStorefront({
                 properties={properties}
                 agentWhatsApp={profile?.whatsapp_number}
                 agentPhone={profile?.phone_number}
+              />
+            </TabsContent>
+          )}
+
+          {tabVisibility.influencers && (
+            <TabsContent value="influencers" className="mt-2 focus-visible:outline-none">
+              <StorefrontInfluencersTab
+                agentId={agentId}
+                storeSegment={storeSegment}
+                accent={accent}
+                influencer={influencer}
               />
             </TabsContent>
           )}

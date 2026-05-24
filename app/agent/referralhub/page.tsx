@@ -25,6 +25,7 @@ import { MarketplaceSubTabs } from "@/components/agent/referralhub/MarketplaceSu
 import { MarketplaceAdvertisingSection } from "@/components/agent/referralhub/MarketplaceAdvertisingSection"
 import { MarketplaceWritingSection } from "@/components/agent/referralhub/MarketplaceWritingSection"
 import { MarketplaceRealEstateSection } from "@/components/agent/referralhub/MarketplaceRealEstateSection"
+import { MarketplaceInfluencersSection } from "@/components/agent/referralhub/MarketplaceInfluencersSection"
 import { FarmersFriendHub } from "@/components/agent/farmersfriend/FarmersFriendHub"
 import { Switch } from "@/components/ui/switch"
 
@@ -88,7 +89,11 @@ export default function ReferralHubPage() {
   const hubTabFromUrl = searchParams.get("hubTab")
   const marketplaceTabFromUrl = searchParams.get("marketplaceTab")
   const [hubTab, setHubTab] = useState(
-    hubTabFromUrl === "marketplace" || marketplaceTabFromUrl === "real-estate" ? "marketplace" : "profile",
+    hubTabFromUrl === "marketplace" ||
+      marketplaceTabFromUrl === "real-estate" ||
+      marketplaceTabFromUrl === "influencers"
+      ? "marketplace"
+      : "profile",
   )
 
   useEffect(() => {
@@ -406,7 +411,13 @@ export default function ReferralHubPage() {
             <TabsContent value="marketplace" className="mt-4">
               {agent?.id && (
                 <MarketplaceSubTabs
-                  defaultSubTab={marketplaceTabFromUrl === "real-estate" ? "real-estate" : "bundles"}
+                  defaultSubTab={
+                    marketplaceTabFromUrl === "real-estate"
+                      ? "real-estate"
+                      : marketplaceTabFromUrl === "influencers"
+                        ? "influencers"
+                        : "bundles"
+                  }
                   bundles={
                     <MarketplaceBundlesSection
                       agentId={agent.id}
@@ -458,6 +469,7 @@ export default function ReferralHubPage() {
                       onSettingsChange={() => loadSettings(agent.id)}
                     />
                   }
+                  influencers={<MarketplaceInfluencersSection agentId={agent.id} />}
                 />
               )}
             </TabsContent>

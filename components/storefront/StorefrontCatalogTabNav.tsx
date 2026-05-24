@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Smartphone, Users, ShoppingBag, FileText, Megaphone, Leaf, PenLine, Home } from "lucide-react"
+import { Smartphone, Users, ShoppingBag, FileText, Megaphone, Leaf, PenLine, Home, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type StorefrontTabId =
@@ -14,6 +14,7 @@ export type StorefrontTabId =
   | "writing"
   | "farm"
   | "real-estate"
+  | "influencers"
 
 const TABS: {
   id: StorefrontTabId
@@ -86,6 +87,14 @@ const TABS: {
     icon: Home,
     iconClass: "text-amber-700",
     inactiveBg: "bg-gradient-to-br from-amber-100 to-orange-50",
+  },
+  {
+    id: "influencers",
+    label: "Influencers",
+    short: "Influencers",
+    icon: Sparkles,
+    iconClass: "text-[#0E8F3D]",
+    inactiveBg: "bg-gradient-to-br from-emerald-100 to-green-50",
   },
 ]
 

@@ -144,6 +144,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl.toString())
   }
 
+  if (orderType === "influencer_order") {
+    const clientMeta = getRequestClientMeta(request)
+    const capture = await captureStorefrontFromPaystackMetadata({
+      reference: verifiedReference,
+      metadata: meta,
+      actorType: "system",
+      ipAddress: clientMeta.ipAddress,
+      userAgent: clientMeta.userAgent,
+    })
+    if (!capture.ok && !capture.alreadyRecorded) {
+      console.error("[storefront callback] influencer capture:", capture.error)
+    }
+    const redirectUrl = new URL(buildStorefrontPathUrl(getStorefrontOrigin(), segment))
+    redirectUrl.searchParams.set("influencer_payment", "success")
+    redirectUrl.searchParams.set("ref", verifiedReference)
+    return NextResponse.redirect(redirectUrl.toString())
+  }
+
   if (orderType === "writing_service") {
     const clientMeta = getRequestClientMeta(request)
     const capture = await captureStorefrontFromPaystackMetadata({

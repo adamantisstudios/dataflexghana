@@ -12,6 +12,7 @@ type Props = {
   advertising: ReactNode
   writing: ReactNode
   realEstate: ReactNode
+  influencers: ReactNode
   defaultSubTab?: string
 }
 
@@ -29,13 +30,14 @@ export function MarketplaceSubTabs({
   advertising,
   writing,
   realEstate,
+  influencers,
   defaultSubTab = "bundles",
 }: Props) {
   return (
     <Tabs defaultValue={defaultSubTab} className="w-full">
       <TabsList
         className={cn(
-          "w-full h-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-1.5 p-1.5 rounded-xl",
+          "w-full h-auto grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5 p-1.5 rounded-xl",
           "bg-slate-100/80 border border-slate-200 shadow-inner mb-4",
         )}
       >
@@ -60,6 +62,9 @@ export function MarketplaceSubTabs({
         <TabsTrigger value="real-estate" className={tabTriggerClass}>
           Real Estate
         </TabsTrigger>
+        <TabsTrigger value="influencers" className={tabTriggerClass}>
+          Micro-Influencers
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="bundles" className="mt-0 space-y-6 focus-visible:outline-none">
         {bundles}
@@ -81,6 +86,9 @@ export function MarketplaceSubTabs({
       </TabsContent>
       <TabsContent value="real-estate" className="mt-0 focus-visible:outline-none">
         {realEstate}
+      </TabsContent>
+      <TabsContent value="influencers" className="mt-0 focus-visible:outline-none">
+        {influencers}
       </TabsContent>
     </Tabs>
   )

@@ -15,6 +15,7 @@ import { captureAdOrderFromPaystack } from "@/lib/advertising-capture"
 import { captureFarmOrdersFromPaystack, type FarmCartLineMeta } from "@/lib/farm-capture"
 import { captureWritingOrderFromPaystack } from "@/lib/writing-capture"
 import { parseCvFields } from "@/lib/writing-types"
+import { captureInfluencerOrderFromPaystack } from "@/lib/influencer-capture"
 
 export type StorefrontCaptureResult = {
   ok: boolean
@@ -319,6 +320,32 @@ export async function captureStorefrontFromPaystackMetadata(params: {
       alreadyRecorded: result.alreadyRecorded,
       orderIds: result.orderIds,
       insertedCount: result.ok && !result.alreadyRecorded ? result.orderIds.length : 0,
+      error: result.error,
+    }
+  }
+
+  if (orderType === "influencer_order") {
+    const packagePrice = Number(
+      metadataValue(params.metadata, "package_price") ?? params.metadata.package_price ?? 0,
+    )
+    const result = await captureInfluencerOrderFromPaystack({
+      reference: params.reference,
+      agentId,
+      packageId: String(metadataValue(params.metadata, "package_id") || params.metadata.package_id || ""),
+      clientName: String(metadataValue(params.metadata, "client_name") || ""),
+      clientPhone: String(metadataValue(params.metadata, "client_phone") || ""),
+      clientEmail: String(metadataValue(params.metadata, "client_email") || "") || null,
+      requirements: String(metadataValue(params.metadata, "requirements") || ""),
+      packagePrice,
+      actorType: params.actorType,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    })
+    return {
+      ok: result.ok,
+      alreadyRecorded: result.alreadyRecorded,
+      orderIds: result.orderId ? [result.orderId] : [],
+      insertedCount: result.ok && !result.alreadyRecorded ? 1 : 0,
       error: result.error,
     }
   }
