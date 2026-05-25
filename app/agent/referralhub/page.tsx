@@ -26,6 +26,7 @@ import { MarketplaceAdvertisingSection } from "@/components/agent/referralhub/Ma
 import { MarketplaceWritingSection } from "@/components/agent/referralhub/MarketplaceWritingSection"
 import { MarketplaceRealEstateSection } from "@/components/agent/referralhub/MarketplaceRealEstateSection"
 import { MarketplaceInfluencersSection } from "@/components/agent/referralhub/MarketplaceInfluencersSection"
+import { MarketplaceMyListingsSection } from "@/components/agent/referralhub/MarketplaceMyListingsSection"
 import { FarmersFriendHub } from "@/components/agent/farmersfriend/FarmersFriendHub"
 import { Switch } from "@/components/ui/switch"
 
@@ -89,11 +90,13 @@ export default function ReferralHubPage() {
   const hubTabFromUrl = searchParams.get("hubTab")
   const marketplaceTabFromUrl = searchParams.get("marketplaceTab")
   const [hubTab, setHubTab] = useState(
-    hubTabFromUrl === "marketplace" ||
-      marketplaceTabFromUrl === "real-estate" ||
-      marketplaceTabFromUrl === "influencers"
-      ? "marketplace"
-      : "profile",
+    hubTabFromUrl === "listings"
+      ? "listings"
+      : hubTabFromUrl === "marketplace" ||
+          marketplaceTabFromUrl === "real-estate" ||
+          marketplaceTabFromUrl === "influencers"
+        ? "marketplace"
+        : "profile",
   )
 
   useEffect(() => {
@@ -254,12 +257,18 @@ export default function ReferralHubPage() {
           <ReferralHubSkeleton />
         ) : (
           <Tabs value={hubTab} onValueChange={setHubTab} className="w-full">
-            <TabsList className="w-full h-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 p-1 rounded-xl bg-white border shadow-sm">
+            <TabsList className="w-full h-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1 p-1 rounded-xl bg-white border shadow-sm">
               <TabsTrigger
                 value="profile"
                 className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
               >
                 Profile
+              </TabsTrigger>
+              <TabsTrigger
+                value="listings"
+                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+              >
+                My Listings
               </TabsTrigger>
               <TabsTrigger
                 value="marketplace"
@@ -402,6 +411,10 @@ export default function ReferralHubPage() {
                   </Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="listings" className="mt-4">
+              {agent?.id && <MarketplaceMyListingsSection agentId={agent.id} />}
             </TabsContent>
 
             <TabsContent value="farmers-friend" className="mt-4">

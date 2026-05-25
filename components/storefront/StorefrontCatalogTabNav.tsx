@@ -2,13 +2,14 @@
 
 import type { CSSProperties } from "react"
 import { TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Smartphone, Users, ShoppingBag, FileText, Megaphone, Leaf, PenLine, Home, Sparkles } from "lucide-react"
+import { Smartphone, Users, ShoppingBag, FileText, Megaphone, Leaf, PenLine, Home, Sparkles, Store } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type StorefrontTabId =
   | "bundles"
   | "services"
   | "products"
+  | "listings"
   | "business"
   | "advertise"
   | "writing"
@@ -47,6 +48,14 @@ const TABS: {
     icon: ShoppingBag,
     iconClass: "text-emerald-600",
     inactiveBg: "bg-gradient-to-br from-emerald-100 to-green-50",
+  },
+  {
+    id: "listings",
+    label: "My Products",
+    short: "Shop",
+    icon: Store,
+    iconClass: "text-sky-600",
+    inactiveBg: "bg-gradient-to-br from-sky-100 to-blue-50",
   },
   {
     id: "business",

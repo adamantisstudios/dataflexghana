@@ -15,6 +15,7 @@ import { getVisiblePropertiesForAgent, isAgentStorefrontSuspended } from "@/lib/
 import type { PublicPropertyListing } from "@/lib/property-types"
 import { getPublicInfluencerForAgent } from "@/lib/influencer-server"
 import type { PublicInfluencerProfile } from "@/lib/influencer-types"
+import { getPublicAgentProducts, type AgentProduct } from "@/lib/listing-packages-server"
 
 export type PublicBundle = {
   id: string
@@ -57,6 +58,7 @@ export type PublicStorefrontResponse = {
   writingServices: PublicWritingService[]
   properties: PublicPropertyListing[]
   influencer: PublicInfluencerProfile | null
+  listingProducts: AgentProduct[]
   /** Approved micro-influencer — premium storefront theme */
   isPremiumInfluencer?: boolean
   unavailable?: boolean
@@ -73,6 +75,7 @@ const EMPTY_RESPONSE: PublicStorefrontResponse = {
   writingServices: [],
   properties: [],
   influencer: null,
+  listingProducts: [],
 }
 
 /** Server-side payload for /api/storefront/public/[agentId] and /store/[segment] page. */
@@ -377,6 +380,13 @@ export async function getPublicStorefrontResponse(
       console.error("public storefront influencer:", influencerErr)
     }
 
+    let listingProducts: AgentProduct[] = []
+    try {
+      listingProducts = await getPublicAgentProducts(agentId)
+    } catch (listingErr) {
+      console.error("public storefront listing products:", listingErr)
+    }
+
     return {
       profile,
       bundles,
@@ -388,6 +398,7 @@ export async function getPublicStorefrontResponse(
       writingServices,
       properties,
       influencer,
+      listingProducts,
       isPremiumInfluencer,
       unavailable: false,
     }

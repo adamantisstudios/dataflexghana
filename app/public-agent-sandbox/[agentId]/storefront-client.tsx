@@ -78,6 +78,9 @@ import { StorefrontInfluencersTab } from "@/components/storefront/StorefrontInfl
 import type { PublicWritingService } from "@/lib/writing-types"
 import type { PublicPropertyListing } from "@/lib/property-types"
 import type { PublicInfluencerProfile } from "@/lib/influencer-types"
+import type { AgentProduct } from "@/lib/listing-packages-server"
+import { resolveStorefrontAccent } from "@/lib/storefront-accent"
+import { StorefrontListingsTab } from "@/components/storefront/StorefrontListingsTab"
 
 interface DataBundle {
   id: string
@@ -117,7 +120,6 @@ const NETWORK_TABS = [
 
 const ITEMS_PER_PAGE = 12
 const DELIVERY_NOTICE_MS = 30_000
-const PREMIUM_INFLUENCER_ACCENT = "#D97706"
 
 function normalizeProvider(p: string): string {
   const u = p?.toUpperCase() || ""
@@ -143,6 +145,7 @@ const DEFAULT_TAB_ORDER: MainStoreTab[] = [
   "bundles",
   "services",
   "products",
+  "listings",
   "business",
   "advertise",
   "writing",
@@ -155,6 +158,7 @@ const PREMIUM_TAB_ORDER: MainStoreTab[] = [
   "bundles",
   "services",
   "products",
+  "listings",
   "business",
   "advertise",
   "writing",
@@ -177,6 +181,7 @@ type PublicAgentStorefrontProps = {
   initialWritingServices?: PublicWritingService[]
   initialProperties?: PublicPropertyListing[]
   initialInfluencer?: PublicInfluencerProfile | null
+  initialListingProducts?: AgentProduct[]
   initialIsPremiumInfluencer?: boolean
 }
 
@@ -199,6 +204,7 @@ function applyStorefrontPayload(
     writingServices?: PublicWritingService[]
     properties?: PublicPropertyListing[]
     influencer?: PublicInfluencerProfile | null
+    listingProducts?: AgentProduct[]
     isPremiumInfluencer?: boolean
     unavailable?: boolean
   },
@@ -213,6 +219,7 @@ function applyStorefrontPayload(
     setWritingServices: (w: PublicWritingService[]) => void
     setProperties: (p: PublicPropertyListing[]) => void
     setInfluencer: (i: PublicInfluencerProfile | null) => void
+    setListingProducts: (p: AgentProduct[]) => void
     setNetworkTab: (t: string) => void
     setMainTab: (t: MainStoreTab) => void
     setLoadError: (e: string | null) => void
@@ -230,6 +237,7 @@ function applyStorefrontPayload(
     setters.setWritingServices([])
     setters.setProperties([])
     setters.setInfluencer(null)
+    setters.setListingProducts([])
     return false
   }
 
@@ -246,6 +254,7 @@ function applyStorefrontPayload(
   setters.setWritingServices(data.writingServices || [])
   setters.setProperties(data.properties || [])
   setters.setInfluencer(data.influencer ?? null)
+  setters.setListingProducts(data.listingProducts || [])
   setters.setLoadError(null)
 
   const providers = apiBundles.map((b) => normalizeProvider(b.provider))
@@ -274,6 +283,7 @@ export default function PublicAgentStorefront({
   initialWritingServices,
   initialProperties,
   initialInfluencer,
+  initialListingProducts,
   initialIsPremiumInfluencer = false,
 }: PublicAgentStorefrontProps) {
   const params = useParams()
@@ -305,6 +315,7 @@ export default function PublicAgentStorefront({
   )
   const [properties, setProperties] = useState<PublicPropertyListing[]>(initialProperties ?? [])
   const [influencer, setInfluencer] = useState<PublicInfluencerProfile | null>(initialInfluencer ?? null)
+  const [listingProducts, setListingProducts] = useState<AgentProduct[]>(initialListingProducts ?? [])
   const [isPremiumInfluencer, setIsPremiumInfluencer] = useState(initialIsPremiumInfluencer)
   const [wholesaleCart, setWholesaleCart] = useState<WholesaleCartLine[]>([])
   const [compliancePaidRef, setCompliancePaidRef] = useState<string | null>(null)
@@ -450,6 +461,7 @@ export default function PublicAgentStorefront({
           writingServices: initialWritingServices,
           properties: initialProperties,
           influencer: initialInfluencer,
+          listingProducts: initialListingProducts,
           isPremiumInfluencer: initialIsPremiumInfluencer,
         },
         {
@@ -463,6 +475,7 @@ export default function PublicAgentStorefront({
           setWritingServices,
           setProperties,
           setInfluencer,
+          setListingProducts,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -490,6 +503,7 @@ export default function PublicAgentStorefront({
           setWritingServices,
           setProperties,
           setInfluencer,
+          setListingProducts,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -524,9 +538,7 @@ export default function PublicAgentStorefront({
     business_info: null,
   }
 
-  const accent = isPremiumInfluencer
-    ? PREMIUM_INFLUENCER_ACCENT
-    : displayProfile.primary_color || "#3B82F6"
+  const accent = resolveStorefrontAccent(isPremiumInfluencer, displayProfile.primary_color)
 
   const catalogTabOrder = isPremiumInfluencer ? PREMIUM_TAB_ORDER : DEFAULT_TAB_ORDER
 
@@ -582,6 +594,7 @@ export default function PublicAgentStorefront({
       bundles: bundles.length > 0,
       services: services.length > 0,
       products: wholesaleProducts.length > 0,
+      listings: listingProducts.length > 0,
       business: complianceForms.length > 0,
       advertise: adPackages.length > 0,
       writing: writingServices.length > 0,
@@ -593,6 +606,7 @@ export default function PublicAgentStorefront({
       bundles.length,
       services.length,
       wholesaleProducts.length,
+      listingProducts.length,
       complianceForms.length,
       adPackages.length,
       writingServices.length,
@@ -606,6 +620,7 @@ export default function PublicAgentStorefront({
       bundles: bundles.length,
       services: services.length,
       products: wholesaleProducts.length,
+      listings: listingProducts.length,
       business: complianceForms.length,
       advertise: adPackages.length,
       writing: writingServices.length,
@@ -617,6 +632,7 @@ export default function PublicAgentStorefront({
       bundles.length,
       services.length,
       wholesaleProducts.length,
+      listingProducts.length,
       complianceForms.length,
       adPackages.length,
       writingServices.length,
@@ -1309,6 +1325,17 @@ export default function PublicAgentStorefront({
                 storeSegment={storeSegment}
                 accent={accent}
                 influencer={influencer}
+              />
+            </TabsContent>
+          )}
+
+          {tabVisibility.listings && (
+            <TabsContent value="listings" className="mt-2 focus-visible:outline-none">
+              <StorefrontListingsTab
+                products={listingProducts}
+                accent={accent}
+                whatsappPhone={whatsappPhone}
+                storeName={displayProfile.store_name || "Store"}
               />
             </TabsContent>
           )}
