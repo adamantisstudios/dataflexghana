@@ -77,14 +77,14 @@ export default function AgentVoiceRoomsPage() {
               Upcoming Voice Conferences
             </h1>
             {agentRegion && (
-              <p className="text-xs text-white/50 truncate mt-0.5">Your region: {agentRegion}</p>
+              <p className="text-xs text-slate-400 truncate mt-0.5">Your region: {agentRegion}</p>
             )}
           </div>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-5">
-        <p className="text-sm text-white/60 leading-relaxed">
+        <p className="text-sm text-slate-300 leading-relaxed">
           Invitation-only live audio for agents in your region. Join as a listener and raise your hand to speak.
         </p>
 
@@ -99,7 +99,7 @@ export default function AgentVoiceRoomsPage() {
               <Mic2 className="h-10 w-10 text-emerald-400/80" />
             </div>
             <h2 className="text-lg font-semibold text-white mb-2">No conferences scheduled</h2>
-            <p className="text-sm text-white/50 max-w-xs mx-auto leading-relaxed">
+            <p className="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">
               When an admin opens a voice room for your region, it will appear here. Check back soon or watch for SMS
               notifications.
             </p>
@@ -134,7 +134,7 @@ export default function AgentVoiceRoomsPage() {
                   </div>
                   <div className="min-w-0 pr-16">
                     <h2 className="font-semibold text-lg text-white">{room.region}</h2>
-                    <p className="text-xs text-white/45 truncate mt-0.5">{room.room_name}</p>
+                    <p className="text-xs text-slate-400 truncate mt-0.5">{room.room_name}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">

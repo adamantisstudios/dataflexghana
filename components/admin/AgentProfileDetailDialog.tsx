@@ -10,7 +10,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { getAgentInitials } from "@/lib/agent-profile-completion"
 import type { Agent } from "@/lib/supabase"
-import { Mail, Briefcase, MapPin, Phone, Calendar } from "lucide-react"
+import { Mail, Briefcase, MapPin, Phone, Calendar, Pencil } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { AgentCallHistorySection } from "@/components/admin/AgentCallHistorySection"
 
 type AgentDetail = Agent & {
@@ -23,6 +24,7 @@ type Props = {
   agent: AgentDetail | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onEdit?: (agent: AgentDetail) => void
 }
 
 function formatDate(d: string | undefined) {
@@ -34,14 +36,26 @@ function formatDate(d: string | undefined) {
   }
 }
 
-export function AgentProfileDetailDialog({ agent, open, onOpenChange }: Props) {
+export function AgentProfileDetailDialog({ agent, open, onOpenChange, onEdit }: Props) {
   if (!agent) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
           <DialogTitle>Agent profile</DialogTitle>
+          {onEdit && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="border-emerald-300 text-emerald-700 shrink-0"
+              onClick={() => onEdit(agent)}
+            >
+              <Pencil className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+          )}
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-col items-center text-center gap-3">

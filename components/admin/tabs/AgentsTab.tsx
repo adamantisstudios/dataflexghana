@@ -38,6 +38,7 @@ import { getAdminAuthHeaders } from "@/lib/api-client";
   Info,
 } from "lucide-react";
 import { AgentProfileDetailDialog } from "@/components/admin/AgentProfileDetailDialog";
+import { AdminEditAgentProfileDialog } from "@/components/admin/AdminEditAgentProfileDialog";
 import Link from "next/link";
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances";
 import { exportAgentsToCsv, fetchAllAgentsWithPagination } from "@/lib/csv-export";
@@ -74,6 +75,8 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
   const [selectedAgent, setSelectedAgent] = useState<AgentWithWallet | null>(null);
   const [profileDetailAgent, setProfileDetailAgent] = useState<AgentWithWallet | null>(null);
   const [profileDetailOpen, setProfileDetailOpen] = useState(false);
+  const [editProfileAgent, setEditProfileAgent] = useState<AgentWithWallet | null>(null);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [agentPasswordReset, setAgentPasswordReset] = useState("");
   const [clearDataType, setClearDataType] = useState<"day" | "month">("day");
   const [loadingEarnings, setLoadingEarnings] = useState<Set<string>>(new Set());
@@ -1075,6 +1078,35 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
         onOpenChange={(open) => {
           setProfileDetailOpen(open)
           if (!open) setProfileDetailAgent(null)
+        }}
+        onEdit={(a) => {
+          setEditProfileAgent(a)
+          setEditProfileOpen(true)
+          setProfileDetailOpen(false)
+        }}
+      />
+
+      <AdminEditAgentProfileDialog
+        agent={editProfileAgent}
+        open={editProfileOpen}
+        onOpenChange={(open) => {
+          setEditProfileOpen(open)
+          if (!open) setEditProfileAgent(null)
+        }}
+        onSaved={(updated) => {
+          const merged = {
+            ...updated,
+            wallet_balance: editProfileAgent?.wallet_balance,
+            commission_balance: editProfileAgent?.commission_balance,
+          } as AgentWithWallet
+          setAgents((prev) => {
+            const next = prev.map((a) => (a.id === updated.id ? { ...a, ...merged } : a))
+            setCachedData?.(next)
+            return next
+          })
+          if (profileDetailAgent?.id === updated.id) {
+            setProfileDetailAgent(merged)
+          }
         }}
       />
     </div>

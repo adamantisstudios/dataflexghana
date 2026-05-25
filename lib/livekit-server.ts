@@ -293,6 +293,46 @@ export async function getLiveKitParticipantCount(roomName: string): Promise<numb
   }
 }
 
+export async function muteAllSpeakersInRoom(roomName: string): Promise<number> {
+  const participants = await getLiveKitRoomService().listParticipants(roomName)
+  let muted = 0
+  for (const p of participants) {
+    let role = "listener"
+    try {
+      const meta = p.metadata ? JSON.parse(p.metadata) : {}
+      role = meta.role || p.attributes?.role || "listener"
+    } catch {
+      role = p.attributes?.role || "listener"
+    }
+    if (role === "speaker" || role === "moderator") {
+      try {
+        await muteParticipantAudio(roomName, p.identity, true)
+        muted++
+      } catch {
+        /* skip if no track */
+      }
+    }
+  }
+  return muted
+}
+
+export async function startVoiceRoomRecording(roomName: string): Promise<string> {
+  const egress = await getLiveKitEgressClient().startRoomCompositeEgress(roomName, {
+    audioOnly: true,
+    fileOutputs: [
+      {
+        filepath: `recordings/${roomName}-{time}.ogg`,
+      },
+    ],
+  })
+  if (!egress.egressId) throw new Error("Recording could not be started")
+  return egress.egressId
+}
+
+export async function stopVoiceRoomRecording(egressId: string): Promise<void> {
+  await getLiveKitEgressClient().stopEgress(egressId)
+}
+
 export function getLiveKitWsUrl(): string {
   return process.env.LIVEKIT_HOST || ""
 }

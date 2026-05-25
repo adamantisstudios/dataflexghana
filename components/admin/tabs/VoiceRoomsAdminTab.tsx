@@ -235,7 +235,7 @@ export default function VoiceRoomsAdminTab() {
               <SkeletonBlock />
             </div>
           ) : active.length === 0 ? (
-            <p className="text-sm text-white/40 text-center py-8">No active voice rooms</p>
+            <p className="text-sm text-slate-400 text-center py-8">No active voice rooms</p>
           ) : (
             <ul className="space-y-3">
               {active.map((room) => (
@@ -279,7 +279,7 @@ export default function VoiceRoomsAdminTab() {
           {loading ? (
             <SkeletonBlock className="h-24" />
           ) : past.length === 0 ? (
-            <p className="text-sm text-white/40 text-center py-8">No ended rooms yet</p>
+            <p className="text-sm text-slate-400 text-center py-8">No ended rooms yet</p>
           ) : (
             <ul className="space-y-2">
               {past.slice(0, 20).map((room) => (
@@ -317,6 +317,7 @@ export default function VoiceRoomsAdminTab() {
           roomName={controlRoom.room_name}
           token={controlToken.token}
           serverUrl={controlToken.serverUrl}
+          recordingEnabled={recordingEnabled}
           onClose={() => {
             setControlRoom(null)
             setControlToken(null)
