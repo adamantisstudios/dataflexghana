@@ -18,6 +18,7 @@ import { ViewDetailsDialog } from "@/components/admin/ViewDetailsDialog"
 import { getCurrentAdmin } from "@/lib/auth"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { getAgentCommissionSummary } from "@/lib/commission-earnings"
+import { isStorefrontWithdrawal } from "@/lib/storefront-payout"
 import { Banknote, Filter, Trash2, Eye, AlertCircle } from "lucide-react"
 
 export default function PayoutsTab() {
@@ -30,6 +31,20 @@ export default function PayoutsTab() {
   const [agentBalances, setAgentBalances] = useState<Map<string, any>>(new Map())
   const itemsPerPage = 12
   const admin = getCurrentAdmin()
+
+  const loadStorefrontCommissionBalance = async (agentId: string) => {
+    try {
+      const { data } = await supabase
+        .from("agent_store_profiles")
+        .select("storefront_commission_balance")
+        .eq("agent_id", agentId)
+        .maybeSingle()
+      return Number(data?.storefront_commission_balance ?? 0)
+    } catch (error) {
+      console.error(`Error loading storefront balance for agent ${agentId}:`, error)
+      return 0
+    }
+  }
 
   const loadAgentBalance = async (agentId: string) => {
     if (agentBalances.has(agentId)) {
@@ -51,13 +66,26 @@ export default function PayoutsTab() {
     try {
       const enrichedWithdrawals = await Promise.all(
         withdrawals.map(async (withdrawal) => {
-          const agentBalance = await loadAgentBalance(withdrawal.agent_id)
+          const storefront = isStorefrontWithdrawal(withdrawal)
+          const storefrontBalance = storefront
+            ? await loadStorefrontCommissionBalance(withdrawal.agent_id)
+            : null
+          const agentBalance = storefront
+            ? {
+                isStorefront: true,
+                availableForWithdrawal: storefrontBalance,
+                totalEarned: storefrontBalance,
+                totalWithdrawn: 0,
+                pendingWithdrawal: 0,
+              }
+            : await loadAgentBalance(withdrawal.agent_id)
 
           if (!withdrawal.commission_items || !Array.isArray(withdrawal.commission_items)) {
             return {
               ...withdrawal,
               commission_items: [],
               agent_balance: agentBalance,
+              is_storefront: storefront,
             }
           }
 
@@ -169,6 +197,7 @@ export default function PayoutsTab() {
             ...withdrawal,
             commission_items: enrichedItems,
             agent_balance: agentBalance,
+            is_storefront: storefront,
           }
         }),
       )
@@ -380,6 +409,10 @@ export default function PayoutsTab() {
   }
 
   const getWithdrawalValidation = (withdrawal: any) => {
+    if (isStorefrontWithdrawal(withdrawal) || withdrawal.is_storefront) {
+      return { isValid: true, message: null }
+    }
+
     if (!withdrawal.agent_balance) return null
 
     const availableBalance = withdrawal.agent_balance.availableForWithdrawal || 0
@@ -519,6 +552,7 @@ export default function PayoutsTab() {
         ) : (
           getPaginatedData(filteredWithdrawals, currentPayoutsPage).map((withdrawal) => {
             const validation = getWithdrawalValidation(withdrawal)
+            const storefrontPayout = isStorefrontWithdrawal(withdrawal) || withdrawal.is_storefront
 
             return (
               <Card
@@ -532,13 +566,14 @@ export default function PayoutsTab() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-emerald-800 text-lg">
+                          {storefrontPayout ? "Storefront Commission — " : ""}
                           GH₵ {withdrawal.amount.toLocaleString()}
                         </h3>
                         <div className="flex items-center gap-2">
                           <Badge className={getStatusColor(withdrawal.status)}>{withdrawal.status}</Badge>
-                          {withdrawal.admin_notes?.includes("source:storefront") && (
-                            <Badge variant="secondary" className="bg-violet-100 text-violet-800">
-                              Storefront commission
+                          {storefrontPayout && (
+                            <Badge variant="secondary" className="bg-violet-100 text-violet-800 border-violet-200">
+                              Storefront Commission
                             </Badge>
                           )}
                           {validation && !validation.isValid && (
@@ -561,33 +596,52 @@ export default function PayoutsTab() {
                       )}
 
                       {withdrawal.agent_balance && (
-                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <span className="font-medium text-blue-800">Available Balance:</span>
-                              <span className="text-blue-600 ml-1">
-                                GH₵{withdrawal.agent_balance.availableForWithdrawal?.toFixed(2) || "0.00"}
+                        <div
+                          className={`p-3 border rounded-lg ${
+                            storefrontPayout
+                              ? "bg-violet-50 border-violet-200"
+                              : "bg-blue-50 border-blue-200"
+                          }`}
+                        >
+                          {storefrontPayout ? (
+                            <p className="text-sm text-violet-800">
+                              <span className="font-medium">Current storefront commission balance:</span>{" "}
+                              <span className="text-violet-700">
+                                GH₵
+                                {withdrawal.agent_balance.availableForWithdrawal?.toFixed(2) || "0.00"}
                               </span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-blue-800">Total Earned:</span>
-                              <span className="text-blue-600 ml-1">
-                                GH₵{withdrawal.agent_balance.totalEarned?.toFixed(2) || "0.00"}
+                              <span className="block text-xs text-violet-600 mt-1">
+                                Separate from main system commission. Requested amount was reserved at submit time.
                               </span>
+                            </p>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className="font-medium text-blue-800">Available Balance:</span>
+                                <span className="text-blue-600 ml-1">
+                                  GH₵{withdrawal.agent_balance.availableForWithdrawal?.toFixed(2) || "0.00"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-blue-800">Total Earned:</span>
+                                <span className="text-blue-600 ml-1">
+                                  GH₵{withdrawal.agent_balance.totalEarned?.toFixed(2) || "0.00"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-blue-800">Total Withdrawn:</span>
+                                <span className="text-blue-600 ml-1">
+                                  GH₵{withdrawal.agent_balance.totalWithdrawn?.toFixed(2) || "0.00"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-blue-800">Pending:</span>
+                                <span className="text-blue-600 ml-1">
+                                  GH₵{withdrawal.agent_balance.pendingWithdrawal?.toFixed(2) || "0.00"}
+                                </span>
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-medium text-blue-800">Total Withdrawn:</span>
-                              <span className="text-blue-600 ml-1">
-                                GH₵{withdrawal.agent_balance.totalWithdrawn?.toFixed(2) || "0.00"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-medium text-blue-800">Pending:</span>
-                              <span className="text-blue-600 ml-1">
-                                GH₵{withdrawal.agent_balance.pendingWithdrawal?.toFixed(2) || "0.00"}
-                              </span>
-                            </div>
-                          </div>
+                          )}
                         </div>
                       )}
 

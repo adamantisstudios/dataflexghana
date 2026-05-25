@@ -65,7 +65,6 @@ import { supabase } from "@/lib/supabase-client";
 import { connectionManager } from "@/lib/connection-manager"
 import { toast } from "sonner"
 import Link from "next/link"
-import { PendingAlertsCard } from "@/components/admin/pending-alerts-card"
 import { PendingOrdersFeed } from "@/components/admin/PendingOrdersFeed"
 import { FollowUpsTodayCard } from "@/components/admin/FollowUpsTodayCard"
 
@@ -785,7 +784,6 @@ export default function AdminDashboard() {
           </div>
           {/* Dashboard Tab Content */}
           <TabsContent value="dashboard" className="space-y-6">
-            <PendingAlertsCard />
             <PendingOrdersFeed onNavigateTab={loadTab} />
             <FollowUpsTodayCard />
 

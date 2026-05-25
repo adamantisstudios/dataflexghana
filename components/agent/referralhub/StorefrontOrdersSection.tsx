@@ -46,11 +46,17 @@ interface AdOrderRow {
 
 interface Props {
   agentId: string
-  commissionBalance: number
+  /** Optional seed from parent; refreshed from agent_store_profiles.storefront_commission_balance */
+  storefrontCommissionBalance?: number
   onBalanceChange?: () => void
 }
 
-export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceChange }: Props) {
+export function StorefrontOrdersSection({
+  agentId,
+  storefrontCommissionBalance: initialBalance = 0,
+  onBalanceChange,
+}: Props) {
+  const [storefrontBalance, setStorefrontBalance] = useState(initialBalance)
   const [requestingPayout, setRequestingPayout] = useState(false)
   const [orders, setOrders] = useState<StorefrontOrder[]>([])
   const [adOrders, setAdOrders] = useState<AdOrderRow[]>([])
@@ -59,23 +65,45 @@ export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceC
   const [loading, setLoading] = useState(true)
   const [loadingAds, setLoadingAds] = useState(true)
 
+  const refreshStorefrontBalance = useCallback(async () => {
+    try {
+      const headers = getAgentAuthHeaders()
+      const res = await fetch(`/api/agent/store-settings?agentId=${agentId}`, { headers })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setStorefrontBalance(Number(data.storefront_commission_balance ?? 0))
+    } catch {
+      /* keep last known balance */
+    }
+  }, [agentId])
+
+  useEffect(() => {
+    setStorefrontBalance(initialBalance)
+  }, [initialBalance])
+
+  useEffect(() => {
+    refreshStorefrontBalance()
+  }, [refreshStorefrontBalance])
+
   const requestPayout = async () => {
-    if (commissionBalance <= 0) {
-      toast.error("No commission balance to withdraw")
+    if (storefrontBalance <= 0) {
+      toast.error("No storefront commission balance to withdraw")
       return
     }
-    if (!confirm(`Request payout of ₵${commissionBalance.toFixed(2)}? This will notify admin.`)) return
+    if (!confirm(`Request payout of ₵${storefrontBalance.toFixed(2)}? This will notify admin.`)) return
     setRequestingPayout(true)
     try {
       const res = await fetch("/api/agent/storefront/request-payout", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
-        body: JSON.stringify({ agentId }),
+        body: JSON.stringify({ agentId, amount: storefrontBalance }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       toast.success(data.data?.message || "Payout requested")
+      setStorefrontBalance(Number(data.data?.available_balance ?? 0))
       onBalanceChange?.()
+      await refreshStorefrontBalance()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Request failed")
     } finally {
@@ -154,7 +182,7 @@ export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceC
             <div>
               <p className="text-sm text-muted-foreground">Storefront commission balance</p>
               <p className="text-2xl font-bold text-emerald-800">
-                ₵{Number(commissionBalance).toFixed(2)}
+                ₵{Number(storefrontBalance).toFixed(2)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Request payout — admin pays via MoMo and marks it in Payouts.
@@ -163,7 +191,7 @@ export function StorefrontOrdersSection({ agentId, commissionBalance, onBalanceC
           </div>
           <Button
             onClick={requestPayout}
-            disabled={requestingPayout || commissionBalance <= 0}
+            disabled={requestingPayout || storefrontBalance <= 0}
             className="bg-emerald-700 hover:bg-emerald-800 shrink-0"
           >
             {requestingPayout ? "Submitting…" : "Request Payout"}

@@ -1,31 +1,55 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { getAdminClient } from "@/lib/supabase-base"
-import { getStoreProfile } from "@/lib/storefront-server"
+import {
+  STOREFRONT_PAYOUT_NOTE,
+  fetchStorefrontCommissionBalance,
+} from "@/lib/storefront-payout"
 
 export const dynamic = "force-dynamic"
-
-const STOREFRONT_PAYOUT_NOTE = "source:storefront"
 
 export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json().catch(() => ({}))
     const agentId = (body.agentId as string) || user.id
+    const requestedRaw = body.amount
 
     if (user.role === "agent" && agentId !== user.id) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 })
     }
 
-    const db = getAdminClient()
-    const profile = await getStoreProfile(agentId)
-    const balance = Number(profile?.storefront_commission_balance ?? 0)
+    const balance = await fetchStorefrontCommissionBalance(agentId)
 
     if (balance <= 0) {
       return NextResponse.json(
-        { error: "No storefront commission balance available to withdraw" },
+        {
+          error: "No storefront commission balance available to withdraw",
+          available_balance: 0,
+        },
         { status: 400 },
       )
     }
+
+    const payoutAmount =
+      requestedRaw !== undefined && requestedRaw !== null
+        ? Number(requestedRaw)
+        : balance
+
+    if (!Number.isFinite(payoutAmount) || payoutAmount <= 0) {
+      return NextResponse.json({ error: "Invalid payout amount" }, { status: 400 })
+    }
+
+    if (payoutAmount > balance + 0.001) {
+      return NextResponse.json(
+        {
+          error: `Insufficient storefront commission balance. Available: ₵${balance.toFixed(2)}`,
+          available_balance: balance,
+        },
+        { status: 400 },
+      )
+    }
+
+    const db = getAdminClient()
 
     const { data: agentRow, error: agentError } = await db
       .from("agents")
@@ -59,22 +83,25 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       )
     }
 
+    const newBalance = Math.max(0, balance - payoutAmount)
+    const balanceUpdate: Record<string, unknown> = {
+      storefront_commission_balance: newBalance,
+      updated_at: new Date().toISOString(),
+    }
+
     const { error: balanceError } = await db
       .from("agent_store_profiles")
-      .update({
-        storefront_commission_balance: 0,
-        updated_at: new Date().toISOString(),
-      })
+      .update(balanceUpdate)
       .eq("agent_id", agentId)
 
     if (balanceError) {
       return NextResponse.json({ error: balanceError.message }, { status: 500 })
     }
 
-    const payoutNote = `Storefront commission payout request (₵${balance.toFixed(2)})`
+    const payoutNote = `Storefront commission payout request (₵${payoutAmount.toFixed(2)})`
     const insertPayload: Record<string, unknown> = {
       agent_id: agentId,
-      amount: balance,
+      amount: payoutAmount,
       momo_number: momo,
       status: "requested",
       requested_at: new Date().toISOString(),
@@ -100,10 +127,11 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     }
 
     if (withdrawalError) {
-      await db
-        .from("agent_store_profiles")
-        .update({ storefront_commission_balance: balance })
-        .eq("agent_id", agentId)
+      const rollback: Record<string, unknown> = {
+        storefront_commission_balance: balance,
+        updated_at: new Date().toISOString(),
+      }
+      await db.from("agent_store_profiles").update(rollback).eq("agent_id", agentId)
       return NextResponse.json({ error: withdrawalError.message }, { status: 500 })
     }
 
@@ -111,8 +139,9 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       success: true,
       data: {
         withdrawal_id: withdrawal?.id,
-        amount: balance,
-        message: `Payout request for ₵${balance.toFixed(2)} submitted. Admin will pay via MoMo.`,
+        amount: payoutAmount,
+        available_balance: newBalance,
+        message: `Payout request for ₵${payoutAmount.toFixed(2)} submitted. Admin will pay via MoMo.`,
       },
     })
   } catch (error) {

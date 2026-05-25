@@ -1014,13 +1014,13 @@ DataFlex Ghana Agent 🇬🇭`
                 <h1 className="text-base sm:text-lg md:text-xl font-bold text-white drop-shadow-sm truncate">
                   Data Flex Agent
                 </h1>
-                <p className="text-slate-200 text-xs font-medium truncate flex items-center gap-2 flex-wrap">
+                <div className="text-slate-200 text-xs font-medium truncate flex items-center gap-2 flex-wrap">
                   Welcome back,{" "}
                   <span className="font-semibold text-white inline-flex items-center gap-1.5">
                     {agent?.full_name}
                     {agent?.isapproved && <AgentVerificationBadge agent={agent} />}
                   </span>
-                </p>
+                </div>
               </div>
             </div>
 
@@ -2049,17 +2049,18 @@ DataFlex Ghana Agent 🇬🇭`
                                   <span className="font-medium">Client:</span> {referral.client_name} •{" "}
                                   {referral.client_phone}
                                 </p>
-                                <p className="text-emerald-600">
+                                <div className="text-emerald-600">
                                   {getDisplayReferralDescription(referral.description || "", referral.id)}
                                   {shouldTruncateReferralDescription(referral.description || "") && (
                                     <button
+                                      type="button"
                                       onClick={() => toggleReferralExpanded(referral.id)}
                                       className="text-emerald-500 hover:underline ml-1 text-sm font-medium"
                                     >
                                       {expandedReferrals.has(referral.id) ? "Read Less" : "Read More"}
                                     </button>
                                   )}
-                                </p>
+                                </div>
                                 <div className="flex items-center gap-2 mt-2">
                                   {referral.allow_direct_contact === false ? (
                                     <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs">

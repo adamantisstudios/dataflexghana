@@ -82,7 +82,7 @@ export default function ReferralHubPage() {
   const [savedWholesale, setSavedWholesale] = useState<
     { id: string; name: string; description: string | null; price: number; image_url?: string | null }[]
   >([])
-  const [commissionBalance, setCommissionBalance] = useState(0)
+  const [storefrontCommissionBalance, setStorefrontCommissionBalance] = useState(0)
   const [saving, setSaving] = useState(false)
   const [slugInput, setSlugInput] = useState("")
   const [slugStatus, setSlugStatus] = useState<"idle" | "checking" | "ok" | "bad">("idle")
@@ -116,7 +116,7 @@ export default function ReferralHubPage() {
     setSettings(marketData.settings || [])
     setSavedBundles(marketData.savedBundles || [])
     setSavedWholesale(marketData.savedWholesale || [])
-    setCommissionBalance(Number(marketData.storefront_commission_balance ?? 0))
+    setStorefrontCommissionBalance(Number(marketData.storefront_commission_balance ?? 0))
   }, [])
 
   const loadAll = useCallback(
@@ -491,7 +491,7 @@ export default function ReferralHubPage() {
               {agent?.id && (
                 <StorefrontOrdersSection
                   agentId={agent.id}
-                  commissionBalance={commissionBalance}
+                  storefrontCommissionBalance={storefrontCommissionBalance}
                   onBalanceChange={() => loadSettings(agent.id)}
                 />
               )}

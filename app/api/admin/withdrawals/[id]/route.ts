@@ -3,6 +3,10 @@ import { getAdminClient } from "@/lib/supabase-base"
 import { completeWithdrawal, cancelWithdrawal } from "@/lib/commission-earnings"
 import { authenticateAdmin } from "@/lib/api-auth"
 import { processWithdrawalPayout } from "@/lib/wholesale"
+import {
+  isStorefrontWithdrawal,
+  restoreStorefrontCommissionBalance,
+} from "@/lib/storefront-payout"
 
 export const dynamic = "force-dynamic"
 
@@ -43,6 +47,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ success: false, error: "Withdrawal not found" }, { status: 404 })
     }
 
+    const storefrontPayout = isStorefrontWithdrawal(withdrawal)
+
     if (status === "paid") {
       const adminId = authResult.user?.id || "admin"
       const paid = await processWithdrawalPayout(withdrawalId, adminId)
@@ -50,30 +56,37 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         return NextResponse.json({ success: false, error: "Failed to process payout" }, { status: 500 })
       }
 
-      const commissionResult = await completeWithdrawal(withdrawalId)
+      let commissionResult = { success: true }
+      if (!storefrontPayout) {
+        commissionResult = await completeWithdrawal(withdrawalId)
 
-      if (admin_notes) {
+        if (admin_notes) {
+          await db.from("withdrawals").update({ admin_notes }).eq("id", withdrawalId)
+        }
+
+        const newPaidOut = Number(withdrawal.amount) || 0
+        const { data: agentRow } = await db
+          .from("agents")
+          .select("totalpaidout")
+          .eq("id", withdrawal.agent_id)
+          .single()
+
+        await db
+          .from("agents")
+          .update({
+            totalpaidout: (Number(agentRow?.totalpaidout) || 0) + newPaidOut,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", withdrawal.agent_id)
+      } else if (admin_notes) {
         await db.from("withdrawals").update({ admin_notes }).eq("id", withdrawalId)
       }
 
-      const newPaidOut = (Number(withdrawal.amount) || 0)
-      const { data: agentRow } = await db
-        .from("agents")
-        .select("totalpaidout")
-        .eq("id", withdrawal.agent_id)
-        .single()
-
-      await db
-        .from("agents")
-        .update({
-          totalpaidout: (Number(agentRow?.totalpaidout) || 0) + newPaidOut,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", withdrawal.agent_id)
-
       return NextResponse.json({
         success: true,
-        message: "Withdrawal paid successfully",
+        message: storefrontPayout
+          ? "Storefront commission payout marked paid"
+          : "Withdrawal paid successfully",
         commission_processed: commissionResult.success,
       })
     }
@@ -88,6 +101,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           updated_at: new Date().toISOString(),
         })
         .eq("id", withdrawalId)
+
+      if (storefrontPayout) {
+        await restoreStorefrontCommissionBalance(
+          withdrawal.agent_id,
+          Number(withdrawal.amount) || 0,
+        )
+        return NextResponse.json({
+          success: true,
+          message: "Storefront commission payout rejected; balance restored",
+          commission_processed: false,
+        })
+      }
 
       const commissionResult = await cancelWithdrawal(withdrawalId)
 

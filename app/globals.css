@@ -177,6 +177,22 @@ body {
     }
   }
 
+  @keyframes hand-rise {
+    0% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-8px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  .animate-hand-rise {
+    animation: hand-rise 0.6s ease-out;
+  }
+
   .animate-in {
     animation-duration: 300ms;
     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);

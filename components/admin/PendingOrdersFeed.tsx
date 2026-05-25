@@ -2,107 +2,64 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { getAdminAuthHeaders } from "@/lib/api-client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, RefreshCw, ExternalLink } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+import {
+  Database,
+  ShoppingBag,
+  ShoppingBasket,
+  Megaphone,
+  Award,
+  Leaf,
+  Banknote,
+  RefreshCw,
+  Loader2,
+  ChevronRight,
+} from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
-type PendingItem = {
-  id: string
-  created_at: string
-  customer_phone?: string | null
-  agent_name?: string
-  product?: string
-  amount?: number | null
-  client_name?: string | null
-  href_tab: string
-}
+const BRAND = "#0E8F3D"
 
 type PendingOrdersPayload = {
-  data_orders: PendingItem[]
-  storefront_orders: PendingItem[]
-  grocery_requests: PendingItem[]
-  ad_orders: PendingItem[]
-  influencer_orders: PendingItem[]
-  farm_orders: PendingItem[]
-  withdrawals: PendingItem[]
+  data_orders: unknown[]
+  storefront_orders: unknown[]
+  grocery_requests: unknown[]
+  ad_orders: unknown[]
+  influencer_orders: unknown[]
+  farm_orders: unknown[]
+  withdrawals: unknown[]
   total_pending: number
 }
 
-const CATEGORIES: { key: keyof PendingOrdersPayload; label: string }[] = [
-  { key: "data_orders", label: "Data Orders" },
-  { key: "storefront_orders", label: "Storefront" },
-  { key: "grocery_requests", label: "Grocery" },
-  { key: "ad_orders", label: "Advertising" },
-  { key: "influencer_orders", label: "Influencers" },
-  { key: "farm_orders", label: "Farmers Friend" },
-  { key: "withdrawals", label: "Withdrawals" },
+type CategoryCard = {
+  key: keyof PendingOrdersPayload
+  label: string
+  hrefTab: string
+  icon: LucideIcon
+}
+
+const CATEGORIES: CategoryCard[] = [
+  { key: "data_orders", label: "Data Orders", hrefTab: "orders", icon: Database },
+  { key: "storefront_orders", label: "Storefront Orders", hrefTab: "storefront-manager", icon: ShoppingBag },
+  { key: "grocery_requests", label: "Grocery Requests", hrefTab: "grocery-requests", icon: ShoppingBasket },
+  { key: "ad_orders", label: "Advertising", hrefTab: "advertising", icon: Megaphone },
+  { key: "influencer_orders", label: "Influencers", hrefTab: "micro-influencers", icon: Award },
+  { key: "farm_orders", label: "Farmers Friend", hrefTab: "farmers-friend", icon: Leaf },
+  { key: "withdrawals", label: "Withdrawals", hrefTab: "payouts", icon: Banknote },
 ]
 
 type Props = {
   onNavigateTab?: (tabId: string) => void
 }
 
-function formatAmount(amount: number | null | undefined) {
-  if (amount == null || Number.isNaN(Number(amount))) return null
-  return `₵${Number(amount).toLocaleString()}`
-}
-
-function OrderList({
-  items,
-  tabId,
-  onNavigateTab,
-}: {
-  items: PendingItem[]
-  tabId: string
-  onNavigateTab?: (tabId: string) => void
-}) {
-  if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground py-4 text-center">No pending items in this category.</p>
-  }
-
+function SkeletonCards() {
   return (
-    <ul className="space-y-2">
-      {items.slice(0, 5).map((item) => (
-        <li
-          key={item.id}
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border bg-white p-3 text-sm"
-        >
-          <div className="min-w-0 space-y-0.5">
-            <p className="font-medium truncate">
-              {item.product || "Order"}{" "}
-              <span className="text-muted-foreground font-normal">#{String(item.id).slice(0, 8)}</span>
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {item.agent_name && <span>{item.agent_name}</span>}
-              {item.agent_name && item.customer_phone && " · "}
-              {item.customer_phone && <span>{item.customer_phone}</span>}
-              {item.client_name && <span> · Client: {item.client_name}</span>}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {item.created_at
-                ? formatDistanceToNow(new Date(item.created_at), { addSuffix: true })
-                : "—"}
-              {formatAmount(item.amount) && ` · ${formatAmount(item.amount)}`}
-            </p>
-          </div>
-          {onNavigateTab && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0"
-              onClick={() => onNavigateTab(tabId)}
-            >
-              <ExternalLink className="h-3.5 w-3.5 mr-1" />
-              Manage
-            </Button>
-          )}
-        </li>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div
+          key={i}
+          className="h-[72px] rounded-xl bg-white/80 border border-slate-100 shadow-sm animate-pulse"
+        />
       ))}
-    </ul>
+    </div>
   )
 }
 
@@ -114,6 +71,7 @@ export function PendingOrdersFeed({ onNavigateTab }: Props) {
     try {
       const res = await fetch("/api/admin/dashboard/pending-orders", {
         headers: getAdminAuthHeaders(),
+        cache: "no-store",
       })
       if (res.ok) {
         const json = await res.json()
@@ -137,70 +95,71 @@ export function PendingOrdersFeed({ onNavigateTab }: Props) {
     }
   }, [load])
 
-  const defaultTab =
-    CATEGORIES.find((c) => (data?.[c.key] as PendingItem[] | undefined)?.length)?.key ?? "data_orders"
+  const total = data?.total_pending ?? 0
 
   return (
-    <Card className="border-2 border-indigo-100 shadow-md">
-      <CardHeader className="pb-2 bg-gradient-to-r from-indigo-50 to-blue-50">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-lg">Pending Orders &amp; Requests</CardTitle>
-          <Button variant="ghost" size="icon" onClick={load} disabled={loading} aria-label="Refresh">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-        {loading && !data ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading…
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            You have{" "}
-            <Badge className="bg-indigo-600 text-white align-middle mx-1">
-              {data?.total_pending ?? 0}
-            </Badge>{" "}
-            pending items across all categories.
+    <section className="rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50/80">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Pending orders</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {loading && !data ? "Loading…" : `${total} item${total === 1 ? "" : "s"} need attention`}
           </p>
-        )}
-      </CardHeader>
-      <CardContent>
-        {data && data.total_pending === 0 ? (
-          <p className="text-sm text-center text-muted-foreground py-6">No pending orders right now.</p>
-        ) : data ? (
-          <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="flex flex-wrap h-auto gap-1 bg-slate-100 p-1">
-              {CATEGORIES.map(({ key, label }) => {
-                const count = (data[key] as PendingItem[])?.length ?? 0
-                if (count === 0) return null
-                return (
-                  <TabsTrigger key={key} value={key} className="text-xs sm:text-sm">
-                    {label}
-                    <Badge variant="secondary" className="ml-1.5 h-5 px-1.5">
-                      {count}
-                    </Badge>
-                  </TabsTrigger>
-                )
-              })}
-            </TabsList>
-            {CATEGORIES.map(({ key, label }) => {
-              const items = (data[key] as PendingItem[]) || []
-              if (items.length === 0) return null
-              const tabId = items[0]?.href_tab || key
+        </div>
+        <button
+          type="button"
+          onClick={load}
+          disabled={loading}
+          className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+          aria-label="Refresh pending orders"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        </button>
+      </div>
+
+      <div className="p-4">
+        {loading && !data ? (
+          <SkeletonCards />
+        ) : !data || total === 0 ? (
+          <div className="py-10 text-center text-sm text-slate-500">No pending orders right now.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {CATEGORIES.map(({ key, label, hrefTab, icon: Icon }) => {
+              const count = (data[key] as unknown[])?.length ?? 0
+              if (count === 0) return null
+
               return (
-                <TabsContent key={key} value={key} className="mt-3">
-                  <OrderList items={items} tabId={tabId} onNavigateTab={onNavigateTab} />
-                  {items.length > 5 && (
-                    <p className="text-xs text-muted-foreground mt-2 text-center">
-                      Showing 5 of {items.length} — open {label} for full list
-                    </p>
-                  )}
-                </TabsContent>
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => onNavigateTab?.(hrefTab)}
+                  className="group flex items-center gap-3 w-full text-left rounded-xl border border-slate-100 bg-white px-4 py-3.5 shadow-sm hover:shadow-md hover:border-[#0E8F3D]/30 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E8F3D]/40"
+                >
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: `${BRAND}14`, color: BRAND }}
+                  >
+                    <Icon className="h-5 w-5" strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-800 truncate">{label}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Tap to manage</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span
+                      className="text-lg font-bold tabular-nums"
+                      style={{ color: BRAND }}
+                    >
+                      {count}
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-[#0E8F3D] transition-colors" />
+                  </div>
+                </button>
               )
             })}
-          </Tabs>
-        ) : null}
-      </CardContent>
-    </Card>
+          </div>
+        )}
+      </div>
+    </section>
   )
 }

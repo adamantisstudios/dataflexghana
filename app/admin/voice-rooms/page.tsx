@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Radio } from "lucide-react"
 import { getStoredAdmin } from "@/lib/auth"
 import VoiceRoomsAdminTab from "@/components/admin/tabs/VoiceRoomsAdminTab"
 
@@ -16,17 +16,20 @@ export default function AdminVoiceRoomsPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="bg-[#0E8F3D] text-white px-4 py-3 sticky top-0 z-10 shadow-md">
-        <div className="max-w-6xl mx-auto flex items-center gap-3">
+    <div className="min-h-screen bg-gradient-to-b from-[#0a1628] via-[#0d1b2a] to-black text-white">
+      <header className="sticky top-0 z-10 border-b border-white/10 bg-black/40 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3">
           <Link href="/admin">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 h-11 w-11">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <h1 className="font-semibold text-lg">Voice Rooms</h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <Radio className="h-5 w-5 text-emerald-400 shrink-0" />
+            <h1 className="font-semibold text-lg truncate">Voice conference control</h1>
+          </div>
         </div>
-      </div>
+      </header>
       <div className="max-w-6xl mx-auto px-4 py-6">
         <VoiceRoomsAdminTab />
       </div>
