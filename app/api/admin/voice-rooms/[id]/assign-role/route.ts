@@ -5,7 +5,7 @@ import { updateParticipantRole, type VoiceParticipantRole } from "@/lib/livekit-
 
 export const dynamic = "force-dynamic"
 
-const ROLES: VoiceParticipantRole[] = ["listener", "speaker", "moderator", "admin"]
+const ROLES: VoiceParticipantRole[] = ["listener", "speaker", "co-host", "moderator", "admin"]
 
 export async function POST(
   request: NextRequest,

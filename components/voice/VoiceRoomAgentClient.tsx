@@ -10,7 +10,7 @@ import {
   useParticipants,
   useRoomContext,
 } from "@livekit/components-react"
-import { ConnectionState } from "livekit-client"
+import { ConnectionState, RoomEvent } from "livekit-client"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -36,6 +36,8 @@ import {
   FolderOpen,
   Sparkles,
   Headphones,
+  Share2,
+  LogOut as LogOutIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
@@ -54,6 +56,11 @@ import { getParticipantRole, isSpeakerRole } from "@/components/voice/voice-part
 import { useParticipantAudioLevel } from "@/components/voice/useParticipantAudioLevel"
 import { VoiceReactionsLayer, sendVoiceReaction } from "@/components/voice/VoiceReactionsLayer"
 import { ChatPanel } from "@/components/voice/ChatPanel"
+import { VoiceParticipantsSheet } from "@/components/voice/VoiceParticipantsSheet"
+import { VoicePollPanel } from "@/components/voice/VoicePollPanel"
+import { HostVideoPanel } from "@/components/voice/HostVideoPanel"
+import { decodeVoiceData } from "@/lib/voice-room-data"
+import { VOICE_TOPIC_DEMOTE } from "@/lib/voice-room-topics"
 
 type SharedFile = {
   id: string
@@ -149,7 +156,17 @@ function StageAvatar({
   )
 }
 
-function AgentRoomUI({ roomName }: { roomName: string }) {
+function AgentRoomUI({
+  roomName,
+  pendingSpeak,
+  onTokenUpgrade,
+  onSpeakActivated,
+}: {
+  roomName: string
+  pendingSpeak: boolean
+  onTokenUpgrade: (token: string) => void
+  onSpeakActivated: () => void
+}) {
   const router = useRouter()
   const room = useRoomContext()
   const connectionState = useConnectionState()
@@ -159,6 +176,7 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
   const [handRaised, setHandRaised] = useState(false)
   const [handAnimating, setHandAnimating] = useState(false)
   const [canSpeak, setCanSpeak] = useState(false)
+  const [wasDemoted, setWasDemoted] = useState(false)
   const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([])
   const [connectingMic, setConnectingMic] = useState(false)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
@@ -202,35 +220,68 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
       }
     })
 
-    room.registerTextStreamHandler(VOICE_TOPIC_GRANT_SPEAK, async (reader) => {
-      const text = await reader.readAll()
-      if (text.includes(localParticipant.identity)) {
-        setCanSpeak(true)
-        setHandRaised(false)
-        setHandAnimating(false)
+    const onGrantSpeak = () => {
+      void (async () => {
         setConnectingMic(true)
         try {
-          await localParticipant.setMicrophoneEnabled(true)
-          toast.success("You can speak now")
-        } catch {
-          try {
-            await refreshSpeakerToken()
-            toast.info("Speaker access granted — enable your microphone")
-            await localParticipant.setMicrophoneEnabled(true)
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Enable mic failed")
-          }
-        } finally {
+          const newToken = await refreshSpeakerToken()
+          await room.disconnect()
+          onTokenUpgrade(newToken)
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Could not go live")
           setConnectingMic(false)
         }
-      }
+      })()
+    }
+
+    room.registerTextStreamHandler(VOICE_TOPIC_GRANT_SPEAK, async (reader) => {
+      const text = await reader.readAll()
+      if (text.includes(localParticipant.identity)) onGrantSpeak()
     })
+
+    const onData = (payload: Uint8Array, _p?: unknown, _k?: unknown, topic?: string) => {
+      if (topic === VOICE_TOPIC_GRANT_SPEAK) {
+        const id = new TextDecoder().decode(payload)
+        if (id.includes(localParticipant.identity)) onGrantSpeak()
+      }
+      if (topic === VOICE_TOPIC_DEMOTE) {
+        const msg = decodeVoiceData(payload)
+        if (msg?.type === "demote" && msg.identity === localParticipant.identity) {
+          setCanSpeak(false)
+          setWasDemoted(true)
+          setHandRaised(false)
+          void localParticipant.setMicrophoneEnabled(false)
+          toast.message("You are back in listen-only mode")
+        }
+      }
+    }
+    room.on(RoomEvent.DataReceived, onData)
 
     return () => {
       room.unregisterByteStreamHandler(VOICE_TOPIC_ADMIN_SHARE)
       room.unregisterTextStreamHandler(VOICE_TOPIC_GRANT_SPEAK)
+      room.off(RoomEvent.DataReceived, onData)
     }
-  }, [room, localParticipant, refreshSpeakerToken])
+  }, [room, localParticipant, refreshSpeakerToken, onTokenUpgrade])
+
+  useEffect(() => {
+    if (!pendingSpeak || connectionState !== ConnectionState.Connected) return
+    setCanSpeak(true)
+    setWasDemoted(false)
+    setHandRaised(false)
+    setHandAnimating(false)
+    void (async () => {
+      try {
+        await localParticipant.setMicrophoneEnabled(true)
+        toast.success("You are now live. Speak now.")
+      } catch {
+        toast.error("Allow microphone access in your browser to speak")
+      } finally {
+        setConnectingMic(false)
+        onSpeakActivated()
+      }
+    })()
+  }, [pendingSpeak, connectionState, localParticipant, onSpeakActivated])
 
   const raiseHand = async () => {
     try {
@@ -262,9 +313,36 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
     }
   }
 
+  const shareStream = async () => {
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/agent/voice-room/${encodeURIComponent(roomName)}`
+    const text = `Join our live voice conference on DataFlex Ghana: ${url}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success("Room link copied")
+    } catch {
+      /* clipboard optional */
+    }
+    const wa = `https://wa.me/?text=${encodeURIComponent(text)}`
+    window.open(wa, "_blank", "noopener,noreferrer")
+  }
+
   const leaveRoom = async () => {
     await room.disconnect()
     router.push("/agent/voice-rooms")
+  }
+
+  const leaveQuietly = async () => {
+    try {
+      await localParticipant.setMetadata(JSON.stringify({ quietLeave: true }))
+    } catch {
+      /* optional */
+    }
+    await room.disconnect()
+    router.push("/agent/voice-rooms")
+  }
+
+  const toggleSelfMute = () => {
+    void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)
   }
 
   const connected = connectionState === ConnectionState.Connected
@@ -314,7 +392,9 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
         </p>
       </header>
 
-      <main className="flex-1 flex flex-col px-4 py-6 gap-5 overflow-hidden relative">
+      <main className="flex-1 flex flex-col px-0 py-4 gap-4 overflow-hidden relative">
+        <HostVideoPanel />
+        <div className="px-4 flex flex-col gap-5 flex-1 min-h-0 overflow-hidden">
         {isListening ? (
           <div className="text-center space-y-2">
             <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-white/10 border border-white/15 backdrop-blur-md mb-2">
@@ -342,7 +422,17 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
                 <MicOff className="h-12 w-12 text-slate-400" />
               )}
             </div>
-            <p className="text-sm text-slate-200">You are on stage — speak clearly.</p>
+            <p className="text-sm text-emerald-200 font-medium">You are live — microphone active</p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="mt-2 border-white/20 text-xs h-8"
+              onClick={toggleSelfMute}
+            >
+              {isMicrophoneEnabled ? <Mic className="h-3.5 w-3.5 mr-1" /> : <MicOff className="h-3.5 w-3.5 mr-1" />}
+              {isMicrophoneEnabled ? "Mute yourself" : "Unmute"}
+            </Button>
           </div>
         )}
 
@@ -366,6 +456,7 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
             )}
           </div>
         </div>
+        </div>
       </main>
 
       <footer className="sticky bottom-0 px-4 pb-6 pt-3 border-t border-white/10 bg-slate-950/80 backdrop-blur-xl safe-area-inset-bottom space-y-3">
@@ -385,22 +476,41 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
           ))}
         </div>
 
-        <div className="flex gap-3 max-w-lg mx-auto">
-          {isListening && (
+        <div className="flex flex-wrap gap-2 max-w-lg mx-auto justify-center">
+          {isListening && !wasDemoted && (
             <Button
               type="button"
-              className={`flex-1 h-14 rounded-2xl font-semibold text-base text-white transition-all ${
-                handRaised ? "bg-amber-700 hover:bg-amber-700" : "bg-amber-500 hover:bg-amber-600"
+              className={`flex-1 min-w-[140px] h-12 rounded-xl font-semibold text-sm text-white ${
+                handRaised ? "bg-amber-700" : "bg-amber-500 hover:bg-amber-600"
               } ${handAnimating ? "animate-hand-rise" : ""}`}
               onClick={raiseHand}
               disabled={handRaised || !connected}
             >
-              <Hand
-                className={`h-6 w-6 mr-2 shrink-0 ${handAnimating ? "-translate-y-1" : ""} transition-transform`}
-              />
-              {handRaised ? "Hand raised ✋" : "Raise hand"}
+              <Hand className="h-5 w-5 mr-1 shrink-0" />
+              {handRaised ? "Hand raised" : "Raise hand"}
             </Button>
           )}
+          {isListening && wasDemoted && (
+            <Button
+              type="button"
+              className="flex-1 min-w-[140px] h-12 rounded-xl text-sm bg-amber-500 hover:bg-amber-600 text-white"
+              onClick={raiseHand}
+              disabled={handRaised || !connected}
+            >
+              Request to speak
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 px-3 rounded-xl border-white/20 bg-slate-800/80 text-white text-xs"
+            onClick={() => void shareStream()}
+            disabled={!connected}
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+          <VoiceParticipantsSheet compact triggerClassName="h-12 w-12 rounded-xl border-white/20 bg-slate-800/80" />
+          <VoicePollPanel compact />
           <ChatPanel
             roomName={roomName}
             senderName={localParticipant.name || "Agent"}
@@ -463,7 +573,16 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
               </div>
             </SheetContent>
           </Sheet>
-          <Button type="button" variant="destructive" className="h-14 rounded-2xl px-5" onClick={leaveRoom}>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 px-3 rounded-xl border-white/20 text-xs text-slate-300"
+            onClick={leaveQuietly}
+            title="Leave quietly"
+          >
+            <LogOutIcon className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="destructive" className="h-12 rounded-xl px-4" onClick={leaveRoom}>
             <LogOut className="h-5 w-5" />
           </Button>
         </div>
@@ -482,8 +601,17 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
   )
 }
 
-export function VoiceRoomAgentClient({ token, serverUrl, roomName }: Props) {
+export function VoiceRoomAgentClient({ token: initialToken, serverUrl, roomName }: Props) {
   const [joined, setJoined] = useState(false)
+  const [lkToken, setLkToken] = useState(initialToken)
+  const [roomKey, setRoomKey] = useState(0)
+  const [pendingSpeak, setPendingSpeak] = useState(false)
+
+  const handleTokenUpgrade = useCallback((newToken: string) => {
+    setLkToken(newToken)
+    setRoomKey((k) => k + 1)
+    setPendingSpeak(true)
+  }, [])
 
   if (!joined) {
     return <PreJoinScreen roomName={roomName} onJoin={() => setJoined(true)} />
@@ -491,16 +619,22 @@ export function VoiceRoomAgentClient({ token, serverUrl, roomName }: Props) {
 
   return (
     <LiveKitRoom
-      token={token}
+      key={roomKey}
+      token={lkToken}
       serverUrl={serverUrl}
       connect={joined}
       audio
-      video={false}
+      video
       options={{ publishDefaults: { simulcast: false } }}
       onError={(e) => toast.error(e.message)}
       className="min-h-[100dvh] bg-gradient-to-b from-[#0a1628] via-[#1a0f2e] to-black text-white"
     >
-      <AgentRoomUI roomName={roomName} />
+      <AgentRoomUI
+        roomName={roomName}
+        pendingSpeak={pendingSpeak}
+        onTokenUpgrade={handleTokenUpgrade}
+        onSpeakActivated={() => setPendingSpeak(false)}
+      />
       <RoomAudioRenderer />
     </LiveKitRoom>
   )

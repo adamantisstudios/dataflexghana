@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
       serverUrl: getLiveKitWsUrl(),
       roomName,
       canPublish: speak,
+      canPublishAudio: speak,
     })
   } catch (e) {
     console.error("[agent/voice-rooms/token]", e)

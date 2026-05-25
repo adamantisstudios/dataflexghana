@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdminSession } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
-import { generateToken, getLiveKitWsUrl } from "@/lib/livekit-server"
+import { generateAdminVoiceToken, getLiveKitWsUrl } from "@/lib/livekit-server"
 
 export const dynamic = "force-dynamic"
 
@@ -23,9 +23,7 @@ export async function POST(
     const adminId = String(session.admin?.id ?? "admin")
     const adminName = String(session.admin?.full_name ?? session.admin?.username ?? "Admin")
 
-    const token = await generateToken(`admin-${adminId}`, room.room_name, adminName, true, {
-      role: "admin",
-    })
+    const token = await generateAdminVoiceToken(room.room_name, adminId, adminName)
 
     return NextResponse.json({
       success: true,

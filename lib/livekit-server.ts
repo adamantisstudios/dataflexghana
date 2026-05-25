@@ -1,9 +1,9 @@
-import { TrackType } from "@livekit/protocol"
+import { TrackSource, TrackType } from "@livekit/protocol"
 import { AccessToken, EgressClient, RoomServiceClient, type CreateOptions } from "livekit-server-sdk"
 import { getAdminClient } from "@/lib/supabase-base"
 import { voiceRegionsMatch } from "@/lib/voice-room-regions"
 
-export type VoiceParticipantRole = "admin" | "moderator" | "speaker" | "listener"
+export type VoiceParticipantRole = "admin" | "moderator" | "co-host" | "speaker" | "listener"
 
 /** Shown to admins when auto-egress is unavailable on the LiveKit plan. */
 export const LIVEKIT_RECORDING_UNAVAILABLE_MESSAGE =
@@ -78,6 +78,7 @@ export async function generateToken(
   name: string,
   canPublish = false,
   metadata?: Record<string, unknown>,
+  options?: { canPublishAudio?: boolean; canPublishVideo?: boolean },
 ): Promise<string> {
   const at = new AccessToken(getApiKey(), getApiSecret(), {
     identity,
@@ -85,16 +86,54 @@ export async function generateToken(
     metadata: metadata ? JSON.stringify(metadata) : undefined,
   })
 
-  at.addGrant({
+  const publishAudio = options?.canPublishAudio ?? canPublish
+  const publishVideo = options?.canPublishVideo ?? false
+
+  const grant: {
+    roomJoin: boolean
+    room: string
+    canSubscribe: boolean
+    canPublishData: boolean
+    canUpdateOwnMetadata: boolean
+    canPublish?: boolean
+    canPublishSources?: TrackSource[]
+  } = {
     roomJoin: true,
     room: roomName,
-    canPublish,
     canSubscribe: true,
     canPublishData: true,
     canUpdateOwnMetadata: true,
-  })
+  }
+
+  if (publishAudio && publishVideo) {
+    grant.canPublish = true
+  } else if (publishAudio) {
+    grant.canPublish = true
+    grant.canPublishSources = [TrackSource.MICROPHONE]
+  } else if (publishVideo) {
+    grant.canPublish = true
+    grant.canPublishSources = [TrackSource.CAMERA]
+  } else if (canPublish) {
+    grant.canPublish = true
+  } else {
+    grant.canPublish = false
+  }
+
+  at.addGrant(grant)
 
   return at.toJwt()
+}
+
+/** Admin host token: publish audio + video, full room controls. */
+export async function generateAdminVoiceToken(
+  roomName: string,
+  adminId: string,
+  adminName: string,
+): Promise<string> {
+  return generateToken(`admin-${adminId}`, roomName, adminName, true, { role: "admin" }, {
+    canPublishAudio: true,
+    canPublishVideo: true,
+  })
 }
 
 export async function generateAgentToken(
@@ -122,7 +161,11 @@ export async function generateAgentToken(
   }
 
   const role = options?.role ?? (options?.canPublish ? "speaker" : "listener")
-  return generateToken(agentId, roomName, agentName, options?.canPublish ?? false, { role })
+  const canPublish = options?.canPublish ?? false
+  return generateToken(agentId, roomName, agentName, false, { role }, {
+    canPublishAudio: canPublish,
+    canPublishVideo: false,
+  })
 }
 
 function buildLiveKitCreateRoomOptions(
@@ -263,7 +306,11 @@ export async function updateParticipantRole(
     metadata: JSON.stringify({ role }),
     attributes: { role },
     permission: {
-      canPublish: role === "admin" || role === "moderator" || role === "speaker",
+      canPublish:
+        role === "admin" ||
+        role === "moderator" ||
+        role === "co-host" ||
+        role === "speaker",
       canSubscribe: true,
       canPublishData: true,
     },

@@ -11,11 +11,20 @@ export function getParticipantRole(participant: Participant): VoiceParticipantRo
 }
 
 export function isSpeakerRole(role: string): boolean {
-  return role === "speaker" || role === "moderator" || role === "admin"
+  return role === "speaker" || role === "moderator" || role === "co-host" || role === "admin"
+}
+
+export function isCoHostRole(role: string): boolean {
+  return role === "co-host" || role === "moderator" || role === "admin"
+}
+
+export function isHostParticipant(identity: string, role: string): boolean {
+  return role === "admin" || identity.startsWith("admin-")
 }
 
 export function roleLabel(role: string): string {
   if (role === "moderator") return "Moderator"
+  if (role === "co-host") return "Co-host"
   if (role === "speaker") return "Speaker"
   if (role === "admin") return "Host"
   return "Listener"

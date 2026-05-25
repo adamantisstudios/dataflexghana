@@ -52,6 +52,7 @@ interface AgentWithWallet extends Agent {
   wallet_balance?: number;
   commission_balance?: number;
   isbanned?: boolean;
+  admin_notes?: string | null;
   auto_deactivated_at?: string | null;
   auto_deactivation_reason?: string | null;
 }
