@@ -1,9 +1,32 @@
 import { TrackType } from "@livekit/protocol"
-import { AccessToken, EgressClient, RoomServiceClient } from "livekit-server-sdk"
+import { AccessToken, EgressClient, RoomServiceClient, type CreateOptions } from "livekit-server-sdk"
 import { getAdminClient } from "@/lib/supabase-base"
 import { voiceRegionsMatch } from "@/lib/voice-room-regions"
 
 export type VoiceParticipantRole = "admin" | "moderator" | "speaker" | "listener"
+
+/** Shown to admins when auto-egress is unavailable on the LiveKit plan. */
+export const LIVEKIT_RECORDING_UNAVAILABLE_MESSAGE =
+  "Recording is not available on the current plan. Upgrade to enable recording."
+
+/** When `LIVEKIT_RECORDING_ENABLED=true`, room creation attempts auto-egress. */
+export function isLiveKitRecordingEnabled(): boolean {
+  return process.env.LIVEKIT_RECORDING_ENABLED === "true"
+}
+
+export type CreateVoiceRoomResult = {
+  room: {
+    id: string
+    room_name: string
+    region: string
+    created_by: string | null
+    is_active: boolean
+    recording_url: string | null
+    created_at: string
+    ended_at: string | null
+  }
+  recordingWarning?: string
+}
 
 function getLiveKitHttpHost(): string {
   const host = process.env.LIVEKIT_HOST || ""
@@ -102,20 +125,21 @@ export async function generateAgentToken(
   return generateToken(agentId, roomName, agentName, options?.canPublish ?? false, { role })
 }
 
-export async function createVoiceRoom(region: string, adminId: string | null) {
-  const db = getAdminClient()
-  const safeRegion = region.trim()
-  if (!safeRegion) throw new Error("Region is required")
-
-  const slug = safeRegion.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
-  const roomName = `voice-${slug}-${Date.now()}`
-
-  await getLiveKitRoomService().createRoom({
+function buildLiveKitCreateRoomOptions(
+  roomName: string,
+  safeRegion: string,
+  adminId: string | null,
+  withRecording: boolean,
+): CreateOptions {
+  const options: CreateOptions = {
     name: roomName,
     emptyTimeout: 60 * 10,
     maxParticipants: 250,
     metadata: JSON.stringify({ region: safeRegion, created_by: adminId }),
-    egress: {
+  }
+
+  if (withRecording) {
+    options.egress = {
       room: {
         roomName,
         audioOnly: true,
@@ -125,8 +149,50 @@ export async function createVoiceRoom(region: string, adminId: string | null) {
           },
         ],
       },
-    },
-  })
+    }
+  }
+
+  return options
+}
+
+async function createLiveKitRoom(
+  roomName: string,
+  safeRegion: string,
+  adminId: string | null,
+  withRecording: boolean,
+): Promise<void> {
+  await getLiveKitRoomService().createRoom(
+    buildLiveKitCreateRoomOptions(roomName, safeRegion, adminId, withRecording),
+  )
+}
+
+export async function createVoiceRoom(
+  region: string,
+  adminId: string | null,
+): Promise<CreateVoiceRoomResult> {
+  const db = getAdminClient()
+  const safeRegion = region.trim()
+  if (!safeRegion) throw new Error("Region is required")
+
+  const slug = safeRegion.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+  const roomName = `voice-${slug}-${Date.now()}`
+
+  let recordingWarning: string | undefined
+
+  if (isLiveKitRecordingEnabled()) {
+    try {
+      await createLiveKitRoom(roomName, safeRegion, adminId, true)
+    } catch (err) {
+      console.warn(
+        "[livekit] Auto-egress failed; creating voice room without recording:",
+        err instanceof Error ? err.message : err,
+      )
+      recordingWarning = LIVEKIT_RECORDING_UNAVAILABLE_MESSAGE
+      await createLiveKitRoom(roomName, safeRegion, adminId, false)
+    }
+  } else {
+    await createLiveKitRoom(roomName, safeRegion, adminId, false)
+  }
 
   const { data, error } = await db
     .from("voice_rooms")
@@ -148,7 +214,10 @@ export async function createVoiceRoom(region: string, adminId: string | null) {
     throw new Error(error?.message || "Failed to save voice room")
   }
 
-  return data
+  return {
+    room: data,
+    ...(recordingWarning ? { recordingWarning } : {}),
+  }
 }
 
 export type VoiceRecordingInfo = {

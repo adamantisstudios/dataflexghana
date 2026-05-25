@@ -72,7 +72,7 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       title: "Voice Conference Room",
       description: "Join live audio meetings in your region",
       icon: <Phone className="h-12 w-12" />,
-      image: "/images/referral-hub.png",
+      image: "/images/voice-conference.png",
       gradient: "linear-gradient(135deg, #0E8F3D, #35B24A)",
       buttonText: "JOIN MEETING",
       onClick: () => router.push("/agent/voice-rooms"),

@@ -1,7 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdminSession } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
-import { createVoiceRoom, getLiveKitParticipantCount } from "@/lib/livekit-server"
+import {
+  createVoiceRoom,
+  getLiveKitParticipantCount,
+  isLiveKitRecordingEnabled,
+} from "@/lib/livekit-server"
 import { notifyAgentsVoiceRoomCreated } from "@/lib/voice-room-notifications"
 
 export const dynamic = "force-dynamic"
@@ -31,7 +35,11 @@ export async function GET(request: NextRequest) {
       }),
     )
 
-    return NextResponse.json({ success: true, rooms })
+    return NextResponse.json({
+      success: true,
+      rooms,
+      recordingEnabled: isLiveKitRecordingEnabled(),
+    })
   } catch (e) {
     console.error("[admin/voice-rooms GET]", e)
     return NextResponse.json({ error: "Failed to list voice rooms" }, { status: 500 })
@@ -50,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // created_by references agents; admins are in admin_users — store null for admin-created rooms
-    const room = await createVoiceRoom(region, null)
+    const { room, recordingWarning } = await createVoiceRoom(region, null)
     const notified = await notifyAgentsVoiceRoomCreated(region, room.room_name)
 
     const origin = request.nextUrl.origin
@@ -61,6 +69,8 @@ export async function POST(request: NextRequest) {
       room,
       inviteUrl,
       agentsNotified: notified,
+      recordingEnabled: isLiveKitRecordingEnabled(),
+      ...(recordingWarning ? { recordingWarning } : {}),
     })
   } catch (e) {
     console.error("[admin/voice-rooms POST]", e)

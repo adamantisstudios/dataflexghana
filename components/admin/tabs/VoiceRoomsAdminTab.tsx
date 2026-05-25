@@ -39,6 +39,7 @@ export default function VoiceRoomsAdminTab() {
   const [lastInvite, setLastInvite] = useState("")
   const [controlRoom, setControlRoom] = useState<VoiceRoom | null>(null)
   const [controlToken, setControlToken] = useState<{ token: string; serverUrl: string } | null>(null)
+  const [recordingEnabled, setRecordingEnabled] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -47,6 +48,7 @@ export default function VoiceRoomsAdminTab() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to load")
       setRooms(data.rooms || [])
+      setRecordingEnabled(data.recordingEnabled === true)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Load failed")
     } finally {
@@ -69,6 +71,10 @@ export default function VoiceRoomsAdminTab() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Create failed")
       setLastInvite(data.inviteUrl || "")
+      if (data.recordingEnabled === true) setRecordingEnabled(true)
+      if (data.recordingWarning) {
+        toast.warning(data.recordingWarning)
+      }
       toast.success(`Room created — ${data.agentsNotified ?? 0} agents notified`)
       await load()
     } catch (e) {
@@ -140,7 +146,15 @@ export default function VoiceRoomsAdminTab() {
             Create room
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-4 items-end">
+        <CardContent className="space-y-4">
+          {!recordingEnabled && (
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
+              Recording is currently disabled. Enable it in your environment settings (set{" "}
+              <code className="text-[11px] bg-amber-100/80 px-1 rounded">LIVEKIT_RECORDING_ENABLED=true</code>
+              ).
+            </p>
+          )}
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
           <div className="flex-1 space-y-2 w-full">
             <Label>Region</Label>
             <Select value={region} onValueChange={setRegion}>
@@ -164,6 +178,7 @@ export default function VoiceRoomsAdminTab() {
             {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Create room
           </Button>
+          </div>
         </CardContent>
         {lastInvite && (
           <CardContent className="pt-0">
