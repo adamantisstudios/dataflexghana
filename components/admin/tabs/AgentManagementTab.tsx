@@ -123,7 +123,7 @@ export default function AgentManagementTab() {
 
       let query = supabase
         .from("agents")
-        .select("id, full_name, phone_number, email, profession, exact_location, profile_image_url, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties, can_teach", { count: "exact" })
+        .select("id, full_name, phone_number, email, profession, exact_location, profile_image_url, profile_verified, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties, can_teach", { count: "exact" })
         .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%,email.ilike.%${search}%,profession.ilike.%${search}%,exact_location.ilike.%${search}%`)
         .order("created_at", { ascending: false })
 
@@ -227,7 +227,7 @@ export default function AgentManagementTab() {
       try {
         const { data, error } = await supabase
           .from("agents")
-          .select("email, profession, exact_location, profile_image_url")
+          .select("email, profession, exact_location, profile_image_url, profile_verified")
         if (error) throw error
         const rows = data || []
         const verified = rows.filter((a) => isAgentProfileVerified(a)).length

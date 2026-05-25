@@ -49,6 +49,7 @@ export interface Agent {
   profession?: string | null
   exact_location?: string | null
   profile_image_url?: string | null
+  profile_verified?: boolean | null
 }
 export interface Service {
   id: string

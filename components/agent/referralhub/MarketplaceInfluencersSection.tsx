@@ -25,6 +25,7 @@ import {
 import { Loader2, Plus, Trash2, Upload, Sparkles, Package, Pencil } from "lucide-react"
 import { parseJsonResponse } from "@/lib/agent-auth-utils"
 import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
+import { confirmAgentProfilePhotoVerified } from "@/lib/agent-profile-photo-client"
 import {
   Dialog,
   DialogContent,
@@ -168,8 +169,10 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
       const parsed = await parseJsonResponse<{ url?: string; error?: string }>(res)
       const data = parsed.data
       if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
+      const verified = await confirmAgentProfilePhotoVerified(data.url)
+      if (!verified.ok) throw new Error(verified.error || "Could not verify photo")
       setApplyForm((f) => ({ ...f, photo_url: data.url! }))
-      toast.success("Photo uploaded")
+      toast.success("Photo verified and uploaded")
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed")
     } finally {

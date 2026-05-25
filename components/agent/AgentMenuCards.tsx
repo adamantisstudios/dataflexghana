@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
   Store,
   Ticket,
   Play,
+  Phone,
 } from "lucide-react";
 
 interface MenuCard {
@@ -65,6 +66,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       gradient: "linear-gradient(135deg, #0EA5E9, #0369A1)",
       buttonText: "OPEN HUB",
       onClick: () => router.push("/agent/referralhub"),
+    },
+    {
+      id: "voice-conference",
+      title: "Voice Conference Room",
+      description: "Join live audio meetings in your region",
+      icon: <Phone className="h-12 w-12" />,
+      image: "/images/referral-hub.png",
+      gradient: "linear-gradient(135deg, #0E8F3D, #35B24A)",
+      buttonText: "JOIN MEETING",
+      onClick: () => router.push("/agent/voice-rooms"),
     },
     {
       id: "data-bundles",

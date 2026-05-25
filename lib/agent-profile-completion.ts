@@ -3,6 +3,7 @@ export type AgentProfileFields = {
   profession?: string | null
   exact_location?: string | null
   profile_image_url?: string | null
+  profile_verified?: boolean | null
   isapproved?: boolean
   full_name?: string | null
 }
@@ -11,8 +12,19 @@ export function isProfileFieldFilled(value: string | null | undefined): boolean 
   return Boolean(String(value ?? "").trim())
 }
 
-/** All four profile fields filled (admin / verification label). */
+/** Profile complete + photo verified (dashboard badge / admin label). */
 export function isAgentProfileVerified(agent: AgentProfileFields | null | undefined): boolean {
+  return (
+    isProfileFieldFilled(agent?.email) &&
+    isProfileFieldFilled(agent?.profession) &&
+    isProfileFieldFilled(agent?.exact_location) &&
+    isProfileFieldFilled(agent?.profile_image_url) &&
+    agent?.profile_verified === true
+  )
+}
+
+/** All four profile fields filled (may still be unverified photo). */
+export function isAgentProfileFieldsComplete(agent: AgentProfileFields | null | undefined): boolean {
   return (
     isProfileFieldFilled(agent?.email) &&
     isProfileFieldFilled(agent?.profession) &&

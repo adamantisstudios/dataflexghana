@@ -54,6 +54,8 @@ import { Label } from "@/components/ui/label"
   Award,
   Phone,
   ListChecks,
+  ScanFace,
+  Radio,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -64,6 +66,7 @@ import { connectionManager } from "@/lib/connection-manager"
 import { toast } from "sonner"
 import Link from "next/link"
 import { PendingAlertsCard } from "@/components/admin/pending-alerts-card"
+import { PendingOrdersFeed } from "@/components/admin/PendingOrdersFeed"
 import { FollowUpsTodayCard } from "@/components/admin/FollowUpsTodayCard"
 
 // Lazy load tab components
@@ -106,6 +109,8 @@ const FarmersFriendAdminTab = lazy(() => import("@/components/admin/tabs/Farmers
 const InfluencersAdminTab = lazy(() => import("@/components/admin/tabs/InfluencersAdminTab"))
 const AgentCallsAdminTab = lazy(() => import("@/components/admin/tabs/AgentCallsAdminTab"))
 const ListingPackagesAdminTab = lazy(() => import("@/components/admin/tabs/ListingPackagesAdminTab"))
+const PhotoVerificationAdminTab = lazy(() => import("@/components/admin/tabs/PhotoVerificationAdminTab"))
+const VoiceRoomsAdminTab = lazy(() => import("@/components/admin/tabs/VoiceRoomsAdminTab"))
 const TutorialsAdminTab = lazy(() => import("@/components/admin/tabs/TutorialsAdminTab"))
 const AnalyticsDashboard = lazy(() => import("@/components/admin/AnalyticsDashboard"))
 
@@ -155,6 +160,8 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "analytics", label: "Analytics", icon: TrendingUp, component: AnalyticsDashboard },
   { id: "storefront-manager", label: "Storefront Management", icon: ShoppingBag, component: StorefrontManagerTab },
   { id: "agents", label: "Agents", icon: Users, component: AgentsTab },
+  { id: "photo-verification", label: "Photo Verification", icon: ScanFace, component: PhotoVerificationAdminTab },
+  { id: "voice-rooms", label: "Voice Rooms", icon: Radio, component: VoiceRoomsAdminTab },
   { id: "agent-calls", label: "Agent Calls", icon: Phone, component: AgentCallsAdminTab },
   { id: "agent-management", label: "Agent Management", icon: Shield, component: AgentManagementTab },
   { id: "sms-notifications", label: "SMS Notifications", icon: MessageCircle, component: SMSNotificationsTab },
@@ -779,6 +786,7 @@ export default function AdminDashboard() {
           {/* Dashboard Tab Content */}
           <TabsContent value="dashboard" className="space-y-6">
             <PendingAlertsCard />
+            <PendingOrdersFeed onNavigateTab={loadTab} />
             <FollowUpsTodayCard />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
@@ -1048,7 +1056,9 @@ export default function AdminDashboard() {
                     <Suspense fallback={<TabLoadingSkeleton />}>
                       {id === "bulk-orders" ||
                       id === "agent-calls" ||
-                      id === "listing-packages" ? (
+                      id === "listing-packages" ||
+                      id === "photo-verification" ||
+                      id === "voice-rooms" ? (
                         React.createElement(Component as React.ComponentType<any>)
                       ) : (
                         React.createElement(Component as React.ComponentType<any>, {

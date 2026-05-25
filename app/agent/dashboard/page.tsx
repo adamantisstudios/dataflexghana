@@ -406,7 +406,7 @@ export default function AgentDashboard() {
 
         const { data: profileRow } = await supabase
           .from("agents")
-          .select("email, profession, exact_location, profile_image_url, isapproved, full_name")
+          .select("email, profession, exact_location, profile_image_url, profile_verified, isapproved, full_name")
           .eq("id", parsedAgent.id)
           .maybeSingle()
 

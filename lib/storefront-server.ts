@@ -28,6 +28,8 @@ export interface StoreProfileRow {
   storefront_commission_balance: number
   whatsapp_channel_url?: string | null
   show_whatsapp_popup?: boolean | null
+  can_list_products?: boolean | null
+  updated_at?: string | null
 }
 
 export async function resolveStoreSegmentToAgentId(segment: string): Promise<string | null> {

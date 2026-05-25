@@ -102,6 +102,8 @@ export async function POST(request: NextRequest) {
         isapproved: false,
         status: "pending",
         registration_source: "influencer_self_register",
+        profile_image_url: photo_url,
+        profile_verified: true,
       })
       .select("id, full_name, phone_number, email")
       .single()

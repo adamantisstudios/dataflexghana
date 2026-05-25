@@ -1,0 +1,10 @@
+export const VOICE_TOPIC_HAND_RAISE = "hand-raise"
+export const VOICE_TOPIC_ADMIN_SHARE = "admin-share"
+export const VOICE_TOPIC_GRANT_SPEAK = "grant-speak"
+
+export const VOICE_ALLOWED_FILE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+]

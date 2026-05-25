@@ -230,7 +230,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       try {
         const { data, error } = await supabase
           .from("agents")
-          .select("email, profession, exact_location, profile_image_url");
+          .select("email, profession, exact_location, profile_image_url, profile_verified");
         if (error) throw error;
         const rows = data || [];
         const verified = rows.filter((a) => isAgentProfileVerified(a)).length;

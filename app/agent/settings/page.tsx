@@ -27,6 +27,7 @@ import { AGENT_PROFILE_PRIVACY_NOTICE } from "@/lib/agent-profile-completion"
 import { AgentAvatar } from "@/components/agent/AgentAvatar"
 import { LazyProfileImage } from "@/components/ui/lazy-profile-image"
 import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
+import { confirmAgentProfilePhotoVerified } from "@/lib/agent-profile-photo-client"
 
 export default function AgentSettingsPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -65,7 +66,7 @@ export default function AgentSettingsPage() {
 
       const { data, error } = await supabase
         .from("agents")
-        .select("email, profession, exact_location, profile_image_url, full_name, isapproved")
+        .select("email, profession, exact_location, profile_image_url, profile_verified, full_name, isapproved")
         .eq("id", parsed.id)
         .single()
 
@@ -100,8 +101,19 @@ export default function AgentSettingsPage() {
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
+      const verified = await confirmAgentProfilePhotoVerified(data.url)
+      if (!verified.ok) throw new Error(verified.error || "Could not verify photo")
       setProfileForm((f) => ({ ...f, profile_image_url: data.url }))
-      toast.success("Photo uploaded — save profile to apply")
+      setAgent((a) => (a ? { ...a, profile_image_url: data.url, profile_verified: true } : a))
+      const stored = localStorage.getItem("agent")
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        localStorage.setItem(
+          "agent",
+          JSON.stringify({ ...parsed, profile_image_url: data.url, profile_verified: true }),
+        )
+      }
+      toast.success("Photo verified — save profile to apply other fields")
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed")
     } finally {
@@ -131,7 +143,14 @@ export default function AgentSettingsPage() {
 
       if (error) throw error
 
-      const updated = { ...agent, email, profession, exact_location, profile_image_url }
+      const updated = {
+        ...agent,
+        email,
+        profession,
+        exact_location,
+        profile_image_url,
+        profile_verified: agent.profile_verified ?? false,
+      }
       setAgent(updated)
       localStorage.setItem("agent", JSON.stringify(updated))
       toast.success("Profile saved successfully")

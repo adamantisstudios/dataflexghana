@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
           profession,
           exact_location,
           profile_image_url,
+          profile_verified,
           phone_number,
           status,
           available_commission_balance,
