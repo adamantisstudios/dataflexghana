@@ -5,6 +5,11 @@ const MODEL_URL = "/models"
 let modelsReady = false
 let loadPromise: Promise<void> | null = null
 
+/** Lazy-loaded @vladmandic/face-api (browser-only; replaces legacy face-api.js). */
+export async function loadFaceApi() {
+  return import("@vladmandic/face-api")
+}
+
 export function areFaceApiModelsReady(): boolean {
   return modelsReady
 }
@@ -16,7 +21,7 @@ export async function ensureFaceApiModels(): Promise<void> {
   if (loadPromise) return loadPromise
 
   loadPromise = (async () => {
-    const faceapi = await import("face-api.js")
+    const faceapi = await loadFaceApi()
     await Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
       faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),

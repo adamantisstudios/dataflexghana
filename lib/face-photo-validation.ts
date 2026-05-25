@@ -1,6 +1,6 @@
 "use client"
 
-import { ensureFaceApiModels } from "@/lib/face-api-models"
+import { ensureFaceApiModels, loadFaceApi } from "@/lib/face-api-models"
 
 const BRIGHTNESS_MIN = 40
 const BRIGHTNESS_MAX = 230
@@ -109,7 +109,7 @@ export async function validateFacePhoto(file: File): Promise<FacePhotoValidation
   }
 
   await ensureFaceApiModels()
-  const faceapi = await import("face-api.js")
+  const faceapi = await loadFaceApi()
 
   const img = await loadImageFromFile(file)
   const canvas = imageToCanvas(img)

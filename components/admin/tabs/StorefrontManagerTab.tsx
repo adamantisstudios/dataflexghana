@@ -327,6 +327,25 @@ export default function StorefrontManagerTab() {
   }
 
   const updateStatus = async (id: string, status: string) => {
+    const previousOrders = orders
+    const target = orders.find((o) => o.id === id)
+    if (!target) return
+    if (target.status === status) return
+
+    const optimisticOrders = orders.map((o) => (o.id === id ? { ...o, status } : o))
+    setOrders(optimisticOrders)
+
+    const wasPending = target.status === "Pending"
+    const isPending = status === "Pending"
+    if (wasPending !== isPending) {
+      setPendingCount((c) => Math.max(0, c + (isPending ? 1 : -1)))
+      window.dispatchEvent(
+        new CustomEvent("admin-storefront-pending", {
+          detail: Math.max(0, pendingCount + (isPending ? 1 : -1)),
+        }),
+      )
+    }
+
     setProcessingId(id)
     try {
       const res = await fetch("/api/admin/storefront-orders", {
@@ -335,10 +354,26 @@ export default function StorefrontManagerTab() {
         body: JSON.stringify({ id, status }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      if (!res.ok) throw new Error(data.error || "Update failed")
+
+      if (data.order) {
+        setOrders((current) =>
+          current.map((o) => (o.id === id ? { ...o, ...data.order } : o)),
+        )
+      }
+
       toast.success(`Order marked ${status}`)
-      loadOrders()
+      window.dispatchEvent(new CustomEvent(STOREFRONT_ORDERS_CHANGED_EVENT))
     } catch (e) {
+      setOrders(previousOrders)
+      if (wasPending !== isPending) {
+        setPendingCount((c) => Math.max(0, c + (wasPending ? 1 : -1)))
+        window.dispatchEvent(
+          new CustomEvent("admin-storefront-pending", {
+            detail: Math.max(0, pendingCount + (wasPending ? 1 : -1)),
+          }),
+        )
+      }
       toast.error(e instanceof Error ? e.message : "Update failed")
     } finally {
       setProcessingId(null)

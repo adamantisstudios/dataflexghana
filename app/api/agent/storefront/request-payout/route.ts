@@ -2,8 +2,12 @@ import { type NextRequest, NextResponse } from "next/server"
 import { withUnifiedAuth } from "@/lib/auth-middleware"
 import { getAdminClient } from "@/lib/supabase-base"
 import {
+  STOREFRONT_MIN_PAYOUT_GHS,
   STOREFRONT_PAYOUT_NOTE,
   fetchStorefrontCommissionBalance,
+  deductStorefrontCommissionBalance,
+  restoreStorefrontCommissionBalance,
+  storefrontPayoutMinimumMessage,
 } from "@/lib/storefront-payout"
 
 export const dynamic = "force-dynamic"
@@ -30,6 +34,16 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       )
     }
 
+    if (balance < STOREFRONT_MIN_PAYOUT_GHS) {
+      return NextResponse.json(
+        {
+          error: storefrontPayoutMinimumMessage(balance),
+          available_balance: balance,
+        },
+        { status: 400 },
+      )
+    }
+
     const payoutAmount =
       requestedRaw !== undefined && requestedRaw !== null
         ? Number(requestedRaw)
@@ -39,10 +53,20 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       return NextResponse.json({ error: "Invalid payout amount" }, { status: 400 })
     }
 
+    if (payoutAmount < STOREFRONT_MIN_PAYOUT_GHS) {
+      return NextResponse.json(
+        {
+          error: storefrontPayoutMinimumMessage(balance),
+          available_balance: balance,
+        },
+        { status: 400 },
+      )
+    }
+
     if (payoutAmount > balance + 0.001) {
       return NextResponse.json(
         {
-          error: `Insufficient storefront commission balance. Available: ₵${balance.toFixed(2)}`,
+          error: `Insufficient storefront commission balance. Available: ${balance.toFixed(2)}`,
           available_balance: balance,
         },
         { status: 400 },
@@ -83,19 +107,10 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       )
     }
 
-    const newBalance = Math.max(0, balance - payoutAmount)
-    const balanceUpdate: Record<string, unknown> = {
-      storefront_commission_balance: newBalance,
-      updated_at: new Date().toISOString(),
-    }
-
-    const { error: balanceError } = await db
-      .from("agent_store_profiles")
-      .update(balanceUpdate)
-      .eq("agent_id", agentId)
-
-    if (balanceError) {
-      return NextResponse.json({ error: balanceError.message }, { status: 500 })
+    const deduct = await deductStorefrontCommissionBalance(agentId, payoutAmount)
+    if (deduct.error) {
+      console.error("[storefront request-payout] balance deduct:", deduct.error)
+      return NextResponse.json({ error: deduct.error }, { status: 500 })
     }
 
     const payoutNote = `Storefront commission payout request (₵${payoutAmount.toFixed(2)})`
@@ -127,11 +142,12 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     }
 
     if (withdrawalError) {
-      const rollback: Record<string, unknown> = {
-        storefront_commission_balance: balance,
-        updated_at: new Date().toISOString(),
+      console.error("[storefront request-payout] withdrawal insert:", withdrawalError)
+      try {
+        await restoreStorefrontCommissionBalance(agentId, payoutAmount)
+      } catch (rollbackErr) {
+        console.error("[storefront request-payout] rollback failed:", rollbackErr)
       }
-      await db.from("agent_store_profiles").update(rollback).eq("agent_id", agentId)
       return NextResponse.json({ error: withdrawalError.message }, { status: 500 })
     }
 
@@ -140,12 +156,13 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       data: {
         withdrawal_id: withdrawal?.id,
         amount: payoutAmount,
-        available_balance: newBalance,
+        available_balance: deduct.newBalance,
         message: `Payout request for ₵${payoutAmount.toFixed(2)} submitted. Admin will pay via MoMo.`,
       },
     })
   } catch (error) {
     console.error("storefront request-payout:", error)
-    return NextResponse.json({ error: "Failed to submit payout request" }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Failed to submit payout request"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 })

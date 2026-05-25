@@ -227,7 +227,7 @@ function ControlPanelInner({ roomId, onEnded }: { roomId: string; onEnded: () =>
             type="button"
             variant="outline"
             size="sm"
-            className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+            className="border-white/20 bg-slate-800/60 text-slate-50 hover:bg-slate-700/80 hover:text-white"
             onClick={() => fileRef.current?.click()}
           >
             <Upload className="h-4 w-4 mr-1" />
@@ -235,7 +235,13 @@ function ControlPanelInner({ roomId, onEnded }: { roomId: string; onEnded: () =>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button type="button" variant="destructive" size="sm" disabled={busy === "end"}>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="text-white"
+                disabled={busy === "end"}
+              >
                 {busy === "end" ? <Loader2 className="h-4 w-4 animate-spin" /> : "End room"}
               </Button>
             </AlertDialogTrigger>
@@ -280,12 +286,12 @@ function ControlPanelInner({ roomId, onEnded }: { roomId: string; onEnded: () =>
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <Hand className="h-4 w-4 text-amber-400 shrink-0 animate-hand-rise" />
-                  <span className="text-sm font-medium truncate">{h.name}</span>
+                  <span className="text-sm font-medium text-white truncate">{h.name}</span>
                 </div>
                 <div className="flex gap-1">
                   <Button
                     size="sm"
-                    className="bg-[#0E8F3D] hover:bg-[#0a7a34] h-9"
+                    className="bg-[#0E8F3D] hover:bg-[#0a7a34] h-9 text-white"
                     disabled={busy === h.identity}
                     onClick={() => allowHand(h)}
                   >
@@ -294,7 +300,7 @@ function ControlPanelInner({ roomId, onEnded }: { roomId: string; onEnded: () =>
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 border-white/20 text-white hover:bg-white/10"
+                    className="h-9 border-white/20 bg-slate-800/60 text-slate-50 hover:bg-slate-700/80 hover:text-white"
                     disabled={busy === h.identity}
                     onClick={() => muteParticipant(h.identity)}
                   >
@@ -328,7 +334,7 @@ function ControlPanelInner({ roomId, onEnded }: { roomId: string; onEnded: () =>
                 <li key={p.identity} className="rounded-xl border border-white/10 p-3 bg-white/5 space-y-3">
                   <div className="flex items-center gap-3">
                     <div
-                      className="h-11 w-11 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                      className="h-11 w-11 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
                       style={{
                         boxShadow: `0 0 0 2px ${ring}`,
                         background: `linear-gradient(135deg, ${ring}99, ${ring})`,
@@ -337,14 +343,14 @@ function ControlPanelInner({ roomId, onEnded }: { roomId: string; onEnded: () =>
                       {voiceInitials(p.name || p.identity)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{p.name || p.identity}</p>
+                      <p className="font-medium text-sm text-white truncate">{p.name || p.identity}</p>
                       {p.isSpeaking && (
                         <span className="text-[10px] text-emerald-400 font-medium">Speaking now</span>
                       )}
                     </div>
                     <Badge
                       variant="outline"
-                      className="shrink-0 capitalize border-white/20 text-white/80 bg-white/5"
+                      className="shrink-0 capitalize border-white/20 text-slate-100 bg-slate-800/50"
                     >
                       {roleLabel(role)}
                     </Badge>
@@ -354,19 +360,25 @@ function ControlPanelInner({ roomId, onEnded }: { roomId: string; onEnded: () =>
                       defaultValue={role}
                       onValueChange={(v) => assignRole(p.identity, v as VoiceParticipantRole)}
                     >
-                      <SelectTrigger className="h-9 w-[130px] text-xs bg-white/5 border-white/20 text-white">
+                      <SelectTrigger className="h-9 w-[130px] text-xs bg-slate-800/60 border-white/20 text-slate-50">
                         <SelectValue placeholder="Role" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="listener">Listener</SelectItem>
-                        <SelectItem value="speaker">Speaker</SelectItem>
-                        <SelectItem value="moderator">Moderator</SelectItem>
+                      <SelectContent className="bg-slate-900 border-white/20 text-slate-50">
+                        <SelectItem value="listener" className="text-slate-50 focus:bg-slate-800 focus:text-white">
+                          Listener
+                        </SelectItem>
+                        <SelectItem value="speaker" className="text-slate-50 focus:bg-slate-800 focus:text-white">
+                          Speaker
+                        </SelectItem>
+                        <SelectItem value="moderator" className="text-slate-50 focus:bg-slate-800 focus:text-white">
+                          Moderator
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-9 border-white/20 text-white hover:bg-white/10"
+                      className="h-9 border-white/20 bg-slate-800/60 text-slate-50 hover:bg-slate-700/80 hover:text-white"
                       disabled={busy === p.identity}
                       onClick={() => muteParticipant(p.identity)}
                       title="Mute"
@@ -376,7 +388,7 @@ function ControlPanelInner({ roomId, onEnded }: { roomId: string; onEnded: () =>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-9 border-white/20 text-white hover:bg-white/10"
+                      className="h-9 border-white/20 bg-slate-800/60 text-slate-50 hover:bg-slate-700/80 hover:text-white"
                       disabled={busy === p.identity}
                       onClick={() =>
                         adminAction("unmute", { identity: p.identity }).then(() => toast.success("Unmuted"))
@@ -412,7 +424,7 @@ export function VoiceRoomAdminControl({ roomId, roomName, token, serverUrl, onCl
       <div className="bg-gradient-to-b from-[#0f172a] to-[#020617] w-full sm:max-w-lg sm:rounded-2xl shadow-2xl border border-white/10 max-h-[92vh] flex flex-col text-white">
         <div className="px-4 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
           <div className="min-w-0">
-            <h2 className="font-semibold text-lg">Room control</h2>
+            <h2 className="font-semibold text-lg text-white">Room control</h2>
             <p className="text-xs text-white/50 truncate">{roomName}</p>
           </div>
           <Button

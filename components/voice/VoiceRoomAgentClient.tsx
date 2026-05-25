@@ -80,7 +80,7 @@ function PreJoinScreen({
           <Radio className="h-7 w-7 text-emerald-400" />
         </div>
         <p className="text-xs uppercase tracking-[0.2em] text-emerald-300/80 mb-2">Voice conference</p>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2 break-all">{roomName}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2 break-all">{roomName}</h1>
         <p className="text-sm text-white/60 mb-10 leading-relaxed">
           Join as a listener. Raise your hand when you want to speak — the host will approve you.
         </p>
@@ -90,7 +90,7 @@ function PreJoinScreen({
           className="relative group w-full max-w-xs"
         >
           <span className="absolute inset-0 rounded-full bg-[#0E8F3D] blur-xl opacity-40 group-hover:opacity-60 transition-opacity animate-pulse" />
-          <span className="relative flex items-center justify-center gap-2 h-16 w-full rounded-full bg-gradient-to-b from-[#35B24A] to-[#0E8F3D] text-lg font-semibold shadow-lg shadow-emerald-900/40 border border-emerald-400/30 active:scale-[0.98] transition-transform">
+          <span className="relative flex items-center justify-center gap-2 h-16 w-full rounded-full bg-gradient-to-b from-[#35B24A] to-[#0E8F3D] text-lg font-semibold text-white shadow-lg shadow-emerald-900/40 border border-emerald-400/30 active:scale-[0.98] transition-transform">
             <Sparkles className="h-5 w-5" />
             Join Room
           </span>
@@ -258,7 +258,7 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-widest text-emerald-400/90 mb-1">Live conference</p>
-            <h1 className="font-semibold truncate text-base sm:text-lg">{roomName}</h1>
+            <h1 className="font-semibold truncate text-base sm:text-lg text-white">{roomName}</h1>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <span
@@ -327,7 +327,7 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
           {!canSpeak && !isMicrophoneEnabled && (
             <Button
               type="button"
-              className={`flex-1 h-14 rounded-2xl font-semibold text-base transition-all ${
+              className={`flex-1 h-14 rounded-2xl font-semibold text-base text-white transition-all ${
                 handRaised
                   ? "bg-amber-600/80 hover:bg-amber-600"
                   : "bg-amber-500 hover:bg-amber-600"
@@ -350,7 +350,7 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
               >
                 <FolderOpen className="h-5 w-5" />
                 {sharedFiles.length > 0 && (
-                  <span className="ml-1.5 text-xs bg-[#0E8F3D] rounded-full px-1.5 py-0.5">
+                  <span className="ml-1.5 text-xs text-white bg-[#0E8F3D] rounded-full px-1.5 py-0.5">
                     {sharedFiles.length}
                   </span>
                 )}
@@ -438,7 +438,7 @@ export function VoiceRoomAgentClient({ token, serverUrl, roomName }: Props) {
       video={false}
       options={{ publishDefaults: { simulcast: false } }}
       onError={(e) => toast.error(e.message)}
-      className="min-h-[100dvh]"
+      className="min-h-[100dvh] bg-gradient-to-b from-[#0a1628] via-[#0d1b2a] to-black text-white"
     >
       <AgentRoomUI roomName={roomName} />
       <RoomAudioRenderer />

@@ -54,8 +54,8 @@ export default function AgentVoiceRoomJoinPage() {
 
   if (error) {
     return (
-      <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-4 px-6 bg-slate-950 text-white text-center">
-        <p>{error}</p>
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-4 px-6 bg-slate-950 text-slate-50 text-center">
+        <p className="text-slate-50">{error}</p>
         <button
           type="button"
           className="text-emerald-400 underline"

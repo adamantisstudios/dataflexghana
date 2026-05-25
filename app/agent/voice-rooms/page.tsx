@@ -73,7 +73,7 @@ export default function AgentVoiceRoomsPage() {
           </Link>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-widest text-emerald-400/90">DataFlex Ghana</p>
-            <h1 className="font-bold text-xl leading-tight bg-gradient-to-r from-white to-emerald-200/90 bg-clip-text text-transparent">
+            <h1 className="font-bold text-xl leading-tight text-white">
               Upcoming Voice Conferences
             </h1>
             {agentRegion && (
@@ -133,18 +133,18 @@ export default function AgentVoiceRoomsPage() {
                     <Radio className="h-6 w-6 text-emerald-400" />
                   </div>
                   <div className="min-w-0 pr-16">
-                    <h2 className="font-semibold text-lg">{room.region}</h2>
+                    <h2 className="font-semibold text-lg text-white">{room.region}</h2>
                     <p className="text-xs text-white/45 truncate mt-0.5">{room.room_name}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="outline" className="border-white/20 text-white/80 bg-white/5">
+                  <Badge variant="outline" className="border-white/20 text-slate-100 bg-slate-800/40">
                     <Users className="h-3.5 w-3.5 mr-1" />
                     {room.participant_count ?? 0} participants
                   </Badge>
                 </div>
                 <Button
-                  className="w-full h-14 text-base font-semibold rounded-xl shadow-lg shadow-emerald-900/30"
+                  className="w-full h-14 text-base font-semibold rounded-xl shadow-lg shadow-emerald-900/30 text-white"
                   style={{ background: `linear-gradient(180deg, #35B24A, ${BRAND})` }}
                   onClick={() => router.push(`/agent/voice-room/${encodeURIComponent(room.room_name)}`)}
                 >

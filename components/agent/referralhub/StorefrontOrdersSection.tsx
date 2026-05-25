@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { STOREFRONT_ORDERS_CHANGED_EVENT } from "@/lib/storefront-events"
+import { STOREFRONT_MIN_PAYOUT_GHS, storefrontPayoutMinimumMessage } from "@/lib/storefront-payout"
 import { Loader2, Wallet, Megaphone } from "lucide-react"
 import { AD_MEDIA_LABELS } from "@/lib/advertising-types"
 
@@ -85,9 +86,15 @@ export function StorefrontOrdersSection({
     refreshStorefrontBalance()
   }, [refreshStorefrontBalance])
 
+  const meetsPayoutMinimum = storefrontBalance >= STOREFRONT_MIN_PAYOUT_GHS
+
   const requestPayout = async () => {
     if (storefrontBalance <= 0) {
       toast.error("No storefront commission balance to withdraw")
+      return
+    }
+    if (!meetsPayoutMinimum) {
+      toast.error(storefrontPayoutMinimumMessage(storefrontBalance))
       return
     }
     if (!confirm(`Request payout of ₵${storefrontBalance.toFixed(2)}? This will notify admin.`)) return
@@ -189,13 +196,20 @@ export function StorefrontOrdersSection({
               </p>
             </div>
           </div>
-          <Button
-            onClick={requestPayout}
-            disabled={requestingPayout || storefrontBalance <= 0}
-            className="bg-emerald-700 hover:bg-emerald-800 shrink-0"
-          >
-            {requestingPayout ? "Submitting…" : "Request Payout"}
-          </Button>
+          <div className="flex flex-col gap-2 shrink-0 sm:items-end sm:max-w-xs">
+            <Button
+              onClick={requestPayout}
+              disabled={requestingPayout || storefrontBalance <= 0 || !meetsPayoutMinimum}
+              className="bg-emerald-700 hover:bg-emerald-800"
+            >
+              {requestingPayout ? "Submitting…" : "Request Payout"}
+            </Button>
+            {storefrontBalance > 0 && !meetsPayoutMinimum && (
+              <p className="text-sm text-amber-800">
+                {storefrontPayoutMinimumMessage(storefrontBalance)}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
