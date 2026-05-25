@@ -53,6 +53,7 @@ import { Label } from "@/components/ui/label"
   Play,
   Award,
   Phone,
+  ListChecks,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -104,6 +105,7 @@ const AdvertisingAdminTab = lazy(() => import("@/components/admin/tabs/Advertisi
 const FarmersFriendAdminTab = lazy(() => import("@/components/admin/tabs/FarmersFriendAdminTab"))
 const InfluencersAdminTab = lazy(() => import("@/components/admin/tabs/InfluencersAdminTab"))
 const AgentCallsAdminTab = lazy(() => import("@/components/admin/tabs/AgentCallsAdminTab"))
+const ListingPackagesAdminTab = lazy(() => import("@/components/admin/tabs/ListingPackagesAdminTab"))
 const TutorialsAdminTab = lazy(() => import("@/components/admin/tabs/TutorialsAdminTab"))
 const AnalyticsDashboard = lazy(() => import("@/components/admin/AnalyticsDashboard"))
 
@@ -167,6 +169,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "grocery-requests", label: "Grocery Requests", icon: ShoppingBasket, component: GroceryRequestsTab },
   { id: "advertising", label: "Advertising", icon: Megaphone, component: AdvertisingAdminTab },
   { id: "micro-influencers", label: "Micro-Influencers", icon: Award, component: InfluencersAdminTab },
+  { id: "listing-packages", label: "Listing Packages", icon: ListChecks, component: ListingPackagesAdminTab },
   { id: "farmers-friend", label: "Farmers Friend", icon: Leaf, component: FarmersFriendAdminTab },
   { id: "wholesale", label: "Wholesale", icon: ShoppingBag, component: WholesaleTab },
   { id: "properties", label: "Properties", icon: Home, component: PropertiesTab },
@@ -1043,9 +1046,9 @@ export default function AdminDashboard() {
                 <TabsContent key={id} value={id} className="space-y-4">
                   {loadedTabs.has(id) ? (
                     <Suspense fallback={<TabLoadingSkeleton />}>
-                      {id === "bulk-orders" ? (
-                        React.createElement(Component as React.ComponentType<any>)
-                      ) : id === "agent-calls" ? (
+                      {id === "bulk-orders" ||
+                      id === "agent-calls" ||
+                      id === "listing-packages" ? (
                         React.createElement(Component as React.ComponentType<any>)
                       ) : (
                         React.createElement(Component as React.ComponentType<any>, {

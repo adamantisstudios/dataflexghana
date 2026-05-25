@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { withUnifiedAuth } from "@/lib/auth-middleware"
+import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
+import { getAuthAgentId } from "@/lib/agent-auth-utils"
 import { getAdminClient } from "@/lib/supabase-base"
 import { getActiveListingPackages } from "@/lib/listing-packages-server"
 
@@ -12,13 +13,20 @@ function getListingCallbackUrl(request: NextRequest): string {
   return `${origin}/api/paystack/listing-package/callback`
 }
 
-export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
+export async function POST(request: NextRequest) {
+  const auth = await authenticateAgent(request)
+  if (!auth.success) {
+    return createAuthErrorResponse(auth.error || "Agent authentication required")
+  }
+
+  const agentId = getAuthAgentId(auth)
+  if (!agentId) {
+    return NextResponse.json({ error: "Agent authentication required" }, { status: 401 })
+  }
+
   try {
     if (!PAYSTACK_SECRET_KEY) {
       return NextResponse.json({ error: "Paystack not configured" }, { status: 500 })
-    }
-    if (user.role !== "agent") {
-      return NextResponse.json({ error: "Agents only" }, { status: 403 })
     }
 
     const body = await request.json()
@@ -41,7 +49,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     const db = getAdminClient()
     let email = String(body.email ?? "").trim()
     if (!email) {
-      const { data: agentRow } = await db.from("agents").select("email").eq("id", user.id).maybeSingle()
+      const { data: agentRow } = await db.from("agents").select("email").eq("id", agentId).maybeSingle()
       email = String(agentRow?.email ?? "").trim()
     }
     if (!email) {
@@ -64,7 +72,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
         currency: "GHS",
         callback_url: getListingCallbackUrl(request),
         metadata: {
-          agent_id: user.id,
+          agent_id: agentId,
           order_type: "listing_package",
           package_id: pkg.id,
           package_name: pkg.name,
@@ -90,4 +98,4 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     console.error("[listing-package initialize]", e)
     return NextResponse.json({ error: "Failed to start payment" }, { status: 500 })
   }
-})
+}

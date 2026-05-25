@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -140,10 +141,20 @@ export default function ListingPackagesAdminTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={load}>
-          <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-        </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Manage listing packages, activate subscriptions, review products, and toggle agent listing access.
+        </p>
+        <div className="flex gap-2 shrink-0">
+          <Link href="/admin/listing-packages">
+            <Button variant="outline" size="sm">
+              Full page
+            </Button>
+          </Link>
+          <Button variant="outline" size="sm" onClick={load}>
+            <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="packages">

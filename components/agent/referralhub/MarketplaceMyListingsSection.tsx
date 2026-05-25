@@ -11,12 +11,42 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { getAgentAuthHeaders, getStoredAgentId } from "@/lib/agent-api-headers"
+import { parseJsonResponse } from "@/lib/agent-auth-utils"
 import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
 import { toast } from "sonner"
-import { Loader2, Package, BarChart3, ShoppingBag } from "lucide-react"
+import { Loader2, Package, BarChart3, ShoppingBag, Check, BarChart2 } from "lucide-react"
 
 const BRAND = "#0E8F3D"
+const BRAND_LIGHT = "#35B24A"
+
+const PACKAGE_COPY: Record<
+  string,
+  { tagline: string; benefit: string; highlight?: boolean }
+> = {
+  Starter: {
+    tagline: "Perfect for getting started",
+    benefit: "List up to 20 products on your storefront with MoMo checkout details.",
+  },
+  Growth: {
+    tagline: "Best value for growing sellers",
+    benefit: "More listings for a growing catalog and steady sales.",
+    highlight: true,
+  },
+  Ultimate: {
+    tagline: "For serious sellers who want insights",
+    benefit: "Maximum listings plus analytics to track views and performance.",
+  },
+}
+
+function packageMeta(name: string) {
+  return (
+    PACKAGE_COPY[name] ?? {
+      tagline: "Sell on your own storefront",
+      benefit: "Reach customers directly with offline MoMo payments.",
+    }
+  )
+}
 
 type Package = {
   id: string
@@ -107,15 +137,31 @@ export function MarketplaceMyListingsSection({ agentId }: Props) {
       toast.error("Accept the Listing Terms before payment")
       return
     }
+    const storedAgentId = getStoredAgentId() || agentId
+    if (!storedAgentId) {
+      toast.error("Please log in again as an agent")
+      return
+    }
+
     setPaying(true)
     try {
+      const headers = getAgentAuthHeaders()
       const res = await fetch("/api/paystack/listing-package/initialize", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
-        body: JSON.stringify({ package_id: packageId, terms_accepted: true }),
+        headers,
+        credentials: "same-origin",
+        body: JSON.stringify({
+          package_id: packageId,
+          terms_accepted: true,
+          agentId: storedAgentId,
+          agent_id: storedAgentId,
+        }),
       })
-      const data = await res.json()
-      if (!res.ok || !data.authorization_url) throw new Error(data.error || "Payment failed")
+      const parsed = await parseJsonResponse<{ authorization_url?: string; error?: string }>(res)
+      const data = parsed.data
+      if (!res.ok || !data.authorization_url) {
+        throw new Error(data.error || "Payment failed")
+      }
       window.location.href = data.authorization_url
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Payment failed")
@@ -224,47 +270,108 @@ export function MarketplaceMyListingsSection({ agentId }: Props) {
       </Card>
 
       {!isActive && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Purchase a package</CardTitle>
-            <CardDescription>List your own products on your storefront for 30 days after admin approval</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {packages.map((pkg) => (
-                <Card key={pkg.id} className="border-2 border-slate-100">
-                  <CardContent className="p-4 space-y-2">
-                    <h3 className="font-bold">{pkg.name}</h3>
-                    <p className="text-2xl font-bold" style={{ color: BRAND }}>
-                      ₵{Number(pkg.price).toFixed(2)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Up to {pkg.max_listings} products</p>
-                    {pkg.includes_analytics && (
-                      <Badge className="bg-violet-100 text-violet-800 text-[10px]">Analytics included</Badge>
-                    )}
+        <div className="space-y-5">
+          <div
+            className="rounded-2xl p-5 sm:p-6 text-white shadow-md"
+            style={{ background: `linear-gradient(135deg, ${BRAND}, ${BRAND_LIGHT})` }}
+          >
+            <h2 className="text-xl sm:text-2xl font-bold">Choose a Listing Package</h2>
+            <p className="mt-2 text-sm sm:text-base text-white/90 max-w-2xl">
+              Sell your own products on your storefront. Pick a package that fits your needs — customers pay you
+              directly via MoMo after you are approved.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {packages.map((pkg) => {
+              const meta = packageMeta(pkg.name)
+              const isHighlight = meta.highlight
+              return (
+                <Card
+                  key={pkg.id}
+                  className={`relative overflow-hidden flex flex-col h-full transition-shadow hover:shadow-lg ${
+                    isHighlight ? "border-2 shadow-md" : "border border-slate-200"
+                  }`}
+                  style={isHighlight ? { borderColor: BRAND } : undefined}
+                >
+                  {isHighlight && (
+                    <div
+                      className="text-center text-[10px] font-bold uppercase tracking-wide text-white py-1"
+                      style={{ backgroundColor: BRAND }}
+                    >
+                      Most popular
+                    </div>
+                  )}
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">{pkg.name}</CardTitle>
+                    <CardDescription className="text-sm font-medium text-slate-700">
+                      {meta.tagline}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col flex-1 space-y-4 pt-0">
+                    <div>
+                      <p className="text-3xl font-bold" style={{ color: BRAND }}>
+                        ₵{Number(pkg.price).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">One-time · 30 days after activation</p>
+                    </div>
+
+                    <ul className="space-y-2 text-sm text-slate-600 flex-1">
+                      <li className="flex items-start gap-2">
+                        <Check className="h-4 w-4 shrink-0 mt-0.5" style={{ color: BRAND }} />
+                        <span>
+                          <strong>{pkg.max_listings}</strong> product listings
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        {pkg.includes_analytics ? (
+                          <BarChart2 className="h-4 w-4 shrink-0 mt-0.5 text-violet-600" />
+                        ) : (
+                          <Check className="h-4 w-4 shrink-0 mt-0.5 text-slate-300" />
+                        )}
+                        <span>
+                          Analytics:{" "}
+                          <strong>{pkg.includes_analytics ? "Included" : "Not included"}</strong>
+                        </span>
+                      </li>
+                      <li className="text-xs leading-relaxed text-slate-500 border-t pt-2">{meta.benefit}</li>
+                    </ul>
+
                     <Button
-                      className="w-full text-white mt-2"
+                      className="w-full text-white h-11"
                       style={{ backgroundColor: BRAND }}
                       disabled={paying}
                       onClick={() => purchasePackage(pkg.id)}
                     >
-                      {paying ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pay with Paystack"}
+                      {paying ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Pay with Paystack"
+                      )}
                     </Button>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-            <div className="flex items-start gap-2 rounded-lg border p-3">
-              <Checkbox checked={termsAccepted} onCheckedChange={(c) => setTermsAccepted(c === true)} id="listing-terms" />
-              <label htmlFor="listing-terms" className="text-sm cursor-pointer">
+              )
+            })}
+          </div>
+
+          <Card className="border-emerald-100 bg-emerald-50/40">
+            <CardContent className="p-4 flex items-start gap-3">
+              <Checkbox
+                checked={termsAccepted}
+                onCheckedChange={(c) => setTermsAccepted(c === true)}
+                id="listing-terms"
+                className="mt-0.5"
+              />
+              <label htmlFor="listing-terms" className="text-sm cursor-pointer leading-relaxed">
                 I agree to the{" "}
-                <Link href="/listing-terms" className="underline font-medium" style={{ color: BRAND }}>
+                <Link href="/listing-terms" className="underline font-semibold" style={{ color: BRAND }}>
                   Listing Terms and Conditions
                 </Link>
               </label>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {isActive && (

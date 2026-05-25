@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { withUnifiedAuth } from "@/lib/auth-middleware"
+import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
+import { getAuthAgentId } from "@/lib/agent-auth-utils"
 import {
   countAgentProducts,
   getActiveListingPackages,
@@ -9,11 +10,23 @@ import {
 
 export const dynamic = "force-dynamic"
 
-export const GET = withUnifiedAuth(async (request: NextRequest, user) => {
-  const agentId = request.nextUrl.searchParams.get("agentId") || user.id
-  if (user.role === "agent" && agentId !== user.id) {
+export async function GET(request: NextRequest) {
+  const auth = await authenticateAgent(request)
+  if (!auth.success) {
+    return createAuthErrorResponse(auth.error || "Agent authentication required")
+  }
+
+  const sessionAgentId = getAuthAgentId(auth)
+  if (!sessionAgentId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const queryAgentId = request.nextUrl.searchParams.get("agentId")?.trim() || sessionAgentId
+  if (queryAgentId !== sessionAgentId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
+
+  const agentId = sessionAgentId
 
   const [packages, subscription, productCount, canList] = await Promise.all([
     getActiveListingPackages(),
@@ -43,4 +56,4 @@ export const GET = withUnifiedAuth(async (request: NextRequest, user) => {
     days_remaining: daysRemaining,
     includes_analytics: Boolean(subscription?.package?.includes_analytics),
   })
-})
+}
