@@ -1,4 +1,5 @@
-import { TrackSource, TrackType } from "@livekit/protocol"
+import { DataPacket_Kind, TrackSource, TrackType } from "@livekit/protocol"
+import { VOICE_TOPIC_UNMUTE_COMMAND } from "@/lib/voice-room-topics"
 import { AccessToken, EgressClient, RoomServiceClient, type CreateOptions } from "livekit-server-sdk"
 import { getAdminClient } from "@/lib/supabase-base"
 import { voiceRegionsMatch } from "@/lib/voice-room-regions"
@@ -162,7 +163,7 @@ export async function generateAgentToken(
 
   const role = options?.role ?? (options?.canPublish ? "speaker" : "listener")
   const canPublish = options?.canPublish ?? false
-  return generateToken(agentId, roomName, agentName, false, { role }, {
+  return generateToken(agentId, roomName, agentName, canPublish, { role }, {
     canPublishAudio: canPublish,
     canPublishVideo: false,
   })
@@ -326,9 +327,19 @@ export async function muteParticipantAudio(
   const audioTrack = participant.tracks?.find((t) => t.type === TrackType.AUDIO)
   if (!audioTrack?.sid) {
     if (muted) return
-    throw new Error("No audio track found for participant")
+    return
   }
   await getLiveKitRoomService().mutePublishedTrack(roomName, identity, audioTrack.sid, muted)
+}
+
+/** Tell an agent to fetch a speaker token, reconnect, and publish audio. */
+export async function sendUnmuteCommand(roomName: string, identity: string): Promise<void> {
+  await getLiveKitRoomService().sendData(
+    roomName,
+    new TextEncoder().encode(identity),
+    DataPacket_Kind.RELIABLE,
+    { destinationIdentities: [identity], topic: VOICE_TOPIC_UNMUTE_COMMAND },
+  )
 }
 
 export async function getLiveKitParticipantCount(roomName: string): Promise<number> {

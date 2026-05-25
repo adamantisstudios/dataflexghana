@@ -160,7 +160,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "storefront-manager", label: "Storefront Management", icon: ShoppingBag, component: StorefrontManagerTab },
   { id: "agents", label: "Agents", icon: Users, component: AgentsTab },
   { id: "photo-verification", label: "Photo Verification", icon: ScanFace, component: PhotoVerificationAdminTab },
-  { id: "voice-rooms", label: "Voice Rooms", icon: Radio, component: VoiceRoomsAdminTab },
+  { id: "voice-rooms", label: "Agent Conference", icon: Radio, component: VoiceRoomsAdminTab },
   { id: "agent-calls", label: "Agent Calls", icon: Phone, component: AgentCallsAdminTab },
   { id: "agent-management", label: "Agent Management", icon: Shield, component: AgentManagementTab },
   { id: "sms-notifications", label: "SMS Notifications", icon: MessageCircle, component: SMSNotificationsTab },

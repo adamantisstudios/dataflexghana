@@ -1,6 +1,8 @@
 export const VOICE_TOPIC_HAND_RAISE = "hand-raise"
 export const VOICE_TOPIC_ADMIN_SHARE = "admin-share"
 export const VOICE_TOPIC_GRANT_SPEAK = "grant-speak"
+/** Server → agent: reconnect with publish token and enable microphone */
+export const VOICE_TOPIC_UNMUTE_COMMAND = "unmute-command"
 export const VOICE_TOPIC_REACTION = "reaction"
 export const VOICE_TOPIC_CHAT = "chat"
 export const VOICE_TOPIC_POLL = "poll"

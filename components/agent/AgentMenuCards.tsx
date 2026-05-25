@@ -69,8 +69,8 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
     },
     {
       id: "voice-conference",
-      title: "Voice Conference Room",
-      description: "Join live audio meetings in your region",
+      title: "Agent Conference",
+      description: "Join live audio & video sessions in your region",
       icon: <Phone className="h-12 w-12" />,
       image: "/images/voice-conference.png",
       gradient: "linear-gradient(135deg, #0E8F3D, #35B24A)",

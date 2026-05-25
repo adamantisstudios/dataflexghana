@@ -4,20 +4,26 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } fro
 import {
   LiveKitRoom,
   RoomAudioRenderer,
+  VideoTrack,
   useConnectionQualityIndicator,
   useParticipants,
   useLocalParticipant,
   useRoomContext,
 } from "@livekit/components-react"
-import { ConnectionQuality, Track, type Participant } from "livekit-client"
+import { ConnectionQuality, RoomEvent, Track, type Participant } from "livekit-client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Slider } from "@/components/ui/slider"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Command,
   CommandEmpty,
@@ -37,11 +43,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import {
   Loader2,
   Upload,
-  UserX,
   Mic,
   MicOff,
   Hand,
@@ -49,24 +60,19 @@ import {
   Users,
   Circle,
   UserPlus,
-  UserMinus,
-  Volume2,
-  Focus,
   Bell,
-  UserCog,
-  Video,
   VideoOff,
+  Smile,
+  MoreVertical,
+  PhoneOff,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
   VOICE_ALLOWED_FILE_TYPES,
-  VOICE_TOPIC_GRANT_SPEAK,
   VOICE_TOPIC_HAND_RAISE,
   VOICE_TOPIC_ADMIN_SHARE,
-  VOICE_TOPIC_DEMOTE,
-  VOICE_TOPIC_SPOTLIGHT,
+  VOICE_REACTION_EMOJIS,
 } from "@/lib/voice-room-topics"
-import { encodeVoiceData } from "@/lib/voice-room-data"
 import { VoiceStreamStats } from "@/components/voice/VoiceStreamStats"
 import { VoicePollPanel } from "@/components/voice/VoicePollPanel"
 import { VoiceParticipantsSheet } from "@/components/voice/VoiceParticipantsSheet"
@@ -77,6 +83,10 @@ import { VoiceAudioMeter } from "@/components/voice/VoiceAudioMeter"
 import { VoiceReactionsLayer } from "@/components/voice/VoiceReactionsLayer"
 import { ChatPanel } from "@/components/voice/ChatPanel"
 import { AdminLocalVideoPreview } from "@/components/voice/AdminLocalVideoPreview"
+
+const MEET_BG = "#202124"
+const MEET_TEXT = "#e8eaed"
+const MEET_GREEN = "#0E8F3D"
 
 type RaisedHand = {
   identity: string
@@ -107,109 +117,71 @@ function setParticipantOutputVolume(participant: Participant, volume: number) {
   }
 }
 
-function SpeakerCard({
-  participant,
-  onDemote,
-  busy,
-}: {
-  participant: Participant
-  onDemote: () => void
-  busy: boolean
-}) {
+function MeetChipAvatar({ participant, compact }: { participant: Participant; compact?: boolean }) {
   const level = useParticipantAudioLevel(participant)
-  const [volume, setVolume] = useState(100)
   const ring = voiceAvatarRingColor(participant.identity)
-
-  useEffect(() => {
-    setParticipantOutputVolume(participant, volume / 100)
-  }, [participant, volume])
+  const micPub = participant.getTrackPublication(Track.Source.Microphone)
+  const hasAudio = !!micPub?.track && !micPub.isMuted
+  const dim = compact ? "h-9 w-9 text-[10px]" : "h-10 w-10 text-xs"
 
   return (
-    <div className="rounded-xl border border-white/15 bg-white/10 backdrop-blur-md p-2 flex flex-col items-center gap-1 min-w-[88px]">
+    <div className="flex items-center gap-2 shrink-0 rounded-full bg-[#3c4043] pl-1 pr-2 py-1">
       <div className="relative">
         <div
-          className={`h-12 w-12 rounded-full flex items-center justify-center text-xs font-bold text-white ${
-            participant.isSpeaking ? "animate-voice-soundwave" : ""
+          className={`rounded-full flex items-center justify-center font-semibold text-white ${dim} ${
+            participant.isSpeaking || level > 0.08 ? "animate-voice-soundwave" : ""
           }`}
           style={{
-            boxShadow: `0 0 0 3px ${ring}`,
+            boxShadow: `0 0 0 2px ${ring}`,
             background: `linear-gradient(135deg, ${ring}99, ${ring})`,
           }}
         >
           {voiceInitials(participant.name || participant.identity)}
         </div>
-        <div className="absolute -bottom-1 -right-1">
-          <VoiceAudioMeter level={level} />
-        </div>
+        {hasAudio && (
+          <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#0E8F3D] border border-[#292a2d]" />
+        )}
       </div>
-      <p className="text-xs font-medium text-slate-100 truncate max-w-[100px] text-center">
-        {participant.name || participant.identity}
-      </p>
-      <div className="flex items-center gap-2 w-full px-1">
-        <Volume2 className="h-3 w-3 text-slate-400 shrink-0" />
-        <Slider
-          value={[volume]}
-          max={100}
-          step={1}
-          className="flex-1"
-          onValueChange={(v) => setVolume(v[0] ?? 100)}
-        />
-      </div>
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-8 text-xs border-white/20 bg-slate-800/80 text-slate-100 hover:bg-slate-700"
-        disabled={busy}
-        onClick={onDemote}
-      >
-        <UserMinus className="h-3 w-3 mr-1" />
-        Remove speaker
-      </Button>
+      <span className="text-xs text-[#e8eaed] max-w-[72px] truncate">
+        {(participant.name || participant.identity).split(" ")[0]}
+      </span>
     </div>
   )
 }
 
-function ListenerRow({
-  participant,
+function SpeakerChipBar({
+  speakers,
   busy,
-  onKick,
-  onBan,
-  onCoHost,
+  onMute,
 }: {
-  participant: Participant
-  busy: boolean
-  onKick: () => void
-  onBan: () => void
-  onCoHost?: () => void
+  speakers: Participant[]
+  busy: string | null
+  onMute: (identity: string) => void
 }) {
-  const level = useParticipantAudioLevel(participant)
-  const ring = voiceAvatarRingColor(participant.identity)
+  if (speakers.length === 0) {
+    return <span className="text-xs text-[#9aa0a6] px-2">No speakers on stage</span>
+  }
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-white/10 p-3 bg-slate-800/50 backdrop-blur-sm">
-      <div
-        className="h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-        style={{
-          boxShadow: `0 0 0 2px ${ring}`,
-          background: `linear-gradient(135deg, ${ring}99, ${ring})`,
-        }}
-      >
-        {voiceInitials(participant.name || participant.identity)}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-medium text-sm text-white truncate">{participant.name || participant.identity}</p>
-        <VoiceAudioMeter level={level} className="mt-1" />
-      </div>
-      <div className="flex gap-0.5 shrink-0">
-        {onCoHost && (
-          <Button size="icon" variant="ghost" className="h-6 w-6 text-amber-300" disabled={busy} onClick={onCoHost} title="Co-host">
-            <UserCog className="h-3 w-3" />
-          </Button>
-        )}
-        <Button size="icon" variant="ghost" className="h-6 w-6 text-slate-400" disabled={busy} onClick={onKick} title="Kick">
-          <UserX className="h-3 w-3" />
-        </Button>
-      </div>
-    </li>
+    <>
+      {speakers.map((p) => {
+        const micPub = p.getTrackPublication(Track.Source.Microphone)
+        const muted = micPub?.isMuted ?? !p.isMicrophoneEnabled
+        return (
+          <div key={p.identity} className="flex items-center gap-1 shrink-0">
+            <MeetChipAvatar participant={p} compact />
+            <button
+              type="button"
+              disabled={busy === p.identity}
+              onClick={() => onMute(p.identity)}
+              className="h-8 w-8 rounded-full bg-[#3c4043] hover:bg-[#4a4d51] flex items-center justify-center text-[#e8eaed]"
+              title={muted ? "Unmute" : "Mute"}
+            >
+              {muted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" style={{ color: MEET_GREEN }} />}
+            </button>
+          </div>
+        )
+      })}
+    </>
   )
 }
 
@@ -221,6 +193,63 @@ function StreamHealthDot() {
       className={`h-2.5 w-2.5 rounded-full shrink-0 ${connectionHealthColor(quality)}`}
       title={`Connection: ${quality ?? "unknown"}`}
     />
+  )
+}
+
+function MainStage({
+  activeSpeaker,
+  isCameraEnabled,
+  localParticipant,
+}: {
+  activeSpeaker: Participant | null
+  isCameraEnabled: boolean
+  localParticipant: Participant
+}) {
+  const focus = activeSpeaker ?? localParticipant
+  const camPub = focus.getTrackPublication(Track.Source.Camera)
+  const showVideo = focus.isLocal
+    ? isCameraEnabled && camPub?.track && !camPub.isMuted
+    : camPub?.track && !camPub.isMuted
+
+  const level = useParticipantAudioLevel(focus)
+  const ring = voiceAvatarRingColor(focus.identity)
+
+  if (showVideo && camPub?.track) {
+    return (
+      <div className="relative w-full max-w-3xl mx-auto aspect-video rounded-xl overflow-hidden bg-black">
+        <VideoTrack
+          trackRef={{ participant: focus, publication: camPub, source: Track.Source.Camera }}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute bottom-3 left-3 px-2 py-1 rounded bg-black/60 text-sm text-white">
+          {focus.name || focus.identity}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-4">
+      <div className="relative">
+        {(focus.isSpeaking || level > 0.08) && (
+          <span
+            className="absolute inset-0 rounded-full border-2 animate-voice-soundwave"
+            style={{ borderColor: `${MEET_GREEN}99` }}
+          />
+        )}
+        <div
+          className="h-40 w-40 rounded-full flex items-center justify-center text-4xl font-bold text-white"
+          style={{
+            boxShadow: `0 0 0 4px ${ring}`,
+            background: `linear-gradient(135deg, ${ring}99, ${ring})`,
+          }}
+        >
+          {voiceInitials(focus.name || focus.identity)}
+        </div>
+      </div>
+      <p className="text-xl font-medium text-[#e8eaed]">{focus.name || focus.identity}</p>
+      <VoiceAudioMeter level={level} className="w-32" />
+    </div>
   )
 }
 
@@ -244,39 +273,26 @@ function ControlPanelInner({
   const [inviteOpen, setInviteOpen] = useState(false)
   const [recordingActive, setRecordingActive] = useState(false)
   const [egressId, setEgressId] = useState<string | null>(null)
+  const [participantTick, setParticipantTick] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
   const sessionStart = useRef(Date.now())
-  const [spotlightId, setSpotlightId] = useState<string | null>(null)
-  const [preSpotlightMuted, setPreSpotlightMuted] = useState<string[]>([])
-
-  const publishGrantSpeak = async (identity: string) => {
-    await localParticipant.sendText(identity, { topic: VOICE_TOPIC_GRANT_SPEAK })
-    await localParticipant.publishData(new TextEncoder().encode(identity), {
-      reliable: true,
-      topic: VOICE_TOPIC_GRANT_SPEAK,
-    })
-  }
-
-  const toggleCamera = async () => {
-    try {
-      const enabling = !isCameraEnabled
-      await localParticipant.setCameraEnabled(enabling)
-      if (enabling) {
-        toast.success("Camera on — listeners can see your video")
-      } else {
-        toast.message("Camera stopped")
-      }
-    } catch {
-      toast.error("Camera access is required to stream video.")
+  useEffect(() => {
+    const bump = () => setParticipantTick((n) => n + 1)
+    room.on(RoomEvent.TrackPublished, bump)
+    room.on(RoomEvent.TrackUnpublished, bump)
+    room.on(RoomEvent.TrackMuted, bump)
+    room.on(RoomEvent.TrackUnmuted, bump)
+    room.on(RoomEvent.ParticipantConnected, bump)
+    room.on(RoomEvent.ParticipantDisconnected, bump)
+    return () => {
+      room.off(RoomEvent.TrackPublished, bump)
+      room.off(RoomEvent.TrackUnpublished, bump)
+      room.off(RoomEvent.TrackMuted, bump)
+      room.off(RoomEvent.TrackUnmuted, bump)
+      room.off(RoomEvent.ParticipantConnected, bump)
+      room.off(RoomEvent.ParticipantDisconnected, bump)
     }
-  }
-
-  const publishDemote = async (identity: string) => {
-    await localParticipant.publishData(
-      encodeVoiceData({ type: "demote", identity }),
-      { reliable: true, topic: VOICE_TOPIC_DEMOTE },
-    )
-  }
+  }, [room])
 
   useEffect(() => {
     room.registerTextStreamHandler(VOICE_TOPIC_HAND_RAISE, async (reader, participantInfo) => {
@@ -316,26 +332,12 @@ function ControlPanelInner({
     [roomId],
   )
 
-  const demoteToListener = async (identity: string) => {
-    setBusy(identity)
-    try {
-      await adminAction("assign-role", { identity, role: "listener" })
-      await adminAction("mute", { identity })
-      await publishDemote(identity)
-      toast.success("Moved to listeners")
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed")
-    } finally {
-      setBusy(null)
-    }
-  }
-
   const inviteToSpeak = async (identity: string, name: string) => {
     setBusy(identity)
     setInviteOpen(false)
     try {
       await adminAction("unmute", { identity })
-      await publishGrantSpeak(identity)
+      setParticipantTick((n) => n + 1)
       toast.success(`${name} can speak now`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed")
@@ -348,8 +350,8 @@ function ControlPanelInner({
     setBusy(hand.identity)
     try {
       await adminAction("unmute", { identity: hand.identity })
-      await publishGrantSpeak(hand.identity)
       setRaisedHands((prev) => prev.filter((h) => h.identity !== hand.identity))
+      setParticipantTick((n) => n + 1)
       toast.success("Speaker approved")
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed")
@@ -367,6 +369,7 @@ function ControlPanelInner({
     setBusy(identity)
     try {
       await adminAction("mute", { identity })
+      setParticipantTick((n) => n + 1)
       toast.success("Muted")
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed")
@@ -375,29 +378,18 @@ function ControlPanelInner({
     }
   }
 
-  const kickParticipant = async (identity: string, ban = false) => {
-    const msg = ban
-      ? "Ban this listener? They will be removed from the room."
-      : "Remove this participant from the room?"
-    if (!confirm(msg)) return
-    setBusy(identity)
+  const endRoom = async () => {
+    setBusy("end")
     try {
-      await adminAction("kick", { identity })
-      toast.success(ban ? "Listener banned from room" : "Participant removed")
+      await fetch(`/api/admin/voice-rooms/${roomId}/end`, {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+      })
+      await room.disconnect()
+      toast.success("Conference ended")
+      onEnded()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed")
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const promoteCoHost = async (identity: string, name: string) => {
-    setBusy(identity)
-    try {
-      await adminAction("assign-role", { identity, role: "co-host" })
-      toast.success(`${name} is now co-host`)
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed")
+      toast.error(e instanceof Error ? e.message : "Failed to end room")
     } finally {
       setBusy(null)
     }
@@ -424,6 +416,7 @@ function ControlPanelInner({
     setBusy("mute-all")
     try {
       const data = await adminAction("mute-all", {})
+      setParticipantTick((n) => n + 1)
       toast.success(`Muted ${data.mutedCount ?? 0} speaker(s)`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed")
@@ -478,23 +471,6 @@ function ControlPanelInner({
     }
   }
 
-  const endRoom = async () => {
-    setBusy("end")
-    try {
-      await fetch(`/api/admin/voice-rooms/${roomId}/end`, {
-        method: "POST",
-        headers: getAdminAuthHeaders(),
-      })
-      await room.disconnect()
-      toast.success("Stream ended")
-      onEnded()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to end room")
-    } finally {
-      setBusy(null)
-    }
-  }
-
   const onDrop = (e: DragEvent) => {
     e.preventDefault()
     setDragOver(false)
@@ -503,6 +479,7 @@ function ControlPanelInner({
   }
 
   const remoteParticipants = participants.filter((p) => !p.isLocal)
+  void participantTick
 
   const listeners = useMemo(
     () => remoteParticipants.filter((p) => !isSpeakerRole(getParticipantRole(p))),
@@ -514,64 +491,61 @@ function ControlPanelInner({
     [remoteParticipants],
   )
 
-  const listenerCount = listeners.length
+  const activeSpeaker = useMemo(
+    () =>
+      speakers.find((p) => p.isSpeaking) ||
+      speakers[0] ||
+      null,
+    [speakers],
+  )
 
-  const toggleSpotlight = async (identity: string) => {
-    setBusy("spotlight")
-    try {
-      if (spotlightId === identity) {
-        for (const id of preSpotlightMuted) {
-          try {
-            await adminAction("unmute", { identity: id })
-          } catch {
-            /* skip */
-          }
-        }
-        setSpotlightId(null)
-        setPreSpotlightMuted([])
-        await localParticipant.publishData(
-          encodeVoiceData({ type: "spotlight", identity: null, active: false }),
-          { reliable: true, topic: VOICE_TOPIC_SPOTLIGHT },
-        )
-        toast.message("Spotlight off")
-      } else {
-        const muted: string[] = []
-        for (const s of speakers) {
-          if (s.identity !== identity) {
-            await adminAction("mute", { identity: s.identity })
-            muted.push(s.identity)
-          }
-        }
-        setPreSpotlightMuted(muted)
-        setSpotlightId(identity)
-        await localParticipant.publishData(
-          encodeVoiceData({ type: "spotlight", identity, active: true }),
-          { reliable: true, topic: VOICE_TOPIC_SPOTLIGHT },
-        )
-        toast.success("Spotlight on")
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Spotlight failed")
-    } finally {
-      setBusy(null)
-    }
-  }
+  const listenerAvatars = useMemo(() => listeners.slice(0, 16), [listeners])
 
   return (
-    <div className="flex flex-col h-full min-h-0 text-slate-100 text-xs relative">
+    <div className="flex flex-col h-full min-h-0 relative" style={{ color: MEET_TEXT }}>
       <VoiceReactionsLayer />
       <AdminLocalVideoPreview />
 
-      <div className="shrink-0 px-2 py-2 border-b border-white/10 flex flex-wrap items-center justify-between gap-2 bg-black/20">
-        <div className="flex items-center gap-2 min-w-0">
-          <Users className="h-4 w-4 text-emerald-400 shrink-0" />
-          <p className="text-sm font-bold text-white tabular-nums">{listenerCount} listening</p>
-          <span className="text-[10px] text-slate-500">({participants.length} total)</span>
+      {raisedHands.length > 0 && (
+        <div className="shrink-0 mx-3 mt-2 px-3 py-2 rounded-lg bg-amber-900/40 border border-amber-600/30 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Hand className="h-4 w-4 text-amber-300 shrink-0" />
+            <span className="text-sm truncate">
+              {raisedHands[0].name} raised a hand
+              {raisedHands.length > 1 ? ` (+${raisedHands.length - 1} more)` : ""}
+            </span>
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <Button
+              size="sm"
+              className="h-8 text-xs"
+              style={{ background: MEET_GREEN }}
+              disabled={busy === raisedHands[0].identity}
+              onClick={() => void allowHand(raisedHands[0])}
+            >
+              Allow
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-[#5f6368]"
+              onClick={() => declineHand(raisedHands[0].identity)}
+            >
+              Decline
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+      )}
+
+      <div className="shrink-0 px-4 py-2 flex items-center justify-between text-xs text-[#9aa0a6]">
+        <span className="flex items-center gap-2">
+          <Users className="h-4 w-4" style={{ color: MEET_GREEN }} />
+          {listeners.length} listening · {participants.length} total
+        </span>
+        <div className="flex items-center gap-2">
           <VoiceStreamStats sessionStart={sessionStart.current} />
           {recordingActive && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-red-300">
+            <span className="inline-flex items-center gap-1 text-red-300">
               <Circle className="h-1.5 w-1.5 fill-red-500 animate-recording-pulse" />
               REC
             </span>
@@ -580,154 +554,224 @@ function ControlPanelInner({
         </div>
       </div>
 
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0 py-2 px-2 gap-2 overflow-hidden">
-          <section className="shrink-0">
-            <h3 className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">On stage</h3>
-            {speakers.length === 0 ? (
-              <p className="text-[11px] text-slate-500 py-4 text-center rounded-lg bg-slate-800/40 border border-white/10">
-                No speakers yet
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-1 justify-center">
-                {speakers.map((p) => (
-                  <div key={p.identity} className="relative">
-                    <SpeakerCard
-                      participant={p}
-                      busy={busy === p.identity}
-                      onDemote={() => void demoteToListener(p.identity)}
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-amber-600/90 hover:bg-amber-500"
-                      title="Spotlight"
-                      onClick={() => void toggleSpotlight(p.identity)}
-                    >
-                      <Focus className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-          <div
-            onDragOver={(e) => {
-              e.preventDefault()
-              setDragOver(true)
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={onDrop}
-            className={`shrink-0 rounded-lg border border-dashed p-2 ${
-              dragOver ? "border-emerald-400 bg-emerald-500/10" : "border-white/15 bg-slate-800/30"
-            }`}
-          >
-            <input ref={fileRef} type="file" accept={VOICE_ALLOWED_FILE_TYPES.join(",")} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void shareFile(f); e.target.value = "" }} />
-            <Button type="button" variant="ghost" size="sm" className="h-7 w-full text-[10px] text-slate-300" onClick={() => fileRef.current?.click()}>
-              <Upload className="h-3 w-3 mr-1" /> File
-            </Button>
-          </div>
+      <div
+        className={`flex-1 flex flex-col min-h-0 overflow-hidden px-4 ${dragOver ? "ring-2 ring-[#0E8F3D]" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault()
+          setDragOver(true)
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={onDrop}
+      >
+        <div className="flex-1 flex items-center justify-center min-h-0 py-4">
+          <MainStage
+            activeSpeaker={activeSpeaker}
+            isCameraEnabled={isCameraEnabled}
+            localParticipant={localParticipant}
+          />
         </div>
 
-        <aside className="w-[200px] sm:w-[220px] shrink-0 border-l border-white/10 flex flex-col min-h-0 bg-slate-950/50">
-          <div className="p-2 border-b border-white/10">
-            <h3 className="text-[10px] uppercase text-amber-300 flex items-center gap-1">
-              <Hand className="h-3 w-3" /> Queue <Badge className="h-4 px-1 text-[9px]">{raisedHands.length}</Badge>
-            </h3>
-          </div>
-          <ul className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0">
-            {raisedHands.length === 0 ? (
-              <li className="text-[10px] text-slate-500 text-center py-2">Empty</li>
-            ) : (
-              raisedHands.map((h) => (
-                <li key={h.identity} className="rounded-lg border border-amber-500/20 p-1.5 bg-slate-900/60">
-                  <p className="text-[11px] font-medium truncate text-white">{h.name}</p>
-                  <div className="flex gap-1 mt-1">
-                    <Button size="sm" className="h-6 flex-1 text-[10px] bg-[#0E8F3D] px-1" disabled={busy === h.identity} onClick={() => allowHand(h)}>OK</Button>
-                    <Button size="sm" variant="outline" className="h-6 flex-1 text-[10px] px-1 border-white/20" disabled={busy === h.identity} onClick={() => declineHand(h.identity)}>No</Button>
+        {listenerAvatars.length > 0 && (
+          <div className="shrink-0 pb-3">
+            <p className="text-[10px] uppercase tracking-wider text-[#9aa0a6] text-center mb-2">Listeners</p>
+            <div className="flex gap-2 overflow-x-auto justify-center pb-1">
+              {listenerAvatars.map((p) => {
+                const ring = voiceAvatarRingColor(p.identity)
+                return (
+                  <div key={p.identity} className="flex flex-col items-center gap-1 shrink-0">
+                    <div
+                      className="h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{
+                        boxShadow: `0 0 0 2px ${ring}`,
+                        background: `linear-gradient(135deg, ${ring}99, ${ring})`,
+                      }}
+                    >
+                      {voiceInitials(p.name || p.identity)}
+                    </div>
                   </div>
-                </li>
-              ))
-            )}
-          </ul>
-          <div className="p-2 border-t border-white/10 flex-1 min-h-0 flex flex-col overflow-hidden">
-            <h3 className="text-[10px] uppercase text-slate-500 mb-1 shrink-0">Listeners</h3>
-            <ul className="flex-1 overflow-y-auto space-y-1 min-h-0">
-              {listeners.map((p) => (
-                <ListenerRow
-                  key={p.identity}
-                  participant={p}
-                  busy={busy === p.identity}
-                  onKick={() => void kickParticipant(p.identity)}
-                  onBan={() => void kickParticipant(p.identity, true)}
-                  onCoHost={() => void promoteCoHost(p.identity, p.name || p.identity)}
-                />
-              ))}
-            </ul>
+                )
+              })}
+            </div>
           </div>
-        </aside>
+        )}
       </div>
 
-      <div className="shrink-0 border-t border-white/10 bg-slate-950/95 px-2 py-2 safe-area-inset-bottom">
-        <div className="grid grid-cols-8 sm:grid-cols-12 gap-1 max-w-4xl mx-auto place-items-center">
-          <Button type="button" size="icon" className={`h-9 w-9 rounded-lg ${isMicrophoneEnabled ? "bg-[#0E8F3D]" : "bg-slate-700"}`} onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)} title="Mic">
-            {isMicrophoneEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-          </Button>
-          <Button
+      <footer
+        className="shrink-0 h-16 border-t border-[#3c4043] px-3 flex items-center gap-2 safe-area-inset-bottom"
+        style={{ background: "#292a2d" }}
+      >
+        <div className="flex items-center gap-2 shrink-0">
+          <button
             type="button"
-            size="icon"
-            className={`h-9 w-9 rounded-lg border-white/20 ${isCameraEnabled ? "bg-indigo-600 hover:bg-indigo-500" : "bg-slate-800"}`}
-            onClick={() => void toggleCamera()}
-            title={isCameraEnabled ? "Stop camera" : "Start camera"}
+            onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
+            className={`h-12 w-12 rounded-full flex items-center justify-center text-white ${
+              isMicrophoneEnabled ? "" : "bg-[#3c4043]"
+            }`}
+            style={isMicrophoneEnabled ? { background: MEET_GREEN } : undefined}
+            title="Microphone"
           >
-            {isCameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-          </Button>
-          <ChatPanel roomName={roomName} senderName={localParticipant.name || "Host"} senderAgentId={null} apiMode="admin" isAdmin triggerClassName="h-9 w-9 p-0 rounded-lg border-white/20 bg-slate-800" />
-          <Popover open={inviteOpen} onOpenChange={setInviteOpen}>
-            <PopoverTrigger asChild>
-              <Button type="button" size="icon" variant="outline" className="h-9 w-9 border-white/20 bg-slate-800" title="Invite"><UserPlus className="h-4 w-4" /></Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-0 bg-slate-900 border-white/20 text-slate-100">
-              <Command>
-                <CommandInput placeholder="Listeners…" className="h-8 text-xs" />
-                <CommandList>
-                  <CommandEmpty className="text-xs py-2 text-center">None</CommandEmpty>
-                  <CommandGroup>
-                    {listeners.map((p) => (
-                      <CommandItem key={p.identity} value={p.name || p.identity} className="text-xs" onSelect={() => void inviteToSpeak(p.identity, p.name || p.identity)}>{p.name || p.identity}</CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          <Button type="button" size="icon" variant="outline" className="h-9 w-9 border-white/20 bg-slate-800" disabled={busy === "mute-all"} onClick={() => void muteAllSpeakers()} title="Mute all"><MicOff className="h-4 w-4" /></Button>
-          <VoicePollPanel isAdmin compact />
-          <Button type="button" size="icon" variant="outline" className="h-9 w-9 border-white/20 bg-slate-800" disabled={busy === "notify"} onClick={() => void notifyHostLive()} title="Notify region"><Bell className="h-4 w-4" /></Button>
-          <VoiceParticipantsSheet compact />
-          {recordingEnabled && (
-            <Button type="button" size="icon" variant="outline" className={`h-9 w-9 border-white/20 ${recordingActive ? "bg-red-900/50" : "bg-slate-800"}`} disabled={busy === "recording"} onClick={() => void toggleRecording()} title="Record">
-              {busy === "recording" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Circle className={`h-4 w-4 ${recordingActive ? "fill-red-500" : ""}`} />}
-            </Button>
-          )}
+            {isMicrophoneEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
+          </button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button type="button" size="icon" variant="destructive" className="h-9 w-9 bg-red-600" disabled={busy === "end"} title="End"><X className="h-4 w-4" /></Button>
+              <button
+                type="button"
+                className="h-12 w-12 rounded-full bg-[#ea4335] flex items-center justify-center text-white hover:bg-[#d93025]"
+                title="End call"
+              >
+                <PhoneOff className="h-6 w-6" />
+              </button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="bg-slate-900 border-white/10 text-slate-100">
+            <AlertDialogContent className="bg-[#292a2d] border-[#3c4043] text-[#e8eaed]">
               <AlertDialogHeader>
-                <AlertDialogTitle className="text-sm text-white">End stream?</AlertDialogTitle>
-                <AlertDialogDescription className="text-xs text-slate-400">Disconnect everyone.</AlertDialogDescription>
+                <AlertDialogTitle>End Agent Conference?</AlertDialogTitle>
+                <AlertDialogDescription className="text-[#9aa0a6]">
+                  Everyone will be disconnected.
+                </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="h-8 text-xs">Cancel</AlertDialogCancel>
-                <AlertDialogAction className="h-8 text-xs bg-red-600" onClick={() => void endRoom()}>End</AlertDialogAction>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-[#ea4335] hover:bg-[#d93025]"
+                  onClick={() => void endRoom()}
+                >
+                  End call
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          <button
+            type="button"
+            disabled
+            className="h-12 w-12 rounded-full bg-[#3c4043] flex items-center justify-center text-[#9aa0a6] opacity-50 cursor-not-allowed"
+            title="Camera (coming soon)"
+          >
+            <VideoOff className="h-6 w-6" />
+          </button>
         </div>
-      </div>
+
+        <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto px-1">
+          <SpeakerChipBar speakers={speakers} busy={busy} onMute={(id) => void muteParticipant(id)} />
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          <ChatPanel
+            roomName={roomName}
+            senderName={localParticipant.name || "Host"}
+            senderAgentId={null}
+            apiMode="admin"
+            isAdmin
+            triggerClassName="h-11 w-11 rounded-full p-0 border-0 bg-[#3c4043] hover:bg-[#4a4d51] text-[#e8eaed]"
+          />
+          <VoiceParticipantsSheet
+            compact
+            side="right"
+            triggerClassName="h-11 w-11 rounded-full p-0 border-0 bg-[#3c4043] hover:bg-[#4a4d51] text-[#e8eaed]"
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="h-11 w-11 rounded-full bg-[#3c4043] hover:bg-[#4a4d51] flex items-center justify-center"
+                title="Reactions"
+              >
+                <Smile className="h-5 w-5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-3 bg-[#292a2d] border-[#3c4043]">
+              <div className="flex gap-2">
+                {VOICE_REACTION_EMOJIS.map((e) => (
+                  <span key={e} className="text-2xl">
+                    {e}
+                  </span>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="h-11 w-11 rounded-full bg-[#3c4043] hover:bg-[#4a4d51] flex items-center justify-center"
+                title="More"
+              >
+                <MoreVertical className="h-5 w-5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#292a2d] border-[#3c4043] text-[#e8eaed]">
+              <DropdownMenuItem onClick={() => setInviteOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Invite speaker
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <div className="px-2 py-1.5">
+                  <VoicePollPanel isAdmin compact />
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={busy === "mute-all"} onClick={() => void muteAllSpeakers()}>
+                <MicOff className="h-4 w-4 mr-2" />
+                Mute all speakers
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={busy === "notify"} onClick={() => void notifyHostLive()}>
+                <Bell className="h-4 w-4 mr-2" />
+                Push notification
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => fileRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" />
+                Share file
+              </DropdownMenuItem>
+              {recordingEnabled && (
+                <DropdownMenuItem disabled={busy === "recording"} onClick={() => void toggleRecording()}>
+                  <Circle className="h-4 w-4 mr-2" />
+                  {recordingActive ? "Stop recording" : "Start recording"}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <div className="hidden sm:block">
+            <VoicePollPanel isAdmin compact />
+          </div>
+        </div>
+      </footer>
+
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="bg-[#292a2d] border-[#3c4043] text-[#e8eaed] max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Invite speaker</DialogTitle>
+          </DialogHeader>
+          <Command>
+            <CommandInput placeholder="Select listener…" className="h-9 text-sm" />
+            <CommandList>
+              <CommandEmpty className="text-xs py-4 text-center text-[#9aa0a6]">No listeners</CommandEmpty>
+              <CommandGroup>
+                {listeners.map((p) => (
+                  <CommandItem
+                    key={p.identity}
+                    value={p.name || p.identity}
+                    className="text-sm"
+                    onSelect={() => void inviteToSpeak(p.identity, p.name || p.identity)}
+                  >
+                    {p.name || p.identity}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </DialogContent>
+      </Dialog>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept={VOICE_ALLOWED_FILE_TYPES.join(",")}
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) void shareFile(f)
+          e.target.value = ""
+        }}
+      />
+
     </div>
   )
 }
@@ -742,16 +786,16 @@ export function VoiceRoomAdminControl({
   onEnded,
 }: Props) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-[#0a1628] via-[#1a0f2e] to-black">
-      <div className="shrink-0 px-4 py-3 border-b border-white/10 flex items-center justify-between bg-black/30 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: MEET_BG, color: MEET_TEXT }}>
+      <div className="shrink-0 px-4 py-3 border-b border-[#3c4043] flex items-center justify-between">
         <div className="min-w-0">
-          <h2 className="font-semibold text-sm text-white">Host control</h2>
-          <p className="text-xs text-slate-400 truncate">{roomName}</p>
+          <h2 className="font-medium text-sm">Agent Conference — Host</h2>
+          <p className="text-xs text-[#9aa0a6] truncate">{roomName}</p>
         </div>
         <Button
           variant="ghost"
           size="icon"
-          className="text-slate-300 hover:bg-white/10 shrink-0"
+          className="text-[#e8eaed] hover:bg-[#3c4043] shrink-0"
           onClick={onClose}
         >
           <X className="h-5 w-5" />

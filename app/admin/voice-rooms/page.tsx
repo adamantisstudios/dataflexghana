@@ -26,7 +26,7 @@ export default function AdminVoiceRoomsPage() {
           </Link>
           <div className="flex items-center gap-2 min-w-0">
             <Radio className="h-5 w-5 text-emerald-400 shrink-0" />
-            <h1 className="font-semibold text-lg truncate">Voice conference control</h1>
+            <h1 className="font-semibold text-lg truncate">Agent Conference Management</h1>
           </div>
         </div>
       </header>

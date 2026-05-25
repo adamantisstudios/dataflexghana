@@ -17,9 +17,10 @@ import { voiceInitials, voiceAvatarRingColor } from "@/lib/voice-ui-utils"
 type Props = {
   triggerClassName?: string
   compact?: boolean
+  side?: "bottom" | "right"
 }
 
-export function VoiceParticipantsSheet({ triggerClassName, compact }: Props) {
+export function VoiceParticipantsSheet({ triggerClassName, compact, side = "bottom" }: Props) {
   const participants = useParticipants()
 
   return (
@@ -40,11 +41,15 @@ export function VoiceParticipantsSheet({ triggerClassName, compact }: Props) {
         </Button>
       </SheetTrigger>
       <SheetContent
-        side="bottom"
-        className="rounded-t-2xl max-h-[55dvh] bg-slate-900 border-white/10 text-white"
+        side={side}
+        className={
+          side === "right"
+            ? "max-w-sm w-full sm:max-w-md h-full bg-[#292a2d] border-[#3c4043] text-[#e8eaed]"
+            : "rounded-t-2xl max-h-[55dvh] bg-[#292a2d] border-[#3c4043] text-[#e8eaed]"
+        }
       >
         <SheetHeader>
-          <SheetTitle className="text-white text-sm">
+          <SheetTitle className="text-[#e8eaed] text-sm">
             Participants ({participants.length})
           </SheetTitle>
         </SheetHeader>

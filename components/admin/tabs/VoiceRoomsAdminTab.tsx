@@ -129,7 +129,7 @@ export default function VoiceRoomsAdminTab() {
     <div className="space-y-6 rounded-2xl border border-white/10 bg-gradient-to-b from-[#0a1628] via-[#0d1b2a] to-slate-950 text-white p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-white/70 max-w-xl">
-          Invitation-only voice conferences by region. Agents join from their dashboard menu.
+          Invitation-only Agent Conferences by region. Agents join from their dashboard menu.
         </p>
         <div className="flex gap-2">
           <Link href="/admin/voice-rooms">

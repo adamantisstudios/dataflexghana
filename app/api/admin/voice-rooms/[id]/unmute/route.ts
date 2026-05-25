@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdminSession } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
-import { muteParticipantAudio, updateParticipantRole } from "@/lib/livekit-server"
+import { muteParticipantAudio, sendUnmuteCommand, updateParticipantRole } from "@/lib/livekit-server"
 
 export const dynamic = "force-dynamic"
 
@@ -27,7 +27,12 @@ export async function POST(
     }
 
     await updateParticipantRole(room.room_name, identity, "speaker")
-    await muteParticipantAudio(room.room_name, identity, false)
+    try {
+      await muteParticipantAudio(room.room_name, identity, false)
+    } catch {
+      /* no published track yet — agent will publish after token upgrade */
+    }
+    await sendUnmuteCommand(room.room_name, identity)
 
     return NextResponse.json({ success: true })
   } catch (e) {

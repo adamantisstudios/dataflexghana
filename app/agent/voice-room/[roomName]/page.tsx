@@ -61,7 +61,7 @@ export default function AgentVoiceRoomJoinPage() {
           className="text-emerald-400 underline"
           onClick={() => router.push("/agent/voice-rooms")}
         >
-          Back to voice rooms
+          Back to Agent Conference
         </button>
       </div>
     )

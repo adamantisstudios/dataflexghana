@@ -74,7 +74,7 @@ export default function AgentVoiceRoomsPage() {
           <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-widest text-emerald-400/90">DataFlex Ghana</p>
             <h1 className="font-bold text-xl leading-tight text-white">
-              Upcoming Voice Conferences
+              Agent Conference
             </h1>
             {agentRegion && (
               <p className="text-xs text-slate-400 truncate mt-0.5">Your region: {agentRegion}</p>
