@@ -64,6 +64,7 @@ import { getParticipantRole, isSpeakerRole } from "@/components/voice/voice-part
 import { useParticipantAudioLevel } from "@/components/voice/useParticipantAudioLevel"
 import { VoiceAudioMeter } from "@/components/voice/VoiceAudioMeter"
 import { VoiceReactionsLayer } from "@/components/voice/VoiceReactionsLayer"
+import { ChatPanel } from "@/components/voice/ChatPanel"
 
 type RaisedHand = {
   identity: string
@@ -223,10 +224,12 @@ function StreamHealthDot() {
 
 function ControlPanelInner({
   roomId,
+  roomName,
   recordingEnabled,
   onEnded,
 }: {
   roomId: string
+  roomName: string
   recordingEnabled: boolean
   onEnded: () => void
 }) {
@@ -613,6 +616,15 @@ function ControlPanelInner({
             {isMicrophoneEnabled ? <Mic className="h-7 w-7" /> : <MicOff className="h-7 w-7" />}
           </Button>
 
+          <ChatPanel
+            roomName={roomName}
+            senderName={localParticipant.name || "Host"}
+            senderAgentId={null}
+            apiMode="admin"
+            isAdmin
+            triggerClassName="h-12 px-4 rounded-xl border-white/20 bg-slate-800/80 text-slate-100 hover:bg-slate-700"
+          />
+
           <Popover open={inviteOpen} onOpenChange={setInviteOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -731,7 +743,12 @@ export function VoiceRoomAdminControl({
       </div>
       <div className="flex-1 min-h-0 overflow-hidden">
         <LiveKitRoom token={token} serverUrl={serverUrl} connect audio video={false} className="h-full">
-          <ControlPanelInner roomId={roomId} recordingEnabled={recordingEnabled} onEnded={onEnded} />
+          <ControlPanelInner
+            roomId={roomId}
+            roomName={roomName}
+            recordingEnabled={recordingEnabled}
+            onEnded={onEnded}
+          />
           <RoomAudioRenderer />
         </LiveKitRoom>
       </div>

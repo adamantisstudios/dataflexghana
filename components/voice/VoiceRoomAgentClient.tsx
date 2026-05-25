@@ -53,6 +53,7 @@ import {
 import { getParticipantRole, isSpeakerRole } from "@/components/voice/voice-participant-utils"
 import { useParticipantAudioLevel } from "@/components/voice/useParticipantAudioLevel"
 import { VoiceReactionsLayer, sendVoiceReaction } from "@/components/voice/VoiceReactionsLayer"
+import { ChatPanel } from "@/components/voice/ChatPanel"
 
 type SharedFile = {
   id: string
@@ -400,6 +401,13 @@ function AgentRoomUI({ roomName }: { roomName: string }) {
               {handRaised ? "Hand raised ✋" : "Raise hand"}
             </Button>
           )}
+          <ChatPanel
+            roomName={roomName}
+            senderName={localParticipant.name || "Agent"}
+            senderAgentId={localParticipant.identity}
+            apiMode="agent"
+            disabled={!connected}
+          />
           <Sheet>
             <SheetTrigger asChild>
               <Button
