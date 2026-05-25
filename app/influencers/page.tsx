@@ -107,28 +107,31 @@ export default function PublicInfluencersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 to-white">
       <header className="border-b bg-white/95 backdrop-blur sticky top-0 z-10 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Link href="/">
+        <div className="max-w-6xl mx-auto w-full px-4 py-3 sm:py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0 w-full">
+            <Link href="/" className="shrink-0">
               <Button variant="ghost" size="icon" aria-label="Home">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900" style={{ fontFamily: "Poppins, sans-serif" }}>
+            <div className="min-w-0">
+              <h1
+                className="text-lg sm:text-xl font-bold text-slate-900 leading-tight"
+                style={{ fontFamily: "Poppins, sans-serif" }}
+              >
                 Micro-Influencers
               </h1>
-              <p className="text-sm text-slate-600">Discover verified creators on Dataflex Ghana</p>
+              <p className="text-xs sm:text-sm text-slate-600">Discover verified creators on Dataflex Ghana</p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/influencers/register">
-              <Button className="text-white" style={{ backgroundColor: BRAND }}>
+          <div className="flex flex-col xs:flex-row w-full sm:w-auto gap-2 shrink-0">
+            <Link href="/influencers/register" className="w-full sm:w-auto">
+              <Button className="w-full text-white text-sm h-10" style={{ backgroundColor: BRAND }}>
                 Become an Influencer
               </Button>
             </Link>
-            <Link href="/agent/register">
-              <Button variant="outline" className="border-emerald-200 text-[#0E8F3D]">
+            <Link href="/agent/register" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full border-emerald-200 text-[#0E8F3D] text-sm h-10">
                 Become an agent
               </Button>
             </Link>
@@ -136,7 +139,21 @@ export default function PublicInfluencersPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <section
+        className="w-full px-4 py-6 sm:py-8 text-white"
+        style={{ background: `linear-gradient(135deg, ${BRAND}, #35B24A)` }}
+      >
+        <div className="max-w-6xl mx-auto text-center sm:text-left">
+          <h2 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: "Poppins, sans-serif" }}>
+            Partner with verified creators
+          </h2>
+          <p className="mt-2 text-sm sm:text-base text-white/90 max-w-xl mx-auto sm:mx-0">
+            Browse influencer storefronts, audience reach, and active packages — optimized for mobile and desktop.
+          </p>
+        </div>
+      </section>
+
+      <main className="max-w-6xl mx-auto w-full px-4 py-6 sm:py-8">
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-10 w-10 animate-spin text-[#0E8F3D]" />
@@ -148,46 +165,51 @@ export default function PublicInfluencersPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {list.map((item) => (
               <Card
                 key={item.profile_id}
-                className="rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                className="rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden h-full"
               >
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-3">
+                <CardContent className="p-4 sm:p-5 flex flex-col gap-3 h-full">
+                  <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left">
                     {item.photo_url ? (
                       <Image
                         src={item.photo_url}
-                        alt=""
-                        width={56}
-                        height={56}
-                        className="rounded-full object-cover h-14 w-14 border-2 border-emerald-100"
+                        alt={item.full_name}
+                        width={72}
+                        height={72}
+                        className="rounded-full object-cover h-16 w-16 sm:h-14 sm:w-14 border-2 border-emerald-100 shrink-0"
                       />
                     ) : (
                       <div
-                        className="h-14 w-14 rounded-full flex items-center justify-center text-lg font-bold text-white shrink-0"
+                        className="h-16 w-16 sm:h-14 sm:w-14 rounded-full flex items-center justify-center text-xl sm:text-lg font-bold text-white shrink-0"
                         style={{ backgroundColor: BRAND }}
                       >
                         {item.full_name.charAt(0)}
                       </div>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <h2 className="font-semibold text-slate-900 truncate">{item.full_name}</h2>
-                      <p className="text-xs text-slate-500 truncate">{item.niche || "General"}</p>
+                    <div className="min-w-0 flex-1 w-full">
+                      <h2 className="font-semibold text-base sm:text-sm text-slate-900 break-words">
+                        {item.full_name}
+                      </h2>
+                      <p className="text-sm sm:text-xs text-slate-500 mt-0.5">{item.niche || "General"}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-[#0E8F3D] font-medium">
-                    <Users className="h-4 w-4" />
-                    {item.audience_size.toLocaleString()} audience
+                  <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-[#0E8F3D] font-medium">
+                    <Users className="h-4 w-4 shrink-0" />
+                    <span>{item.audience_size.toLocaleString()} audience</span>
                   </div>
                   {item.package_count > 0 && (
-                    <Badge variant="outline" className="text-[10px] border-emerald-200 text-emerald-800">
+                    <Badge
+                      variant="outline"
+                      className="text-xs sm:text-[10px] border-emerald-200 text-emerald-800 w-fit mx-auto sm:mx-0"
+                    >
                       {item.package_count} active package{item.package_count !== 1 ? "s" : ""}
                     </Badge>
                   )}
                   <Button
-                    className="w-full text-white"
+                    className="w-full text-white mt-auto h-11 text-sm"
                     style={{ backgroundColor: BRAND }}
                     onClick={() => openProfile(item.profile_id)}
                   >
@@ -210,25 +232,25 @@ export default function PublicInfluencersPage() {
               <Loader2 className="h-8 w-8 animate-spin text-[#0E8F3D]" />
             </div>
           ) : detail ? (
-            <div className="mt-4 space-y-5 pb-8">
-              <div className="flex items-center gap-4">
+            <div className="mt-4 space-y-5 pb-8 px-1">
+              <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left">
                 {detail.photo_url ? (
                   <Image
                     src={detail.photo_url}
-                    alt=""
+                    alt={detail.full_name}
                     width={72}
                     height={72}
-                    className="rounded-full object-cover h-18 w-18 border-2 border-emerald-100"
+                    className="rounded-full object-cover h-[72px] w-[72px] border-2 border-emerald-100 shrink-0"
                   />
                 ) : (
                   <div
-                    className="h-18 w-18 rounded-full h-[72px] w-[72px] flex items-center justify-center text-2xl font-bold text-white"
+                    className="h-[72px] w-[72px] rounded-full flex items-center justify-center text-2xl font-bold text-white shrink-0"
                     style={{ backgroundColor: BRAND }}
                   >
                     {detail.full_name.charAt(0)}
                   </div>
                 )}
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">{detail.niche || "General"}</p>
                   <p className="text-sm font-medium text-[#0E8F3D]">
                     {detail.audience_size.toLocaleString()} audience

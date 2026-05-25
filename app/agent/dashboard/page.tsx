@@ -991,16 +991,13 @@ DataFlex Ghana Agent 🇬🇭`
           onClose={handleCloseAudioPlayer}
         />
       )}
-      {showWhatsAppPopup && (
-        <WhatsAppChannelPopup
-          controlled
-          isVisible={showWhatsAppPopup}
-          onClose={() => {
-            recordWhatsAppPopupDismissed()
-            setShowWhatsAppPopup(false)
-          }}
-        />
-      )}
+      <VerificationReminderPopup
+        isVisible={showVerificationReminder}
+        onClose={() => {
+          recordVerificationReminderDismissed()
+          setShowVerificationReminder(false)
+        }}
+      />
       {/* START: HERO SECTION WITH ADMIN PORTAL ACCESS - MOBILE OPTIMIZED */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg border-b border-slate-700">
         <div className="w-full max-w-full px-3 sm:px-4 py-3">
