@@ -1099,6 +1099,8 @@ export async function createAdminAdjustment(
       .single()
 
     if (error) {
+      console.error("[createAdminAdjustment] insert failed — exact error:", error.message)
+      console.error("[createAdminAdjustment] insert error details:", error)
       throw new Error(`Failed to create admin adjustment: ${error.message}`)
     }
 

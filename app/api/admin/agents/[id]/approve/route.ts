@@ -3,6 +3,10 @@ import { getAdminClient } from "@/lib/supabase-base"
 import { authenticateAdmin } from "@/lib/api-auth"
 import { createAdminAdjustment } from "@/lib/earnings-calculator"
 import { ensureReferralCreditOnAgentApproval } from "@/lib/referral-agent-program"
+import {
+  adminAdjustmentTransactionType,
+  buildWalletTransactionInsertRow,
+} from "@/lib/wallet-transaction-types"
 
 export const dynamic = "force-dynamic"
 
@@ -60,15 +64,50 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     let adjustmentId: string | null = null
+    const creditAmount = 5
+    const creditReason = "Approval credit for new agent"
+    const isCredit = true
+    const adminId = String(admin.id ?? "")
+    const referenceCode = `adj-${Date.now()}`
+    const adjustmentInsert = buildWalletTransactionInsertRow(
+      {
+        agent_id: agentId,
+        amount: Math.abs(creditAmount),
+        transaction_type: adminAdjustmentTransactionType(isCredit),
+        reference_code: referenceCode,
+        description: creditReason,
+        status: "approved",
+        admin_id: adminId || undefined,
+        admin_notes: `Credit adjustment. Reason: ${creditReason}`,
+      },
+      { created_at: new Date().toISOString() },
+    )
+
+    console.log("[approve] wallet adjustment insert payload (pre-insert):", {
+      agent_id: adjustmentInsert.agent_id,
+      amount: adjustmentInsert.amount,
+      transaction_type: adjustmentInsert.transaction_type,
+      reference_code: adjustmentInsert.reference_code,
+      description: adjustmentInsert.description,
+      status: adjustmentInsert.status,
+      admin_id: adjustmentInsert.admin_id ?? null,
+      admin_notes: adjustmentInsert.admin_notes ?? null,
+      created_at: adjustmentInsert.created_at ?? null,
+      full_row: adjustmentInsert,
+    })
+
     try {
       adjustmentId = await createAdminAdjustment(
         agentId,
-        5,
-        admin.id,
-        "Approval credit for new agent",
-        true,
+        creditAmount,
+        adminId,
+        creditReason,
+        isCredit,
       )
     } catch (creditErr) {
+      const insertErrorMessage =
+        creditErr instanceof Error ? creditErr.message : String(creditErr)
+      console.error("[approve] wallet adjustment insert failed — exact error:", insertErrorMessage)
       console.error("[approve] wallet credit failed, reverting approval:", creditErr)
       await db
         .from("agents")
