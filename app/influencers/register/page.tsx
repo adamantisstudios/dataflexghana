@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
-import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
+import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
 import { MIN_INFLUENCER_AUDIENCE } from "@/lib/influencer-types"
 import { ArrowLeft, Loader2, Plus, Trash2, Sparkles, Wallet, Shield } from "lucide-react"
 import { toast } from "sonner"
@@ -284,8 +284,8 @@ export default function InfluencerRegisterPage() {
 
               <div className="space-y-2">
                 <Label>Profile Photo *</Label>
-                <div className="flex flex-wrap items-center gap-3">
-                  <MobilePhotoUpload onFile={uploadPhoto} uploading={uploading} disabled={submitting} />
+                <div className="flex flex-wrap items-start gap-3">
+                  <FacePhotoUpload onFile={uploadPhoto} uploading={uploading} disabled={submitting} />
                   {photoUrl && (
                     <Image
                       src={photoUrl}

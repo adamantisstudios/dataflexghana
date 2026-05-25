@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState, type ChangeEvent } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,7 +24,7 @@ import {
 } from "@/lib/influencer-types"
 import { Loader2, Plus, Trash2, Upload, Sparkles, Package, Pencil } from "lucide-react"
 import { parseJsonResponse } from "@/lib/agent-auth-utils"
-import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
+import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
 import {
   Dialog,
   DialogContent,
@@ -175,11 +175,6 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
     } finally {
       setUploading(false)
     }
-  }
-
-  const onPhotoSelected = (e: ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f) uploadPhoto(f)
   }
 
   const buildSocialHandles = (): SocialHandles => {
@@ -385,26 +380,26 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
             <CardContent className="space-y-4">
               <div>
                 <Label>Profile photo</Label>
-                <div className="flex flex-col items-center sm:flex-row sm:items-center gap-4 mt-2">
+                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4 mt-2">
                   {applyForm.photo_url ? (
                     <Image
                       src={applyForm.photo_url}
                       alt="Profile"
                       width={64}
                       height={64}
-                      className="rounded-full object-cover h-16 w-16 border"
+                      className="rounded-full object-cover h-16 w-16 border shrink-0"
                     />
                   ) : (
-                    <div className="h-16 w-16 rounded-full bg-slate-100 border flex items-center justify-center">
+                    <div className="h-16 w-16 rounded-full bg-slate-100 border flex items-center justify-center shrink-0">
                       <Upload className="h-5 w-5 text-slate-400" />
                     </div>
                   )}
-                  <MobilePhotoUpload
+                  <FacePhotoUpload
                     label="Choose Photo"
                     uploading={uploading}
                     disabled={uploading}
-                    onFile={(file) => onPhotoSelected({ target: { files: [file] } } as ChangeEvent<HTMLInputElement>)}
-                    className="border-[#0E8F3D]/30 text-[#0E8F3D] hover:bg-emerald-50"
+                    onFile={uploadPhoto}
+                    className="border-[#0E8F3D]/30 text-[#0E8F3D] hover:bg-emerald-50 flex-1 min-w-0"
                   />
                 </div>
               </div>

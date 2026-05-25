@@ -26,7 +26,7 @@ import { toast } from "sonner"
 import { AGENT_PROFILE_PRIVACY_NOTICE } from "@/lib/agent-profile-completion"
 import { AgentAvatar } from "@/components/agent/AgentAvatar"
 import { LazyProfileImage } from "@/components/ui/lazy-profile-image"
-import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
+import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
 
 export default function AgentSettingsPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -297,11 +297,8 @@ export default function AgentSettingsPage() {
               <form onSubmit={handleSaveProfile} className="space-y-4 max-w-md mx-auto">
                 <div className="space-y-2 text-center sm:text-left">
                   <Label>Profile photo</Label>
-                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg p-3 leading-relaxed">
-                    Please upload a clear, well-lit photo of yourself with your face clearly visible.
-                  </p>
-                  <div className="flex justify-center sm:justify-start">
-                    <MobilePhotoUpload
+                  <div className="flex justify-center sm:justify-start max-w-md">
+                    <FacePhotoUpload
                       label="Choose Photo"
                       uploading={photoUploading}
                       disabled={photoUploading}
