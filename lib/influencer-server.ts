@@ -32,6 +32,93 @@ export async function getPackagesForProfile(profileId: string, activeOnly = fals
   })) as InfluencerPackage[]
 }
 
+export type PublicInfluencerListItem = {
+  profile_id: string
+  agent_id: string
+  full_name: string
+  photo_url: string | null
+  niche: string | null
+  audience_size: number
+  bio: string | null
+  social_handles: SocialHandles
+  package_count: number
+}
+
+export async function listPublicApprovedInfluencers(): Promise<PublicInfluencerListItem[]> {
+  const db = getAdminClient()
+  const { data: profiles, error } = await db
+    .from("influencer_profiles")
+    .select("*")
+    .eq("approved", true)
+    .order("created_at", { ascending: false })
+
+  if (error || !profiles?.length) return []
+
+  const profileIds = profiles.map((p) => p.id)
+  const agentIds = [...new Set(profiles.map((p) => p.agent_id))]
+
+  const [{ data: agents }, { data: packages }] = await Promise.all([
+    db.from("agents").select("id, full_name").in("id", agentIds),
+    db
+      .from("influencer_packages")
+      .select("profile_id")
+      .in("profile_id", profileIds)
+      .eq("is_active", true),
+  ])
+
+  const agentMap = new Map((agents || []).map((a) => [a.id, a.full_name || "Influencer"]))
+  const packageCounts = new Map<string, number>()
+  for (const pkg of packages || []) {
+    const pid = String(pkg.profile_id)
+    packageCounts.set(pid, (packageCounts.get(pid) || 0) + 1)
+  }
+
+  return profiles.map((p) => ({
+    profile_id: p.id,
+    agent_id: p.agent_id,
+    full_name: agentMap.get(p.agent_id) || "Influencer",
+    photo_url: p.photo_url,
+    niche: p.niche,
+    audience_size: Number(p.audience_size),
+    bio: p.bio,
+    social_handles: parseSocialHandles(p.social_handles) as SocialHandles,
+    package_count: packageCounts.get(p.id) || 0,
+  }))
+}
+
+export async function getPublicInfluencerDetail(profileId: string): Promise<PublicInfluencerProfile | null> {
+  const db = getAdminClient()
+  const { data: profile, error } = await db
+    .from("influencer_profiles")
+    .select("*")
+    .eq("id", profileId)
+    .eq("approved", true)
+    .maybeSingle()
+
+  if (error || !profile) return null
+
+  const { data: agent } = await db.from("agents").select("full_name").eq("id", profile.agent_id).maybeSingle()
+  const packages = await getPackagesForProfile(profile.id, true)
+
+  return {
+    agent_id: profile.agent_id,
+    full_name: agent?.full_name || "Influencer",
+    bio: profile.bio,
+    photo_url: profile.photo_url,
+    social_handles: parseSocialHandles(profile.social_handles) as SocialHandles,
+    audience_size: Number(profile.audience_size),
+    niche: profile.niche,
+    packages: packages.map((p) => ({
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      price: p.price,
+      delivery_days: p.delivery_days,
+      terms: p.terms,
+    })),
+  }
+}
+
 export async function getPublicInfluencerForAgent(agentId: string): Promise<PublicInfluencerProfile | null> {
   const profile = await getInfluencerProfileByAgentId(agentId)
   if (!profile?.approved) return null

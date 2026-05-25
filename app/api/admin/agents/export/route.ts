@@ -1,4 +1,5 @@
 import { requireAdminSession } from "@/lib/api-auth"
+import { isAgentProfileVerified } from "@/lib/agent-profile-completion"
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
@@ -129,6 +130,7 @@ export async function GET(request: NextRequest) {
       Profession: row.profession || "",
       "Exact Location": row.exact_location || "",
       "Profile Image URL": row.profile_image_url || "",
+      Verified: isAgentProfileVerified(row) ? "Yes" : "No",
       Phone: row.phone_number,
       Status: row.status,
       "Commission Balance": row.available_commission_balance || 0,
@@ -145,6 +147,7 @@ export async function GET(request: NextRequest) {
       "Profession",
       "Exact Location",
       "Profile Image URL",
+      "Verified",
       "Phone",
       "Status",
       "Commission Balance",

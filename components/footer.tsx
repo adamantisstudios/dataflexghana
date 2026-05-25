@@ -79,6 +79,11 @@ export function Footer() {
             <h3 className="text-lg font-semibold">Quick Links</h3>
             <ul className="space-y-2 text-sm lg:text-base">
               <li>
+                <Link href="/influencers" className="text-gray-400 hover:text-white transition-colors">
+                  Micro-Influencers
+                </Link>
+              </li>
+              <li>
                 <Link href="/agent/register" className="text-gray-400 hover:text-white transition-colors">
                   Become an Agent
                 </Link>

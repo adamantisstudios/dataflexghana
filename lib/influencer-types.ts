@@ -29,6 +29,8 @@ export const INFLUENCER_ORDER_STATUS_LABELS: Record<InfluencerOrderStatus, strin
 
 export type SocialHandles = Record<string, string>
 
+export type InfluencerRegistrationSource = "referral_hub" | "self_registered"
+
 export type InfluencerProfile = {
   id: string
   agent_id: string
@@ -38,6 +40,7 @@ export type InfluencerProfile = {
   audience_size: number
   niche: string | null
   approved: boolean
+  registration_source?: InfluencerRegistrationSource
   created_at: string
 }
 

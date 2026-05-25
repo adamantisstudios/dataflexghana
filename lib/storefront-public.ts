@@ -57,6 +57,8 @@ export type PublicStorefrontResponse = {
   writingServices: PublicWritingService[]
   properties: PublicPropertyListing[]
   influencer: PublicInfluencerProfile | null
+  /** Approved micro-influencer — premium storefront theme */
+  isPremiumInfluencer?: boolean
   unavailable?: boolean
 }
 
@@ -362,7 +364,14 @@ export async function getPublicStorefrontResponse(
     }
 
     let influencer: PublicInfluencerProfile | null = null
+    let isPremiumInfluencer = false
     try {
+      const { data: infRow } = await db
+        .from("influencer_profiles")
+        .select("approved")
+        .eq("agent_id", agentId)
+        .maybeSingle()
+      isPremiumInfluencer = Boolean(infRow?.approved)
       influencer = await getPublicInfluencerForAgent(agentId)
     } catch (influencerErr) {
       console.error("public storefront influencer:", influencerErr)
@@ -379,6 +388,7 @@ export async function getPublicStorefrontResponse(
       writingServices,
       properties,
       influencer,
+      isPremiumInfluencer,
       unavailable: false,
     }
   } catch (error) {

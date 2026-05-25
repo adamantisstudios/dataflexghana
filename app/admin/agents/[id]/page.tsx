@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { AgentCallHistorySection } from "@/components/admin/AgentCallHistorySection"
 
 interface AgentDetails extends Agent {
   data_orders_count_7d?: number
@@ -377,6 +378,20 @@ export default function AgentDetailsPage() {
                     <ShoppingCart className="h-4 w-4 mr-2" /> View Order History
                   </Link>
                 </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link href={`/admin/agent-calls?agent_id=${encodeURIComponent(agentId)}`}>
+                    <Phone className="h-4 w-4 mr-2" /> View all calls
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-semibold">Call History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AgentCallHistorySection agentId={agentId} />
               </CardContent>
             </Card>
           </div>

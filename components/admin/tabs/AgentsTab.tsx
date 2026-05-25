@@ -44,6 +44,8 @@ import { exportAgentsToCsv, fetchAllAgentsWithPagination } from "@/lib/csv-expor
 import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton";
 import { connectionManager } from "@/lib/connection-manager";
 import { toast } from "sonner";
+import { isAgentProfileVerified } from "@/lib/agent-profile-completion";
+import { AdminAgentVerificationBadge } from "@/components/admin/AdminAgentVerificationBadge";
 
 interface AgentWithWallet extends Agent {
   wallet_balance?: number;
@@ -65,6 +67,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
   const [isLoadingPage, setIsLoadingPage] = useState(false);
   const [agentSearchTerm, setAgentSearchTerm] = useState("");
   const [agentsFilterAdmin, setAgentsFilterAdmin] = useState("All Agents");
+  const [verificationStats, setVerificationStats] = useState({ verified: 0, total: 0 });
   const [currentAgentsPage, setCurrentAgentsPage] = useState(1);
   const [showAgentDialog, setShowAgentDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
@@ -155,6 +158,9 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
           .select("*", { count: "exact" })
           .order("created_at", { ascending: false });
 
+        const verificationFilter =
+          statusFilter === "Verified" || statusFilter === "Unverified";
+
         if (statusFilter === "Approved") {
           query = query.eq("isapproved", true);
         } else if (statusFilter === "Pending") {
@@ -165,7 +171,9 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
           query = query.or(
             `full_name.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,profession.ilike.%${searchTerm}%,exact_location.ilike.%${searchTerm}%,momo_number.ilike.%${searchTerm}%,region.ilike.%${searchTerm}%`
           );
-          query = query.limit(100);
+          query = query.limit(verificationFilter ? 2000 : 100);
+        } else if (verificationFilter) {
+          query = query.limit(2000);
         } else {
           const offset = (page - 1) * itemsPerPage;
           query = query.range(offset, offset + itemsPerPage - 1);
@@ -177,6 +185,12 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
 
         let agentList = (agentsData || []) as AgentWithWallet[];
 
+        if (statusFilter === "Verified") {
+          agentList = agentList.filter((a) => isAgentProfileVerified(a));
+        } else if (statusFilter === "Unverified") {
+          agentList = agentList.filter((a) => !isAgentProfileVerified(a));
+        }
+
         if (statusFilter === "Wallet Balance") {
           agentList = agentList.sort((a, b) => {
             const balanceA = a.wallet_balance || 0;
@@ -187,7 +201,7 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
 
         let paginatedAgents = agentList;
         let totalCount = agentList.length;
-        if (searchTerm && searchTerm.trim()) {
+        if ((searchTerm && searchTerm.trim()) || verificationFilter) {
           const offset = (page - 1) * itemsPerPage;
           paginatedAgents = agentList.slice(offset, offset + itemsPerPage);
           totalCount = agentList.length;
@@ -210,6 +224,23 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
     },
     [itemsPerPage, loadEarningsForAgents]
   );
+
+  useEffect(() => {
+    const loadVerificationStats = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("agents")
+          .select("email, profession, exact_location, profile_image_url");
+        if (error) throw error;
+        const rows = data || [];
+        const verified = rows.filter((a) => isAgentProfileVerified(a)).length;
+        setVerificationStats({ verified, total: rows.length });
+      } catch {
+        /* stats optional */
+      }
+    };
+    loadVerificationStats();
+  }, []);
 
   useEffect(() => {
     const loadInitialAgents = async () => {
@@ -680,6 +711,8 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
               <SelectItem value="All Agents">All Agents</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
               <SelectItem value="Approved">Approved</SelectItem>
+              <SelectItem value="Verified">Verified</SelectItem>
+              <SelectItem value="Unverified">Unverified</SelectItem>
               <SelectItem value="Wallet Balance">Wallet Balance</SelectItem>
             </SelectContent>
           </Select>
@@ -702,6 +735,13 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
         </div>
       </div>
 
+      {verificationStats.total > 0 && (
+        <p className="text-sm text-emerald-800 font-medium">
+          Verified: {verificationStats.verified} of {verificationStats.total} (
+          {Math.round((verificationStats.verified / verificationStats.total) * 100)}%)
+        </p>
+      )}
+
       {/* Agents List - Redesigned Cards */}
       <div ref={agentsListRef} className="space-y-4">
         {agents.map((agent) => (
@@ -712,7 +752,10 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
             <CardContent className="p-4">
               {/* Header: Name + Status Badge */}
               <div className="flex items-start justify-between mb-3 gap-2">
-                <h3 className="text-base font-semibold text-gray-900 flex-1 min-w-0">{agent.full_name}</h3>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-gray-900 truncate">{agent.full_name}</h3>
+                  <AdminAgentVerificationBadge agent={agent} className="mt-1" />
+                </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
                     type="button"

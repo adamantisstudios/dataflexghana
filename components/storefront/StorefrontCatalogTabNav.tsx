@@ -103,10 +103,17 @@ type Props = {
   accent: string
   visible: Partial<Record<StorefrontTabId, boolean>>
   counts?: Partial<Record<StorefrontTabId, number>>
+  /** When set, visible tabs render in this order (e.g. influencers first for premium stores). */
+  tabOrder?: StorefrontTabId[]
 }
 
-export function StorefrontCatalogTabNav({ activeTab, accent, visible, counts }: Props) {
-  const tabs = TABS.filter((t) => visible[t.id])
+export function StorefrontCatalogTabNav({ activeTab, accent, visible, counts, tabOrder }: Props) {
+  const orderedTabs = tabOrder?.length
+    ? tabOrder
+        .map((id) => TABS.find((t) => t.id === id))
+        .filter((t): t is (typeof TABS)[number] => Boolean(t))
+    : TABS
+  const tabs = orderedTabs.filter((t) => visible[t.id])
   if (tabs.length === 0) return null
 
   return (

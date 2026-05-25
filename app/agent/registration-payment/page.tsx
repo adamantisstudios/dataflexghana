@@ -25,6 +25,7 @@ import { supabase } from "@/lib/supabase-client";
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { ExploreServicesSection } from "@/components/marketing/ExploreServicesSection";
 
 const REGISTRATION_FEE = 50;
 const REGISTRATION_FEE_MANUAL = 47;
@@ -308,6 +309,13 @@ Thank you!`;
                   and access your dashboard. Both options include{" "}
                   <span className="font-semibold text-emerald-600">₵{WALLET_TOPUP} free wallet credit</span>.
                 </p>
+                <p className="text-slate-600 mt-3 max-w-md text-sm">
+                  Access our network of{" "}
+                  <Link href="/influencers" className="font-semibold text-emerald-700 hover:underline">
+                    micro-influencers
+                  </Link>{" "}
+                  to promote your business on your storefront and Referral Hub.
+                </p>
               </div>
             </div>
           </section>
@@ -325,6 +333,13 @@ Thank you!`;
                 platform that focuses only on data sales.
               </p>
             </div>
+
+            <ExploreServicesSection
+              title="What You Can Do as an Agent"
+              subtitle="Earn from multiple income streams on one platform — not just data bundles."
+              compact
+              id="agent-opportunities"
+            />
 
             {/* Payment card */}
             <Card className="border-0 shadow-xl">

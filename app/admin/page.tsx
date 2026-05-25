@@ -52,6 +52,7 @@ import { Label } from "@/components/ui/label"
   Leaf,
   Play,
   Award,
+  Phone,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -62,6 +63,7 @@ import { connectionManager } from "@/lib/connection-manager"
 import { toast } from "sonner"
 import Link from "next/link"
 import { PendingAlertsCard } from "@/components/admin/pending-alerts-card"
+import { FollowUpsTodayCard } from "@/components/admin/FollowUpsTodayCard"
 
 // Lazy load tab components
 const AgentsTab = lazy(() => import("@/components/admin/tabs/AgentsTab"))
@@ -101,7 +103,9 @@ const GroceryRequestsTab = lazy(() => import("@/components/admin/tabs/GroceryReq
 const AdvertisingAdminTab = lazy(() => import("@/components/admin/tabs/AdvertisingAdminTab"))
 const FarmersFriendAdminTab = lazy(() => import("@/components/admin/tabs/FarmersFriendAdminTab"))
 const InfluencersAdminTab = lazy(() => import("@/components/admin/tabs/InfluencersAdminTab"))
+const AgentCallsAdminTab = lazy(() => import("@/components/admin/tabs/AgentCallsAdminTab"))
 const TutorialsAdminTab = lazy(() => import("@/components/admin/tabs/TutorialsAdminTab"))
+const AnalyticsDashboard = lazy(() => import("@/components/admin/AnalyticsDashboard"))
 
 // Type definition for tab configuration
 interface TabConfigItem {
@@ -146,8 +150,10 @@ const TabLoadingSkeleton = () => (
 // Tab configuration - unified system
 const TAB_CONFIG: TabConfigItem[] = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, component: null },
+  { id: "analytics", label: "Analytics", icon: TrendingUp, component: AnalyticsDashboard },
   { id: "storefront-manager", label: "Storefront Management", icon: ShoppingBag, component: StorefrontManagerTab },
   { id: "agents", label: "Agents", icon: Users, component: AgentsTab },
+  { id: "agent-calls", label: "Agent Calls", icon: Phone, component: AgentCallsAdminTab },
   { id: "agent-management", label: "Agent Management", icon: Shield, component: AgentManagementTab },
   { id: "sms-notifications", label: "SMS Notifications", icon: MessageCircle, component: SMSNotificationsTab },
   { id: "manual-registration", label: "Manual Registration", icon: UserPlus, component: ManualRegistrationTab },
@@ -733,19 +739,19 @@ export default function AdminDashboard() {
           />
         )}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <div className="w-full overflow-x-auto">
-            <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
-              {visibleTabs.slice(0, 10).map(({ id, label, icon: Icon }) => {
+          <div className="w-full overflow-x-auto scroll-smooth">
+            <TabsList className="inline-flex w-max min-w-full flex-nowrap gap-1 bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl">
+              {visibleTabs.map(({ id, label, icon: Icon }) => {
                 const alertCount = getTabAlertCount(id)
                 return (
                   <TabsTrigger
                     key={id}
                     value={id}
-                    className="flex items-center justify-center px-3 py-2 text-xs lg:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap flex-1 relative"
+                    className="flex items-center justify-center px-3 py-2 min-w-[100px] flex-shrink-0 text-xs lg:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap relative"
                     onClick={() => loadTab(id)}
                   >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {label}
+                    <Icon className="h-4 w-4 mr-1.5 shrink-0" />
+                    <span className="truncate">{label}</span>
                     {(alertCount > 0 || (id === "referrals" && adminUnreadCount > 0)) && (
                       <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center p-0 animate-pulse">
                         {Math.max(alertCount, adminUnreadCount) > 9 ? "9+" : Math.max(alertCount, adminUnreadCount)}
@@ -756,32 +762,10 @@ export default function AdminDashboard() {
               })}
             </TabsList>
           </div>
-          <div className="w-full overflow-x-auto">
-            <TabsList className="flex w-full justify-between bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl min-w-max">
-              {visibleTabs.slice(10).map(({ id, label, icon: Icon }) => {
-                const alertCount = getTabAlertCount(id)
-                return (
-                  <TabsTrigger
-                    key={id}
-                    value={id}
-                    className="flex items-center justify-center px-3 py-2 text-xs lg:text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg whitespace-nowrap flex-1 relative"
-                    onClick={() => loadTab(id)}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {label}
-                    {alertCount > 0 && (
-                      <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center p-0 animate-pulse">
-                        {alertCount > 9 ? "9+" : alertCount}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                )
-              })}
-            </TabsList>
-          </div>
           {/* Dashboard Tab Content */}
           <TabsContent value="dashboard" className="space-y-6">
             <PendingAlertsCard />
+            <FollowUpsTodayCard />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl">
@@ -1049,7 +1033,8 @@ export default function AdminDashboard() {
                   {loadedTabs.has(id) ? (
                     <Suspense fallback={<TabLoadingSkeleton />}>
                       {id === "bulk-orders" ? (
-                        // No props needed for bulk-orders
+                        React.createElement(Component as React.ComponentType<any>)
+                      ) : id === "agent-calls" ? (
                         React.createElement(Component as React.ComponentType<any>)
                       ) : (
                         React.createElement(Component as React.ComponentType<any>, {

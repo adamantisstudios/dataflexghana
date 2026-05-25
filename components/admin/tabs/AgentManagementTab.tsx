@@ -40,6 +40,15 @@ import { Switch } from "@/components/ui/switch"
 import { supabase } from "@/lib/supabase-client";
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances";
 import { toast } from "sonner"
+import { isAgentProfileVerified } from "@/lib/agent-profile-completion"
+import { AdminAgentVerificationBadge } from "@/components/admin/AdminAgentVerificationBadge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface Agent {
   id: string
@@ -95,9 +104,11 @@ export default function AgentManagementTab() {
   const [operationLoading, setOperationLoading] = useState(false)
   const [clearRecordsAgentId, setClearRecordsAgentId] = useState<string | null>(null)
   const [searchInitiated, setSearchInitiated] = useState(false)
+  const [verificationFilter, setVerificationFilter] = useState("All Agents")
+  const [verificationStats, setVerificationStats] = useState({ verified: 0, total: 0 })
 
   // ---------- Helper: fetch paginated agents with stats ----------
-  const fetchAgentsPage = useCallback(async (page: number, search: string) => {
+  const fetchAgentsPage = useCallback(async (page: number, search: string, verifyFilter: string) => {
     if (!search.trim()) {
       setAgents([])
       setTotalCount(0)
@@ -108,13 +119,19 @@ export default function AgentManagementTab() {
     setLoadingPage(true)
     try {
       const offset = (page - 1) * ITEMS_PER_PAGE
+      const verificationOnly = verifyFilter === "Verified" || verifyFilter === "Unverified"
 
       let query = supabase
         .from("agents")
         .select("id, full_name, phone_number, email, profession, exact_location, profile_image_url, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties, can_teach", { count: "exact" })
         .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%,email.ilike.%${search}%,profession.ilike.%${search}%,exact_location.ilike.%${search}%`)
         .order("created_at", { ascending: false })
-        .range(offset, offset + ITEMS_PER_PAGE - 1)
+
+      if (verificationOnly) {
+        query = query.limit(500)
+      } else {
+        query = query.range(offset, offset + ITEMS_PER_PAGE - 1)
+      }
 
       const { data: rawAgents, error, count } = await query
       if (error) throw error
@@ -150,7 +167,7 @@ export default function AgentManagementTab() {
         Object.entries(counts).forEach(([id, c]) => referralsCountMap.set(id, c))
       }
 
-      const agentsWithStats = await Promise.all(
+      let agentsWithStats = await Promise.all(
         rawAgents.map(async (agent) => {
           let commissionBalance = 0
           let liveWalletBalance = agent.wallet_balance || 0
@@ -181,7 +198,21 @@ export default function AgentManagementTab() {
         })
       )
 
-      return { agents: agentsWithStats, total: count || 0 }
+      if (verifyFilter === "Verified") {
+        agentsWithStats = agentsWithStats.filter((a) => isAgentProfileVerified(a))
+      } else if (verifyFilter === "Unverified") {
+        agentsWithStats = agentsWithStats.filter((a) => !isAgentProfileVerified(a))
+      }
+
+      const filteredTotal = agentsWithStats.length
+      if (verificationOnly) {
+        agentsWithStats = agentsWithStats.slice(offset, offset + ITEMS_PER_PAGE)
+      }
+
+      return {
+        agents: agentsWithStats,
+        total: verificationOnly ? filteredTotal : count || 0,
+      }
     } catch (error) {
       console.error("Error fetching agents page:", error)
       toast.error(`Failed to load agents: ${error instanceof Error ? error.message : "Unknown error"}`)
@@ -189,6 +220,23 @@ export default function AgentManagementTab() {
     } finally {
       setLoadingPage(false)
     }
+  }, [])
+
+  useEffect(() => {
+    const loadVerificationStats = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("agents")
+          .select("email, profession, exact_location, profile_image_url")
+        if (error) throw error
+        const rows = data || []
+        const verified = rows.filter((a) => isAgentProfileVerified(a)).length
+        setVerificationStats({ verified, total: rows.length })
+      } catch {
+        /* optional */
+      }
+    }
+    loadVerificationStats()
   }, [])
 
   // Load initial page when search term changes
@@ -203,27 +251,27 @@ export default function AgentManagementTab() {
       }
       setSearchInitiated(true)
       setLoading(true)
-      const { agents: newAgents, total } = await fetchAgentsPage(1, searchTerm)
+      const { agents: newAgents, total } = await fetchAgentsPage(1, searchTerm, verificationFilter)
       setAgents(newAgents)
       setTotalCount(total)
       setCurrentPage(1)
       setLoading(false)
     }, 500)
     return () => clearTimeout(timeoutId)
-  }, [searchTerm, fetchAgentsPage])
+  }, [searchTerm, verificationFilter, fetchAgentsPage])
 
   const loadPage = useCallback(async (page: number) => {
     if (page === currentPage && agents.length > 0) return
-    const { agents: newAgents } = await fetchAgentsPage(page, searchTerm)
+    const { agents: newAgents } = await fetchAgentsPage(page, searchTerm, verificationFilter)
     setAgents(newAgents)
     setCurrentPage(page)
-  }, [searchTerm, fetchAgentsPage, currentPage, agents.length])
+  }, [searchTerm, verificationFilter, fetchAgentsPage, currentPage, agents.length])
 
   const refreshCurrentPage = useCallback(async () => {
-    const { agents: newAgents, total } = await fetchAgentsPage(currentPage, searchTerm)
+    const { agents: newAgents, total } = await fetchAgentsPage(currentPage, searchTerm, verificationFilter)
     setAgents(newAgents)
     setTotalCount(total)
-  }, [fetchAgentsPage, currentPage, searchTerm])
+  }, [fetchAgentsPage, currentPage, searchTerm, verificationFilter])
 
   const fetchAgentSummary = async (agentId: string) => {
     try {
@@ -515,10 +563,29 @@ export default function AgentManagementTab() {
           <p className="text-gray-600">Search for specific agents to manage their records and data</p>
         </div>
       </div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <Input placeholder="Search by name, phone, email, profession, or location..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input placeholder="Search by name, phone, email, profession, or location..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+        </div>
+        <Select value={verificationFilter} onValueChange={setVerificationFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Verification" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All Agents">All Agents</SelectItem>
+            <SelectItem value="Verified">Verified</SelectItem>
+            <SelectItem value="Unverified">Unverified</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      {verificationStats.total > 0 && (
+        <p className="text-sm text-emerald-800 font-medium">
+          Verified: {verificationStats.verified} of {verificationStats.total} (
+          {Math.round((verificationStats.verified / verificationStats.total) * 100)}%)
+        </p>
+      )}
 
       {searchInitiated && (
         <>
@@ -552,7 +619,8 @@ export default function AgentManagementTab() {
                           </div>
                           <div>
                             <h3 className="text-lg font-bold text-gray-800 leading-tight">{agent.full_name}</h3>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <AdminAgentVerificationBadge agent={agent} className="mt-1" />
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200 px-2 py-0">
                                 {agent.region || "No region"}
                               </Badge>

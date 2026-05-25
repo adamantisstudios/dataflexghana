@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { getAgentInitials } from "@/lib/agent-profile-completion"
 import type { Agent } from "@/lib/supabase"
 import { Mail, Briefcase, MapPin, Phone, Calendar } from "lucide-react"
+import { AgentCallHistorySection } from "@/components/admin/AgentCallHistorySection"
 
 type AgentDetail = Agent & {
   wallet_balance?: number
@@ -135,6 +136,8 @@ export function AgentProfileDetailDialog({ agent, open, onOpenChange }: Props) {
               </div>
             </div>
           )}
+
+          <AgentCallHistorySection agentId={agent.id} />
         </div>
       </DialogContent>
     </Dialog>

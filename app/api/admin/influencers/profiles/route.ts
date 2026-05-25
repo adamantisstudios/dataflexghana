@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   const agentIds = [...new Set((profiles || []).map((p) => p.agent_id))]
   const { data: agents } = await db
     .from("agents")
-    .select("id, full_name, phone_number")
+    .select("id, full_name, phone_number, email")
     .in("id", agentIds.length ? agentIds : ["00000000-0000-0000-0000-000000000000"])
 
   const agentMap = new Map((agents || []).map((a) => [a.id, a]))
@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
       approved: Boolean(p.approved),
       agent_name: agent?.full_name ?? "Unknown",
       agent_phone: agent?.phone_number ?? "",
+      agent_email: agent?.email ?? "",
     }
   })
 

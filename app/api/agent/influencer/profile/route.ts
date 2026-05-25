@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
         audience_size,
         niche,
         approved: false,
+        registration_source: "referral_hub",
       })
       .select("*")
       .single()

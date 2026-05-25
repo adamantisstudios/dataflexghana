@@ -11,18 +11,23 @@ export function isProfileFieldFilled(value: string | null | undefined): boolean 
   return Boolean(String(value ?? "").trim())
 }
 
-export function isAgentProfileComplete(agent: AgentProfileFields | null | undefined): boolean {
-  if (!agent?.isapproved) return true
+/** All four profile fields filled (admin / verification label). */
+export function isAgentProfileVerified(agent: AgentProfileFields | null | undefined): boolean {
   return (
-    isProfileFieldFilled(agent.email) &&
-    isProfileFieldFilled(agent.profession) &&
-    isProfileFieldFilled(agent.exact_location) &&
-    isProfileFieldFilled(agent.profile_image_url)
+    isProfileFieldFilled(agent?.email) &&
+    isProfileFieldFilled(agent?.profession) &&
+    isProfileFieldFilled(agent?.exact_location) &&
+    isProfileFieldFilled(agent?.profile_image_url)
   )
 }
 
+export function isAgentProfileComplete(agent: AgentProfileFields | null | undefined): boolean {
+  if (!agent?.isapproved) return true
+  return isAgentProfileVerified(agent)
+}
+
 export function agentNeedsProfileCompletion(agent: AgentProfileFields | null | undefined): boolean {
-  return Boolean(agent?.isapproved) && !isAgentProfileComplete(agent)
+  return Boolean(agent?.isapproved) && !isAgentProfileVerified(agent)
 }
 
 export function getAgentInitials(name: string | null | undefined): string {

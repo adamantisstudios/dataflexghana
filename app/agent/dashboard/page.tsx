@@ -59,6 +59,7 @@ import type { Job  } from "@/lib/supabase"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
 import { AgentMenuCards } from "@/components/agent/AgentMenuCards"
+import { DashboardQuickActions } from "@/components/agent/dashboard/DashboardQuickActions"
 import { SecurityNoticeBanner, LegalFooterLinks } from "@/components/legal/SecurityNotice"
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
   import {
@@ -81,13 +82,20 @@ import ReferralDashboard from "@/components/agent/referral-program/ReferralDashb
 import Image from "next/image"
 import { ImageModal } from "@/components/ui/image-modal"
 import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
-import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
-import { shouldShowWhatsAppPopup, recordWhatsAppPopupDismissed } from "@/lib/whatsapp-popup-limit"
+import { VerificationReminderPopup } from "@/components/agent/VerificationReminderPopup"
+import {
+  shouldShowVerificationReminder,
+  recordVerificationReminderDismissed,
+} from "@/lib/whatsapp-popup-limit"
 import AgentOnlineCoursesDisplay from "@/components/agent/online-courses/AgentOnlineCoursesDisplay"
 import AdminPortalAccess from "@/components/agent/AdminPortalAccess"
-import { ProfileCompletionBanner } from "@/components/agent/ProfileCompletionBanner"
+import { ProfileVerificationBar } from "@/components/agent/ProfileVerificationBar"
+import { AgentVerificationBadge } from "@/components/agent/AgentVerificationBadge"
 import { AgentAvatar } from "@/components/agent/AgentAvatar"
-import { agentNeedsProfileCompletion } from "@/lib/agent-profile-completion"
+import {
+  agentNeedsProfileCompletion,
+  isAgentProfileVerified,
+} from "@/lib/agent-profile-completion"
 
 interface SimpleAgent {
   name: string
@@ -139,7 +147,7 @@ const generateSlug = (text: string) => {
 }
 
 export default function AgentDashboard() {
-  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false)
+  const [showVerificationReminder, setShowVerificationReminder] = useState(false)
 
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({})
   const [expandedReferrals, setExpandedReferrals] = useState<Set<string>>(new Set())
@@ -173,14 +181,15 @@ export default function AgentDashboard() {
 
   useEffect(() => {
     if (!agent?.isapproved) return
-    if (!shouldShowWhatsAppPopup(agent.isapproved)) return
+    if (isAgentProfileVerified(agent)) return
+    if (!shouldShowVerificationReminder(agent.isapproved, isAgentProfileVerified(agent))) return
 
     const timer = setTimeout(() => {
-      setShowWhatsAppPopup(true)
+      setShowVerificationReminder(true)
     }, 10000)
 
     return () => clearTimeout(timer)
-  }, [agent?.isapproved])
+  }, [agent])
 
   const [loading, setLoading] = useState(true)
   const [earningsData, setEarningsData] = useState({
@@ -1008,8 +1017,12 @@ DataFlex Ghana Agent 🇬🇭`
                 <h1 className="text-base sm:text-lg md:text-xl font-bold text-white drop-shadow-sm truncate">
                   Data Flex Agent
                 </h1>
-                <p className="text-slate-200 text-xs font-medium truncate">
-                  Welcome back, <span className="font-semibold text-white">{agent?.full_name}</span>
+                <p className="text-slate-200 text-xs font-medium truncate flex items-center gap-2 flex-wrap">
+                  Welcome back,{" "}
+                  <span className="font-semibold text-white inline-flex items-center gap-1.5">
+                    {agent?.full_name}
+                    {agent?.isapproved && <AgentVerificationBadge agent={agent} />}
+                  </span>
                 </p>
               </div>
             </div>
@@ -1042,10 +1055,9 @@ DataFlex Ghana Agent 🇬🇭`
         </div>
       </div>
       {/* END: HERO SECTION WITH ADMIN PORTAL ACCESS */}
+      {agentNeedsProfileCompletion(agent) && <ProfileVerificationBar />}
       <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SecurityNoticeBanner />
-
-        {agentNeedsProfileCompletion(agent) && <ProfileCompletionBanner />}
 
         <Suspense fallback={<div className="h-24 w-full animate-pulse bg-indigo-100 rounded-xl" />}>
 
@@ -1074,6 +1086,7 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
         )}
         <AgentMenuCards activeTab={activeTab} onTabChange={handleTabChange} />
+        <DashboardQuickActions onInviteFriends={() => setShowReferralDialog(true)} />
         <LegalFooterLinks className="py-2" />
         <div className="w-full max-w-full px-4 sm:px-6 py-6 sm:py-8">
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-6 sm:p-10 shadow-2xl">
@@ -1433,42 +1446,6 @@ DataFlex Ghana Agent 🇬🇭`
                   </div>
                 </div>
               )}
-              <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg shadow-lg p-5 border border-purple-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <CreditCard className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-white">Top Up Wallet</h3>
-                    <p className="text-purple-100 text-xs">Add funds for faster purchases</p>
-                  </div>
-                </div>
-                <Button asChild size="sm" className="w-full bg-white text-purple-600 hover:bg-purple-50 font-medium">
-                  <Link href="/agent/wallet?tab=topup">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Top Up Wallet
-                  </Link>
-                </Button>
-              </div>
-              <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg p-5 border border-green-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-white">Invite Friends</h3>
-                    <p className="text-green-100 text-xs">Earn ₵7 when they join</p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => setShowReferralDialog(true)}
-                  size="sm"
-                  className="w-full bg-white text-green-600 hover:bg-green-50 font-medium"
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Send Referral Message
-                </Button>
-              </div>
               <div>
                 <AgentPropertiesShowcase />
               </div>

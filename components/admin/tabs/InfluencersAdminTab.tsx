@@ -28,7 +28,7 @@ import {
   INFLUENCER_ORDER_STATUS_LABELS,
   type InfluencerOrderStatus,
 } from "@/lib/influencer-types"
-import { Download, Loader2, RefreshCw, Check, X, Instagram, Eye } from "lucide-react"
+import { Download, Loader2, RefreshCw, Check, X, Instagram, Eye, ExternalLink, Mail, Phone } from "lucide-react"
 
 const BRAND = "#0E8F3D"
 const PAGE_SIZE = 8
@@ -73,14 +73,24 @@ type ProfileRow = {
   audience_size: number
   niche: string | null
   approved: boolean
+  registration_source?: string
   agent_name: string
   agent_phone: string
+  agent_email: string
+}
+
+function registrationBadge(source?: string) {
+  if (source === "self_registered") {
+    return { label: "Self-Registered", className: "bg-violet-100 text-violet-800 text-[10px] px-1.5 py-0" }
+  }
+  return { label: "Applied via Referral Hub", className: "bg-sky-100 text-sky-800 text-[10px] px-1.5 py-0" }
 }
 
 type PackageRow = {
   id: string
   title: string
   description: string | null
+  terms: string | null
   price: number
   delivery_days: number
   is_active: boolean
@@ -100,7 +110,21 @@ type OrderRow = {
   package_price: number
   influencer_name: string
   escrow_released: boolean
+  paystack_reference: string | null
+  review: string | null
+  package_id?: string
   package?: { title: string }
+}
+
+function socialUrl(platform: string, handle: string): string {
+  const h = handle.replace(/^@/, "").trim()
+  const p = platform.toLowerCase()
+  if (p.includes("instagram")) return `https://instagram.com/${h}`
+  if (p.includes("tiktok")) return `https://tiktok.com/@${h}`
+  if (p.includes("twitter") || p === "x") return `https://x.com/${h}`
+  if (p.includes("youtube")) return `https://youtube.com/@${h}`
+  if (h.startsWith("http")) return h
+  return `https://${h}`
 }
 
 export default function InfluencersAdminTab() {
@@ -116,6 +140,8 @@ export default function InfluencersAdminTab() {
   const [packagePage, setPackagePage] = useState(1)
   const [orderPage, setOrderPage] = useState(1)
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null)
+  const [selectedProfile, setSelectedProfile] = useState<ProfileRow | null>(null)
+  const [selectedPackage, setSelectedPackage] = useState<PackageRow | null>(null)
 
   const loadProfiles = useCallback(async () => {
     const params = new URLSearchParams()
@@ -322,7 +348,11 @@ export default function InfluencersAdminTab() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {pagedProfiles.map((p) => (
-                  <Card key={p.id} className="rounded-xl border border-emerald-100 shadow-sm overflow-hidden">
+                  <Card
+                    key={p.id}
+                    className="rounded-xl border border-emerald-100 shadow-sm overflow-hidden cursor-pointer hover:border-[#0E8F3D]/40 transition-colors"
+                    onClick={() => setSelectedProfile(p)}
+                  >
                     <CardContent className="p-3 space-y-2">
                       <div className="flex items-start gap-3">
                         {p.photo_url ? (
@@ -350,6 +380,12 @@ export default function InfluencersAdminTab() {
                             >
                               {p.approved ? "Approved" : "Pending"}
                             </Badge>
+                            {(() => {
+                              const b = registrationBadge(p.registration_source)
+                              return (
+                                <Badge className={b.className}>{b.label}</Badge>
+                              )
+                            })()}
                           </div>
                           <p className="text-xs text-muted-foreground truncate">{p.niche || "—"}</p>
                           <p className="text-xs font-medium text-[#0E8F3D]">
@@ -370,7 +406,7 @@ export default function InfluencersAdminTab() {
                           ))}
                         </div>
                       )}
-                      <div className="flex gap-2 pt-1">
+                      <div className="flex gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
                         {!p.approved ? (
                           <>
                             <Button
@@ -425,7 +461,11 @@ export default function InfluencersAdminTab() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {pagedPackages.map((pkg) => (
-                  <Card key={pkg.id} className="rounded-xl border border-emerald-100 shadow-sm">
+                  <Card
+                    key={pkg.id}
+                    className="rounded-xl border border-emerald-100 shadow-sm cursor-pointer hover:border-[#0E8F3D]/40 transition-colors"
+                    onClick={() => setSelectedPackage(pkg)}
+                  >
                     <CardContent className="p-3 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -448,7 +488,10 @@ export default function InfluencersAdminTab() {
                       {pkg.description && (
                         <p className="text-xs text-slate-600 line-clamp-2">{pkg.description}</p>
                       )}
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                      <div
+                        className="flex items-center justify-between pt-1 border-t border-slate-100"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <span className="text-[10px] text-muted-foreground">Storefront</span>
                         <Switch
                           checked={pkg.is_active}
@@ -491,7 +534,11 @@ export default function InfluencersAdminTab() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {pagedOrders.map((o) => (
-                  <Card key={o.id} className="rounded-xl border border-emerald-100 shadow-sm">
+                  <Card
+                    key={o.id}
+                    className="rounded-xl border border-emerald-100 shadow-sm cursor-pointer hover:border-[#0E8F3D]/40 transition-colors"
+                    onClick={() => setSelectedOrder(o)}
+                  >
                     <CardContent className="p-3 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -502,14 +549,9 @@ export default function InfluencersAdminTab() {
                         <Badge className="text-[10px] shrink-0">{INFLUENCER_ORDER_STATUS_LABELS[o.status]}</Badge>
                       </div>
                       <p className="text-base font-bold text-[#0E8F3D]">₵{o.total_price.toFixed(2)}</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full h-8 text-xs border-[#0E8F3D]/30 text-[#0E8F3D]"
-                        onClick={() => setSelectedOrder(o)}
-                      >
-                        <Eye className="h-3.5 w-3.5 mr-1" /> View Details
-                      </Button>
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Eye className="h-3 w-3" /> Tap for full details
+                      </p>
                     </CardContent>
                   </Card>
                 ))}
@@ -519,6 +561,147 @@ export default function InfluencersAdminTab() {
           </TabsContent>
         </Tabs>
       )}
+
+      <Sheet open={!!selectedProfile} onOpenChange={(open) => !open && setSelectedProfile(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Profile details</SheetTitle>
+          </SheetHeader>
+          {selectedProfile && (
+            <div className="mt-4 space-y-4 text-sm pb-8">
+              <div className="flex items-start gap-3">
+                {selectedProfile.photo_url ? (
+                  <Image
+                    src={selectedProfile.photo_url}
+                    alt=""
+                    width={64}
+                    height={64}
+                    className="rounded-full object-cover h-16 w-16 border shrink-0"
+                  />
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-[#e8f5ec] flex items-center justify-center text-xl font-bold text-[#0E8F3D] shrink-0">
+                    {selectedProfile.agent_name.charAt(0)}
+                  </div>
+                )}
+                <div>
+                  <p className="font-semibold text-base">{selectedProfile.agent_name}</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <Badge className={selectedProfile.approved ? "bg-[#0E8F3D] text-white" : "bg-amber-100 text-amber-800"}>
+                      {selectedProfile.approved ? "Approved" : "Pending"}
+                    </Badge>
+                    {(() => {
+                      const b = registrationBadge(selectedProfile.registration_source)
+                      return <Badge className={b.className}>{b.label}</Badge>
+                    })()}
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-lg bg-slate-50 p-3 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Agent contact</p>
+                <p className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-[#0E8F3D]" />
+                  {selectedProfile.agent_phone || "—"}
+                </p>
+                <p className="flex items-center gap-2 break-all">
+                  <Mail className="h-4 w-4 text-[#0E8F3D]" />
+                  {selectedProfile.agent_email || "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Niche &amp; audience</p>
+                <p>{selectedProfile.niche || "—"}</p>
+                <p className="text-[#0E8F3D] font-medium">{selectedProfile.audience_size.toLocaleString()} followers</p>
+              </div>
+              {selectedProfile.bio && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Bio</p>
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{selectedProfile.bio}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Social handles</p>
+                {Object.keys(selectedProfile.social_handles || {}).length === 0 ? (
+                  <p className="text-muted-foreground">None listed</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {Object.entries(selectedProfile.social_handles).map(([platform, handle]) => (
+                      <li key={platform}>
+                        <a
+                          href={socialUrl(platform, handle)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#0E8F3D] hover:underline inline-flex items-center gap-1"
+                        >
+                          {platform}: {handle}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={!!selectedPackage} onOpenChange={(open) => !open && setSelectedPackage(null)}>
+        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Package details</SheetTitle>
+          </SheetHeader>
+          {selectedPackage && (
+            <div className="mt-4 space-y-4 text-sm pb-8">
+              <div>
+                <p className="font-semibold text-base">{selectedPackage.title}</p>
+                <p className="text-muted-foreground text-xs">{selectedPackage.agent_name}</p>
+                <Badge variant="outline" className="mt-2">
+                  {selectedPackage.is_active ? "Active" : "Inactive"}
+                </Badge>
+              </div>
+              <p className="text-2xl font-bold text-[#0E8F3D]">₵{Number(selectedPackage.price).toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">{selectedPackage.delivery_days} day delivery</p>
+              {selectedPackage.description && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Description</p>
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{selectedPackage.description}</p>
+                </div>
+              )}
+              {selectedPackage.terms && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Terms</p>
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{selectedPackage.terms}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Orders for this package</p>
+                {orders.filter((o) => o.package_id === selectedPackage.id).length === 0 ? (
+                  <p className="text-muted-foreground">No orders yet.</p>
+                ) : (
+                  <ul className="space-y-2 max-h-48 overflow-y-auto">
+                    {orders
+                      .filter((o) => o.package_id === selectedPackage.id)
+                      .map((o) => (
+                        <li
+                          key={o.id}
+                          className="rounded border p-2 text-xs cursor-pointer hover:bg-emerald-50"
+                          onClick={() => {
+                            setSelectedPackage(null)
+                            setSelectedOrder(o)
+                          }}
+                        >
+                          <span className="font-mono text-muted-foreground">#{o.id.slice(0, 8)}</span> — {o.client_name}{" "}
+                          <Badge className="ml-1 text-[9px]">{INFLUENCER_ORDER_STATUS_LABELS[o.status]}</Badge>
+                          <span className="block font-semibold text-[#0E8F3D]">₵{o.total_price.toFixed(2)}</span>
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <Sheet open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
@@ -559,6 +742,18 @@ export default function InfluencersAdminTab() {
                   <strong>₵{selectedOrder.influencer_payout.toFixed(2)}</strong>
                 </div>
               </div>
+              {selectedOrder.paystack_reference && (
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Paystack reference</p>
+                  <p className="font-mono text-xs break-all">{selectedOrder.paystack_reference}</p>
+                </div>
+              )}
+              {selectedOrder.review && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Admin notes / review</p>
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{selectedOrder.review}</p>
+                </div>
+              )}
               <Select
                 value={selectedOrder.status}
                 onValueChange={(v) => {

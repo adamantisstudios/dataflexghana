@@ -35,6 +35,7 @@ import {
   ShieldCheck,
   Package,
   FileText,
+  Award,
 } from "lucide-react"
 import {
   normalizeGhanaPhoneNumber,
@@ -116,6 +117,7 @@ const NETWORK_TABS = [
 
 const ITEMS_PER_PAGE = 12
 const DELIVERY_NOTICE_MS = 30_000
+const PREMIUM_INFLUENCER_ACCENT = "#D97706"
 
 function normalizeProvider(p: string): string {
   const u = p?.toUpperCase() || ""
@@ -137,6 +139,29 @@ function newLineId() {
 
 type MainStoreTab = StorefrontTabId
 
+const DEFAULT_TAB_ORDER: MainStoreTab[] = [
+  "bundles",
+  "services",
+  "products",
+  "business",
+  "advertise",
+  "writing",
+  "farm",
+  "real-estate",
+  "influencers",
+]
+const PREMIUM_TAB_ORDER: MainStoreTab[] = [
+  "influencers",
+  "bundles",
+  "services",
+  "products",
+  "business",
+  "advertise",
+  "writing",
+  "farm",
+  "real-estate",
+]
+
 import { dispatchStorefrontOrdersChanged } from "@/lib/storefront-events"
 
 type PublicAgentStorefrontProps = {
@@ -152,6 +177,7 @@ type PublicAgentStorefrontProps = {
   initialWritingServices?: PublicWritingService[]
   initialProperties?: PublicPropertyListing[]
   initialInfluencer?: PublicInfluencerProfile | null
+  initialIsPremiumInfluencer?: boolean
 }
 
 function mapApiBundles(raw: Array<DataBundle & { final_price?: number }>): DataBundle[] {
@@ -173,6 +199,7 @@ function applyStorefrontPayload(
     writingServices?: PublicWritingService[]
     properties?: PublicPropertyListing[]
     influencer?: PublicInfluencerProfile | null
+    isPremiumInfluencer?: boolean
     unavailable?: boolean
   },
   setters: {
@@ -224,8 +251,11 @@ function applyStorefrontPayload(
   const providers = apiBundles.map((b) => normalizeProvider(b.provider))
   if (providers.includes("MTN")) setters.setNetworkTab("MTN")
   else if (providers[0]) setters.setNetworkTab(normalizeProvider(providers[0]))
-  if (apiServices.length > 0 && apiBundles.length === 0) setters.setMainTab("services")
-  else if ((data.adPackages?.length ?? 0) > 0 && apiBundles.length === 0 && apiServices.length === 0) {
+  if (data.isPremiumInfluencer) {
+    setters.setMainTab("influencers")
+  } else if (apiServices.length > 0 && apiBundles.length === 0) {
+    setters.setMainTab("services")
+  } else if ((data.adPackages?.length ?? 0) > 0 && apiBundles.length === 0 && apiServices.length === 0) {
     setters.setMainTab("advertise")
   }
   return true
@@ -244,6 +274,7 @@ export default function PublicAgentStorefront({
   initialWritingServices,
   initialProperties,
   initialInfluencer,
+  initialIsPremiumInfluencer = false,
 }: PublicAgentStorefrontProps) {
   const params = useParams()
   const router = useRouter()
@@ -274,6 +305,7 @@ export default function PublicAgentStorefront({
   )
   const [properties, setProperties] = useState<PublicPropertyListing[]>(initialProperties ?? [])
   const [influencer, setInfluencer] = useState<PublicInfluencerProfile | null>(initialInfluencer ?? null)
+  const [isPremiumInfluencer, setIsPremiumInfluencer] = useState(initialIsPremiumInfluencer)
   const [wholesaleCart, setWholesaleCart] = useState<WholesaleCartLine[]>([])
   const [compliancePaidRef, setCompliancePaidRef] = useState<string | null>(null)
   const [activeBundleId, setActiveBundleId] = useState<string | null>(null)
@@ -284,7 +316,9 @@ export default function PublicAgentStorefront({
   const [cartOpen, setCartOpen] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [networkTab, setNetworkTab] = useState<string>("MTN")
-  const [mainTab, setMainTab] = useState<MainStoreTab>("bundles")
+  const [mainTab, setMainTab] = useState<MainStoreTab>(
+    initialIsPremiumInfluencer ? "influencers" : "bundles",
+  )
   const [serviceSearch, setServiceSearch] = useState("")
   const [servicePage, setServicePage] = useState(1)
   const [bundlePage, setBundlePage] = useState(1)
@@ -416,6 +450,7 @@ export default function PublicAgentStorefront({
           writingServices: initialWritingServices,
           properties: initialProperties,
           influencer: initialInfluencer,
+          isPremiumInfluencer: initialIsPremiumInfluencer,
         },
         {
           setProfile,
@@ -433,6 +468,7 @@ export default function PublicAgentStorefront({
           setLoadError,
         },
       )
+      setIsPremiumInfluencer(initialIsPremiumInfluencer)
       setLoading(false)
       return
     }
@@ -458,6 +494,7 @@ export default function PublicAgentStorefront({
           setMainTab,
           setLoadError,
         })
+        setIsPremiumInfluencer(Boolean(data.isPremiumInfluencer))
       } catch (e) {
         const message = e instanceof Error ? e.message : "Failed to load store"
         setLoadError(message)
@@ -487,7 +524,11 @@ export default function PublicAgentStorefront({
     business_info: null,
   }
 
-  const accent = displayProfile.primary_color || "#3B82F6"
+  const accent = isPremiumInfluencer
+    ? PREMIUM_INFLUENCER_ACCENT
+    : displayProfile.primary_color || "#3B82F6"
+
+  const catalogTabOrder = isPremiumInfluencer ? PREMIUM_TAB_ORDER : DEFAULT_TAB_ORDER
 
   const callPhone = useMemo(
     () => normalizeGhanaPhoneNumber(displayProfile.phone_number),
@@ -607,21 +648,18 @@ export default function PublicAgentStorefront({
   }, [bundlePage, bundlePagination.totalPages])
 
   useEffect(() => {
-    const order: MainStoreTab[] = [
-      "bundles",
-      "services",
-      "products",
-      "business",
-      "advertise",
-      "writing",
-      "farm",
-      "real-estate",
-      "influencers",
-    ]
+    const order = catalogTabOrder
     if (order.includes(mainTab) && tabVisibility[mainTab]) return
     const first = order.find((t) => tabVisibility[t])
     if (first) setMainTab(first)
-  }, [tabVisibility, mainTab])
+  }, [tabVisibility, mainTab, catalogTabOrder])
+
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+    if (tab === "influencers" && tabVisibility.influencers) {
+      setMainTab("influencers")
+    }
+  }, [searchParams, tabVisibility])
 
   const cartTotal = useMemo(
     () => cart.reduce((sum, line) => sum + Number(line.bundle.retail_price), 0),
@@ -882,9 +920,17 @@ export default function PublicAgentStorefront({
             <Store className="h-4 w-4 shrink-0" />
             Official storefront
           </p>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight max-w-3xl">
-            {displayProfile.store_name || "Data Store"}
-          </h1>
+          <div className="flex flex-wrap items-center gap-3 max-w-3xl">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+              {displayProfile.store_name || "Data Store"}
+            </h1>
+            {isPremiumInfluencer && (
+              <Badge className="bg-amber-400/90 text-amber-950 border-amber-200 text-xs sm:text-sm font-semibold gap-1">
+                <Award className="h-3.5 w-3.5" />
+                Premium Influencer
+              </Badge>
+            )}
+          </div>
           <p className="mt-3 text-white/90 text-sm sm:text-base max-w-xl leading-relaxed flex items-start gap-2">
             <Sparkles className="h-4 w-4 shrink-0 mt-0.5 opacity-90" />
             {storeTagline}
@@ -942,6 +988,7 @@ export default function PublicAgentStorefront({
             accent={accent}
             visible={tabVisibility}
             counts={tabCounts}
+            tabOrder={catalogTabOrder}
           />
 
           {tabVisibility.bundles && (

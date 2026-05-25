@@ -6,6 +6,7 @@ import { Toaster as SonnerToaster } from "sonner"
 import { DevConsoleDetector } from "@/components/dev-console-detector"
 import { DisableGlobalLinkPrefetch } from "@/components/disable-global-link-prefetch"
 import { MenuScrollHandler } from "@/components/menu-scroll-handler"
+import { AnalyticsRoot } from "@/components/analytics/AnalyticsRoot"
 
 // ==============================
 // 🔥 FULL SEO KEYWORD ARRAY – covering every service + “gh” variants
@@ -1190,6 +1191,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           <DisableGlobalLinkPrefetch />
           <MenuScrollHandler />
+          <AnalyticsRoot />
           {children}
           <Toaster />
           <SonnerToaster position="top-right" richColors closeButton />

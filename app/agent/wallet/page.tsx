@@ -1,7 +1,8 @@
 "use client"
 import { ArrowLeft, RefreshCw, Clock, X, TrendingUp, TrendingDown, Wallet, CheckCircle, Download, Calendar, Plus, Shuffle, Info, Search, DollarSign, ArrowRight, MessageCircle } from 'lucide-react'
-import { useState, useEffect } from "react"
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "sonner"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,6 +25,7 @@ import type { Agent } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
 import { buildWalletTransactionInsertRow } from "@/lib/wallet-transaction-types"
+import { WALLET_TOPUP_PAYSTACK_MIN_GHS } from "@/lib/paystack-wallet-topup"
 
 // Extend Window interface for timeout property
 declare global {
@@ -69,6 +71,9 @@ export default function WalletPage() {
   const [topUpAmount, setTopUpAmount] = useState("")
   const [paymentReference, setPaymentReference] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [paystackProcessing, setPaystackProcessing] = useState(false)
+  const submitLockRef = useRef(false)
+  const searchParams = useSearchParams()
   const [referenceValidation, setReferenceValidation] = useState<{
     isValid: boolean
     message: string
@@ -222,6 +227,19 @@ export default function WalletPage() {
       return () => clearTimeout(timer)
     }
   }, [isWalletRewardNotificationVisible])
+
+  useEffect(() => {
+    const topup = searchParams.get("topup")
+    const message = searchParams.get("message")
+    if (topup === "success") {
+      toast.success(message || "Wallet topped up successfully")
+      if (agent?.id) loadWalletData(agent.id)
+      router.replace("/agent/wallet")
+    } else if (topup === "failed") {
+      toast.error(message || "Top-up failed")
+      router.replace("/agent/wallet")
+    }
+  }, [searchParams, agent?.id, router])
 
   const loadWalletData = async (agentId: string) => {
     try {
@@ -420,40 +438,72 @@ export default function WalletPage() {
     }
   }
 
+  const paystackTopUp = async () => {
+    if (!agent || paystackProcessing) return
+    const amount = Number.parseFloat(topUpAmount)
+    if (!Number.isFinite(amount) || amount < WALLET_TOPUP_PAYSTACK_MIN_GHS) {
+      toast.error(`Paystack top-up requires at least GH₵${WALLET_TOPUP_PAYSTACK_MIN_GHS}`)
+      return
+    }
+
+    setPaystackProcessing(true)
+    try {
+      const sessionAgent = getCurrentAgent()
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (sessionAgent) {
+        headers.Authorization = `Bearer ${btoa(JSON.stringify(sessionAgent))}`
+      }
+
+      const res = await fetch("/api/paystack/wallet-topup/initialize", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          amount,
+          email: agent.email || sessionAgent?.email,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.authorization_url) {
+        throw new Error(data.error || "Could not start Paystack payment")
+      }
+      window.location.href = data.authorization_url
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Paystack failed")
+      setPaystackProcessing(false)
+    }
+  }
+
   const submitTopUp = async () => {
-    if (!agent || !topUpAmount || !paymentReference) return
+    if (!agent || !topUpAmount || !paymentReference || submitting || submitLockRef.current) return
 
     const amount = Number.parseFloat(topUpAmount)
     if (amount <= 0) {
-      alert("Please enter a valid amount")
+      toast.error("Please enter a valid amount")
       return
     }
 
     if (amount < MIN_TOPUP_AMOUNT) {
-      alert(`Minimum top-up amount is GH₵ ${MIN_TOPUP_AMOUNT}`)
+      toast.error(`Minimum top-up amount is GH₵ ${MIN_TOPUP_AMOUNT}`)
       return
     }
 
     const trimmedReference = paymentReference.trim()
     if (!trimmedReference) {
-      alert("Please enter your transaction reference ID")
+      toast.error("Please enter your payment reference")
       return
     }
 
-    // Enhanced validation: Check minimum length
     if (trimmedReference.length < MIN_REFERENCE_LENGTH) {
-      alert(
-        `Reference code must be at least ${MIN_REFERENCE_LENGTH} characters long. Current length: ${trimmedReference.length}`,
-      )
+      toast.error(`Reference must be at least ${MIN_REFERENCE_LENGTH} characters`)
       return
     }
 
-    // Check if validation shows the reference is invalid
     if (!referenceValidation.isValid && referenceValidation.message) {
-      alert(`Invalid reference code: ${referenceValidation.message}`)
+      toast.error(referenceValidation.message)
       return
     }
 
+    submitLockRef.current = true
     setSubmitting(true)
     try {
       // Double-check if the reference code already exists (final validation)
@@ -471,14 +521,14 @@ export default function WalletPage() {
 
       if (existingTransaction) {
         const suggestedCode = generateReferenceCode()
-        alert(
-          `This reference code "${trimmedReference}" has already been used. Please use a unique reference ID.\n\nSuggested code: ${suggestedCode}`,
-        )
+        toast.error("This reference has already been used")
         setReferenceValidation({
           isValid: false,
           message: "This reference code has already been used",
           suggestedCode,
         })
+        submitLockRef.current = false
+        setSubmitting(false)
         return
       }
 
@@ -508,20 +558,24 @@ export default function WalletPage() {
         throw new Error(error.message || "Database operation failed")
       }
 
-      alert("Top-up request submitted successfully! It will be processed by admin.")
+      toast.success("Top-up submitted! Admin will credit your wallet after verification.")
       setShowTopUpDialog(false)
       setTopUpAmount("")
       setPaymentReference("")
       setReferenceValidation({ isValid: true, message: "" })
-      loadWalletData(agent.id)
+      await loadWalletData(agent.id)
     } catch (error) {
       console.error("Error submitting top-up:", error)
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-      alert(`Failed to submit top-up request: ${errorMessage}`)
+      toast.error(errorMessage)
     } finally {
+      submitLockRef.current = false
       setSubmitting(false)
     }
   }
+
+  const topUpAmountNum = Number.parseFloat(topUpAmount) || 0
+  const showPaystackOption = topUpAmountNum >= WALLET_TOPUP_PAYSTACK_MIN_GHS
 
   const downloadCSV = () => {
     if (filteredTransactions.length === 0) {
@@ -1189,18 +1243,41 @@ export default function WalletPage() {
               <Info className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-800">
                 <div className="space-y-2">
-                  <p className="font-semibold">💰 Wallet Top-up Guidelines</p>
+                  <p className="font-semibold">Wallet top-up</p>
                   <ul className="text-sm list-disc list-inside ml-1 space-y-1">
                     <li>
-                      Minimum top-up amount: <strong>GH₵ {MIN_TOPUP_AMOUNT}</strong>
+                      Manual MoMo (GH₵{MIN_TOPUP_AMOUNT}+): pay to <strong>0557943392</strong>, then submit reference below
                     </li>
                     <li>
-                      Send payment to <strong>0557943392</strong> (Adamantis Solutions)
+                      Paystack (GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS}+): instant credit after payment
                     </li>
                   </ul>
                 </div>
               </AlertDescription>
             </Alert>
+
+            {showPaystackOption && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+                <p className="text-sm font-semibold text-indigo-900">Top-up with Paystack</p>
+                <p className="text-xs text-indigo-800">
+                  Amount GH₵{topUpAmountNum.toFixed(2)} qualifies for card/MoMo checkout. Your wallet is credited automatically.
+                </p>
+                <Button
+                  type="button"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                  disabled={paystackProcessing}
+                  onClick={paystackTopUp}
+                >
+                  {paystackProcessing ? "Redirecting to Paystack…" : "Top-up with Paystack"}
+                </Button>
+              </div>
+            )}
+
+            {!showPaystackOption && topUpAmountNum > 0 && topUpAmountNum < WALLET_TOPUP_PAYSTACK_MIN_GHS && (
+              <p className="text-xs text-slate-600">
+                Enter GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS} or more to unlock Paystack top-up. Use manual MoMo below for smaller amounts.
+              </p>
+            )}
 
             <div>
               <Label htmlFor="amount" className="text-emerald-700">
@@ -1221,38 +1298,21 @@ export default function WalletPage() {
 
             <div>
               <Label htmlFor="reference" className="text-emerald-700">
-                Your Transaction Reference ID
+                Payment reference (MoMo)
               </Label>
               <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    id="reference"
-                    placeholder="i.e., TOPUP-2024-001 or your custom reference"
-                    value={paymentReference}
-                    onChange={(e) => handleReferenceChange(e.target.value)}
-                    className={`flex-1 ${
-                      referenceValidation.isValid
-                        ? "border-emerald-200 focus:border-emerald-500"
-                        : "border-red-300 focus:border-red-500"
-                    }`}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const newCode = generateReferenceCode()
-                      setPaymentReference(newCode)
-                      setReferenceValidation({
-                        isValid: true,
-                        message: "Generated unique reference code",
-                      })
-                    }}
-                    className="shrink-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                  >
-                    <Shuffle className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Input
+                  id="reference"
+                  placeholder="Transaction ID from your MoMo payment"
+                  value={paymentReference}
+                  onChange={(e) => handleReferenceChange(e.target.value)}
+                  disabled={submitting}
+                  className={
+                    referenceValidation.isValid
+                      ? "border-emerald-200 focus:border-emerald-500"
+                      : "border-red-300 focus:border-red-500"
+                  }
+                />
 
                 {/* Character Counter */}
                 <div className="flex justify-between items-center text-xs">
@@ -1307,10 +1367,10 @@ export default function WalletPage() {
             </Button>
             <Button
               onClick={submitTopUp}
-              disabled={submitting || !topUpAmount || !paymentReference}
+              disabled={submitting || paystackProcessing || !topUpAmount || !paymentReference}
               className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
             >
-              {submitting ? "Submitting..." : "Submit Top-up"}
+              {submitting ? "Submitting…" : "Submit manual top-up"}
             </Button>
           </DialogFooter>
         </DialogContent>

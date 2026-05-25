@@ -53,6 +53,7 @@ import { ProtectedLink } from "@/components/protected-link";
 } from "lucide-react"
 import Link from "next/link"
 import PropertiesShowcase from "@/components/homepage/PropertiesShowcase"
+import { ExploreServicesSection } from "@/components/marketing/ExploreServicesSection"
 import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
 import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
 import Image from "next/image"
@@ -495,6 +496,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <ExploreServicesSection />
 
       <AppleServiceFeature />
 

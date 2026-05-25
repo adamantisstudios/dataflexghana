@@ -1,7 +1,7 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Scale, Ban, Users, Percent, ArrowLeft } from "lucide-react"
+import { Shield, Scale, Ban, Users, Percent } from "lucide-react"
+import { InfluencerTermsNav, InfluencerTermsFooterLinks } from "@/components/influencer/InfluencerTermsNav"
 
 const BRAND = "#0E8F3D"
 
@@ -11,16 +11,7 @@ export default function InfluencerTermsPage() {
       className="min-h-screen bg-gradient-to-b from-slate-50 to-white"
       style={{ fontFamily: "Inter, Poppins, sans-serif" }}
     >
-      <header className="sticky top-0 z-10 border-b bg-white/95 backdrop-blur shadow-sm">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/agent/referralhub?hubTab=marketplace&marketplaceTab=influencers">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <h1 className="text-lg font-semibold text-slate-900">Influencer Terms</h1>
-        </div>
-      </header>
+      <InfluencerTermsNav />
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         <div className="rounded-2xl p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${BRAND}, #35B24A)` }}>
@@ -31,6 +22,13 @@ export default function InfluencerTermsPage() {
           <p className="mt-2 text-white/90 text-sm">
             By using the Micro-Influencer Marketplace you agree to these terms. Both influencers and clients pay an 8%
             platform service fee.
+          </p>
+          <p className="mt-3 text-white/90 text-sm">
+            Not yet on the platform?{" "}
+            <Link href="/influencers/register" className="underline font-semibold text-white">
+              Apply directly as an influencer
+            </Link>{" "}
+            — no agent registration payment required.
           </p>
         </div>
 
@@ -118,16 +116,7 @@ export default function InfluencerTermsPage() {
           </CardContent>
         </Card>
 
-        <div className="flex flex-wrap gap-3">
-          <Link href="/agent/referralhub?hubTab=marketplace&marketplaceTab=influencers">
-            <Button style={{ backgroundColor: BRAND }} className="hover:opacity-90 text-white">
-              Back to Micro-Influencers
-            </Button>
-          </Link>
-          <Link href="/agent/login">
-            <Button variant="outline">Agent login</Button>
-          </Link>
-        </div>
+        <InfluencerTermsFooterLinks />
       </main>
     </div>
   )
