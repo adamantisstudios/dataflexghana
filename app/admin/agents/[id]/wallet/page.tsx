@@ -663,6 +663,7 @@ export default function AdminAgentWalletPage() {
                           {transaction.status === "approved" &&
                             !(
                               transaction.transaction_type === "admin_reversal" ||
+                              transaction.transaction_type === "deduction" ||
                               (transaction.transaction_type === "debit" &&
                                 String(transaction.description || "")
                                   .toLowerCase()

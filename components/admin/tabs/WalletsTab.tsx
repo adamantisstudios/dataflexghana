@@ -42,6 +42,7 @@ import { getAdminAuthHeaders } from "@/lib/api-client"
   RefreshCw,
   DollarSign,
   Loader2,
+  RotateCcw,
 } from "lucide-react"
 import { FloatingRefreshButton } from "@/components/admin/FloatingRefreshButton"
 import { connectionManager } from "@/lib/connection-manager"
@@ -50,6 +51,17 @@ import { toast } from "sonner"
 interface WalletsTabProps {
   getCachedData: () => any[] | undefined
   setCachedData: (data: any[]) => void
+}
+
+const WALLET_TX_SELECT =
+  "id, amount, transaction_type, description, status, created_at, reference_code, admin_notes, agent_id, source_id, agents!inner(id, full_name, phone_number)"
+
+function collectReversedTransactionIds(transactions: { source_id?: string | null }[]): Set<string> {
+  const ids = new Set<string>()
+  for (const tx of transactions) {
+    if (tx.source_id) ids.add(tx.source_id)
+  }
+  return ids
 }
 
 // Transaction type labeling
@@ -168,6 +180,10 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   const [rejectingTopupIds, setRejectingTopupIds] = useState<Set<string>>(() => new Set())
   const [deletingTopupIds, setDeletingTopupIds] = useState<Set<string>>(() => new Set())
   const [processingWalletTxIds, setProcessingWalletTxIds] = useState<Set<string>>(() => new Set())
+  const [reversingTxIds, setReversingTxIds] = useState<Set<string>>(() => new Set())
+  const [reversedTransactionIds, setReversedTransactionIds] = useState<Set<string>>(() => new Set())
+  const [reverseDialogTx, setReverseDialogTx] = useState<any | null>(null)
+  const [reverseReason, setReverseReason] = useState("")
   const [walletTopupSubmitting, setWalletTopupSubmitting] = useState(false)
 
   // --- Helper to safely call setCachedData (prevents TypeError) ---
@@ -178,6 +194,20 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       }
     },
     [setCachedData]
+  )
+
+  const applyWalletTransactions = useCallback((transactions: any[]) => {
+    setWalletTransactions(transactions)
+    setReversedTransactionIds((prev) => {
+      const next = new Set(prev)
+      collectReversedTransactionIds(transactions).forEach((id) => next.add(id))
+      return next
+    })
+  }, [])
+
+  const isTransactionReversed = useCallback(
+    (transactionId: string) => reversedTransactionIds.has(transactionId),
+    [reversedTransactionIds],
   )
 
   // --- Live agent search effect for top-up dialog ---
@@ -308,10 +338,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         error: queryError,
       } = await supabase
         .from("wallet_transactions")
-        .select(
-          `id, amount, transaction_type, description, status, created_at, reference_code, admin_notes, agent_id, agents!inner(id, full_name, phone_number)`,
-          { count: "exact" }
-        )
+        .select(WALLET_TX_SELECT, { count: "exact" })
         .order("created_at", { ascending: false })
         .range(offset, offset + itemsPerPage - 1)
 
@@ -369,7 +396,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
         },
       }))
 
-      setWalletTransactions(enhancedData)
+      applyWalletTransactions(enhancedData)
       setTotalWalletTransactions(count || 0)
       safeSetCachedData(enhancedData)   // ✅ safe call
     } catch (error) {
@@ -439,10 +466,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           const [walletData, topupsData] = await Promise.all([
             supabase
               .from("wallet_transactions")
-              .select(
-                `id, amount, transaction_type, description, status, created_at, reference_code, admin_notes, agent_id, agents!inner(id, full_name, phone_number)`,
-                { count: "exact" }
-              )
+              .select(WALLET_TX_SELECT, { count: "exact" })
               .order("created_at", { ascending: false })
               .range(0, 11),
             supabase
@@ -507,7 +531,7 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
           if (topupsData.error) throw topupsData.error
 
           setTotalWalletTransactions(walletData.count || 0)
-          setWalletTransactions(enhancedWalletData)
+          applyWalletTransactions(enhancedWalletData)
           setWalletTopups(topupsData.data || [])
           safeSetCachedData(enhancedWalletData)   // ✅ safe call
         } catch (innerError) {
@@ -759,6 +783,60 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       setDeletingTopupIds((prev) => {
         const next = new Set(prev)
         next.delete(topupId)
+        return next
+      })
+    }
+  }
+
+  const submitTopupReversal = async () => {
+    if (!reverseDialogTx) return
+    const reason = reverseReason.trim()
+    if (!reason) {
+      toast.error("Please enter a reason for the reversal")
+      return
+    }
+    if (!admin?.id) {
+      toast.error("Admin session expired. Please log in again.")
+      return
+    }
+
+    const tx = reverseDialogTx
+    setReversingTxIds((prev) => new Set(prev).add(tx.id))
+    try {
+      const res = await fetch("/api/admin/wallet/reverse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify({
+          transaction_id: tx.id,
+          agent_id: tx.agent_id,
+          reason,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to reverse top-up")
+      }
+
+      setReversedTransactionIds((prev) => new Set(prev).add(tx.id))
+      setWalletTransactions((prev) =>
+        prev.map((t) => (t.id === tx.id ? { ...t, _reversed: true } : t)),
+      )
+
+      const balance = Number(json.data?.balance)
+      if (Number.isFinite(balance)) {
+        setAgentLiveBalances((prev) => new Map(prev).set(tx.agent_id, balance))
+      }
+
+      toast.success(json.data?.message || "Top-up reversed successfully")
+      setReverseDialogTx(null)
+      setReverseReason("")
+    } catch (error) {
+      console.error("Error reversing top-up:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to reverse top-up")
+    } finally {
+      setReversingTxIds((prev) => {
+        const next = new Set(prev)
+        next.delete(tx.id)
         return next
       })
     }
@@ -1268,17 +1346,21 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                           {getTransactionTypeIcon(transaction)}
                           {getTransactionTypeLabel(transaction)}
                         </h3>
-                        <Badge
-                          className={
-                            transaction.status === "pending"
-                              ? "bg-amber-100 text-amber-800 border-amber-200"
-                              : transaction.status === "approved"
-                              ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                              : "bg-red-100 text-red-800 border-red-200"
-                          }
-                        >
-                          {transaction.status}
-                        </Badge>
+                        {isTransactionReversed(transaction.id) || transaction._reversed ? (
+                          <Badge className="bg-slate-200 text-slate-800 border-slate-300">Reversed</Badge>
+                        ) : (
+                          <Badge
+                            className={
+                              transaction.status === "pending"
+                                ? "bg-amber-100 text-amber-800 border-amber-200"
+                                : transaction.status === "approved"
+                                ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                                : "bg-red-100 text-red-800 border-red-200"
+                            }
+                          >
+                            {transaction.status}
+                          </Badge>
+                        )}
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                         <p className="text-emerald-600">
@@ -1321,6 +1403,30 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                         )}
                       </div>
                     </div>
+                    {transaction.status === "approved" &&
+                      transaction.transaction_type === "topup" &&
+                      !isTransactionReversed(transaction.id) &&
+                      !transaction._reversed && (
+                      <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-emerald-100">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={reversingTxIds.has(transaction.id)}
+                          onClick={() => {
+                            setReverseDialogTx(transaction)
+                            setReverseReason("")
+                          }}
+                          className="border-orange-300 text-orange-800 hover:bg-orange-50 w-full sm:w-auto"
+                        >
+                          {reversingTxIds.has(transaction.id) ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                          )}
+                          {reversingTxIds.has(transaction.id) ? "Reversing…" : "Reverse"}
+                        </Button>
+                      </div>
+                    )}
                     {transaction.status === "pending" && transaction.transaction_type === "topup" && (
                       <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-emerald-100">
                         <Button
@@ -1370,6 +1476,68 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
       />
 
       <FloatingRefreshButton onRefresh={handleCompleteRefresh} showConnectionStatus={true} />
+
+      {/* Reverse top-up dialog */}
+      <Dialog
+        open={!!reverseDialogTx}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReverseDialogTx(null)
+            setReverseReason("")
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reverse wallet top-up</DialogTitle>
+            <DialogDescription>
+              This will deduct GH₵ {reverseDialogTx ? Number(reverseDialogTx.amount).toFixed(2) : "0.00"} from{" "}
+              {reverseDialogTx?.agents?.full_name || "the agent"}&apos;s spendable wallet balance.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="reverseReason">Reason (required)</Label>
+            <Input
+              id="reverseReason"
+              value={reverseReason}
+              onChange={(e) => setReverseReason(e.target.value)}
+              placeholder="e.g. Duplicate approval, wrong agent"
+              disabled={reverseDialogTx ? reversingTxIds.has(reverseDialogTx.id) : false}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setReverseDialogTx(null)
+                setReverseReason("")
+              }}
+              disabled={reverseDialogTx ? reversingTxIds.has(reverseDialogTx.id) : false}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => void submitTopupReversal()}
+              disabled={
+                !reverseReason.trim() ||
+                (reverseDialogTx ? reversingTxIds.has(reverseDialogTx.id) : false)
+              }
+            >
+              {reverseDialogTx && reversingTxIds.has(reverseDialogTx.id) ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Reversing…
+                </>
+              ) : (
+                "Confirm reversal"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Wallet Top-up Dialog */}
       <Dialog open={showWalletTopupDialog} onOpenChange={setShowWalletTopupDialog}>

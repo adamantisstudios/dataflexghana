@@ -82,7 +82,7 @@ export function assertDbTransactionType(type: string): DbTransactionType {
 export const ADMIN_WALLET_CREDIT_TYPE = "adjustment" as const satisfies DbTransactionType
 
 /** Admin wallet debit (commission reset, manual debit, reversals). */
-export const ADMIN_WALLET_DEBIT_TYPE = "debit" as const satisfies DbTransactionType
+export const ADMIN_WALLET_DEBIT_TYPE = "deduction" as const satisfies DbTransactionType
 
 export function adminAdjustmentTransactionType(isCredit: boolean): DbTransactionType {
   return isCredit ? ADMIN_WALLET_CREDIT_TYPE : ADMIN_WALLET_DEBIT_TYPE

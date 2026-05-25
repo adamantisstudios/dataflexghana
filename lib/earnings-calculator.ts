@@ -1,7 +1,7 @@
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import {
   buildWalletTransactionInsertRow,
-  assertDbTransactionType,
+  adminAdjustmentTransactionType,
 } from "@/lib/wallet-transaction-types"
 import { getAdminClient } from "./supabase-base"
 import { calculateExactCommission } from "./commission-calculator"
@@ -127,6 +127,7 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
           case "topup":
           case "refund":
           case "adjustment":
+          case "admin_adjustment":
           case "credit":
           case "deposit":
           case "interest":
@@ -136,6 +137,7 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
             break
           case "debit":
           case "deduction":
+          case "admin_reversal":
           case "withdrawal_deduction":
           case "withdrawal":
           case "penalty":
@@ -206,6 +208,7 @@ async function calculateWalletBalanceDirectQuery(agentId: string): Promise<numbe
         case "topup":
         case "refund":
         case "adjustment":
+        case "admin_adjustment":
         case "credit":
         case "deposit":
         case "interest":
@@ -214,6 +217,7 @@ async function calculateWalletBalanceDirectQuery(agentId: string): Promise<numbe
           break
         case "debit":
         case "deduction":
+        case "admin_reversal":
         case "withdrawal_deduction":
         case "withdrawal":
         case "penalty":
@@ -278,6 +282,7 @@ async function calculateWalletBalanceComprehensiveFallback(agentId: string): Pro
         case "topup":
         case "refund":
         case "adjustment":
+        case "admin_adjustment":
         case "credit":
         case "deposit":
         case "interest":
@@ -286,6 +291,7 @@ async function calculateWalletBalanceComprehensiveFallback(agentId: string): Pro
           break
         case "debit":
         case "deduction":
+        case "admin_reversal":
         case "withdrawal_deduction":
         case "withdrawal":
         case "penalty":
@@ -442,6 +448,7 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
             case "topup":
             case "refund":
             case "adjustment":
+            case "admin_adjustment":
             case "credit":
             case "deposit":
             case "interest":
@@ -456,6 +463,7 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
               totalWithdrawals += amount
               break
             case "deduction":
+            case "admin_reversal":
             case "debit":
             case "penalty":
             case "withdrawal":
@@ -990,18 +998,24 @@ export async function createAdminReversal(
 
     const { data, error } = await getDb()
       .from("wallet_transactions")
-      .insert({
-        agent_id: agentId,
-        amount: Math.abs(Number(originalTransaction.amount)),
-        transaction_type: "debit",
-        reference_code: reference,
-        description,
-        status: "approved",
-        created_at: new Date().toISOString(),
-        admin_id: adminId,
-        admin_notes: `Reversal of ${originalTransaction.transaction_type}. Original: ${originalTransaction.description || "N/A"}`,
-        source_id: originalTransactionId,
-      })
+      .insert(
+        buildWalletTransactionInsertRow(
+          {
+            agent_id: agentId,
+            amount: Math.abs(Number(originalTransaction.amount)),
+            transaction_type: adminAdjustmentTransactionType(false),
+            reference_code: reference,
+            description,
+            status: "approved",
+            admin_id: adminId,
+            admin_notes: `Reversal of ${originalTransaction.transaction_type}. Original: ${originalTransaction.description || "N/A"}`,
+          },
+          {
+            created_at: new Date().toISOString(),
+            source_id: originalTransactionId,
+          },
+        ),
+      )
       .select("id")
       .single()
 
@@ -1062,20 +1076,25 @@ export async function createAdminAdjustment(
     const reference = `adj-${Date.now()}`
     const description =
       reason.trim() || (isCredit ? "Admin adjustment credit" : "Admin adjustment debit")
+    const transactionType = adminAdjustmentTransactionType(isCredit)
 
     const { data, error } = await getDb()
       .from("wallet_transactions")
-      .insert({
-        agent_id: agentId,
-        amount: Math.abs(amount),
-        transaction_type: isCredit ? "adjustment" : "debit",
-        reference_code: reference,
-        description,
-        status: "approved",
-        created_at: new Date().toISOString(),
-        admin_id: adminId,
-        admin_notes: `${isCredit ? "Credit" : "Debit"} adjustment. Reason: ${reason.trim()}`,
-      })
+      .insert(
+        buildWalletTransactionInsertRow(
+          {
+            agent_id: agentId,
+            amount: Math.abs(amount),
+            transaction_type: transactionType,
+            reference_code: reference,
+            description,
+            status: "approved",
+            admin_id: adminId,
+            admin_notes: `${isCredit ? "Credit" : "Debit"} adjustment. Reason: ${reason.trim()}`,
+          },
+          { created_at: new Date().toISOString() },
+        ),
+      )
       .select("id")
       .single()
 
