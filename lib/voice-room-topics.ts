@@ -3,6 +3,8 @@ export const VOICE_TOPIC_ADMIN_SHARE = "admin-share"
 export const VOICE_TOPIC_GRANT_SPEAK = "grant-speak"
 /** Server → agent: reconnect with publish token and enable microphone */
 export const VOICE_TOPIC_UNMUTE_COMMAND = "unmute-command"
+/** Admin → agent: allow or revoke camera publish (metadata + optional reconnect) */
+export const VOICE_TOPIC_VIDEO_PERMISSION = "video-permission"
 export const VOICE_TOPIC_REACTION = "reaction"
 export const VOICE_TOPIC_CHAT = "chat"
 export const VOICE_TOPIC_POLL = "poll"

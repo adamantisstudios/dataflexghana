@@ -2,11 +2,11 @@
 
 import { VideoTrack, useLocalParticipant } from "@livekit/components-react"
 import { Track } from "livekit-client"
-import { useVoiceDeviceLayout, voiceVideoAspectClass } from "@/lib/voice-video-utils"
+import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
 import { cn } from "@/lib/utils"
 
-/** Small self-preview when admin camera is on. */
-export function AdminLocalVideoPreview() {
+/** Small PiP above the agent control bar. */
+export function AgentLocalVideoPip() {
   const { localParticipant, isCameraEnabled } = useLocalParticipant()
   const { isMobile } = useVoiceDeviceLayout()
   const pub = localParticipant.getTrackPublication(Track.Source.Camera)
@@ -16,9 +16,10 @@ export function AdminLocalVideoPreview() {
   return (
     <div
       className={cn(
-        "absolute z-20 rounded-lg overflow-hidden border-2 border-[#0E8F3D]/50 shadow-lg bg-black",
-        voiceVideoAspectClass(isMobile),
-        isMobile ? "bottom-24 right-2 w-24" : "bottom-4 right-4 w-40",
+        "fixed z-30 rounded-lg overflow-hidden border-2 border-[#0E8F3D]/60 shadow-xl bg-black",
+        isMobile
+          ? "bottom-[4.5rem] right-3 w-24 aspect-[9/16]"
+          : "bottom-20 right-4 w-36 aspect-video",
       )}
     >
       <VideoTrack

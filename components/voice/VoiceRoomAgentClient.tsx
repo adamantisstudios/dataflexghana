@@ -33,6 +33,8 @@ import {
   Sparkles,
   PhoneOff,
   Smile,
+  Video,
+  VideoOff,
 } from "lucide-react"
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
@@ -42,8 +44,12 @@ import {
   VOICE_TOPIC_GRANT_SPEAK,
   VOICE_TOPIC_HAND_RAISE,
   VOICE_TOPIC_UNMUTE_COMMAND,
+  VOICE_TOPIC_VIDEO_PERMISSION,
   VOICE_REACTION_EMOJIS,
 } from "@/lib/voice-room-topics"
+import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
+import { AgentLocalVideoPip } from "@/components/voice/AgentLocalVideoPip"
+import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
 import {
   formatVoiceDuration,
   voiceAvatarRingColor,
@@ -150,21 +156,28 @@ function MeetAvatar({
 function AgentRoomUI({
   roomName,
   pendingSpeak,
+  pendingVideo,
+  canPublishVideo,
   onTokenUpgrade,
   onSpeakActivated,
+  onVideoActivated,
 }: {
   roomName: string
   pendingSpeak: boolean
-  onTokenUpgrade: (token: string) => void
+  pendingVideo: boolean
+  canPublishVideo: boolean
+  onTokenUpgrade: (token: string, opts?: { video?: boolean }) => void
   onSpeakActivated: () => void
+  onVideoActivated: () => void
 }) {
   const router = useRouter()
   const room = useRoomContext()
   const connectionState = useConnectionState()
   const participants = useParticipants()
-  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant()
-  const localLevel = useParticipantAudioLevel(localParticipant)
+  const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant()
   const [handRaised, setHandRaised] = useState(false)
+  const [videoAllowedByHost, setVideoAllowedByHost] = useState(false)
+  const [enablingCamera, setEnablingCamera] = useState(false)
   const [canSpeak, setCanSpeak] = useState(false)
   const [wasDemoted, setWasDemoted] = useState(false)
   const [sharedFiles, setSharedFiles] = useState<SharedFile[]>([])
@@ -174,29 +187,41 @@ function AgentRoomUI({
   const [reactionsOpen, setReactionsOpen] = useState(false)
   const [filesOpen, setFilesOpen] = useState(false)
 
-  const refreshSpeakerToken = useCallback(async () => {
-    const res = await fetch(
-      `/api/agent/voice-rooms/token?roomName=${encodeURIComponent(roomName)}&speak=1`,
-      { headers: getAgentAuthHeaders(), credentials: "same-origin" },
-    )
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || "Could not get speaker access")
-    return data.token as string
-  }, [roomName])
+  const fetchAgentToken = useCallback(
+    async (opts: { speak?: boolean; video?: boolean }) => {
+      const params = new URLSearchParams({ roomName })
+      if (opts.speak) params.set("speak", "1")
+      if (opts.video) params.set("video", "1")
+      const res = await fetch(`/api/agent/voice-rooms/token?${params}`, {
+        headers: getAgentAuthHeaders(),
+        credentials: "same-origin",
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Could not refresh token")
+      return {
+        token: data.token as string,
+        canPublishVideo: data.canPublishVideo === true,
+      }
+    },
+    [roomName],
+  )
 
   const handleUnmuteCommand = useCallback(() => {
     void (async () => {
       setConnectingMic(true)
       try {
-        const newToken = await refreshSpeakerToken()
+        const { token, canPublishVideo: withVideo } = await fetchAgentToken({
+          speak: true,
+          video: true,
+        })
         await room.disconnect()
-        onTokenUpgrade(newToken)
+        onTokenUpgrade(token, { video: withVideo })
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Could not go live")
         setConnectingMic(false)
       }
     })()
-  }, [room, refreshSpeakerToken, onTokenUpgrade])
+  }, [room, fetchAgentToken, onTokenUpgrade])
 
   useEffect(() => {
     if (connectionState !== ConnectionState.Connected) return
@@ -240,13 +265,34 @@ function AgentRoomUI({
           handleUnmuteCommand()
         }
       }
+      if (topic === VOICE_TOPIC_VIDEO_PERMISSION) {
+        try {
+          const msg = JSON.parse(new TextDecoder().decode(payload)) as {
+            identity?: string
+            allowed?: boolean
+          }
+          if (msg.identity === localParticipant.identity) {
+            setVideoAllowedByHost(msg.allowed === true)
+            if (!msg.allowed) {
+              void localParticipant.setCameraEnabled(false)
+              toast.message("Host disabled your camera")
+            } else {
+              toast.message("Host allowed video — tap the camera button to go live")
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      }
       if (topic === VOICE_TOPIC_DEMOTE) {
         const msg = decodeVoiceData(payload)
         if (msg?.type === "demote" && msg.identity === localParticipant.identity) {
           setCanSpeak(false)
           setWasDemoted(true)
           setHandRaised(false)
+          setVideoAllowedByHost(false)
           void localParticipant.setMicrophoneEnabled(false)
+          void localParticipant.setCameraEnabled(false)
           toast.message("You are back in listen-only mode")
         }
       }
@@ -277,6 +323,58 @@ function AgentRoomUI({
       }
     })()
   }, [pendingSpeak, connectionState, localParticipant, onSpeakActivated])
+
+  useEffect(() => {
+    if (!pendingVideo || connectionState !== ConnectionState.Connected) return
+    void (async () => {
+      try {
+        await localParticipant.setCameraEnabled(true)
+        toast.success("Camera is on")
+      } catch {
+        toast.error("Allow camera access in your browser")
+      } finally {
+        setEnablingCamera(false)
+        onVideoActivated()
+      }
+    })()
+  }, [pendingVideo, connectionState, localParticipant, onVideoActivated])
+
+  const turnOnCamera = () => {
+    if (!canSpeak) {
+      toast.error("Wait until the host lets you speak")
+      return
+    }
+    if (isCameraEnabled) {
+      void localParticipant.setCameraEnabled(false)
+      return
+    }
+    void (async () => {
+      setEnablingCamera(true)
+      try {
+        if (!canPublishVideo && !videoAllowedByHost) {
+          toast.error("The host has not allowed video yet")
+          setEnablingCamera(false)
+          return
+        }
+          if (!canPublishVideo) {
+          const { token, canPublishVideo: withVideo } = await fetchAgentToken({
+            speak: true,
+            video: true,
+          })
+          if (!withVideo) throw new Error("Video not permitted")
+          await room.disconnect()
+          onTokenUpgrade(token, { video: true, activateVideo: true })
+          return
+        }
+        await localParticipant.setCameraEnabled(true)
+        toast.success("Camera is on")
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not enable camera")
+      } finally {
+        setEnablingCamera(false)
+      }
+    })()
+  }
 
   useEffect(() => {
     if (connectionState === ConnectionState.Connected && !canSpeak && !pendingSpeak) {
@@ -350,6 +448,14 @@ function AgentRoomUI({
   const hostLevel = useParticipantAudioLevel(hostOrSpeaker ?? localParticipant)
   const hostMicPub = hostOrSpeaker?.getTrackPublication(Track.Source.Microphone)
   const hostHasAudio = hostMicPub && !hostMicPub.isMuted
+  const hostCamPub = hostOrSpeaker?.getTrackPublication(Track.Source.Camera)
+  const hostShowVideo =
+    hostOrSpeaker &&
+    hostCamPub?.track &&
+    !hostCamPub.isMuted &&
+    (!hostOrSpeaker.isLocal || isCameraEnabled)
+
+  const mayUseCamera = canSpeak && (canPublishVideo || videoAllowedByHost)
 
   return (
     <div className="flex flex-col min-h-[100dvh] text-[#e8eaed]" style={{ background: MEET_BG, color: MEET_TEXT }}>
@@ -379,19 +485,30 @@ function AgentRoomUI({
         </div>
       )}
 
+      <AgentLocalVideoPip />
+
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden pb-2">
         <HostVideoPanel />
 
         <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 gap-4 min-h-0">
           {hostOrSpeaker ? (
-            <div className="flex flex-col items-center gap-3">
-              <MeetAvatar
-                name={displayName}
-                identity={hostOrSpeaker.identity}
-                size="lg"
-                isSpeaking={hostOrSpeaker.isSpeaking || hostLevel > 0.08}
-                showWave={!!hostHasAudio || hostOrSpeaker.isSpeaking}
-              />
+            <div className="flex flex-col items-center gap-3 w-full max-w-lg">
+              {hostShowVideo && hostCamPub ? (
+                <VoiceVideoFrame
+                  participant={hostOrSpeaker}
+                  publication={hostCamPub}
+                  label={displayName.split(" ")[0]}
+                  maxWidthClass="max-w-lg"
+                />
+              ) : (
+                <MeetAvatar
+                  name={displayName}
+                  identity={hostOrSpeaker.identity}
+                  size="lg"
+                  isSpeaking={hostOrSpeaker.isSpeaking || hostLevel > 0.08}
+                  showWave={!!hostHasAudio || hostOrSpeaker.isSpeaking}
+                />
+              )}
               <p className="text-lg font-medium">{displayName.split(" ")[0]}</p>
               <p className="text-xs text-[#9aa0a6]">
                 {isHostParticipant(hostOrSpeaker.identity, getParticipantRole(hostOrSpeaker))
@@ -461,12 +578,39 @@ function AgentRoomUI({
             type="button"
             disabled={handRaised || !connected}
             onClick={() => void raiseHand()}
-            className={`h-11 w-11 rounded-full flex items-center justify-center ${
+            className={`h-11 w-11 min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center ${
               handRaised ? "bg-amber-700 text-white" : "bg-[#3c4043] text-[#e8eaed] hover:bg-[#4a4d51]"
             }`}
             title="Raise hand"
           >
             <Hand className="h-5 w-5" />
+          </button>
+        )}
+
+        {canSpeak && (
+          <button
+            type="button"
+            disabled={!mayUseCamera || enablingCamera || connectingMic}
+            onClick={turnOnCamera}
+            className={`h-11 w-11 min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center ${
+              isCameraEnabled ? "text-white" : "bg-[#3c4043] text-[#9aa0a6]"
+            } ${!mayUseCamera ? "opacity-40" : ""}`}
+            style={isCameraEnabled ? { background: MEET_GREEN } : undefined}
+            title={
+              !mayUseCamera
+                ? "Video not allowed by host"
+                : isCameraEnabled
+                  ? "Turn off camera"
+                  : "Turn on camera"
+            }
+          >
+            {enablingCamera ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : isCameraEnabled ? (
+              <Video className="h-5 w-5" />
+            ) : (
+              <VideoOff className="h-5 w-5" />
+            )}
           </button>
         )}
 
@@ -577,12 +721,20 @@ export function VoiceRoomAgentClient({ token: initialToken, serverUrl, roomName 
   const [lkToken, setLkToken] = useState(initialToken)
   const [roomKey, setRoomKey] = useState(0)
   const [pendingSpeak, setPendingSpeak] = useState(false)
+  const [pendingVideo, setPendingVideo] = useState(false)
+  const [canPublishVideo, setCanPublishVideo] = useState(false)
+  const { roomOptions } = useVoiceDeviceLayout()
 
-  const handleTokenUpgrade = useCallback((newToken: string) => {
-    setLkToken(newToken)
-    setRoomKey((k) => k + 1)
-    setPendingSpeak(true)
-  }, [])
+  const handleTokenUpgrade = useCallback(
+    (newToken: string, opts?: { video?: boolean; activateVideo?: boolean }) => {
+      setLkToken(newToken)
+      setRoomKey((k) => k + 1)
+      setPendingSpeak(true)
+      if (opts?.video) setCanPublishVideo(true)
+      if (opts?.activateVideo) setPendingVideo(true)
+    },
+    [],
+  )
 
   if (!joined) {
     return <PreJoinScreen roomName={roomName} onJoin={() => setJoined(true)} />
@@ -595,8 +747,8 @@ export function VoiceRoomAgentClient({ token: initialToken, serverUrl, roomName 
       serverUrl={serverUrl}
       connect={joined}
       audio
-      video={false}
-      options={{ publishDefaults: { simulcast: false } }}
+      video
+      options={roomOptions}
       onError={(e) => toast.error(e.message)}
       className="min-h-[100dvh]"
       style={{ background: MEET_BG }}
@@ -604,8 +756,11 @@ export function VoiceRoomAgentClient({ token: initialToken, serverUrl, roomName 
       <AgentRoomUI
         roomName={roomName}
         pendingSpeak={pendingSpeak}
+        pendingVideo={pendingVideo}
+        canPublishVideo={canPublishVideo}
         onTokenUpgrade={handleTokenUpgrade}
         onSpeakActivated={() => setPendingSpeak(false)}
+        onVideoActivated={() => setPendingVideo(false)}
       />
       <RoomAudioRenderer />
     </LiveKitRoom>

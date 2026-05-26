@@ -2,9 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireAdminSession } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
 import {
-  muteParticipantAudio,
-  sendUnmuteCommand,
-  updateParticipantRole,
+  sendVideoPermissionCommand,
   updateParticipantVideoPermission,
 } from "@/lib/livekit-server"
 
@@ -21,6 +19,7 @@ export async function POST(
     const { id } = await params
     const body = await request.json()
     const identity = String(body.identity ?? "").trim()
+    const allowed = body.allowed === true
     if (!identity) {
       return NextResponse.json({ error: "identity is required" }, { status: 400 })
     }
@@ -31,20 +30,14 @@ export async function POST(
       return NextResponse.json({ error: "Room not found" }, { status: 404 })
     }
 
-    await updateParticipantRole(room.room_name, identity, "speaker")
-    await updateParticipantVideoPermission(room.room_name, identity, true)
-    try {
-      await muteParticipantAudio(room.room_name, identity, false)
-    } catch {
-      /* no published track yet — agent will publish after token upgrade */
-    }
-    await sendUnmuteCommand(room.room_name, identity)
+    await updateParticipantVideoPermission(room.room_name, identity, allowed)
+    await sendVideoPermissionCommand(room.room_name, identity, allowed)
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, allowed })
   } catch (e) {
-    console.error("[admin/voice-rooms/unmute]", e)
+    console.error("[admin/voice-rooms/video-permission]", e)
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to unmute participant" },
+      { error: e instanceof Error ? e.message : "Failed to update video permission" },
       { status: 500 },
     )
   }

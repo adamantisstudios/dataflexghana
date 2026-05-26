@@ -1,5 +1,5 @@
 import { DataPacket_Kind, TrackSource, TrackType } from "@livekit/protocol"
-import { VOICE_TOPIC_UNMUTE_COMMAND } from "@/lib/voice-room-topics"
+import { VOICE_TOPIC_UNMUTE_COMMAND, VOICE_TOPIC_VIDEO_PERMISSION } from "@/lib/voice-room-topics"
 import { AccessToken, EgressClient, RoomServiceClient, type CreateOptions } from "livekit-server-sdk"
 import { getAdminClient } from "@/lib/supabase-base"
 import { voiceRegionsMatch } from "@/lib/voice-room-regions"
@@ -142,7 +142,11 @@ export async function generateAgentToken(
   agentId: string,
   agentName: string,
   region: string,
-  options?: { canPublish?: boolean; role?: VoiceParticipantRole },
+  options?: {
+    canPublish?: boolean
+    canPublishVideo?: boolean
+    role?: VoiceParticipantRole
+  },
 ): Promise<string> {
   const db = getAdminClient()
   const { data: room, error } = await db
@@ -163,10 +167,60 @@ export async function generateAgentToken(
 
   const role = options?.role ?? (options?.canPublish ? "speaker" : "listener")
   const canPublish = options?.canPublish ?? false
-  return generateToken(agentId, roomName, agentName, canPublish, { role }, {
-    canPublishAudio: canPublish,
-    canPublishVideo: false,
+  const canPublishVideo = options?.canPublishVideo ?? false
+  return generateToken(
+    agentId,
+    roomName,
+    agentName,
+    canPublish || canPublishVideo,
+    { role, videoAllowed: canPublishVideo },
+    {
+      canPublishAudio: canPublish,
+      canPublishVideo,
+    },
+  )
+}
+
+export async function updateParticipantVideoPermission(
+  roomName: string,
+  participantIdentity: string,
+  allowed: boolean,
+): Promise<void> {
+  const participant = await getLiveKitRoomService().getParticipant(roomName, participantIdentity)
+  let meta: Record<string, unknown> = {}
+  try {
+    meta = participant.metadata ? JSON.parse(participant.metadata) : {}
+  } catch {
+    meta = {}
+  }
+  meta.videoAllowed = allowed
+  const role =
+    (meta.role as VoiceParticipantRole) ||
+    (participant.attributes?.role as VoiceParticipantRole) ||
+    "listener"
+
+  await getLiveKitRoomService().updateParticipant(roomName, participantIdentity, {
+    metadata: JSON.stringify(meta),
+    attributes: { role, videoAllowed: allowed ? "true" : "false" },
+    permission: {
+      canPublish: role === "speaker" || role === "co-host" || role === "moderator",
+      canSubscribe: true,
+      canPublishData: true,
+    },
   })
+}
+
+export async function sendVideoPermissionCommand(
+  roomName: string,
+  identity: string,
+  allowed: boolean,
+): Promise<void> {
+  await getLiveKitRoomService().sendData(
+    roomName,
+    new TextEncoder().encode(JSON.stringify({ identity, allowed })),
+    DataPacket_Kind.RELIABLE,
+    { destinationIdentities: [identity], topic: VOICE_TOPIC_VIDEO_PERMISSION },
+  )
 }
 
 function buildLiveKitCreateRoomOptions(

@@ -33,6 +33,10 @@ type Props = {
   isAdmin?: boolean
   disabled?: boolean
   triggerClassName?: string
+  sheetSide?: "bottom" | "right"
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  hideTrigger?: boolean
 }
 
 function formatChatTime(iso: string) {
@@ -51,8 +55,14 @@ export function ChatPanel({
   isAdmin = false,
   disabled = false,
   triggerClassName,
+  sheetSide = "bottom",
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  hideTrigger = false,
 }: Props) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = controlledOnOpenChange ?? setInternalOpen
   const [draft, setDraft] = useState("")
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -103,23 +113,29 @@ export function ChatPanel({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          className={
-            triggerClassName ??
-            "h-14 px-4 rounded-2xl border-white/20 bg-slate-800/80 text-white hover:bg-slate-700"
-          }
-          aria-label="Open chat"
-        >
-          <MessageCircle className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
+      {!hideTrigger && (
+        <SheetTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            className={
+              triggerClassName ??
+              "h-14 px-4 rounded-2xl border-white/20 bg-slate-800/80 text-white hover:bg-slate-700"
+            }
+            aria-label="Open chat"
+          >
+            <MessageCircle className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+      )}
       <SheetContent
-        side="bottom"
-        className="h-[60dvh] max-h-[60dvh] rounded-t-2xl flex flex-col p-0 bg-slate-900 border-white/10 text-white"
+        side={sheetSide}
+        className={
+          sheetSide === "right"
+            ? "flex flex-col p-0 h-full max-w-md w-full bg-[#292a2d] border-[#3c4043] text-[#e8eaed]"
+            : "h-[60dvh] max-h-[60dvh] rounded-t-2xl flex flex-col p-0 bg-[#292a2d] border-[#3c4043] text-[#e8eaed]"
+        }
       >
         <SheetHeader className="px-4 py-3 border-b border-white/10 shrink-0">
           <div className="flex items-center justify-between gap-2">

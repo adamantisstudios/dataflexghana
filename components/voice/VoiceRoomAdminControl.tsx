@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } fro
 import {
   LiveKitRoom,
   RoomAudioRenderer,
-  VideoTrack,
   useConnectionQualityIndicator,
   useParticipants,
   useLocalParticipant,
@@ -61,10 +60,13 @@ import {
   Circle,
   UserPlus,
   Bell,
+  Video,
   VideoOff,
   Smile,
   MoreVertical,
   PhoneOff,
+  MessageCircle,
+  BarChart3,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -83,6 +85,14 @@ import { VoiceAudioMeter } from "@/components/voice/VoiceAudioMeter"
 import { VoiceReactionsLayer } from "@/components/voice/VoiceReactionsLayer"
 import { ChatPanel } from "@/components/voice/ChatPanel"
 import { AdminLocalVideoPreview } from "@/components/voice/AdminLocalVideoPreview"
+import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
+import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 
 const MEET_BG = "#202124"
 const MEET_TEXT = "#e8eaed"
@@ -109,13 +119,8 @@ function connectionHealthColor(quality: ConnectionQuality | undefined): string {
   return "bg-red-500"
 }
 
-function setParticipantOutputVolume(participant: Participant, volume: number) {
-  const pub = participant.getTrackPublication(Track.Source.Microphone)
-  const track = pub?.audioTrack
-  if (track && "setVolume" in track) {
-    ;(track as { setVolume: (v: number) => void }).setVolume(volume)
-  }
-}
+const ICON_BTN =
+  "h-11 w-11 min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center bg-[#3c4043] hover:bg-[#4a4d51] text-[#e8eaed] shrink-0"
 
 function MeetChipAvatar({ participant, compact }: { participant: Participant; compact?: boolean }) {
   const level = useParticipantAudioLevel(participant)
@@ -216,15 +221,13 @@ function MainStage({
 
   if (showVideo && camPub?.track) {
     return (
-      <div className="relative w-full max-w-3xl mx-auto aspect-video rounded-xl overflow-hidden bg-black">
-        <VideoTrack
-          trackRef={{ participant: focus, publication: camPub, source: Track.Source.Camera }}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute bottom-3 left-3 px-2 py-1 rounded bg-black/60 text-sm text-white">
-          {focus.name || focus.identity}
-        </div>
-      </div>
+      <VoiceVideoFrame
+        participant={focus}
+        publication={camPub}
+        label={focus.name || focus.identity}
+        mirror={focus.isLocal}
+        maxWidthClass="max-w-4xl"
+      />
     )
   }
 
@@ -253,6 +256,219 @@ function MainStage({
   )
 }
 
+function HostControlButtons({
+  isMicrophoneEnabled,
+  isCameraEnabled,
+  localParticipant,
+  onEndRoom,
+  speakers,
+  busy,
+  onMute,
+}: {
+  isMicrophoneEnabled: boolean
+  isCameraEnabled: boolean
+  localParticipant: Participant
+  onEndRoom: () => void
+  speakers: Participant[]
+  busy: string | null
+  onMute: (id: string) => void
+}) {
+  const toggleCamera = async () => {
+    try {
+      await localParticipant.setCameraEnabled(!isCameraEnabled)
+    } catch {
+      toast.error("Camera access is required")
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
+        className={`${ICON_BTN} ${isMicrophoneEnabled ? "text-white" : ""}`}
+        style={isMicrophoneEnabled ? { background: MEET_GREEN } : undefined}
+        title="Microphone"
+      >
+        {isMicrophoneEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+      </button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <button type="button" className={`${ICON_BTN} bg-[#ea4335] hover:bg-[#d93025]`} title="End call">
+            <PhoneOff className="h-5 w-5" />
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="bg-[#292a2d] border-[#3c4043] text-[#e8eaed]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>End Agent Conference?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#9aa0a6]">
+              Everyone will be disconnected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-[#ea4335]" onClick={() => void onEndRoom()}>
+              End call
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <button
+        type="button"
+        onClick={() => void toggleCamera()}
+        className={ICON_BTN}
+        style={isCameraEnabled ? { background: MEET_GREEN } : undefined}
+        title={isCameraEnabled ? "Stop camera" : "Start camera"}
+      >
+        {isCameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+      </button>
+      <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto px-1">
+        <SpeakerChipBar speakers={speakers} busy={busy} onMute={onMute} />
+      </div>
+    </>
+  )
+}
+
+function AdminDesktopSidebar({
+  raisedHands,
+  busy,
+  allowHand,
+  declineHand,
+  sessionStart,
+  recordingActive,
+  participants,
+  videoBusy,
+  onToggleVideo,
+  onInviteOpen,
+  roomName,
+  localParticipant,
+}: {
+  raisedHands: RaisedHand[]
+  busy: string | null
+  allowHand: (h: RaisedHand) => void
+  declineHand: (id: string) => void
+  sessionStart: number
+  recordingActive: boolean
+  participants: Participant[]
+  videoBusy: string | null
+  onToggleVideo: (identity: string, allowed: boolean) => void
+  onInviteOpen: () => void
+  roomName: string
+  localParticipant: Participant
+}) {
+  return (
+    <div className="flex flex-col h-full min-h-0 gap-2 p-2 overflow-y-auto">
+      <div className="shrink-0 flex flex-wrap gap-2 items-center justify-between text-[10px] text-[#9aa0a6]">
+        <VoiceStreamStats sessionStart={sessionStart} />
+        {recordingActive && (
+          <span className="text-red-300 flex items-center gap-1">
+            <Circle className="h-1.5 w-1.5 fill-red-500 animate-pulse" /> REC
+          </span>
+        )}
+        <StreamHealthDot />
+      </div>
+      <section className="shrink-0 rounded-lg border border-[#3c4043] p-2">
+        <h3 className="text-[10px] uppercase text-amber-300 flex items-center gap-1 mb-2">
+          <Hand className="h-3 w-3" /> Hands <Badge className="h-4 px-1 text-[9px]">{raisedHands.length}</Badge>
+        </h3>
+        <ul className="max-h-28 overflow-y-auto space-y-1">
+          {raisedHands.length === 0 ? (
+            <li className="text-[10px] text-[#9aa0a6] text-center py-2">Empty</li>
+          ) : (
+            raisedHands.map((h) => (
+              <li key={h.identity} className="flex gap-1 items-center">
+                <span className="text-[11px] truncate flex-1">{h.name}</span>
+                <button
+                  type="button"
+                  className="h-8 w-8 rounded bg-[#0E8F3D] text-[10px] shrink-0"
+                  disabled={busy === h.identity}
+                  onClick={() => void allowHand(h)}
+                >
+                  OK
+                </button>
+                <button
+                  type="button"
+                  className="h-8 w-8 rounded border border-[#5f6368] text-[10px] shrink-0"
+                  onClick={() => declineHand(h.identity)}
+                >
+                  No
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
+      <div className="shrink-0 flex gap-2 flex-wrap items-center">
+        <button type="button" className={`${ICON_BTN} !h-8 !w-8 !min-h-8 !min-w-8`} onClick={onInviteOpen} title="Invite">
+          <UserPlus className="h-4 w-4" />
+        </button>
+        <VoicePollPanel isAdmin compact />
+        <ChatPanel
+          roomName={roomName}
+          senderName={localParticipant.name || "Host"}
+          senderAgentId={null}
+          apiMode="admin"
+          isAdmin
+          sheetSide="right"
+          triggerClassName={`${ICON_BTN} !h-8 !w-8 !min-h-8 !min-w-8`}
+        />
+      </div>
+      <section className="flex-1 min-h-[120px] flex flex-col rounded-lg border border-[#3c4043] overflow-hidden">
+        <h3 className="text-[10px] uppercase text-[#9aa0a6] px-2 py-1.5 border-b border-[#3c4043] shrink-0">
+          Participants ({participants.length})
+        </h3>
+        <ul className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0">
+          {participants.map((p) => {
+            const role = getParticipantRole(p)
+            const ring = voiceAvatarRingColor(p.identity)
+            let videoAllowed = false
+            try {
+              const meta = p.metadata ? JSON.parse(p.metadata) : {}
+              videoAllowed = meta.videoAllowed === true || meta.videoAllowed === "true"
+            } catch {
+              /* ignore */
+            }
+            videoAllowed = videoAllowed || p.attributes?.videoAllowed === "true"
+            const showVideoToggle = !p.isLocal && isSpeakerRole(role)
+            return (
+              <li
+                key={p.identity}
+                className="flex items-center gap-1 rounded-md bg-[#3c4043]/50 px-1.5 py-1"
+              >
+                <div
+                  className="h-7 w-7 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
+                  style={{
+                    boxShadow: `0 0 0 2px ${ring}`,
+                    background: `linear-gradient(135deg, ${ring}99, ${ring})`,
+                  }}
+                >
+                  {voiceInitials(p.name || p.identity)}
+                </div>
+                <span className="text-[10px] truncate flex-1">{p.name || p.identity}</span>
+                {showVideoToggle && (
+                  <button
+                    type="button"
+                    disabled={videoBusy === p.identity}
+                    onClick={() => void onToggleVideo(p.identity, !videoAllowed)}
+                    className="h-8 w-8 shrink-0 rounded-full flex items-center justify-center hover:bg-[#4a4d51]"
+                    title={videoAllowed ? "Revoke video" : "Allow video"}
+                  >
+                    {videoAllowed ? (
+                      <Video className="h-3.5 w-3.5 text-[#0E8F3D]" />
+                    ) : (
+                      <VideoOff className="h-3.5 w-3.5 text-[#9aa0a6]" />
+                    )}
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+    </div>
+  )
+}
+
 function ControlPanelInner({
   roomId,
   roomName,
@@ -274,6 +490,10 @@ function ControlPanelInner({
   const [recordingActive, setRecordingActive] = useState(false)
   const [egressId, setEgressId] = useState<string | null>(null)
   const [participantTick, setParticipantTick] = useState(0)
+  const [videoBusy, setVideoBusy] = useState<string | null>(null)
+  const [participantsOpen, setParticipantsOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [handsSheetOpen, setHandsSheetOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const sessionStart = useRef(Date.now())
   useEffect(() => {
@@ -363,6 +583,25 @@ function ControlPanelInner({
   const declineHand = (identity: string) => {
     setRaisedHands((prev) => prev.filter((h) => h.identity !== identity))
     toast.message("Request declined")
+  }
+
+  const toggleParticipantVideo = async (identity: string, allowed: boolean) => {
+    setVideoBusy(identity)
+    try {
+      const res = await fetch(`/api/admin/voice-rooms/${roomId}/video-permission`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify({ identity, allowed }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed")
+      setParticipantTick((n) => n + 1)
+      toast.success(allowed ? "Video enabled for speaker" : "Video disabled")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed")
+    } finally {
+      setVideoBusy(null)
+    }
   }
 
   const muteParticipant = async (identity: string) => {
@@ -554,185 +793,201 @@ function ControlPanelInner({
         </div>
       </div>
 
-      <div
-        className={`flex-1 flex flex-col min-h-0 overflow-hidden px-4 ${dragOver ? "ring-2 ring-[#0E8F3D]" : ""}`}
-        onDragOver={(e) => {
-          e.preventDefault()
-          setDragOver(true)
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
-      >
-        <div className="flex-1 flex items-center justify-center min-h-0 py-4">
-          <MainStage
-            activeSpeaker={activeSpeaker}
-            isCameraEnabled={isCameraEnabled}
-            localParticipant={localParticipant}
-          />
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+        <div
+          className={`flex-1 lg:w-[70%] flex flex-col min-h-0 min-w-0 px-3 lg:px-4 pb-2 lg:pb-0 ${
+            dragOver ? "ring-2 ring-[#0E8F3D]" : ""
+          }`}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragOver(true)
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+        >
+          <div className="flex-1 flex items-center justify-center min-h-0 py-3 lg:py-4">
+            <MainStage
+              activeSpeaker={activeSpeaker}
+              isCameraEnabled={isCameraEnabled}
+              localParticipant={localParticipant}
+            />
+          </div>
+          {listenerAvatars.length > 0 && (
+            <div className="shrink-0 pb-2 lg:pb-4">
+              <p className="text-[10px] uppercase tracking-wider text-[#9aa0a6] text-center mb-2">
+                Listeners
+              </p>
+              <div className="flex gap-2 overflow-x-auto justify-center pb-1">
+                {listenerAvatars.map((p) => {
+                  const ring = voiceAvatarRingColor(p.identity)
+                  return (
+                    <div key={p.identity} className="flex flex-col items-center gap-1 shrink-0">
+                      <div
+                        className="h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        style={{
+                          boxShadow: `0 0 0 2px ${ring}`,
+                          background: `linear-gradient(135deg, ${ring}99, ${ring})`,
+                        }}
+                      >
+                        {voiceInitials(p.name || p.identity)}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          <footer
+            className="hidden lg:flex shrink-0 h-14 border-t border-[#3c4043] px-2 items-center gap-2 mt-2"
+            style={{ background: "#292a2d" }}
+          >
+            <HostControlButtons
+              isMicrophoneEnabled={isMicrophoneEnabled}
+              isCameraEnabled={isCameraEnabled}
+              localParticipant={localParticipant}
+              onEndRoom={endRoom}
+              speakers={speakers}
+              busy={busy}
+              onMute={(id) => void muteParticipant(id)}
+            />
+          </footer>
         </div>
 
-        {listenerAvatars.length > 0 && (
-          <div className="shrink-0 pb-3">
-            <p className="text-[10px] uppercase tracking-wider text-[#9aa0a6] text-center mb-2">Listeners</p>
-            <div className="flex gap-2 overflow-x-auto justify-center pb-1">
-              {listenerAvatars.map((p) => {
-                const ring = voiceAvatarRingColor(p.identity)
-                return (
-                  <div key={p.identity} className="flex flex-col items-center gap-1 shrink-0">
-                    <div
-                      className="h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                      style={{
-                        boxShadow: `0 0 0 2px ${ring}`,
-                        background: `linear-gradient(135deg, ${ring}99, ${ring})`,
-                      }}
-                    >
-                      {voiceInitials(p.name || p.identity)}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        <aside className="hidden lg:flex lg:w-[30%] flex-col min-h-0 border-l border-[#3c4043] bg-[#292a2d]/80">
+          <AdminDesktopSidebar
+            raisedHands={raisedHands}
+            busy={busy}
+            allowHand={allowHand}
+            declineHand={declineHand}
+            participants={participants}
+            videoBusy={videoBusy}
+            onToggleVideo={toggleParticipantVideo}
+            sessionStart={sessionStart.current}
+            recordingActive={recordingActive}
+            onInviteOpen={() => setInviteOpen(true)}
+            roomName={roomName}
+            localParticipant={localParticipant}
+          />
+        </aside>
       </div>
 
       <footer
-        className="shrink-0 h-16 border-t border-[#3c4043] px-3 flex items-center gap-2 safe-area-inset-bottom"
+        className="lg:hidden shrink-0 border-t border-[#3c4043] px-2 py-2 safe-area-inset-bottom flex flex-col gap-2"
         style={{ background: "#292a2d" }}
       >
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <HostControlButtons
+            isMicrophoneEnabled={isMicrophoneEnabled}
+            isCameraEnabled={isCameraEnabled}
+            localParticipant={localParticipant}
+            onEndRoom={endRoom}
+            speakers={speakers}
+            busy={busy}
+            onMute={(id) => void muteParticipant(id)}
+          />
+        </div>
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <button type="button" className={ICON_BTN} onClick={() => setParticipantsOpen(true)} title="Participants">
+            <Users className="h-5 w-5" />
+          </button>
           <button
             type="button"
-            onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
-            className={`h-12 w-12 rounded-full flex items-center justify-center text-white ${
-              isMicrophoneEnabled ? "" : "bg-[#3c4043]"
-            }`}
-            style={isMicrophoneEnabled ? { background: MEET_GREEN } : undefined}
-            title="Microphone"
+            className={`${ICON_BTN} relative`}
+            onClick={() => setHandsSheetOpen(true)}
+            title="Raised hands"
           >
-            {isMicrophoneEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
+            <Hand className="h-5 w-5" />
+            {raisedHands.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-amber-500 text-[9px] flex items-center justify-center">
+                {raisedHands.length}
+              </span>
+            )}
           </button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button
-                type="button"
-                className="h-12 w-12 rounded-full bg-[#ea4335] flex items-center justify-center text-white hover:bg-[#d93025]"
-                title="End call"
-              >
-                <PhoneOff className="h-6 w-6" />
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="bg-[#292a2d] border-[#3c4043] text-[#e8eaed]">
-              <AlertDialogHeader>
-                <AlertDialogTitle>End Agent Conference?</AlertDialogTitle>
-                <AlertDialogDescription className="text-[#9aa0a6]">
-                  Everyone will be disconnected.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-[#ea4335] hover:bg-[#d93025]"
-                  onClick={() => void endRoom()}
-                >
-                  End call
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <button
-            type="button"
-            disabled
-            className="h-12 w-12 rounded-full bg-[#3c4043] flex items-center justify-center text-[#9aa0a6] opacity-50 cursor-not-allowed"
-            title="Camera (coming soon)"
-          >
-            <VideoOff className="h-6 w-6" />
+          <button type="button" className={ICON_BTN} onClick={() => setChatOpen(true)} title="Chat">
+            <MessageCircle className="h-5 w-5" />
           </button>
-        </div>
-
-        <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto px-1">
-          <SpeakerChipBar speakers={speakers} busy={busy} onMute={(id) => void muteParticipant(id)} />
-        </div>
-
-        <div className="flex items-center gap-1 shrink-0">
-          <ChatPanel
-            roomName={roomName}
-            senderName={localParticipant.name || "Host"}
-            senderAgentId={null}
-            apiMode="admin"
-            isAdmin
-            triggerClassName="h-11 w-11 rounded-full p-0 border-0 bg-[#3c4043] hover:bg-[#4a4d51] text-[#e8eaed]"
-          />
-          <VoiceParticipantsSheet
-            compact
-            side="right"
-            triggerClassName="h-11 w-11 rounded-full p-0 border-0 bg-[#3c4043] hover:bg-[#4a4d51] text-[#e8eaed]"
-          />
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="h-11 w-11 rounded-full bg-[#3c4043] hover:bg-[#4a4d51] flex items-center justify-center"
-                title="Reactions"
-              >
-                <Smile className="h-5 w-5" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-3 bg-[#292a2d] border-[#3c4043]">
-              <div className="flex gap-2">
-                {VOICE_REACTION_EMOJIS.map((e) => (
-                  <span key={e} className="text-2xl">
-                    {e}
-                  </span>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
+          <VoicePollPanel isAdmin compact />
+          <button type="button" className={ICON_BTN} onClick={() => setInviteOpen(true)} title="Invite">
+            <UserPlus className="h-5 w-5" />
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="h-11 w-11 rounded-full bg-[#3c4043] hover:bg-[#4a4d51] flex items-center justify-center"
-                title="More"
-              >
+              <button type="button" className={ICON_BTN} title="More">
                 <MoreVertical className="h-5 w-5" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-[#292a2d] border-[#3c4043] text-[#e8eaed]">
-              <DropdownMenuItem onClick={() => setInviteOpen(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Invite speaker
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <div className="px-2 py-1.5">
-                  <VoicePollPanel isAdmin compact />
-                </div>
-              </DropdownMenuItem>
               <DropdownMenuItem disabled={busy === "mute-all"} onClick={() => void muteAllSpeakers()}>
-                <MicOff className="h-4 w-4 mr-2" />
-                Mute all speakers
+                <MicOff className="h-4 w-4 mr-2" /> Mute all
               </DropdownMenuItem>
               <DropdownMenuItem disabled={busy === "notify"} onClick={() => void notifyHostLive()}>
-                <Bell className="h-4 w-4 mr-2" />
-                Push notification
+                <Bell className="h-4 w-4 mr-2" /> Notify
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => fileRef.current?.click()}>
-                <Upload className="h-4 w-4 mr-2" />
-                Share file
+                <Upload className="h-4 w-4 mr-2" /> Share file
               </DropdownMenuItem>
               {recordingEnabled && (
                 <DropdownMenuItem disabled={busy === "recording"} onClick={() => void toggleRecording()}>
                   <Circle className="h-4 w-4 mr-2" />
-                  {recordingActive ? "Stop recording" : "Start recording"}
+                  {recordingActive ? "Stop REC" : "Record"}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="hidden sm:block">
-            <VoicePollPanel isAdmin compact />
-          </div>
         </div>
       </footer>
+
+      <VoiceParticipantsSheet
+        isAdminHost
+        roomId={roomId}
+        onToggleVideo={toggleParticipantVideo}
+        videoBusy={videoBusy}
+        open={participantsOpen}
+        onOpenChange={setParticipantsOpen}
+        hideTrigger
+        side="bottom"
+      />
+      <ChatPanel
+        roomName={roomName}
+        senderName={localParticipant.name || "Host"}
+        senderAgentId={null}
+        apiMode="admin"
+        isAdmin
+        open={chatOpen}
+        onOpenChange={setChatOpen}
+        hideTrigger
+        sheetSide="bottom"
+      />
+      <Sheet open={handsSheetOpen} onOpenChange={setHandsSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[50dvh] bg-[#292a2d] border-[#3c4043] text-[#e8eaed]">
+          <SheetHeader>
+            <SheetTitle>Raised hands</SheetTitle>
+          </SheetHeader>
+          <ul className="mt-4 space-y-2 overflow-y-auto max-h-[38dvh]">
+            {raisedHands.map((h) => (
+              <li key={h.identity} className="flex gap-2 items-center rounded-lg border border-[#3c4043] p-2">
+                <span className="text-sm flex-1 truncate">{h.name}</span>
+                <button
+                  type="button"
+                  className="h-11 min-h-[44px] px-3 rounded-lg text-sm"
+                  style={{ background: MEET_GREEN }}
+                  disabled={busy === h.identity}
+                  onClick={() => void allowHand(h)}
+                >
+                  Allow
+                </button>
+                <button
+                  type="button"
+                  className="h-11 min-h-[44px] px-3 rounded-lg border border-[#5f6368] text-sm"
+                  onClick={() => declineHand(h.identity)}
+                >
+                  No
+                </button>
+              </li>
+            ))}
+          </ul>
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="bg-[#292a2d] border-[#3c4043] text-[#e8eaed] max-w-sm">
@@ -785,6 +1040,7 @@ export function VoiceRoomAdminControl({
   onClose,
   onEnded,
 }: Props) {
+  const { roomOptions } = useVoiceDeviceLayout()
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: MEET_BG, color: MEET_TEXT }}>
       <div className="shrink-0 px-4 py-3 border-b border-[#3c4043] flex items-center justify-between">
@@ -795,14 +1051,22 @@ export function VoiceRoomAdminControl({
         <Button
           variant="ghost"
           size="icon"
-          className="text-[#e8eaed] hover:bg-[#3c4043] shrink-0"
+          className="text-[#e8eaed] hover:bg-[#3c4043] shrink-0 h-11 w-11"
           onClick={onClose}
         >
           <X className="h-5 w-5" />
         </Button>
       </div>
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <LiveKitRoom token={token} serverUrl={serverUrl} connect audio video className="h-full">
+      <div className="flex-1 min-h-0 overflow-hidden pb-0 lg:pb-0">
+        <LiveKitRoom
+          token={token}
+          serverUrl={serverUrl}
+          connect
+          audio
+          video
+          options={roomOptions}
+          className="h-full"
+        >
           <ControlPanelInner
             roomId={roomId}
             roomName={roomName}

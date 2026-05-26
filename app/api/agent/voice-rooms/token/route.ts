@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     const speak = request.nextUrl.searchParams.get("speak") === "1"
+    const video = request.nextUrl.searchParams.get("video") === "1"
 
     const db = getAdminClient()
     const { data: agent, error: agentErr } = await db
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
     const displayName = String(agent.full_name || agent.agent_name || "Agent")
     const token = await generateAgentToken(roomName, agentId, displayName, agent.region, {
       canPublish: speak,
+      canPublishVideo: video && speak,
       role: speak ? "speaker" : "listener",
     })
 
@@ -49,6 +51,7 @@ export async function GET(request: NextRequest) {
       roomName,
       canPublish: speak,
       canPublishAudio: speak,
+      canPublishVideo: video && speak,
     })
   } catch (e) {
     console.error("[agent/voice-rooms/token]", e)
