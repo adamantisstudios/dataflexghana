@@ -530,7 +530,7 @@ export default function PublicPropertiesClient() {
           {currentProperties.map((property) => (
             <Card
               key={property.id}
-              className="hover:shadow-xl transition-all duration-300 border-emerald-200 bg-white/90 backdrop-blur-sm overflow-hidden"
+              className="hover:shadow-xl transition-all duration-300 border-emerald-200 bg-white/90 backdrop-blur-sm overflow-hidden min-w-0 w-full"
             >
               <div className="relative">
                 {property.image_urls && property.image_urls.length > 0 && (

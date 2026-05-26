@@ -23,14 +23,10 @@ type Props = {
   className?: string
   label?: string
   badge?: VoiceVideoBadge
-  /** Mirror local preview (host selfie). */
   mirror?: boolean
   maxWidthClass?: string
-  /** Smaller PiP tile — same portrait CSS, sized by parent. */
   compact?: boolean
-  /** Fullscreen control (agent viewer). */
   enableFullscreen?: boolean
-  /** Pinch + double-tap zoom on the inner frame. */
   enablePinchZoom?: boolean
 }
 
@@ -46,9 +42,7 @@ const BADGE_CONFIG: Record<
   user: { icon: User, tooltip: "Participant camera" },
 }
 
-/**
- * Unified 9:16 live video tile — host preview and agent remote view share the same CSS.
- */
+/** Unified 9:16 live video — host preview and agent remote view use the same CSS. */
 export function VoiceVideoFrame({
   participant,
   publication,
@@ -202,8 +196,8 @@ export function VoiceVideoFrame({
       )}
 
       {enablePinchZoom && portraitLayout && !isFullscreen && (
-        <p className="absolute bottom-2 left-2 z-10 text-[9px] text-white/50 pointer-events-none">
-          Double-tap to zoom
+        <p className="absolute bottom-2 left-2 z-10 text-[9px] text-white/50 pointer-events-none max-w-[40%]">
+          Double-tap to zoom · pinch to adjust
         </p>
       )}
 

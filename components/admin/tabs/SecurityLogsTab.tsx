@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { getAdminAuthHeaders } from "@/lib/api-client"
-import { Loader2, RefreshCw, Shield, ChevronDown, ChevronRight } from "lucide-react"
+import { downloadCsv } from "@/lib/download-csv"
+import { Loader2, Download, RefreshCw, Shield, ChevronDown, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 
 type SecurityLogRow = {
@@ -71,6 +72,7 @@ export default function SecurityLogsTab() {
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -118,6 +120,59 @@ export default function SecurityLogsTab() {
     const interval = setInterval(() => void loadLogs(), 30_000)
     return () => clearInterval(interval)
   }, [loadLogs])
+
+  const downloadFilteredLogs = async () => {
+    setExporting(true)
+    try {
+      const collected: SecurityLogRow[] = []
+      let pageNum = 1
+      let total = 1
+      while (pageNum <= total) {
+        const q = new URLSearchParams({
+          page: String(pageNum),
+          limit: "50",
+          severity,
+        })
+        if (debouncedAction) q.set("action", debouncedAction)
+        if (fromDate) q.set("from", new Date(fromDate).toISOString())
+        if (toDate) {
+          const end = new Date(toDate)
+          end.setHours(23, 59, 59, 999)
+          q.set("to", end.toISOString())
+        }
+        const res = await fetch(`/api/admin/security-logs?${q}`, {
+          headers: getAdminAuthHeaders(),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Export failed")
+        collected.push(...(data.logs || []))
+        total = data.totalPages ?? 1
+        pageNum += 1
+      }
+      if (collected.length === 0) {
+        toast.message("No logs match the current filters")
+        return
+      }
+      downloadCsv(
+        `security-logs-${new Date().toISOString().slice(0, 10)}.csv`,
+        ["Time", "Action", "Severity", "Actor type", "Actor ID", "IP", "Details"],
+        collected.map((log) => [
+          formatTime(log.created_at),
+          log.action,
+          log.severity,
+          log.actor_type,
+          log.actor_id ?? "",
+          log.ip_address ?? "",
+          log.details ? JSON.stringify(log.details) : "",
+        ]),
+      )
+      toast.success(`Downloaded ${collected.length} log entries`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed")
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <Card className="border-blue-200 shadow-md">
@@ -177,6 +232,16 @@ export default function SecurityLogsTab() {
           <Button variant="outline" size="sm" onClick={() => void loadLogs()} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} />
             Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-gray-900"
+            disabled={exporting || loading}
+            onClick={() => void downloadFilteredLogs()}
+          >
+            <Download className={`h-4 w-4 mr-1 ${exporting ? "animate-pulse" : ""}`} />
+            Download Logs
           </Button>
         </div>
 

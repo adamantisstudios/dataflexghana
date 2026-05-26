@@ -72,7 +72,7 @@ export async function proxy(request) {
           Pragma: 'no-cache',
           Expires: '0',
         },
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(3000),
       })
 
       if (maintenanceResponse.ok) {
@@ -146,7 +146,9 @@ export async function proxy(request) {
         return response
       }
     } catch (error) {
-      console.error('Middleware maintenance check error:', error)
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(`Middleware maintenance check skipped (${message})`)
+      return NextResponse.next()
     }
   }
 

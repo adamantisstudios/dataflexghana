@@ -511,7 +511,7 @@ export default function StorefrontManagerTab() {
             Storefront Management
           </h2>
           <p className="text-sm text-muted-foreground">
-            MoMo cashouts, transaction log, and compliance submissions
+            Cashouts, transaction log, and compliance submissions
           </p>
         </div>
         <Button variant="outline" onClick={refreshAll} disabled={ordersLoading || profilesLoading}>
@@ -529,7 +529,7 @@ export default function StorefrontManagerTab() {
             className="flex items-center gap-2 py-2.5 px-4 shrink-0 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-emerald-800"
           >
             <Wallet className="h-4 w-4 shrink-0" />
-            <span className="whitespace-nowrap">MoMo Cashout</span>
+            <span className="whitespace-nowrap">Cashout</span>
           </TabsTrigger>
           <TabsTrigger
             value="orders"
@@ -555,7 +555,7 @@ export default function StorefrontManagerTab() {
         <TabsContent value="cashout" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">MoMo Cashout — Commission Balances</CardTitle>
+              <CardTitle className="text-lg">Cashout — Commission Balances</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">

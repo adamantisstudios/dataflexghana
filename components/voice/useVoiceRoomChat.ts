@@ -52,7 +52,7 @@ export function useVoiceRoomChat({
 
   const apiBase =
     apiMode === "admin"
-      ? `/api/admin/voice-rooms/${encodeURIComponent(roomName)}/chats`
+      ? `/api/admin/voice-rooms/chats/${encodeURIComponent(roomName)}`
       : `/api/agent/voice-rooms/${encodeURIComponent(roomName)}/chats`
 
   const authHeaders = apiMode === "admin" ? getAdminAuthHeaders() : getAgentAuthHeaders()
@@ -179,7 +179,7 @@ export function useVoiceRoomChat({
   const deleteMessage = useCallback(
     async (messageId: string) => {
       const res = await fetch(
-        `/api/admin/voice-rooms/${encodeURIComponent(roomName)}/chats/${encodeURIComponent(messageId)}`,
+        `/api/admin/voice-rooms/chats/${encodeURIComponent(roomName)}/${encodeURIComponent(messageId)}`,
         { method: "DELETE", headers: getAdminAuthHeaders() },
       )
       const data = await res.json()
@@ -192,7 +192,7 @@ export function useVoiceRoomChat({
 
   const clearChat = useCallback(async () => {
     const res = await fetch(
-      `/api/admin/voice-rooms/${encodeURIComponent(roomName)}/chats`,
+      `/api/admin/voice-rooms/chats/${encodeURIComponent(roomName)}`,
       { method: "DELETE", headers: getAdminAuthHeaders() },
     )
     const data = await res.json()

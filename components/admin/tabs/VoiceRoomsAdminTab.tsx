@@ -32,7 +32,7 @@ type VoiceRoom = {
 }
 
 function SkeletonBlock({ className }: { className?: string }) {
-  return <div className={`rounded-lg bg-white/10 animate-pulse ${className ?? "h-16"}`} />
+  return <div className={`rounded-lg bg-slate-200 animate-pulse ${className ?? "h-16"}`} />
 }
 
 export default function VoiceRoomsAdminTab() {
@@ -122,22 +122,18 @@ export default function VoiceRoomsAdminTab() {
   const active = rooms.filter((r) => r.is_active)
   const past = rooms.filter((r) => !r.is_active)
 
-  const cardClass =
-    "border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-950/90 text-white shadow-xl"
+  const cardClass = "border-blue-200 bg-white/95 text-slate-900 shadow-md"
 
   return (
-    <div className="space-y-6 rounded-2xl border border-white/10 bg-gradient-to-b from-[#0a1628] via-[#0d1b2a] to-slate-950 text-white p-4 sm:p-6">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-white/70 max-w-xl">
-          Invitation-only Agent Conferences by region. Agents join from their dashboard menu.
+        <p className="text-sm text-muted-foreground max-w-xl">
+          Invitation-only Agent Conferences by region. Agents join from their dashboard menu. The live
+          control panel opens in immersive dark mode.
         </p>
         <div className="flex gap-2">
           <Link href="/admin/voice-rooms">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-white/20 bg-slate-800/60 text-slate-50 hover:bg-slate-700/80 hover:text-white"
-            >
+            <Button variant="outline" size="sm" className="text-gray-900 border-gray-300 bg-white">
               Full page
             </Button>
           </Link>
@@ -146,7 +142,7 @@ export default function VoiceRoomsAdminTab() {
             size="sm"
             onClick={load}
             disabled={loading}
-            className="border-white/20 bg-slate-800/60 text-slate-50 hover:bg-slate-700/80 hover:text-white"
+            className="text-gray-900 border-gray-300 bg-white"
           >
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -156,33 +152,29 @@ export default function VoiceRoomsAdminTab() {
 
       <Card className={cardClass}>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2 text-white">
-            <Phone className="h-4 w-4 text-emerald-400" />
+          <CardTitle className="text-base flex items-center gap-2 text-blue-900">
+            <Phone className="h-4 w-4 text-emerald-600" />
             Create room
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {!recordingEnabled && (
-            <p className="text-xs text-amber-200/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 leading-relaxed">
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-relaxed">
               Recording is disabled. Set{" "}
-              <code className="text-[11px] bg-black/30 px-1 rounded">LIVEKIT_RECORDING_ENABLED=true</code> to enable
+              <code className="text-[11px] bg-amber-100 px-1 rounded">LIVEKIT_RECORDING_ENABLED=true</code> to enable
               egress.
             </p>
           )}
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1 space-y-2 w-full">
-              <Label className="text-white/80">Region</Label>
+              <Label>Region</Label>
               <Select value={region} onValueChange={setRegion}>
-                <SelectTrigger className="bg-slate-800/60 border-white/20 text-slate-50">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/20 text-slate-50">
+                <SelectContent>
                   {VOICE_ROOM_REGIONS.map((r) => (
-                    <SelectItem
-                      key={r}
-                      value={r}
-                      className="text-slate-50 focus:bg-slate-800 focus:text-white"
-                    >
+                    <SelectItem key={r} value={r}>
                       {r}
                     </SelectItem>
                   ))}
@@ -201,14 +193,14 @@ export default function VoiceRoomsAdminTab() {
         </CardContent>
         {lastInvite && (
           <CardContent className="pt-0">
-            <Label className="text-xs text-white/50">Invite link</Label>
+            <Label className="text-xs text-muted-foreground">Invite link</Label>
             <div className="flex gap-2 mt-1">
-              <Input readOnly value={lastInvite} className="text-xs bg-white/5 border-white/20 text-white" />
+              <Input readOnly value={lastInvite} className="text-xs" />
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                className="border-white/20 bg-slate-800/60 text-slate-50 hover:bg-slate-700/80 hover:text-white shrink-0"
+                className="shrink-0 text-gray-900"
                 onClick={() => {
                   void navigator.clipboard.writeText(lastInvite)
                   toast.success("Copied")
@@ -223,8 +215,8 @@ export default function VoiceRoomsAdminTab() {
 
       <Card className={cardClass}>
         <CardHeader>
-          <CardTitle className="text-base text-white flex items-center gap-2">
-            <Radio className="h-4 w-4 text-emerald-400" />
+          <CardTitle className="text-base text-blue-900 flex items-center gap-2">
+            <Radio className="h-4 w-4 text-emerald-600" />
             Active rooms
           </CardTitle>
         </CardHeader>
@@ -235,23 +227,23 @@ export default function VoiceRoomsAdminTab() {
               <SkeletonBlock />
             </div>
           ) : active.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">No active voice rooms</p>
+            <p className="text-sm text-muted-foreground text-center py-8">No active voice rooms</p>
           ) : (
             <ul className="space-y-3">
               {active.map((room) => (
                 <li
                   key={room.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-white/10 p-4 bg-white/5"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-emerald-100 p-4 bg-emerald-50/50"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold text-white">{room.region}</p>
-                    <p className="text-xs text-white/60 truncate mt-0.5">{room.room_name}</p>
+                    <p className="font-semibold text-emerald-900">{room.region}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{room.room_name}</p>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <Badge className="bg-emerald-500/20 text-emerald-200 border-emerald-500/30">
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
                         <Users className="h-3 w-3 mr-1" />
                         {room.participant_count ?? 0} in room
                       </Badge>
-                      <Badge variant="outline" className="border-emerald-500/40 text-emerald-400 animate-pulse">
+                      <Badge variant="outline" className="border-emerald-400 text-emerald-700 animate-pulse">
                         Live
                       </Badge>
                     </div>
@@ -273,23 +265,23 @@ export default function VoiceRoomsAdminTab() {
 
       <Card className={cardClass}>
         <CardHeader>
-          <CardTitle className="text-base text-white">Past rooms</CardTitle>
+          <CardTitle className="text-base text-blue-900">Past rooms</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <SkeletonBlock className="h-24" />
           ) : past.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-8">No ended rooms yet</p>
+            <p className="text-sm text-muted-foreground text-center py-8">No ended rooms yet</p>
           ) : (
             <ul className="space-y-2">
               {past.slice(0, 20).map((room) => (
                 <li
                   key={room.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-white/10 p-3 bg-white/5 text-sm"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50 text-sm"
                 >
                   <div>
-                    <p className="font-medium text-white">{room.region}</p>
-                    <p className="text-xs text-white/60">
+                    <p className="font-medium text-slate-900">{room.region}</p>
+                    <p className="text-xs text-muted-foreground">
                       {room.ended_at
                         ? new Date(room.ended_at).toLocaleString()
                         : new Date(room.created_at).toLocaleString()}
@@ -298,7 +290,7 @@ export default function VoiceRoomsAdminTab() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-white/20 bg-slate-800/60 text-slate-50 hover:bg-slate-700/80 hover:text-white h-10"
+                    className="text-gray-900 border-gray-300 bg-white h-10"
                     onClick={() => downloadRecording(room)}
                   >
                     <Download className="h-4 w-4 mr-1" />

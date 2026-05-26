@@ -652,7 +652,7 @@ function AgentRoomUI({
             <button
               type="button"
               disabled={!connected}
-              className="h-11 w-11 rounded-full bg-[#3c4043] flex items-center justify-center hover:bg-[#4a4d51] disabled:opacity-40"
+              className="h-11 w-11 rounded-full bg-[#3c4043] text-[#e8eaed] flex items-center justify-center hover:bg-[#4a4d51] disabled:opacity-40"
               title="Reactions"
             >
               <Smile className="h-5 w-5" />
@@ -691,7 +691,7 @@ function AgentRoomUI({
             <SheetTrigger asChild>
               <button
                 type="button"
-                className="h-11 w-11 rounded-full bg-[#3c4043] flex items-center justify-center text-xs"
+                className="h-11 w-11 rounded-full bg-[#3c4043] text-[#e8eaed] flex items-center justify-center text-xs font-medium"
               >
                 {sharedFiles.length}
               </button>

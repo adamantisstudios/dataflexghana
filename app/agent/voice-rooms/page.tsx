@@ -105,7 +105,7 @@ export default function AgentVoiceRoomsPage() {
             </p>
             <Button
               variant="outline"
-              className="mt-6 border-white/20 text-white hover:bg-white/10"
+              className="mt-6 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
               onClick={() => load()}
             >
               Refresh

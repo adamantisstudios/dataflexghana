@@ -890,8 +890,8 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
               >
                 <CardContent className="pt-6">
                   <div className="space-y-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                      <div className="flex-1 min-w-0 order-2 sm:order-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="font-semibold text-emerald-800 text-lg">{property.title}</h3>
                           {property.status === "Featured" && <Star className="h-4 w-4 text-yellow-500 fill-current" />}
@@ -923,7 +923,7 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
                       </div>
 
                       {property.image_urls && property.image_urls.length > 0 && (
-                        <div className="aspect-[4/3] w-full bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg overflow-hidden cursor-pointer relative mb-3">
+                        <div className="aspect-[4/3] w-full sm:w-40 sm:shrink-0 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg overflow-hidden cursor-pointer relative mb-3 order-1 sm:order-2 sm:mb-0">
                           <ImageWithFallback
                             src={property.image_urls[0] || "/placeholder.svg"}
                             alt={property.title}

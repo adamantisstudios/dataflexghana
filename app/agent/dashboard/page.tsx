@@ -72,7 +72,6 @@ import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 } from "@/components/ui/dialog"
 import { FloatingAudioPlayer } from "@/components/floating-audio-player"
 import { ProductSlider } from "@/components/agent/ProductSlider"
-import AgentPropertiesShowcase from "@/components/agent/dashboard/AgentPropertiesShowcase"
 import { ComplianceTab } from "@/components/agent/compliance/ComplianceTab"
 import { ProfessionalWritingTab } from "@/components/agent/professional-writing/ProfessionalWritingTab"
 import { useAgentDashboardCache } from "@/hooks/use-agent-dashboard-cache"
@@ -1443,9 +1442,6 @@ DataFlex Ghana Agent 🇬🇭`
                   </div>
                 </div>
               )}
-              <div>
-                <AgentPropertiesShowcase />
-              </div>
               <div className="block md:hidden">
                 <ProductSlider />
               </div>

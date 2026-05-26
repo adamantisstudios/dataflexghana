@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getAdminAuthHeaders } from "@/lib/api-client"
-import { Loader2, TrendingUp, Eye, Users, Calendar } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { downloadCsv } from "@/lib/download-csv"
+import { Loader2, Download, TrendingUp, Eye, Users, Calendar } from "lucide-react"
+import { toast } from "sonner"
 import {
   Bar,
   BarChart,
@@ -67,8 +70,47 @@ export default function AnalyticsDashboard() {
     )
   }
 
+  const downloadReport = () => {
+    try {
+      const rows: string[][] = [
+        ["Visits today", String(data.visitsToday)],
+        ["Visits this week", String(data.visitsWeek)],
+        ["Visits this month", String(data.visitsMonth)],
+        ["", ""],
+        ["Peak days (date)", "Visits"],
+        ...data.peakDays.map((d) => [d.date, String(d.count)]),
+        ["", ""],
+        ["Top pages (path)", "Views"],
+        ...data.topPaths.map((r) => [r.path, String(r.count)]),
+        ["", ""],
+        ["Top agents (name)", "Views"],
+        ...data.topAgents.map((r) => [r.full_name, String(r.views_count)]),
+        ["", ""],
+        ["Recent logins (agent)", "Last login"],
+        ...data.recentLogins.map((a) => [
+          a.full_name,
+          a.last_login_at ? new Date(a.last_login_at).toISOString() : "",
+        ]),
+      ]
+      downloadCsv(
+        `analytics-report-${new Date().toISOString().slice(0, 10)}.csv`,
+        ["Metric", "Value"],
+        rows,
+      )
+      toast.success("Analytics report downloaded")
+    } catch {
+      toast.error("Could not export report")
+    }
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={downloadReport} className="text-gray-900">
+          <Download className="h-4 w-4 mr-2" />
+          Download Report
+        </Button>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">

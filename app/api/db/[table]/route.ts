@@ -1,5 +1,7 @@
 // app/api/db/[table]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { applyFiltersToSupabaseQuery, coerceFilterValue, OP_KEY_REGEX } from "@/lib/db-filter-utils";
 
