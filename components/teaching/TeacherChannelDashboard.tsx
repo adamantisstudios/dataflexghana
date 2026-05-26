@@ -59,6 +59,7 @@ import { YouTubeVideoDisplay } from "./youtube/YouTubeVideoDisplay"
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { ChannelSubscriptionManager } from "./channel-subscription-manager"
+import { ChannelLiveSection } from "@/components/channel/ChannelLiveSection"
 
 interface Channel {
   id: string
@@ -1043,6 +1044,14 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
               </Badge>
             </div>
           </div>
+        </div>
+        <div className="px-2 sm:px-3">
+          <ChannelLiveSection
+            channelId={channelId}
+            agentId={teacherId}
+            agentName={teacherName}
+            isHost
+          />
         </div>
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-2 w-full">
           {/* Feeds Tab */}

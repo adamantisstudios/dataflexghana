@@ -18,11 +18,14 @@ export function voiceVideoAspectClass(isMobile: boolean): string {
 export function voiceVideoCaptureDefaults(isMobile: boolean) {
   return {
     resolution: isMobile
-      ? { width: 720, height: 1280, frameRate: 30 }
-      : { width: 1280, height: 720, frameRate: 30 },
+      ? { width: 720, height: 1280, frameRate: 24 }
+      : { width: 1280, height: 720, frameRate: 24 },
     facingMode: "user" as const,
   }
 }
+
+/** Google Meet–style fit: full frame visible, letterboxed if needed. */
+export const VOICE_VIDEO_OBJECT_FIT_CLASS = "object-contain"
 
 export function voiceLiveKitRoomOptions(isMobile: boolean): Partial<RoomOptions> {
   return {

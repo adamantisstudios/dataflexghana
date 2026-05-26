@@ -49,6 +49,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { getAdminAuthHeaders } from "@/lib/api-client"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import {
   Loader2,
   Upload,
@@ -111,6 +112,10 @@ type Props = {
   token: string
   serverUrl: string
   recordingEnabled?: boolean
+  /** Override moderation API base, e.g. `/api/channel-live/{sessionId}` */
+  moderationApiBase?: string
+  hideRecording?: boolean
+  hideNotify?: boolean
   onClose: () => void
   onEnded: () => void
 }
@@ -485,13 +490,20 @@ function ControlPanelInner({
   roomId,
   roomName,
   recordingEnabled,
+  moderationApiBase,
+  hideRecording,
+  hideNotify,
   onEnded,
 }: {
   roomId: string
   roomName: string
   recordingEnabled: boolean
+  moderationApiBase?: string
+  hideRecording?: boolean
+  hideNotify?: boolean
   onEnded: () => void
 }) {
+  const modBase = moderationApiBase ?? `/api/admin/voice-rooms/${roomId}`
   const room = useRoomContext()
   useLiveKitRoomErrors(room)
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant()
@@ -551,18 +563,23 @@ function ControlPanelInner({
     return () => room.unregisterTextStreamHandler(VOICE_TOPIC_HAND_RAISE)
   }, [room])
 
+  const modHeaders =
+    moderationApiBase != null
+      ? { "Content-Type": "application/json", ...getAgentAuthHeaders() }
+      : { "Content-Type": "application/json", ...getAdminAuthHeaders() }
+
   const adminAction = useCallback(
     async (path: string, body: Record<string, string>) => {
-      const res = await fetch(`/api/admin/voice-rooms/${roomId}/${path}`, {
+      const res = await fetch(`${modBase}/${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        headers: modHeaders,
         body: JSON.stringify(body),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Action failed")
       return data
     },
-    [roomId],
+    [modBase, modHeaders],
   )
 
   const inviteToSpeak = async (identity: string, name: string) => {
@@ -601,9 +618,9 @@ function ControlPanelInner({
   const toggleParticipantVideo = async (identity: string, allowed: boolean) => {
     setVideoBusy(identity)
     try {
-      const res = await fetch(`/api/admin/voice-rooms/${roomId}/video-permission`, {
+      const res = await fetch(`${modBase}/video-permission`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        headers: modHeaders,
         body: JSON.stringify({ identity, allowed }),
       })
       const data = await res.json()
@@ -633,9 +650,9 @@ function ControlPanelInner({
   const endRoom = async () => {
     setBusy("end")
     try {
-      await fetch(`/api/admin/voice-rooms/${roomId}/end`, {
+      await fetch(`${modBase}/end`, {
         method: "POST",
-        headers: getAdminAuthHeaders(),
+        headers: modHeaders,
       })
       await room.disconnect()
       toast.success("Conference ended")
@@ -648,6 +665,7 @@ function ControlPanelInner({
   }
 
   const notifyHostLive = async () => {
+    if (hideNotify) return
     setBusy("notify")
     try {
       const res = await fetch(`/api/admin/voice-rooms/${roomId}/notify-live`, {
@@ -678,6 +696,7 @@ function ControlPanelInner({
   }
 
   const toggleRecording = async () => {
+    if (hideRecording) return
     setBusy("recording")
     try {
       if (recordingActive && egressId) {
@@ -1046,6 +1065,9 @@ export function VoiceRoomAdminControl({
   token,
   serverUrl,
   recordingEnabled = false,
+  moderationApiBase,
+  hideRecording = false,
+  hideNotify = false,
   onClose,
   onEnded,
 }: Props) {
@@ -1083,6 +1105,9 @@ export function VoiceRoomAdminControl({
             roomId={roomId}
             roomName={roomName}
             recordingEnabled={recordingEnabled}
+            moderationApiBase={moderationApiBase}
+            hideRecording={hideRecording}
+            hideNotify={hideNotify}
             onEnded={onEnded}
           />
           <RoomAudioRenderer />

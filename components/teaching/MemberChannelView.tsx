@@ -16,6 +16,7 @@ import { ChannelVideoWithComments } from "@/components/channel/ChannelVideoWithC
 import { ChannelEmbedVideoDisplay } from "@/components/channel/ChannelEmbedVideoDisplay"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { LessonNotesViewer } from "./lesson-notes/LessonNotesViewer"
+import { ChannelLiveSection } from "@/components/channel/ChannelLiveSection"
 
 interface Channel {
   id: string
@@ -321,6 +322,15 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
               </Badge>
             </div>
           </div>
+        </div>
+
+        <div className="px-4 sm:px-6 lg:px-8 mb-4">
+          <ChannelLiveSection
+            channelId={channelId}
+            agentId={memberId}
+            agentName={memberName}
+            isHost={false}
+          />
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4 w-full">

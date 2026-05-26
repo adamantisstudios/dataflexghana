@@ -88,7 +88,7 @@ export function VoiceVideoFrame({
           publication,
           source: Track.Source.Camera,
         }}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain bg-black"
         style={mirror ? { transform: "scaleX(-1)" } : undefined}
       />
       {badgeMeta && BadgeIcon && (

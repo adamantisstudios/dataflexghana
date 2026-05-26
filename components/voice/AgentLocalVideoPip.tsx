@@ -28,7 +28,7 @@ export function AgentLocalVideoPip() {
           publication: pub,
           source: Track.Source.Camera,
         }}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain bg-black"
         style={{ transform: "scaleX(-1)" }}
       />
     </div>

@@ -52,20 +52,38 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
   const [callerName, setCallerName] = useState("Agent")
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sessionIdRef = useRef<string | null>(null)
+  const phaseRef = useRef<CallWidgetPhase>("idle")
+  const intentionalEndRef = useRef(false)
 
   useEffect(() => {
     sessionIdRef.current = sessionId
   }, [sessionId])
+
+  useEffect(() => {
+    phaseRef.current = phase
+  }, [phase])
 
   const clearPoll = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current)
     pollRef.current = null
   }, [])
 
+  const resetLocalState = useCallback(() => {
+    setPhase("idle")
+    setSessionId(null)
+    setRoomName(null)
+    setToken(null)
+    setServerUrl(null)
+    setIncomingCall(null)
+    sessionIdRef.current = null
+  }, [])
+
   const endCall = useCallback(
-    async (id?: string | null) => {
+    async (id?: string | null, intentional = true) => {
       const sid = id ?? sessionIdRef.current
       clearPoll()
+      if (intentional) intentionalEndRef.current = true
+
       if (sid) {
         const headers =
           role === "agent"
@@ -81,15 +99,24 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
           /* best effort */
         }
       }
-      setPhase("idle")
-      setSessionId(null)
-      setRoomName(null)
-      setToken(null)
-      setServerUrl(null)
-      setIncomingCall(null)
-      sessionIdRef.current = null
+      resetLocalState()
     },
-    [role, clearPoll],
+    [role, clearPoll, resetLocalState],
+  )
+
+  const handleRemoteEnded = useCallback(
+    (status: string) => {
+      if (intentionalEndRef.current) return
+      clearPoll()
+      if (status === "declined") {
+        setPhase("declined")
+        setToken(null)
+        setServerUrl(null)
+        return
+      }
+      resetLocalState()
+    },
+    [clearPoll, resetLocalState],
   )
 
   const refreshAvailability = useCallback(async () => {
@@ -120,24 +147,27 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
           if (status === "active") {
             clearPoll()
             setPhase("in_call")
+            setDialogOpen(true)
           } else if (status === "declined") {
             clearPoll()
-            setPhase("declined")
+            handleRemoteEnded("declined")
           } else if (status === "ended") {
             clearPoll()
-            void endCall(sid)
+            handleRemoteEnded("ended")
           }
         } catch {
           /* ignore transient poll errors */
         }
-      }, 2000)
+      }, 1500)
     },
-    [clearPoll, endCall],
+    [clearPoll, handleRemoteEnded],
   )
 
   const initiateCall = useCallback(async () => {
     if (role !== "agent") return
+    intentionalEndRef.current = false
     setPhase("calling")
+    setDialogOpen(true)
     try {
       const res = await fetch("/api/calls/initiate", {
         method: "POST",
@@ -168,6 +198,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
 
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return
+    intentionalEndRef.current = false
     const res = await fetch("/api/calls/respond", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
@@ -183,18 +214,20 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     setServerUrl(data.serverUrl)
     setIncomingCall(null)
     setPhase("in_call")
+    setDialogOpen(true)
   }, [incomingCall])
 
   const declineCall = useCallback(async () => {
     if (!incomingCall) return
+    intentionalEndRef.current = true
     await fetch("/api/calls/respond", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
       body: JSON.stringify({ sessionId: incomingCall.id, action: "decline" }),
     })
     setIncomingCall(null)
-    setPhase("idle")
-  }, [incomingCall])
+    resetLocalState()
+  }, [incomingCall, resetLocalState])
 
   const loadAdminIncoming = useCallback(async () => {
     if (role !== "admin" || !userId) return
@@ -204,19 +237,46 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
         credentials: "same-origin",
       })
       const data = await res.json()
-      if (data.active && phase !== "in_call") {
-        setIncomingCall(null)
-      }
-      if (data.ringing && phase === "idle") {
+      if (data.ringing && phaseRef.current === "idle") {
         setIncomingCall(data.ringing as CallSession)
         const agent = data.ringing.agents
         const name = agent?.full_name || agent?.agent_name || "Agent"
         setCallerName(String(name))
       }
+      if (data.active && phaseRef.current === "idle") {
+        setIncomingCall(null)
+      }
     } catch {
       /* ignore */
     }
-  }, [role, userId, phase])
+  }, [role, userId])
+
+  const applySessionUpdate = useCallback(
+    (row: CallSession) => {
+      if (row.status === "active") {
+        if (role === "agent" && row.caller_id === userId) {
+          clearPoll()
+          setSessionId(row.id)
+          sessionIdRef.current = row.id
+          setPhase("in_call")
+          setDialogOpen(true)
+        }
+        if (role === "admin" && row.receiver_id === userId && phaseRef.current === "idle") {
+          setIncomingCall(null)
+        }
+        return
+      }
+      if (row.status === "declined" || row.status === "ended") {
+        if (sessionIdRef.current === row.id) {
+          handleRemoteEnded(row.status)
+        }
+        if (incomingCall?.id === row.id) {
+          setIncomingCall(null)
+        }
+      }
+    },
+    [role, userId, clearPoll, handleRemoteEnded, incomingCall?.id],
+  )
 
   useEffect(() => {
     void refreshAvailability()
@@ -235,6 +295,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     }
   }, [phase, busyCountdown, refreshAvailability])
 
+  // Admin realtime: incoming + session status
   useEffect(() => {
     if (role !== "admin" || !userId) return
     void loadAdminIncoming()
@@ -244,43 +305,65 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
       "call_sessions",
       (payload: RealtimePostgresChangesPayload<CallSession>) => {
         const row = (payload.new || payload.old) as CallSession | undefined
-        if (!row) return
-        if (row.receiver_id !== userId) return
-
+        if (!row || row.receiver_id !== userId) return
         if (payload.eventType === "INSERT" && row.status === "ringing") {
           setIncomingCall(row)
           void loadAdminIncoming()
         }
         if (payload.eventType === "UPDATE") {
-          if (row.status === "ringing" && phase === "idle") {
-            setIncomingCall(row)
-            void loadAdminIncoming()
-          }
-          if (row.status === "ended" || row.status === "declined") {
-            if (sessionIdRef.current === row.id && phase === "in_call") {
-              void endCall(row.id)
-            }
-            if (incomingCall?.id === row.id) setIncomingCall(null)
-          }
+          applySessionUpdate(row)
         }
       },
       `receiver_id=eq.${userId}`,
     )
 
     return () => unsubscribe()
-  }, [role, userId, loadAdminIncoming, phase, incomingCall?.id, endCall])
+  }, [role, userId, loadAdminIncoming, applySessionUpdate])
 
+  // Agent realtime: accept/decline/end without waiting for poll
   useEffect(() => {
-    return () => {
-      clearPoll()
-      if (sessionIdRef.current) {
-        void endCall(sessionIdRef.current)
-      }
+    if (role !== "agent" || !userId) return
+
+    const unsubscribe = realtimeManager.subscribe(
+      `call_sessions_agent_${userId}`,
+      "call_sessions",
+      (payload: RealtimePostgresChangesPayload<CallSession>) => {
+        const row = (payload.new || payload.old) as CallSession | undefined
+        if (!row || row.caller_id !== userId) return
+        if (payload.eventType === "UPDATE") {
+          applySessionUpdate(row)
+        }
+      },
+      `caller_id=eq.${userId}`,
+    )
+
+    return () => unsubscribe()
+  }, [role, userId, applySessionUpdate])
+
+  // Tab close: end active call (keepalive fetch includes auth headers)
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      const sid = sessionIdRef.current
+      if (!sid || phaseRef.current !== "in_call") return
+      const headers =
+        role === "agent"
+          ? getAgentAuthHeaders()
+          : { "Content-Type": "application/json", ...getAdminAuthHeaders() }
+      void fetch("/api/calls/end", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ sessionId: sid }),
+        keepalive: true,
+      })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup on unmount only
-  }, [])
+    window.addEventListener("beforeunload", onBeforeUnload)
+    return () => window.removeEventListener("beforeunload", onBeforeUnload)
+  }, [role])
 
   const hasIncoming = Boolean(incomingCall)
+  const liveKitActive =
+    Boolean(token && serverUrl && sessionId) &&
+    (phase === "calling" || phase === "in_call")
 
   return {
     phase,
@@ -295,6 +378,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     incomingCall,
     callerName,
     hasIncoming,
+    liveKitActive,
     formatCallDuration,
     initiateCall,
     acceptCall,

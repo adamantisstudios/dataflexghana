@@ -1,0 +1,48 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
+import { getAuthAgentId } from "@/lib/agent-auth-utils"
+import {
+  assertChannelLiveHost,
+  getChannelLiveSessionById,
+} from "@/lib/channel-live-server"
+import {
+  muteParticipantAudio,
+  sendUnmuteCommand,
+  updateParticipantRole,
+  updateParticipantVideoPermission,
+} from "@/lib/livekit-server"
+
+export const dynamic = "force-dynamic"
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ sessionId: string }> },
+) {
+  const auth = await authenticateAgent(request)
+  if (!auth.success) return createAuthErrorResponse(auth.error || "Unauthorized")
+
+  const agentId = getAuthAgentId(auth)
+  const { sessionId } = await params
+  const body = await request.json()
+  const identity = String(body.identity ?? "").trim()
+  if (!agentId || !identity) {
+    return NextResponse.json({ error: "identity required" }, { status: 400 })
+  }
+
+  const session = await getChannelLiveSessionById(sessionId)
+  if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 })
+
+  const host = await assertChannelLiveHost(session, agentId)
+  if (!host.ok) return NextResponse.json({ error: host.error }, { status: 403 })
+
+  await updateParticipantRole(session.room_name, identity, "speaker")
+  await updateParticipantVideoPermission(session.room_name, identity, false)
+  try {
+    await muteParticipantAudio(session.room_name, identity, false)
+  } catch {
+    /* no track yet */
+  }
+  await sendUnmuteCommand(session.room_name, identity)
+
+  return NextResponse.json({ success: true })
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -16,7 +16,9 @@ import { useLiveKitRoomErrors } from "@/components/voice/useLiveKitRoomErrors"
 type Props = {
   token: string
   serverUrl: string
-  onDisconnected?: () => void
+  sessionKey: string
+  /** Called when the remote party ends the call (detect via app state, not transient disconnect). */
+  onRemoteEnded?: () => void
   renderControls: (ctx: {
     elapsed: number
     isMuted: boolean
@@ -26,14 +28,16 @@ type Props = {
 }
 
 function CallAudioInner({
-  onDisconnected,
   renderControls,
-}: Omit<Props, "token" | "serverUrl">) {
+}: {
+  renderControls: Props["renderControls"]
+}) {
   const room = useRoomContext()
   useLiveKitRoomErrors(room)
   const connectionState = useConnectionState()
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant()
   const [elapsed, setElapsed] = useState(0)
+  const micEnabledRef = useRef(false)
 
   useEffect(() => {
     if (connectionState !== ConnectionState.Connected) return
@@ -43,16 +47,10 @@ function CallAudioInner({
   }, [connectionState])
 
   useEffect(() => {
-    if (connectionState === ConnectionState.Disconnected) {
-      onDisconnected?.()
-    }
-  }, [connectionState, onDisconnected])
-
-  useEffect(() => {
-    if (connectionState === ConnectionState.Connected) {
-      void localParticipant.setCameraEnabled(false)
-      void localParticipant.setMicrophoneEnabled(true)
-    }
+    if (connectionState !== ConnectionState.Connected || micEnabledRef.current) return
+    micEnabledRef.current = true
+    void localParticipant.setCameraEnabled(false)
+    void localParticipant.setMicrophoneEnabled(true)
   }, [connectionState, localParticipant])
 
   const connected = connectionState === ConnectionState.Connected
@@ -71,23 +69,36 @@ function CallAudioInner({
 }
 
 /** Audio-only LiveKit room for agent↔admin support calls. */
-export function CallLiveKitAudio({ token, serverUrl, onDisconnected, renderControls }: Props) {
+export function CallLiveKitAudio({
+  token,
+  serverUrl,
+  sessionKey,
+  renderControls,
+}: Props) {
+  if (!token || !serverUrl) return null
+
   return (
-    <LiveKitRoom
-      token={token}
-      serverUrl={serverUrl}
-      connect
-      audio
-      video={false}
-      onError={(e) => {
-        if (!isTransientLiveKitError(e.message)) {
-          console.error("[call-audio]", e.message)
-        }
-      }}
-      className="contents"
-    >
-      <CallAudioInner onDisconnected={onDisconnected} renderControls={renderControls} />
-    </LiveKitRoom>
+    <div className="sr-only" aria-hidden>
+      <LiveKitRoom
+        key={sessionKey}
+        token={token}
+        serverUrl={serverUrl}
+        connect
+        audio
+        video={false}
+        options={{
+          disconnectOnPageLeave: false,
+          publishDefaults: { simulcast: false },
+        }}
+        onError={(e) => {
+          if (!isTransientLiveKitError(e.message)) {
+            console.error("[call-audio]", e.message)
+          }
+        }}
+      >
+        <CallAudioInner renderControls={renderControls} />
+      </LiveKitRoom>
+    </div>
   )
 }
 

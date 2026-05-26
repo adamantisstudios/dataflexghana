@@ -78,6 +78,8 @@ type Props = {
   token: string
   serverUrl: string
   roomName: string
+  /** Channel live: fetch tokens from channel join API */
+  channelId?: string
 }
 
 function PreJoinScreen({
@@ -162,8 +164,10 @@ function AgentRoomUI({
   onTokenUpgrade,
   onSpeakActivated,
   onVideoActivated,
+  channelId,
 }: {
   roomName: string
+  channelId?: string
   pendingSpeak: boolean
   pendingVideo: boolean
   canPublishVideo: boolean
@@ -191,10 +195,19 @@ function AgentRoomUI({
 
   const fetchAgentToken = useCallback(
     async (opts: { speak?: boolean; video?: boolean }) => {
-      const params = new URLSearchParams({ roomName })
-      if (opts.speak) params.set("speak", "1")
-      if (opts.video) params.set("video", "1")
-      const res = await fetch(`/api/agent/voice-rooms/token?${params}`, {
+      const params = new URLSearchParams()
+      if (channelId) {
+        if (opts.speak) params.set("speak", "1")
+        if (opts.video) params.set("video", "1")
+      } else {
+        params.set("roomName", roomName)
+        if (opts.speak) params.set("speak", "1")
+        if (opts.video) params.set("video", "1")
+      }
+      const url = channelId
+        ? `/api/agent/channels/${channelId}/live/join?${params}`
+        : `/api/agent/voice-rooms/token?${params}`
+      const res = await fetch(url, {
         headers: getAgentAuthHeaders(),
         credentials: "same-origin",
       })
@@ -205,7 +218,7 @@ function AgentRoomUI({
         canPublishVideo: data.canPublishVideo === true,
       }
     },
-    [roomName],
+    [roomName, channelId],
   )
 
   const handleUnmuteCommand = useCallback(() => {
@@ -729,7 +742,12 @@ function AgentRoomUI({
   )
 }
 
-export function VoiceRoomAgentClient({ token: initialToken, serverUrl, roomName }: Props) {
+export function VoiceRoomAgentClient({
+  token: initialToken,
+  serverUrl,
+  roomName,
+  channelId,
+}: Props) {
   const [joined, setJoined] = useState(false)
   const [lkToken, setLkToken] = useState(initialToken)
   const [roomKey, setRoomKey] = useState(0)
@@ -770,6 +788,7 @@ export function VoiceRoomAgentClient({ token: initialToken, serverUrl, roomName 
     >
       <AgentRoomUI
         roomName={roomName}
+        channelId={channelId}
         pendingSpeak={pendingSpeak}
         pendingVideo={pendingVideo}
         canPublishVideo={canPublishVideo}
