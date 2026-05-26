@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 
-/** Detect landscape camera feed inside a 9:16 portrait frame (common on phones). */
+/** Detect landscape camera feed inside a 9:16 portrait frame (common on phones / WebRTC). */
 export function usePortraitVideoLayout(active: boolean) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [landscapeFeed, setLandscapeFeed] = useState(false)
@@ -19,7 +19,9 @@ export function usePortraitVideoLayout(active: boolean) {
     const measure = (video: HTMLVideoElement) => {
       const { videoWidth: w, videoHeight: h } = video
       if (w > 0 && h > 0) {
-        setLandscapeFeed(w > h * 1.05)
+        const isLandscape = w > h * 1.05
+        setLandscapeFeed(isLandscape)
+        root.dataset.videoOrientation = isLandscape ? "landscape" : "portrait"
       }
     }
 
@@ -27,10 +29,12 @@ export function usePortraitVideoLayout(active: boolean) {
       const onMeta = () => measure(video)
       video.addEventListener("loadedmetadata", onMeta)
       video.addEventListener("resize", onMeta)
+      video.addEventListener("loadeddata", onMeta)
       if (video.readyState >= 1) onMeta()
       return () => {
         video.removeEventListener("loadedmetadata", onMeta)
         video.removeEventListener("resize", onMeta)
+        video.removeEventListener("loadeddata", onMeta)
       }
     }
 
@@ -46,9 +50,13 @@ export function usePortraitVideoLayout(active: boolean) {
     const obs = new MutationObserver(scan)
     obs.observe(root, { childList: true, subtree: true })
 
+    const poll = window.setInterval(scan, 1500)
+
     return () => {
       obs.disconnect()
+      window.clearInterval(poll)
       cleanups.forEach((fn) => fn())
+      delete root.dataset.videoOrientation
     }
   }, [active])
 

@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react"
 import { VideoTrack } from "@livekit/components-react"
 import { Track, type Participant, type TrackPublication } from "livekit-client"
-import { Headphones, Monitor, Shield, User, Video } from "lucide-react"
+import { Headphones, Maximize, Minimize, Monitor, Shield, User, Video } from "lucide-react"
 import { usePortraitVideoLayout } from "@/hooks/use-portrait-video-layout"
+import { useVideoPinchZoom } from "@/hooks/use-video-pinch-zoom"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
 import { cn } from "@/lib/utils"
 import {
@@ -20,11 +21,17 @@ type Props = {
   participant: Participant
   publication: TrackPublication
   className?: string
-  /** @deprecated Prefer `badge` — short text fallback only when no badge */
   label?: string
   badge?: VoiceVideoBadge
+  /** Mirror local preview (host selfie). */
   mirror?: boolean
   maxWidthClass?: string
+  /** Smaller PiP tile — same portrait CSS, sized by parent. */
+  compact?: boolean
+  /** Fullscreen control (agent viewer). */
+  enableFullscreen?: boolean
+  /** Pinch + double-tap zoom on the inner frame. */
+  enablePinchZoom?: boolean
 }
 
 const BADGE_CONFIG: Record<
@@ -39,7 +46,9 @@ const BADGE_CONFIG: Record<
   user: { icon: User, tooltip: "Participant camera" },
 }
 
-/** Video tile with device-appropriate aspect ratio (9:16 phone, 16:9 desktop). */
+/**
+ * Unified 9:16 live video tile — host preview and agent remote view share the same CSS.
+ */
 export function VoiceVideoFrame({
   participant,
   publication,
@@ -48,12 +57,38 @@ export function VoiceVideoFrame({
   badge,
   mirror = false,
   maxWidthClass = "max-w-3xl",
+  compact = false,
+  enableFullscreen = false,
+  enablePinchZoom = false,
 }: Props) {
   const { aspectClass, objectFitClass, isMobile } = useVoiceDeviceLayout()
   const portraitLayout = isMobile && badge !== "screen"
   const { containerRef, landscapeFeed } = usePortraitVideoLayout(portraitLayout)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const innerRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [subscriptionFailed, setSubscriptionFailed] = useState(false)
   const failTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const { scale: pinchScale, touchHandlers, resetZoom } = useVideoPinchZoom(
+    enablePinchZoom && portraitLayout,
+    innerRef,
+  )
+
+  const mergeFrameRef = (el: HTMLDivElement | null) => {
+    frameRef.current = el
+    ;(containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+  }
+
+  useEffect(() => {
+    const onFsChange = () => {
+      const active = document.fullscreenElement === frameRef.current
+      setIsFullscreen(active)
+      if (!active) resetZoom()
+    }
+    document.addEventListener("fullscreenchange", onFsChange)
+    return () => document.removeEventListener("fullscreenchange", onFsChange)
+  }, [resetZoom])
 
   useEffect(() => {
     setSubscriptionFailed(false)
@@ -72,36 +107,65 @@ export function VoiceVideoFrame({
     }
   }, [publication.track, publication.isMuted, publication.trackSid])
 
+  const toggleFullscreen = async () => {
+    const el = frameRef.current
+    if (!el) return
+    try {
+      if (document.fullscreenElement === el) {
+        await document.exitFullscreen()
+      } else if (el.requestFullscreen) {
+        await el.requestFullscreen()
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   const badgeKey = badge ?? (label ? "user" : undefined)
   const badgeMeta = badgeKey ? BADGE_CONFIG[badgeKey] : null
   const BadgeIcon = badgeMeta?.icon
 
-  const mirrorTransform = mirror ? "scaleX(-1)" : undefined
-
   return (
     <div
-      ref={containerRef}
+      ref={mergeFrameRef}
       className={cn(
         "relative w-full mx-auto rounded-xl overflow-hidden bg-black voice-video-frame",
         portraitLayout && "voice-video-portrait",
         portraitLayout && landscapeFeed && "voice-video-landscape-feed",
+        portraitLayout && mirror && "voice-video-mirror",
         aspectClass,
-        isMobile ? "max-w-[min(100%,420px)] w-full" : maxWidthClass,
+        portraitLayout && !compact && "max-w-[min(100%,420px)]",
+        !portraitLayout && maxWidthClass,
+        compact && "max-w-none",
         className,
       )}
     >
-      <VideoTrack
-        trackRef={{
-          participant,
-          publication,
-          source: Track.Source.Camera,
-        }}
+      <div
+        ref={innerRef}
         className={cn(
-          "w-full h-full bg-black voice-video-track",
-          portraitLayout ? "voice-video-track-portrait" : objectFitClass,
+          "voice-video-inner absolute inset-0 overflow-hidden",
+          enablePinchZoom && portraitLayout && "touch-none",
         )}
-        style={mirrorTransform ? { transform: mirrorTransform } : undefined}
-      />
+        style={
+          enablePinchZoom && pinchScale !== 1
+            ? { transform: `scale(${pinchScale})`, transformOrigin: "center center" }
+            : undefined
+        }
+        {...(enablePinchZoom ? touchHandlers : {})}
+      >
+        <VideoTrack
+          trackRef={{
+            participant,
+            publication,
+            source: Track.Source.Camera,
+          }}
+          className={cn(
+            "voice-video-track w-full h-full bg-black",
+            portraitLayout ? "voice-video-track-portrait" : objectFitClass,
+          )}
+        />
+      </div>
+
       {badgeMeta && BadgeIcon && (
         <TooltipProvider delayDuration={200}>
           <Tooltip>
@@ -119,13 +183,32 @@ export function VoiceVideoFrame({
           </Tooltip>
         </TooltipProvider>
       )}
+
       {!badgeMeta && label && (
         <div className="absolute top-2 left-2 z-10 max-w-[calc(100%-1rem)] px-2 py-0.5 rounded bg-black/60 text-[10px] text-white truncate">
           {label}
         </div>
       )}
+
+      {enableFullscreen && portraitLayout && (
+        <button
+          type="button"
+          onClick={() => void toggleFullscreen()}
+          className="absolute bottom-2 right-2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/65 text-white border border-white/20 hover:bg-black/80"
+          aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+        >
+          {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </button>
+      )}
+
+      {enablePinchZoom && portraitLayout && !isFullscreen && (
+        <p className="absolute bottom-2 left-2 z-10 text-[9px] text-white/50 pointer-events-none">
+          Double-tap to zoom
+        </p>
+      )}
+
       {subscriptionFailed && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-[#9aa0a6] text-xs px-4 text-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-[#9aa0a6] text-xs px-4 text-center z-30">
           Video unavailable
         </div>
       )}

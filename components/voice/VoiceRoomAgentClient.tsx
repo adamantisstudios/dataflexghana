@@ -523,13 +523,14 @@ function AgentRoomUI({
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden pb-2">
         <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 gap-4 min-h-0">
           {hostOrSpeaker ? (
-            <div className="flex flex-col items-center gap-3 w-full max-w-[min(100%,420px)] sm:max-w-lg mx-auto">
+            <div className="flex flex-col items-center gap-3 w-full max-w-[min(100%,420px)] mx-auto">
               {hostShowVideo && hostCamPub ? (
                 <VoiceVideoFrame
                   participant={hostOrSpeaker}
                   publication={hostCamPub}
                   badge={hostVideoBadge}
-                  maxWidthClass="max-w-lg"
+                  enableFullscreen
+                  enablePinchZoom
                   className="w-full"
                 />
               ) : (

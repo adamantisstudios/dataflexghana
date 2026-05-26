@@ -23,7 +23,7 @@ export function voiceVideoObjectFitClass(isMobile: boolean): string {
 export function voiceVideoCaptureDefaults(isMobile: boolean) {
   return {
     resolution: isMobile
-      ? { width: 720, height: 1280, frameRate: 24 }
+      ? { width: 1080, height: 1920, frameRate: 24 }
       : { width: 1280, height: 720, frameRate: 24 },
     facingMode: "user" as const,
     /** Prefer portrait capture on phones so 9:16 frames need less CSS cropping. */

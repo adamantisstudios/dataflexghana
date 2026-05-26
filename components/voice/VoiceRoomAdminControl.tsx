@@ -242,6 +242,7 @@ function MainStage({
             participant={focus}
             publication={camPub}
             badge={badge}
+            mirror={focus.identity === localParticipant.identity}
             maxWidthClass="max-w-4xl"
             className="w-full"
           />

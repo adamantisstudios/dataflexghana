@@ -10,8 +10,8 @@ function captureConstraints(isMobile: boolean): MediaStreamConstraints {
   const { resolution, facingMode } = voiceVideoCaptureDefaults(isMobile)
   return {
     video: {
-      width: { ideal: resolution.width, max: resolution.width },
-      height: { ideal: resolution.height, max: resolution.height },
+      width: { ideal: resolution.width, min: isMobile ? 720 : 640 },
+      height: { ideal: resolution.height, min: isMobile ? 1280 : 480 },
       aspectRatio: { ideal: isMobile ? 9 / 16 : 16 / 9 },
       facingMode,
     },
