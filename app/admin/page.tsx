@@ -888,7 +888,10 @@ export default function AdminDashboard() {
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-blue-600">Connection</span>
-                    {getSessionStatusIndicator()}
+                    <AdminConnectionStatus
+                      variant="session"
+                      status={connectionHealth.overall === "healthy" ? "healthy" : "issues"}
+                    />
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-blue-600">Database</span>
@@ -962,7 +965,10 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                   <span className="text-blue-800 font-medium">Session Status</span>
-                  {getSessionStatusIndicator()}
+                  <AdminConnectionStatus
+                    variant="session"
+                    status={connectionHealth.overall === "healthy" ? "healthy" : "issues"}
+                  />
                 </div>
                 <Button
                   onClick={() => setSettingsOpen(true)}
