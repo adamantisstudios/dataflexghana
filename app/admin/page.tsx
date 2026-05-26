@@ -26,7 +26,6 @@ import { Label } from "@/components/ui/label"
   Banknote,
   Wallet,
   ShoppingBag,
-  LogOut,
   Settings,
   TrendingUp,
   Eye,
@@ -36,7 +35,6 @@ import { Label } from "@/components/ui/label"
   Bell,
   Shield,
   CheckCircle2,
-  AlertCircle,
   PiggyBank,
   Wrench,
   UserPlus,
@@ -67,7 +65,8 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { PendingOrdersFeed } from "@/components/admin/PendingOrdersFeed"
 import { FollowUpsTodayCard } from "@/components/admin/FollowUpsTodayCard"
-import { SecurityNotificationBell } from "@/components/admin/SecurityNotificationBell"
+import { AdminHeader } from "@/components/admin/AdminHeader"
+import { AdminConnectionStatus } from "@/components/admin/AdminConnectionStatus"
 
 // Lazy load tab components
 const AgentsTab = lazy(() => import("@/components/admin/tabs/AgentsTab"))
@@ -564,20 +563,6 @@ export default function AdminDashboard() {
     )
   }
 
-  const getSessionStatusIndicator = () => {
-    return connectionHealth.overall === "healthy" ? (
-      <div className="flex items-center gap-1 text-green-600">
-        <CheckCircle2 className="h-4 w-4" />
-        <span className="text-xs hidden sm:inline">Connected</span>
-      </div>
-    ) : (
-      <div className="flex items-center gap-1 text-amber-600">
-        <AlertCircle className="h-4 w-4" />
-        <span className="text-xs hidden sm:inline">Issues</span>
-      </div>
-    )
-  }
-
   const getTabAlertCount = (tabId: string): number => {
     switch (tabId) {
       case "agents":
@@ -615,36 +600,34 @@ export default function AdminDashboard() {
     }
   }
 
+  const headerIconBtnClass =
+    "h-9 w-9 shrink-0 border border-white/25 bg-white/15 p-0 text-white shadow-none hover:bg-white/25 hover:text-white sm:h-9 sm:w-auto sm:px-2.5"
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-xl border-b-4 border-blue-700">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center p-2">
-                <Shield className="w-full h-full text-blue-600" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
-                  DataFlex Admin Portal
-                </h1>
-                <p className="text-blue-100 font-medium">Welcome back, {admin?.full_name || admin?.email}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {getSessionStatusIndicator()}
-              <SecurityNotificationBell />
-              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Settings</span>
-                  </Button>
-                </DialogTrigger>
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <AdminHeader
+        displayName={admin?.full_name}
+        adminEmail={admin?.email}
+        connectionIndicator={
+          <AdminConnectionStatus
+            variant="session"
+            status={connectionHealth.overall === "healthy" ? "healthy" : "issues"}
+          />
+        }
+        onLogout={handleLogout}
+        trailingActions={
+          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="secondary"
+                size="sm"
+                className={headerIconBtnClass}
+                title="Settings"
+              >
+                <Settings className="h-4 w-4 shrink-0" />
+                <span className="sr-only sm:not-sr-only sm:ml-1.5 sm:inline">Settings</span>
+              </Button>
+            </DialogTrigger>
                 <DialogContent className="sm:max-w-[425px]">
                   <DialogHeader>
                     <DialogTitle>Admin Settings</DialogTitle>
@@ -738,20 +721,9 @@ export default function AdminDashboard() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleLogout}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="container mx-auto px-4 py-8">
+        }
+      />
+      <div className="container mx-auto max-w-full px-3 py-6 sm:px-4 sm:py-8">
         {showNotification && (
           <UnreadNotification
             unreadCount={adminUnreadCount}

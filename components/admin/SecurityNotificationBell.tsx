@@ -52,7 +52,11 @@ function formatEventTime(iso: string) {
   }
 }
 
-export function SecurityNotificationBell() {
+type SecurityNotificationBellProps = {
+  buttonClassName?: string
+}
+
+export function SecurityNotificationBell({ buttonClassName }: SecurityNotificationBellProps) {
   const router = useRouter()
   const [unreadCount, setUnreadCount] = useState(0)
   const [recent, setRecent] = useState<SecurityEvent[]>([])
@@ -140,7 +144,8 @@ export function SecurityNotificationBell() {
           variant="secondary"
           size="sm"
           className={cn(
-            "relative bg-white/20 hover:bg-white/30 text-white border-white/30 h-8 sm:h-9",
+            "relative h-9 w-9 shrink-0 border border-white/25 bg-white/15 p-0 text-white shadow-none hover:bg-white/25 hover:text-white",
+            buttonClassName,
             unreadCount > 0 && "animate-pulse",
           )}
           aria-label="Security alerts"

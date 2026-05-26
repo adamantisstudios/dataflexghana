@@ -1,7 +1,8 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 import {
   Loader2,
   Phone,
@@ -9,7 +10,6 @@ import {
   PhoneOff,
   User,
 } from "lucide-react"
-import { toast } from "sonner"
 import { getStoredAdmin } from "@/lib/unified-auth-system"
 import { useCallWidget } from "@/hooks/use-call-widget"
 import { CallAudioSession, useCallAudioControls } from "@/components/calls/CallAudioSession"
@@ -140,6 +140,13 @@ export function AdminCallWidget() {
   if (pathname?.includes("/voice-rooms")) return null
 
   const showWiggle = hasIncoming && phase === "idle"
+
+  useEffect(() => {
+    if (hasIncoming && phase === "idle" && !dialogOpen) {
+      setDialogOpen(true)
+      toast.info(`Incoming call from ${callerName}`, { duration: 5000 })
+    }
+  }, [hasIncoming, phase, dialogOpen, callerName, setDialogOpen])
 
   const handleDialogChange = (open: boolean) => {
     if (!open && phase === "in_call") {

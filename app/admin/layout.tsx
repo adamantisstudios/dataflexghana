@@ -4,12 +4,10 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase-client";
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { LogOut, Shield, CheckCircle2, AlertCircle, Wrench } from "lucide-react"
 import { getStoredAdmin, logoutAdmin, type AdminUser } from "@/lib/unified-auth-system"
 import { AdminCallWidget } from "@/components/admin-call-widget"
-import { SecurityNotificationBell } from "@/components/admin/SecurityNotificationBell"
+import { AdminHeader } from "@/components/admin/AdminHeader"
+import { AdminConnectionStatus } from "@/components/admin/AdminConnectionStatus"
 
 export { getStoredAdmin } from "@/lib/unified-auth-system"
 
@@ -98,20 +96,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
   }
 
-  const getConnectionIndicator = () => {
-    return connectionStatus === "connected" ? (
-      <div className="flex items-center gap-1 text-green-600">
-        <CheckCircle2 className="h-4 w-4" />
-        <span className="text-xs hidden sm:inline">Connected</span>
-      </div>
-    ) : (
-      <div className="flex items-center gap-1 text-red-600">
-        <AlertCircle className="h-4 w-4" />
-        <span className="text-xs hidden sm:inline">Disconnected</span>
-      </div>
-    )
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
@@ -141,57 +125,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     )
   }
 
-  // For other admin routes, provide a minimal header
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-xl border-b-4 border-blue-700">
-        <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <Link
-                href="/admin"
-                className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity min-w-0"
-              >
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-lg shadow-lg flex items-center justify-center p-1 flex-shrink-0">
-                  <Shield className="w-full h-full text-blue-600" />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-xs sm:text-sm lg:text-base font-bold text-white drop-shadow-lg truncate">
-                    DataFlex Admin Portal
-                  </h1>
-                  <p className="text-blue-100 text-xs truncate hidden sm:block">
-                    Welcome back, {adminUser?.full_name || adminUser?.email}
-                  </p>
-                </div>
-              </Link>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              {getConnectionIndicator()}
-              <SecurityNotificationBell />
-              <Link href="/admin/maintenance">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-7 sm:h-8 px-1.5 sm:px-2 text-xs"
-                >
-                  <Wrench className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                  <span className="hidden sm:inline">Maintenance</span>
-                </Button>
-              </Link>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleLogout}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-7 sm:h-8 px-1.5 sm:px-2 text-xs"
-              >
-                <LogOut className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">{children}</main>
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <AdminHeader
+        displayName={adminUser.full_name}
+        adminEmail={adminUser.email}
+        connectionIndicator={
+          <AdminConnectionStatus
+            variant="db"
+            status={connectionStatus === "connected" ? "connected" : "disconnected"}
+          />
+        }
+        showMaintenanceLink
+        onLogout={handleLogout}
+      />
+      <main className="container mx-auto max-w-full px-3 py-4 sm:px-4 sm:py-6">{children}</main>
       <AdminCallWidget />
     </div>
   )

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { getAdminAuthHeaders } from "@/lib/api-client"
-import { realtimeManager } from "@/lib/realtime-manager"
+import { subscribeCallSessions } from "@/lib/call-realtime-subscribe"
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 
 export type CallWidgetPhase =
@@ -50,9 +50,9 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
   const [serverUrl, setServerUrl] = useState<string | null>(null)
   const [incomingCall, setIncomingCall] = useState<CallSession | null>(null)
   const [callerName, setCallerName] = useState("Agent")
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const sessionIdRef = useRef<string | null>(null)
   const phaseRef = useRef<CallWidgetPhase>("idle")
+  const incomingCallIdRef = useRef<string | null>(null)
   const intentionalEndRef = useRef(false)
 
   useEffect(() => {
@@ -63,10 +63,9 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     phaseRef.current = phase
   }, [phase])
 
-  const clearPoll = useCallback(() => {
-    if (pollRef.current) clearInterval(pollRef.current)
-    pollRef.current = null
-  }, [])
+  useEffect(() => {
+    incomingCallIdRef.current = incomingCall?.id ?? null
+  }, [incomingCall?.id])
 
   const resetLocalState = useCallback(() => {
     setPhase("idle")
@@ -76,12 +75,12 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     setServerUrl(null)
     setIncomingCall(null)
     sessionIdRef.current = null
+    incomingCallIdRef.current = null
   }, [])
 
   const endCall = useCallback(
     async (id?: string | null, intentional = true) => {
       const sid = id ?? sessionIdRef.current
-      clearPoll()
       if (intentional) intentionalEndRef.current = true
 
       if (sid) {
@@ -101,13 +100,12 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
       }
       resetLocalState()
     },
-    [role, clearPoll, resetLocalState],
+    [role, resetLocalState],
   )
 
   const handleRemoteEnded = useCallback(
     (status: string) => {
       if (intentionalEndRef.current) return
-      clearPoll()
       if (status === "declined") {
         setPhase("declined")
         setToken(null)
@@ -116,7 +114,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
       }
       resetLocalState()
     },
-    [clearPoll, resetLocalState],
+    [resetLocalState],
   )
 
   const refreshAvailability = useCallback(async () => {
@@ -133,34 +131,86 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     }
   }, [role])
 
-  const pollAgentSession = useCallback(
-    (sid: string) => {
-      clearPoll()
-      pollRef.current = setInterval(async () => {
-        try {
-          const res = await fetch(
-            `/api/calls/initiate?sessionId=${encodeURIComponent(sid)}`,
-            { headers: getAgentAuthHeaders(), credentials: "same-origin" },
-          )
-          const data = await res.json()
-          const status = data.session?.status as string | undefined
-          if (status === "active") {
-            clearPoll()
-            setPhase("in_call")
-            setDialogOpen(true)
-          } else if (status === "declined") {
-            clearPoll()
-            handleRemoteEnded("declined")
-          } else if (status === "ended") {
-            clearPoll()
-            handleRemoteEnded("ended")
-          }
-        } catch {
-          /* ignore transient poll errors */
+  const applyRingingFromApi = useCallback((ringing: CallSession) => {
+    setIncomingCall(ringing)
+    const agent = ringing.agents
+    const name = agent?.full_name || agent?.agent_name || "Agent"
+    setCallerName(String(name))
+    if (phaseRef.current === "idle") {
+      setDialogOpen(true)
+    }
+  }, [])
+
+  const loadAdminIncoming = useCallback(async () => {
+    if (role !== "admin" || !userId) return
+    try {
+      const res = await fetch("/api/calls/incoming", {
+        headers: getAdminAuthHeaders(),
+        credentials: "same-origin",
+      })
+      const data = await res.json()
+      if (data.ringing && phaseRef.current === "idle") {
+        applyRingingFromApi(data.ringing as CallSession)
+      }
+      if (data.active && phaseRef.current === "idle") {
+        setIncomingCall(null)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [role, userId, applyRingingFromApi])
+
+  const applySessionUpdate = useCallback(
+    (row: CallSession) => {
+      if (row.status === "active") {
+        if (role === "agent" && row.caller_id === userId) {
+          setSessionId(row.id)
+          sessionIdRef.current = row.id
+          setPhase("in_call")
+          setDialogOpen(true)
         }
-      }, 1500)
+        if (role === "admin" && row.receiver_id === userId) {
+          setIncomingCall(null)
+          incomingCallIdRef.current = null
+        }
+        return
+      }
+      if (row.status === "declined" || row.status === "ended") {
+        if (sessionIdRef.current === row.id) {
+          handleRemoteEnded(row.status)
+        }
+        if (incomingCallIdRef.current === row.id) {
+          setIncomingCall(null)
+          incomingCallIdRef.current = null
+        }
+      }
     },
-    [clearPoll, handleRemoteEnded],
+    [role, userId, handleRemoteEnded],
+  )
+
+  const handleCallSessionsPayload = useCallback(
+    (payload: RealtimePostgresChangesPayload<CallSession>) => {
+      const row = (payload.new ?? payload.old) as CallSession | undefined
+      if (!row?.id) return
+
+      if (role === "admin" && row.receiver_id !== userId) return
+      if (role === "agent" && row.caller_id !== userId) return
+
+      if (payload.eventType === "INSERT" && row.status === "ringing") {
+        if (role === "admin" && phaseRef.current === "idle") {
+          setIncomingCall(row)
+          incomingCallIdRef.current = row.id
+          setDialogOpen(true)
+          void loadAdminIncoming()
+        }
+        return
+      }
+
+      if (payload.eventType === "UPDATE") {
+        applySessionUpdate(row)
+      }
+    },
+    [role, userId, applySessionUpdate, loadAdminIncoming],
   )
 
   const initiateCall = useCallback(async () => {
@@ -179,6 +229,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
       if (res.status === 409 && data.busy) {
         setPhase("busy_wait")
         setBusyCountdown(60)
+        setDialogOpen(true)
         return
       }
 
@@ -189,12 +240,11 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
       setRoomName(data.roomName)
       setToken(data.token)
       setServerUrl(data.serverUrl)
-      pollAgentSession(data.sessionId)
     } catch (e) {
       setPhase("idle")
       throw e
     }
-  }, [role, pollAgentSession])
+  }, [role])
 
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return
@@ -213,6 +263,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     setToken(data.token)
     setServerUrl(data.serverUrl)
     setIncomingCall(null)
+    incomingCallIdRef.current = null
     setPhase("in_call")
     setDialogOpen(true)
   }, [incomingCall])
@@ -226,57 +277,9 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
       body: JSON.stringify({ sessionId: incomingCall.id, action: "decline" }),
     })
     setIncomingCall(null)
+    incomingCallIdRef.current = null
     resetLocalState()
   }, [incomingCall, resetLocalState])
-
-  const loadAdminIncoming = useCallback(async () => {
-    if (role !== "admin" || !userId) return
-    try {
-      const res = await fetch("/api/calls/incoming", {
-        headers: getAdminAuthHeaders(),
-        credentials: "same-origin",
-      })
-      const data = await res.json()
-      if (data.ringing && phaseRef.current === "idle") {
-        setIncomingCall(data.ringing as CallSession)
-        const agent = data.ringing.agents
-        const name = agent?.full_name || agent?.agent_name || "Agent"
-        setCallerName(String(name))
-      }
-      if (data.active && phaseRef.current === "idle") {
-        setIncomingCall(null)
-      }
-    } catch {
-      /* ignore */
-    }
-  }, [role, userId])
-
-  const applySessionUpdate = useCallback(
-    (row: CallSession) => {
-      if (row.status === "active") {
-        if (role === "agent" && row.caller_id === userId) {
-          clearPoll()
-          setSessionId(row.id)
-          sessionIdRef.current = row.id
-          setPhase("in_call")
-          setDialogOpen(true)
-        }
-        if (role === "admin" && row.receiver_id === userId && phaseRef.current === "idle") {
-          setIncomingCall(null)
-        }
-        return
-      }
-      if (row.status === "declined" || row.status === "ended") {
-        if (sessionIdRef.current === row.id) {
-          handleRemoteEnded(row.status)
-        }
-        if (incomingCall?.id === row.id) {
-          setIncomingCall(null)
-        }
-      }
-    },
-    [role, userId, clearPoll, handleRemoteEnded, incomingCall?.id],
-  )
 
   useEffect(() => {
     void refreshAvailability()
@@ -295,50 +298,33 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     }
   }, [phase, busyCountdown, refreshAvailability])
 
-  // Admin realtime: incoming + session status
+  // Admin: initial ringing check + realtime (no polling)
   useEffect(() => {
     if (role !== "admin" || !userId) return
+
     void loadAdminIncoming()
 
-    const unsubscribe = realtimeManager.subscribe(
-      `call_sessions_admin_${userId}`,
-      "call_sessions",
-      (payload: RealtimePostgresChangesPayload<CallSession>) => {
-        const row = (payload.new || payload.old) as CallSession | undefined
-        if (!row || row.receiver_id !== userId) return
-        if (payload.eventType === "INSERT" && row.status === "ringing") {
-          setIncomingCall(row)
-          void loadAdminIncoming()
-        }
-        if (payload.eventType === "UPDATE") {
-          applySessionUpdate(row)
-        }
-      },
+    const unsubscribe = subscribeCallSessions<CallSession>(
+      `admin_${userId}`,
       `receiver_id=eq.${userId}`,
+      handleCallSessionsPayload,
     )
 
-    return () => unsubscribe()
-  }, [role, userId, loadAdminIncoming, applySessionUpdate])
+    return unsubscribe
+  }, [role, userId, loadAdminIncoming, handleCallSessionsPayload])
 
-  // Agent realtime: accept/decline/end without waiting for poll
+  // Agent: session status via realtime (no poll interval)
   useEffect(() => {
     if (role !== "agent" || !userId) return
 
-    const unsubscribe = realtimeManager.subscribe(
-      `call_sessions_agent_${userId}`,
-      "call_sessions",
-      (payload: RealtimePostgresChangesPayload<CallSession>) => {
-        const row = (payload.new || payload.old) as CallSession | undefined
-        if (!row || row.caller_id !== userId) return
-        if (payload.eventType === "UPDATE") {
-          applySessionUpdate(row)
-        }
-      },
+    const unsubscribe = subscribeCallSessions<CallSession>(
+      `agent_${userId}`,
       `caller_id=eq.${userId}`,
+      handleCallSessionsPayload,
     )
 
-    return () => unsubscribe()
-  }, [role, userId, applySessionUpdate])
+    return unsubscribe
+  }, [role, userId, handleCallSessionsPayload])
 
   // Tab close: end active call (keepalive fetch includes auth headers)
   useEffect(() => {
