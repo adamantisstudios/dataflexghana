@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { LogOut, Shield, CheckCircle2, AlertCircle, Wrench } from "lucide-react"
 import { getStoredAdmin, logoutAdmin, type AdminUser } from "@/lib/unified-auth-system"
+import { AdminCallWidget } from "@/components/admin-call-widget"
 
 export { getStoredAdmin } from "@/lib/unified-auth-system"
 
@@ -131,7 +132,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // For the main admin dashboard, render without additional wrapper
   if (pathname === "/admin" || pathname === "/admin/") {
-    return <>{children}</>
+    return (
+      <>
+        {children}
+        <AdminCallWidget />
+      </>
+    )
   }
 
   // For other admin routes, provide a minimal header
@@ -184,6 +190,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
       </div>
       <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">{children}</main>
+      <AdminCallWidget />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireAdminSession } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
 import {
+  muteParticipantVideo,
   sendVideoPermissionCommand,
   updateParticipantVideoPermission,
 } from "@/lib/livekit-server"
@@ -32,6 +33,12 @@ export async function POST(
 
     await updateParticipantVideoPermission(room.room_name, identity, allowed)
     await sendVideoPermissionCommand(room.room_name, identity, allowed)
+    // Mute remote camera server-side when revoking; agent re-enables after permission grant.
+    try {
+      await muteParticipantVideo(room.room_name, identity, !allowed)
+    } catch {
+      /* no published camera track yet */
+    }
 
     return NextResponse.json({ success: true, allowed })
   } catch (e) {

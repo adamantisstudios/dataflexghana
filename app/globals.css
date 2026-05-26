@@ -242,6 +242,27 @@ body {
     animation: recording-pulse 1s ease-in-out infinite;
   }
 
+  @keyframes call-wiggle {
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-12deg);
+    }
+    75% {
+      transform: rotate(12deg);
+    }
+  }
+
+  .animate-call-wiggle {
+    animation: call-wiggle 0.5s ease-in-out infinite;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out both;
+  }
+
   .animate-in {
     animation-duration: 300ms;
     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);

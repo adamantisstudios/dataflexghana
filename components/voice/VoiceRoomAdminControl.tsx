@@ -79,7 +79,9 @@ import { VoiceStreamStats } from "@/components/voice/VoiceStreamStats"
 import { VoicePollPanel } from "@/components/voice/VoicePollPanel"
 import { VoiceParticipantsSheet } from "@/components/voice/VoiceParticipantsSheet"
 import { voiceAvatarRingColor, voiceInitials } from "@/lib/voice-ui-utils"
-import { getParticipantRole, isSpeakerRole } from "@/components/voice/voice-participant-utils"
+import { getParticipantRole, isHostParticipant, isSpeakerRole } from "@/components/voice/voice-participant-utils"
+import { isTransientLiveKitError } from "@/lib/livekit-error-utils"
+import { useLiveKitRoomErrors } from "@/components/voice/useLiveKitRoomErrors"
 import { useParticipantAudioLevel } from "@/components/voice/useParticipantAudioLevel"
 import { VoiceAudioMeter } from "@/components/voice/VoiceAudioMeter"
 import { VoiceReactionsLayer } from "@/components/voice/VoiceReactionsLayer"
@@ -203,55 +205,65 @@ function StreamHealthDot() {
 
 function MainStage({
   activeSpeaker,
-  isCameraEnabled,
   localParticipant,
 }: {
   activeSpeaker: Participant | null
-  isCameraEnabled: boolean
   localParticipant: Participant
 }) {
-  const focus = activeSpeaker ?? localParticipant
-  const camPub = focus.getTrackPublication(Track.Source.Camera)
-  const showVideo = focus.isLocal
-    ? isCameraEnabled && camPub?.track && !camPub.isMuted
-    : camPub?.track && !camPub.isMuted
+  const focus = activeSpeaker
+  const level = useParticipantAudioLevel(focus ?? localParticipant)
+  const ring = voiceAvatarRingColor(focus?.identity ?? "stage")
 
-  const level = useParticipantAudioLevel(focus)
-  const ring = voiceAvatarRingColor(focus.identity)
+  if (focus) {
+    const camPub = focus.getTrackPublication(Track.Source.Camera)
+    const showVideo = camPub?.track && !camPub.isMuted
+    const badge =
+      focus.identity.startsWith("admin-") || isHostParticipant(focus.identity, getParticipantRole(focus))
+        ? "admin"
+        : "agent"
 
-  if (showVideo && camPub?.track) {
+    if (showVideo && camPub?.track) {
+      return (
+        <VoiceVideoFrame
+          participant={focus}
+          publication={camPub}
+          badge={badge}
+          maxWidthClass="max-w-4xl"
+        />
+      )
+    }
+
     return (
-      <VoiceVideoFrame
-        participant={focus}
-        publication={camPub}
-        label={focus.name || focus.identity}
-        mirror={focus.isLocal}
-        maxWidthClass="max-w-4xl"
-      />
+      <div className="flex flex-col items-center justify-center gap-4">
+        <div className="relative">
+          {(focus.isSpeaking || level > 0.08) && (
+            <span
+              className="absolute inset-0 rounded-full border-2 animate-voice-soundwave"
+              style={{ borderColor: `${MEET_GREEN}99` }}
+            />
+          )}
+          <div
+            className="h-40 w-40 rounded-full flex items-center justify-center text-4xl font-bold text-white"
+            style={{
+              boxShadow: `0 0 0 4px ${ring}`,
+              background: `linear-gradient(135deg, ${ring}99, ${ring})`,
+            }}
+          >
+            {voiceInitials(focus.name || focus.identity)}
+          </div>
+        </div>
+        <p className="text-xl font-medium text-[#e8eaed] truncate max-w-full px-4">
+          {focus.name || focus.identity}
+        </p>
+        <VoiceAudioMeter level={level} className="w-32" />
+      </div>
     )
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4">
-      <div className="relative">
-        {(focus.isSpeaking || level > 0.08) && (
-          <span
-            className="absolute inset-0 rounded-full border-2 animate-voice-soundwave"
-            style={{ borderColor: `${MEET_GREEN}99` }}
-          />
-        )}
-        <div
-          className="h-40 w-40 rounded-full flex items-center justify-center text-4xl font-bold text-white"
-          style={{
-            boxShadow: `0 0 0 4px ${ring}`,
-            background: `linear-gradient(135deg, ${ring}99, ${ring})`,
-          }}
-        >
-          {voiceInitials(focus.name || focus.identity)}
-        </div>
-      </div>
-      <p className="text-xl font-medium text-[#e8eaed]">{focus.name || focus.identity}</p>
-      <VoiceAudioMeter level={level} className="w-32" />
+    <div className="flex flex-col items-center justify-center gap-3 text-[#9aa0a6]">
+      <p className="text-lg">Waiting for speakers…</p>
+      <p className="text-xs">Your camera preview appears in the corner when enabled</p>
     </div>
   )
 }
@@ -481,6 +493,7 @@ function ControlPanelInner({
   onEnded: () => void
 }) {
   const room = useRoomContext()
+  useLiveKitRoomErrors(room)
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant()
   const participants = useParticipants()
   const [raisedHands, setRaisedHands] = useState<RaisedHand[]>([])
@@ -806,11 +819,7 @@ function ControlPanelInner({
           onDrop={onDrop}
         >
           <div className="flex-1 flex items-center justify-center min-h-0 py-3 lg:py-4">
-            <MainStage
-              activeSpeaker={activeSpeaker}
-              isCameraEnabled={isCameraEnabled}
-              localParticipant={localParticipant}
-            />
+            <MainStage activeSpeaker={activeSpeaker} localParticipant={localParticipant} />
           </div>
           {listenerAvatars.length > 0 && (
             <div className="shrink-0 pb-2 lg:pb-4">
@@ -1066,6 +1075,9 @@ export function VoiceRoomAdminControl({
           video
           options={roomOptions}
           className="h-full"
+          onError={(e) => {
+            if (!isTransientLiveKitError(e.message)) toast.error(e.message)
+          }}
         >
           <ControlPanelInner
             roomId={roomId}

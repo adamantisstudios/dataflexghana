@@ -26,15 +26,10 @@ export function HostVideoPanel() {
 
   return (
     <div className="mx-4 mb-3 rounded-xl overflow-hidden border border-[#3c4043] bg-black/60 shadow-lg">
-      <div className="px-2 py-1 bg-[#292a2d] border-b border-[#3c4043] flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: "#0E8F3D" }}>
-          Host video
-        </span>
-        <span className="text-[10px] text-[#9aa0a6]">Live</span>
-      </div>
       <VoiceVideoFrame
         participant={hostTrack.participant}
         publication={hostTrack.publication}
+        badge="host"
         maxWidthClass="max-w-none w-full"
         className="rounded-none max-w-none"
       />

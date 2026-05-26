@@ -59,8 +59,9 @@ import { getParticipantRole, isHostParticipant, isSpeakerRole } from "@/componen
 import { useParticipantAudioLevel } from "@/components/voice/useParticipantAudioLevel"
 import { VoiceReactionsLayer, sendVoiceReaction } from "@/components/voice/VoiceReactionsLayer"
 import { ChatPanel } from "@/components/voice/ChatPanel"
-import { HostVideoPanel } from "@/components/voice/HostVideoPanel"
 import { decodeVoiceData } from "@/lib/voice-room-data"
+import { isTransientLiveKitError } from "@/lib/livekit-error-utils"
+import { useLiveKitRoomErrors } from "@/components/voice/useLiveKitRoomErrors"
 
 const MEET_BG = "#202124"
 const MEET_TEXT = "#e8eaed"
@@ -172,6 +173,7 @@ function AgentRoomUI({
 }) {
   const router = useRouter()
   const room = useRoomContext()
+  useLiveKitRoomErrors(room)
   const connectionState = useConnectionState()
   const participants = useParticipants()
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant()
@@ -212,7 +214,7 @@ function AgentRoomUI({
       try {
         const { token, canPublishVideo: withVideo } = await fetchAgentToken({
           speak: true,
-          video: true,
+          video: false,
         })
         await room.disconnect()
         onTokenUpgrade(token, { video: withVideo })
@@ -382,6 +384,13 @@ function AgentRoomUI({
     }
   }, [connectionState, canSpeak, pendingSpeak, localParticipant])
 
+  // Join with camera off; agent enables only after host grants video permission.
+  useEffect(() => {
+    if (connectionState === ConnectionState.Connected && !pendingVideo) {
+      void localParticipant.setCameraEnabled(false)
+    }
+  }, [connectionState, localParticipant, pendingVideo])
+
   const raiseHand = async () => {
     try {
       await localParticipant.sendText(
@@ -451,9 +460,15 @@ function AgentRoomUI({
   const hostCamPub = hostOrSpeaker?.getTrackPublication(Track.Source.Camera)
   const hostShowVideo =
     hostOrSpeaker &&
+    !hostOrSpeaker.isLocal &&
     hostCamPub?.track &&
-    !hostCamPub.isMuted &&
-    (!hostOrSpeaker.isLocal || isCameraEnabled)
+    !hostCamPub.isMuted
+
+  const hostVideoBadge = hostOrSpeaker
+    ? isHostParticipant(hostOrSpeaker.identity, getParticipantRole(hostOrSpeaker))
+      ? "host"
+      : "speaker"
+    : undefined
 
   const mayUseCamera = canSpeak && (canPublishVideo || videoAllowedByHost)
 
@@ -488,8 +503,6 @@ function AgentRoomUI({
       <AgentLocalVideoPip />
 
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden pb-2">
-        <HostVideoPanel />
-
         <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 gap-4 min-h-0">
           {hostOrSpeaker ? (
             <div className="flex flex-col items-center gap-3 w-full max-w-lg">
@@ -497,7 +510,7 @@ function AgentRoomUI({
                 <VoiceVideoFrame
                   participant={hostOrSpeaker}
                   publication={hostCamPub}
-                  label={displayName.split(" ")[0]}
+                  badge={hostVideoBadge}
                   maxWidthClass="max-w-lg"
                 />
               ) : (
@@ -747,9 +760,11 @@ export function VoiceRoomAgentClient({ token: initialToken, serverUrl, roomName 
       serverUrl={serverUrl}
       connect={joined}
       audio
-      video
+      video={false}
       options={roomOptions}
-      onError={(e) => toast.error(e.message)}
+      onError={(e) => {
+        if (!isTransientLiveKitError(e.message)) toast.error(e.message)
+      }}
       className="min-h-[100dvh]"
       style={{ background: MEET_BG }}
     >

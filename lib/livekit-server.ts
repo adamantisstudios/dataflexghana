@@ -386,6 +386,21 @@ export async function muteParticipantAudio(
   await getLiveKitRoomService().mutePublishedTrack(roomName, identity, audioTrack.sid, muted)
 }
 
+/** Server-side mute/unmute of a participant's camera track (admin video control). */
+export async function muteParticipantVideo(
+  roomName: string,
+  identity: string,
+  muted: boolean,
+): Promise<void> {
+  const participant = await getLiveKitRoomService().getParticipant(roomName, identity)
+  const videoTrack = participant.tracks?.find((t) => t.type === TrackType.VIDEO)
+  if (!videoTrack?.sid) {
+    if (muted) return
+    return
+  }
+  await getLiveKitRoomService().mutePublishedTrack(roomName, identity, videoTrack.sid, muted)
+}
+
 /** Tell an agent to fetch a speaker token, reconnect, and publish audio. */
 export async function sendUnmuteCommand(roomName: string, identity: string): Promise<void> {
   await getLiveKitRoomService().sendData(

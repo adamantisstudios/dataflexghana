@@ -32,7 +32,8 @@ export async function POST(
     }
 
     await updateParticipantRole(room.room_name, identity, "speaker")
-    await updateParticipantVideoPermission(room.room_name, identity, true)
+    // Video stays off until admin explicitly allows it via video-permission toggle.
+    await updateParticipantVideoPermission(room.room_name, identity, false)
     try {
       await muteParticipantAudio(room.room_name, identity, false)
     } catch {
