@@ -1,10 +1,13 @@
 import { type NextRequest } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 
+export type AuditSeverity = "info" | "warning" | "critical"
+
 export type AuditLogParams = {
   actorId?: string | null
   actorType: string
   action: string
+  severity?: AuditSeverity
   targetTable?: string | null
   targetId?: string | null
   oldData?: Record<string, unknown> | null
@@ -44,6 +47,7 @@ export async function logAudit(params: AuditLogParams): Promise<void> {
       actor_id: params.actorId ?? null,
       actor_type: params.actorType,
       action: params.action,
+      severity: params.severity ?? "info",
       target_table: params.targetTable ?? null,
       target_id: params.targetId ?? null,
       old_data: params.oldData ?? null,

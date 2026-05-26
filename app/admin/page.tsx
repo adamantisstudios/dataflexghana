@@ -67,6 +67,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { PendingOrdersFeed } from "@/components/admin/PendingOrdersFeed"
 import { FollowUpsTodayCard } from "@/components/admin/FollowUpsTodayCard"
+import { SecurityNotificationBell } from "@/components/admin/SecurityNotificationBell"
 
 // Lazy load tab components
 const AgentsTab = lazy(() => import("@/components/admin/tabs/AgentsTab"))
@@ -111,6 +112,7 @@ const ListingPackagesAdminTab = lazy(() => import("@/components/admin/tabs/Listi
 const PhotoVerificationAdminTab = lazy(() => import("@/components/admin/tabs/PhotoVerificationAdminTab"))
 const VoiceRoomsAdminTab = lazy(() => import("@/components/admin/tabs/VoiceRoomsAdminTab"))
 const TutorialsAdminTab = lazy(() => import("@/components/admin/tabs/TutorialsAdminTab"))
+const SecurityLogsTab = lazy(() => import("@/components/admin/tabs/SecurityLogsTab"))
 const AnalyticsDashboard = lazy(() => import("@/components/admin/AnalyticsDashboard"))
 
 // Type definition for tab configuration
@@ -157,6 +159,7 @@ const TabLoadingSkeleton = () => (
 const TAB_CONFIG: TabConfigItem[] = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, component: null },
   { id: "analytics", label: "Analytics", icon: TrendingUp, component: AnalyticsDashboard },
+  { id: "security-log", label: "Security Log", icon: Shield, component: SecurityLogsTab },
   { id: "storefront-manager", label: "Storefront Management", icon: ShoppingBag, component: StorefrontManagerTab },
   { id: "agents", label: "Agents", icon: Users, component: AgentsTab },
   { id: "photo-verification", label: "Photo Verification", icon: ScanFace, component: PhotoVerificationAdminTab },
@@ -270,6 +273,14 @@ export default function AdminDashboard() {
     setVisibleTabs(TAB_CONFIG)
     setIsTabsLoaded(true)
   }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const tab = new URLSearchParams(window.location.search).get("tab")
+    if (tab && TAB_CONFIG.some((t) => t.id === tab)) {
+      loadTab(tab)
+    }
+  }, [loadTab])
 
   // Load stats on component mount
   useEffect(() => {
@@ -622,6 +633,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex items-center gap-3">
               {getSessionStatusIndicator()}
+              <SecurityNotificationBell />
               <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
                 <DialogTrigger asChild>
                   <Button

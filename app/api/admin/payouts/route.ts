@@ -3,6 +3,7 @@ import { getAdminClient } from "@/lib/supabase-base"
 import { processWithdrawalPayout, getWithdrawalWithCommissionSources } from "@/lib/wholesale"
 import { completeWithdrawal, cancelWithdrawal } from "@/lib/commission-earnings"
 import { authenticateAdmin } from "@/lib/api-auth"
+import { logAuditFromRequest } from "@/lib/audit-logger"
 
 export const dynamic = "force-dynamic"
 
@@ -126,6 +127,20 @@ export async function POST(request: NextRequest) {
           })
           .eq("id", withdrawal.agent_id)
       }
+
+      await logAuditFromRequest(request, {
+        actorId: adminId,
+        actorType: "admin",
+        action: "payout_marked_paid",
+        severity: "info",
+        targetTable: "withdrawals",
+        targetId: withdrawal_id,
+        newData: {
+          payout_reference: payout_reference ?? null,
+          agent_id: withdrawal?.agent_id,
+          amount: withdrawal?.amount,
+        },
+      })
 
       return NextResponse.json({
         success: true,

@@ -35,7 +35,7 @@ export function DashboardQuickActions({ onInviteFriends }: Props) {
           </div>
           <div className="min-w-0">
             <h3 className="text-base font-bold text-white">Invite Friends</h3>
-            <p className="text-green-100 text-xs">Earn ₵7 when they join</p>
+            <p className="text-green-100 text-xs">Earn ₵5 when they join</p>
           </div>
         </div>
         <Button

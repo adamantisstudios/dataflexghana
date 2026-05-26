@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
     await logAudit({
       actorType: "paystack_webhook",
       action: "storefront_webhook_capture_failed",
+      severity: "critical",
       targetTable: "storefront_orders",
       targetId: reference,
       newData: {

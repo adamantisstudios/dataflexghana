@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Copy, Check, MessageCircle, Mail, Clock } from 'lucide-react'
 import { toast } from "sonner"
+import { REFERRAL_CREDIT_AMOUNT } from "@/lib/referral-agent-program"
 
 interface ReferralLink {
   id: string
@@ -170,7 +171,7 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
   const shareViaEmail = () => {
     if (referralLink) {
       const subject = "Join DataFlex Ghana - Earn with Me"
-      const body = `Hi! I'm inviting you to join DataFlex Ghana. Click here to register: ${referralLink}\n\nEarn 5 GHS per successful registration!`
+      const body = `Hi! I'm inviting you to join DataFlex Ghana. Click here to register: ${referralLink}\n\nEarn GH₵${REFERRAL_CREDIT_AMOUNT} per successful registration!`
       window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     }
   }

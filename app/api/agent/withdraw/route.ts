@@ -71,6 +71,19 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       const unblockAt = changedAt + PASSWORD_CHANGE_COOLDOWN_MS
       if (Date.now() < unblockAt) {
         const hoursLeft = Math.ceil((unblockAt - Date.now()) / (60 * 60 * 1000))
+        await logAuditFromRequest(request, {
+          actorId: targetAgentId,
+          actorType: "agent",
+          action: "withdrawal_blocked_cooldown",
+          severity: "warning",
+          targetTable: "agents",
+          targetId: targetAgentId,
+          newData: {
+            hours_left: hoursLeft,
+            unblock_at: new Date(unblockAt).toISOString(),
+            requested_amount: withdrawalAmount,
+          },
+        })
         return NextResponse.json(
           {
             error: `Withdrawals are paused for 48 hours after a password change (security). You can request again in about ${hoursLeft} hour(s).`,
@@ -194,7 +207,9 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
     await logAuditFromRequest(request, {
       actorId: targetAgentId,
       actorType: user.role === "admin" ? "admin" : "agent",
-      action: "withdrawal_requested",
+      action:
+        withdrawalAmount > 500 ? "large_withdrawal_requested" : "withdrawal_requested",
+      severity: withdrawalAmount > 500 ? "info" : "info",
       targetTable: "withdrawals",
       targetId: withdrawalRequest.id,
       newData: {

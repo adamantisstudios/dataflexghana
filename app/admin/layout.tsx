@@ -9,6 +9,7 @@ import Link from "next/link"
 import { LogOut, Shield, CheckCircle2, AlertCircle, Wrench } from "lucide-react"
 import { getStoredAdmin, logoutAdmin, type AdminUser } from "@/lib/unified-auth-system"
 import { AdminCallWidget } from "@/components/admin-call-widget"
+import { SecurityNotificationBell } from "@/components/admin/SecurityNotificationBell"
 
 export { getStoredAdmin } from "@/lib/unified-auth-system"
 
@@ -166,6 +167,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               {getConnectionIndicator()}
+              <SecurityNotificationBell />
               <Link href="/admin/maintenance">
                 <Button
                   variant="secondary"

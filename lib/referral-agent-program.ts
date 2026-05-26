@@ -1,7 +1,8 @@
 import { getAdminClient } from "@/lib/supabase-base"
 import { createAdminAdjustment } from "@/lib/earnings-calculator"
 
-const REFERRAL_CREDIT_AMOUNT = 5
+/** Agent-to-agent signup referral reward (GHS). */
+export const REFERRAL_CREDIT_AMOUNT = 5
 
 export async function findReferringAgentIdByCode(referralCode: string): Promise<string | null> {
   if (!referralCode?.trim()) return null

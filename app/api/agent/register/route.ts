@@ -99,6 +99,18 @@ export async function POST(request: NextRequest) {
 
     const rateCheck = await isRegistrationRateLimited(ipAddress, normalizedPhone)
     if (rateCheck.limited) {
+      await logAudit({
+        actorType: "system",
+        action: "rate_limit_hit",
+        severity: "critical",
+        newData: {
+          action: "agent_registration",
+          phone_number: normalizedPhone,
+          ip_address: ipAddress,
+        },
+        ipAddress,
+        userAgent,
+      })
       return NextResponse.json({ error: rateCheck.message }, { status: 429 })
     }
 

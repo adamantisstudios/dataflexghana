@@ -21,6 +21,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !agent) {
+      await logAuditFromRequest(request, {
+        actorType: "agent",
+        action: "failed_login",
+        severity: "warning",
+        newData: { reason: "agent_not_found", phone_number },
+      });
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
@@ -42,6 +48,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (!agent.password_hash || !(await verifyPassword(password, agent.password_hash))) {
+      await logAuditFromRequest(request, {
+        actorId: agent.id,
+        actorType: "agent",
+        action: "failed_login",
+        severity: "warning",
+        targetTable: "agents",
+        targetId: agent.id,
+        newData: { reason: "invalid_password", phone_number },
+      });
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
 
@@ -59,6 +74,7 @@ export async function POST(request: NextRequest) {
       actorId: agent.id,
       actorType: "agent",
       action: "agent_login",
+      severity: "info",
       targetTable: "agents",
       targetId: agent.id,
     });
