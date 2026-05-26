@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 /** Small self-preview when admin camera is on. */
 export function AdminLocalVideoPreview() {
   const { localParticipant, isCameraEnabled } = useLocalParticipant()
-  const { isMobile } = useVoiceDeviceLayout()
+  const { isMobile, objectFitClass } = useVoiceDeviceLayout()
   const pub = localParticipant.getTrackPublication(Track.Source.Camera)
 
   if (!isCameraEnabled || !pub?.track || pub.isMuted) return null
@@ -27,7 +27,7 @@ export function AdminLocalVideoPreview() {
           publication: pub,
           source: Track.Source.Camera,
         }}
-        className="w-full h-full object-contain bg-black"
+        className={cn("w-full h-full bg-black", objectFitClass)}
         style={{ transform: "scaleX(-1)" }}
       />
     </div>

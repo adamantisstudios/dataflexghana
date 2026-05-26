@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react"
 import {
-  LiveKitRoom,
   RoomAudioRenderer,
   useConnectionQualityIndicator,
   useParticipants,
   useLocalParticipant,
   useRoomContext,
 } from "@livekit/components-react"
-import { ConnectionQuality, RoomEvent, Track, type Participant } from "livekit-client"
+import { ConnectionQuality, ConnectionState, RoomEvent, Track, type Participant } from "livekit-client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -90,6 +89,7 @@ import { ChatPanel } from "@/components/voice/ChatPanel"
 import { AdminLocalVideoPreview } from "@/components/voice/AdminLocalVideoPreview"
 import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
+import { StableLiveKitRoom } from "@/components/voice/StableLiveKitRoom"
 import {
   Sheet,
   SheetContent,
@@ -116,6 +116,8 @@ type Props = {
   moderationApiBase?: string
   hideRecording?: boolean
   hideNotify?: boolean
+  /** When false, audio-only room (channel audio live). Default true. */
+  enableVideo?: boolean
   onClose: () => void
   onEnded: () => void
 }
@@ -215,6 +217,7 @@ function MainStage({
   activeSpeaker: Participant | null
   localParticipant: Participant
 }) {
+  const { isMobile } = useVoiceDeviceLayout()
   const focus = activeSpeaker
   const level = useParticipantAudioLevel(focus ?? localParticipant)
   const ring = voiceAvatarRingColor(focus?.identity ?? "stage")
@@ -229,12 +232,19 @@ function MainStage({
 
     if (showVideo && camPub?.track) {
       return (
-        <VoiceVideoFrame
-          participant={focus}
-          publication={camPub}
-          badge={badge}
-          maxWidthClass="max-w-4xl"
-        />
+        <div
+          className={`w-full flex justify-center min-h-0 ${
+            isMobile ? "max-w-[min(100%,420px)] mx-auto px-1" : ""
+          }`}
+        >
+          <VoiceVideoFrame
+            participant={focus}
+            publication={camPub}
+            badge={badge}
+            maxWidthClass="max-w-4xl"
+            className="w-full"
+          />
+        </div>
       )
     }
 
@@ -323,7 +333,9 @@ function HostControlButtons({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-[#3c4043] text-[#e8eaed] border border-[#5f6368] hover:bg-[#4a4d51] hover:text-white">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction className="bg-[#ea4335]" onClick={() => void onEndRoom()}>
               End call
             </AlertDialogAction>
@@ -493,6 +505,7 @@ function ControlPanelInner({
   moderationApiBase,
   hideRecording,
   hideNotify,
+  enableVideo = true,
   onEnded,
 }: {
   roomId: string
@@ -501,6 +514,7 @@ function ControlPanelInner({
   moderationApiBase?: string
   hideRecording?: boolean
   hideNotify?: boolean
+  enableVideo?: boolean
   onEnded: () => void
 }) {
   const modBase = moderationApiBase ?? `/api/admin/voice-rooms/${roomId}`
@@ -521,6 +535,27 @@ function ControlPanelInner({
   const [handsSheetOpen, setHandsSheetOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const sessionStart = useRef(Date.now())
+
+  useEffect(() => {
+    if (!enableVideo || room.state === ConnectionState.Disconnected) return
+
+    const enableHostCamera = () => {
+      void localParticipant.setCameraEnabled(true).catch((err) => {
+        console.warn("[voice-host] camera enable failed:", err)
+      })
+    }
+
+    if (room.state === ConnectionState.Connected) {
+      enableHostCamera()
+      return
+    }
+
+    room.on(RoomEvent.Connected, enableHostCamera)
+    return () => {
+      room.off(RoomEvent.Connected, enableHostCamera)
+    }
+  }, [enableVideo, room, localParticipant])
+
   useEffect(() => {
     const bump = () => setParticipantTick((n) => n + 1)
     room.on(RoomEvent.TrackPublished, bump)
@@ -808,12 +843,14 @@ function ControlPanelInner({
         </div>
       )}
 
-      <div className="shrink-0 px-4 py-2 flex items-center justify-between text-xs text-[#9aa0a6]">
-        <span className="flex items-center gap-2">
+      <div className="shrink-0 px-2 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-[#9aa0a6] min-w-0 overflow-hidden">
+        <span className="flex items-center gap-2 shrink-0">
           <Users className="h-4 w-4" style={{ color: MEET_GREEN }} />
-          {listeners.length} listening · {participants.length} total
+          <span className="truncate">
+            {listeners.length} listening · {participants.length} total
+          </span>
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 max-w-full overflow-hidden">
           <VoiceStreamStats sessionStart={sessionStart.current} />
           {recordingActive && (
             <span className="inline-flex items-center gap-1 text-red-300">
@@ -1068,6 +1105,7 @@ export function VoiceRoomAdminControl({
   moderationApiBase,
   hideRecording = false,
   hideNotify = false,
+  enableVideo = true,
   onClose,
   onEnded,
 }: Props) {
@@ -1089,14 +1127,17 @@ export function VoiceRoomAdminControl({
         </Button>
       </div>
       <div className="flex-1 min-h-0 overflow-hidden pb-0 lg:pb-0">
-        <LiveKitRoom
+        <StableLiveKitRoom
           token={token}
           serverUrl={serverUrl}
           connect
           audio
-          video
+          video={false}
           options={roomOptions}
           className="h-full"
+          onDisconnected={(reason) => {
+            console.info("[voice-host] disconnected:", reason)
+          }}
           onError={(e) => {
             if (!isTransientLiveKitError(e.message)) toast.error(e.message)
           }}
@@ -1108,10 +1149,11 @@ export function VoiceRoomAdminControl({
             moderationApiBase={moderationApiBase}
             hideRecording={hideRecording}
             hideNotify={hideNotify}
+            enableVideo={enableVideo}
             onEnded={onEnded}
           />
           <RoomAudioRenderer />
-        </LiveKitRoom>
+        </StableLiveKitRoom>
       </div>
     </div>
   )

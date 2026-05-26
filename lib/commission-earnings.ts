@@ -395,7 +395,7 @@ export async function completeWithdrawal(withdrawalId: string): Promise<{
         updated_at: new Date().toISOString(),
       })
       .eq("withdrawal_id", withdrawalId)
-      .in("status", ["pending_withdrawal", "earned"])
+      .eq("status", "pending_withdrawal")
       .select("id")
 
     if (updateError) {

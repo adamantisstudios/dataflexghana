@@ -115,6 +115,7 @@ export function ChannelLiveSection({ channelId, agentId, agentName, isHost }: Pr
           token={hostOverlay.token}
           serverUrl={hostOverlay.serverUrl}
           recordingEnabled={false}
+          enableVideo={hostOverlay.session.session_type === "video"}
           moderationApiBase={`/api/channel-live/${hostOverlay.session.id}`}
           hideRecording
           hideNotify

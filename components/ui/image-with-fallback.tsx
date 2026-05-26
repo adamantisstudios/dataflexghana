@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
+import { ensureHttpsImageUrl } from "@/lib/image-url"
 
 interface ImageWithFallbackProps {
   src: string | undefined | null
@@ -20,8 +21,14 @@ export function ImageWithFallback({
   onClick,
   onError,
 }: ImageWithFallbackProps) {
-  const [imgSrc, setImgSrc] = useState(src || fallbackSrc)
+  const secureSrc = ensureHttpsImageUrl(src) || fallbackSrc
+  const [imgSrc, setImgSrc] = useState(secureSrc)
   const [hasError, setHasError] = useState(false)
+
+  useEffect(() => {
+    setHasError(false)
+    setImgSrc(ensureHttpsImageUrl(src) || fallbackSrc)
+  }, [src, fallbackSrc])
 
   const handleError = () => {
     if (!hasError && imgSrc !== fallbackSrc) {

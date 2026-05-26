@@ -13,8 +13,14 @@ export const GET = withUnifiedAuth(async (request: NextRequest, user) => {
 
     const page = parseInt(request.nextUrl.searchParams.get("page") || "1", 10)
     const limit = parseInt(request.nextUrl.searchParams.get("limit") || "20", 10)
+    const search = request.nextUrl.searchParams.get("search") || ""
 
-    const result = await fetchEnrichedStorefrontOrders({ agentId, page, limit })
+    const result = await fetchEnrichedStorefrontOrders({
+      agentId,
+      page,
+      limit,
+      search: search.trim() || undefined,
+    })
     return NextResponse.json({ success: true, ...result, orders: result.orders })
   } catch (error) {
     console.error("agent storefront-orders GET:", error)

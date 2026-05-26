@@ -386,3 +386,12 @@ body {
     max-width: 100%;
   }
 }
+
+/* LiveKit portrait live — fill vertical frame (TikTok-style on phones) */
+.voice-video-portrait video,
+.voice-video-portrait [data-lk-source="camera"] video {
+  object-fit: cover !important;
+  object-position: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}

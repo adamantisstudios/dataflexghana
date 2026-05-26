@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
-  LiveKitRoom,
   RoomAudioRenderer,
   useConnectionState,
   useLocalParticipant,
@@ -48,6 +47,7 @@ import {
   VOICE_REACTION_EMOJIS,
 } from "@/lib/voice-room-topics"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
+import { StableLiveKitRoom } from "@/components/voice/StableLiveKitRoom"
 import { AgentLocalVideoPip } from "@/components/voice/AgentLocalVideoPip"
 import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
 import {
@@ -518,13 +518,14 @@ function AgentRoomUI({
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden pb-2">
         <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 gap-4 min-h-0">
           {hostOrSpeaker ? (
-            <div className="flex flex-col items-center gap-3 w-full max-w-lg">
+            <div className="flex flex-col items-center gap-3 w-full max-w-[min(100%,420px)] sm:max-w-lg mx-auto">
               {hostShowVideo && hostCamPub ? (
                 <VoiceVideoFrame
                   participant={hostOrSpeaker}
                   publication={hostCamPub}
                   badge={hostVideoBadge}
                   maxWidthClass="max-w-lg"
+                  className="w-full"
                 />
               ) : (
                 <MeetAvatar
@@ -772,14 +773,14 @@ export function VoiceRoomAgentClient({
   }
 
   return (
-    <LiveKitRoom
+    <StableLiveKitRoom
       key={roomKey}
       token={lkToken}
       serverUrl={serverUrl}
       connect={joined}
       audio
       video={false}
-      options={roomOptions}
+      options={{ ...roomOptions, disconnectOnPageLeave: false }}
       onError={(e) => {
         if (!isTransientLiveKitError(e.message)) toast.error(e.message)
       }}
@@ -797,6 +798,6 @@ export function VoiceRoomAgentClient({
         onVideoActivated={() => setPendingVideo(false)}
       />
       <RoomAudioRenderer />
-    </LiveKitRoom>
+    </StableLiveKitRoom>
   )
 }

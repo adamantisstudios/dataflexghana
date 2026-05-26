@@ -68,11 +68,14 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
 
     if (agentSecurity?.password_changed_at) {
       const changedAt = new Date(agentSecurity.password_changed_at).getTime()
-      if (Date.now() - changedAt < PASSWORD_CHANGE_COOLDOWN_MS) {
+      const unblockAt = changedAt + PASSWORD_CHANGE_COOLDOWN_MS
+      if (Date.now() < unblockAt) {
+        const hoursLeft = Math.ceil((unblockAt - Date.now()) / (60 * 60 * 1000))
         return NextResponse.json(
           {
-            error:
-              "Withdrawals are temporarily blocked for 48 hours after a password change. Please try again later.",
+            error: `Withdrawals are paused for 48 hours after a password change (security). You can request again in about ${hoursLeft} hour(s).`,
+            code: "password_change_cooldown",
+            unblock_at: new Date(unblockAt).toISOString(),
           },
           { status: 403 },
         )

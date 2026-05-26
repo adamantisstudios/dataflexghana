@@ -505,8 +505,16 @@ export default function WithdrawPage() {
           errorMessage += "Network error. Please check your connection and try again."
         } else if (error.message.includes("HTTP 401")) {
           errorMessage += "Authentication failed. Please log out and log back in."
+        } else if (
+          error.message.includes("password change") ||
+          error.message.includes("temporarily blocked") ||
+          error.message.includes("Withdrawals are paused")
+        ) {
+          errorMessage = error.message
         } else if (error.message.includes("HTTP 403")) {
-          errorMessage += "Access denied. Please verify your account permissions."
+          errorMessage = error.message.includes("HTTP 403")
+            ? error.message.replace(/^HTTP 403:\s*/i, "")
+            : error.message
         } else if (error.message.includes("HTTP 500")) {
           errorMessage += "Server error occurred. Please try again in a few minutes."
         } else {

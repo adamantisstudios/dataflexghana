@@ -96,6 +96,21 @@ export async function captureStorefrontPaidOrder(params: {
       agentId,
       rowCount: rows.length,
     })
+    await logAudit({
+      actorType: params.actorType ?? "system",
+      action: "storefront_order_capture_failed",
+      targetTable: "storefront_orders",
+      targetId: reference,
+      newData: {
+        paystack_reference: reference,
+        agent_id: agentId,
+        error: insertError.message,
+        details: insertError.details ?? null,
+        row_count: rows.length,
+      },
+      ipAddress: params.ipAddress ?? null,
+      userAgent: params.userAgent ?? null,
+    })
     return {
       ok: false,
       alreadyRecorded: false,

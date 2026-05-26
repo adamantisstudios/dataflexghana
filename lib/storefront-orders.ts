@@ -1,5 +1,17 @@
 import { getAdminClient } from "@/lib/supabase-base"
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value.trim())
+}
+
+/** PostgREST `.or()` breaks on commas/parens — sanitize user search input. */
+function sanitizePostgrestSearchTerm(value: string): string {
+  return value.replace(/[(),]/g, " ").replace(/\s+/g, " ").trim()
+}
+
 export interface StorefrontOrderRow {
   id: string
   agent_id: string
@@ -112,21 +124,49 @@ export async function fetchEnrichedStorefrontOrders(
     query = query.eq("status", options.status)
   }
 
-  const search = (options?.search || "").trim()
+  const rawSearch = (options?.search || "").trim()
+  const search = sanitizePostgrestSearchTerm(rawSearch)
   if (search) {
     const agentIdsFromSearch: string[] = []
+    const phoneDigits = search.replace(/\D/g, "")
+
+    const agentSearchTerm =
+      phoneDigits.length >= 6 && phoneDigits !== search ? phoneDigits : search
+
+    const safeSearch = search.replace(/%/g, "")
+    const safeAgentTerm = agentSearchTerm.replace(/%/g, "")
+
     const { data: matchingAgents } = await db
       .from("agents")
       .select("id")
-      .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%`)
+      .or(
+        `full_name.ilike.%${safeSearch}%,phone_number.ilike.%${safeSearch}%,phone_number.ilike.%${safeAgentTerm}%`,
+      )
+
     for (const a of matchingAgents || []) {
       agentIdsFromSearch.push(a.id)
     }
 
-    const orParts = [`customer_phone.ilike.%${search}%`, `id.ilike.%${search}%`]
+    const orParts: string[] = [
+      `customer_phone.ilike.%${search}%`,
+      `paystack_reference.ilike.%${search}%`,
+      `item_title.ilike.%${search}%`,
+    ]
+
+    if (phoneDigits.length >= 6) {
+      orParts.push(`customer_phone.ilike.%${phoneDigits}%`)
+    }
+
+    // UUID columns cannot use ilike — use eq only for valid UUIDs
+    if (isUuid(search)) {
+      orParts.push(`id.eq.${search}`)
+      orParts.push(`agent_id.eq.${search}`)
+    }
+
     if (agentIdsFromSearch.length > 0) {
       orParts.push(`agent_id.in.(${agentIdsFromSearch.join(",")})`)
     }
+
     query = query.or(orParts.join(","))
   }
 

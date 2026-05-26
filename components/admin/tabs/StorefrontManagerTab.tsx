@@ -963,7 +963,10 @@ export default function StorefrontManagerTab() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={processingId === confirmPaidAgent?.agent_id}>
+            <AlertDialogCancel
+              disabled={processingId === confirmPaidAgent?.agent_id}
+              className="text-gray-900 border-gray-300 bg-white hover:bg-gray-100"
+            >
               Cancel
             </AlertDialogCancel>
             <Button
@@ -1020,7 +1023,10 @@ export default function StorefrontManagerTab() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={processingId === confirmDeleteCashout?.agent_id}>
+            <AlertDialogCancel
+              disabled={processingId === confirmDeleteCashout?.agent_id}
+              className="text-gray-900 border-gray-300 bg-white hover:bg-gray-100"
+            >
               Cancel
             </AlertDialogCancel>
             <Button
@@ -1048,7 +1054,12 @@ export default function StorefrontManagerTab() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingCompleted}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              disabled={deletingCompleted}
+              className="text-gray-900 border-gray-300 bg-white hover:bg-gray-100"
+            >
+              Cancel
+            </AlertDialogCancel>
             <Button variant="destructive" disabled={deletingCompleted} onClick={() => void deleteCompletedOrders()}>
               {deletingCompleted ? "Deleting…" : "Delete completed orders"}
             </Button>

@@ -48,7 +48,7 @@ export function VoiceVideoFrame({
   mirror = false,
   maxWidthClass = "max-w-3xl",
 }: Props) {
-  const { aspectClass } = useVoiceDeviceLayout()
+  const { aspectClass, objectFitClass, isMobile } = useVoiceDeviceLayout()
   const [subscriptionFailed, setSubscriptionFailed] = useState(false)
   const failTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -76,9 +76,10 @@ export function VoiceVideoFrame({
   return (
     <div
       className={cn(
-        "relative w-full mx-auto rounded-xl overflow-hidden bg-black",
+        "relative w-full mx-auto rounded-xl overflow-hidden bg-black voice-video-frame",
+        isMobile && "voice-video-portrait",
         aspectClass,
-        maxWidthClass,
+        isMobile ? "max-w-[min(100%,420px)] w-full" : maxWidthClass,
         className,
       )}
     >
@@ -88,7 +89,7 @@ export function VoiceVideoFrame({
           publication,
           source: Track.Source.Camera,
         }}
-        className="w-full h-full object-contain bg-black"
+        className={cn("w-full h-full bg-black", objectFitClass)}
         style={mirror ? { transform: "scaleX(-1)" } : undefined}
       />
       {badgeMeta && BadgeIcon && (

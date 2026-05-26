@@ -237,13 +237,14 @@ export async function GET(request: NextRequest) {
   })
 
   if (!capture.ok && !capture.alreadyRecorded) {
-    console.error("[storefront callback] capture failed (user still redirected):", {
+    console.error("[storefront callback] capture failed:", {
       error: capture.error,
       reference: verifiedReference,
       agentId,
       orderType,
       itemCount: items.length,
     })
+    return NextResponse.redirect(buildFailureRedirect(verifiedReference))
   } else {
     console.info("[storefront callback] capture result:", {
       reference: verifiedReference,

@@ -15,6 +15,7 @@ import { MapPin, Bed, Bath, Square, Home, MessageCircle, Phone } from "lucide-re
 import type { PublicPropertyListing } from "@/lib/property-types"
 import { PropertyListingShareButtons } from "@/components/shared/PropertyListingShareButtons"
 import { normalizeGhanaPhoneNumber, toTelHref, toWhatsAppHref } from "@/lib/phone-utils"
+import { ensureHttpsImageUrl } from "@/lib/image-url"
 
 type Props = {
   agentId: string
@@ -78,7 +79,7 @@ export function StorefrontRealEstateTab({
             >
               {property.image_urls[0] ? (
                 <Image
-                  src={property.image_urls[0]}
+                  src={ensureHttpsImageUrl(property.image_urls[0])}
                   alt={property.title}
                   fill
                   className="object-cover"
@@ -140,7 +141,13 @@ export function StorefrontRealEstateTab({
                 <div className="grid grid-cols-2 gap-2">
                   {selected.image_urls.slice(0, 4).map((url, i) => (
                     <div key={i} className="relative aspect-video rounded-lg overflow-hidden bg-slate-100">
-                      <Image src={url} alt="" fill className="object-cover" sizes="200px" />
+                      <Image
+                        src={ensureHttpsImageUrl(url)}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="200px"
+                      />
                     </div>
                   ))}
                 </div>
