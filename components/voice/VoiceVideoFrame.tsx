@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { VideoTrack } from "@livekit/components-react"
 import { Track, type Participant, type TrackPublication } from "livekit-client"
 import { Headphones, Monitor, Shield, User, Video } from "lucide-react"
+import { usePortraitVideoLayout } from "@/hooks/use-portrait-video-layout"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
 import { cn } from "@/lib/utils"
 import {
@@ -49,6 +50,8 @@ export function VoiceVideoFrame({
   maxWidthClass = "max-w-3xl",
 }: Props) {
   const { aspectClass, objectFitClass, isMobile } = useVoiceDeviceLayout()
+  const portraitLayout = isMobile && badge !== "screen"
+  const { containerRef, landscapeFeed } = usePortraitVideoLayout(portraitLayout)
   const [subscriptionFailed, setSubscriptionFailed] = useState(false)
   const failTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -73,11 +76,15 @@ export function VoiceVideoFrame({
   const badgeMeta = badgeKey ? BADGE_CONFIG[badgeKey] : null
   const BadgeIcon = badgeMeta?.icon
 
+  const mirrorTransform = mirror ? "scaleX(-1)" : undefined
+
   return (
     <div
+      ref={containerRef}
       className={cn(
         "relative w-full mx-auto rounded-xl overflow-hidden bg-black voice-video-frame",
-        isMobile && "voice-video-portrait",
+        portraitLayout && "voice-video-portrait",
+        portraitLayout && landscapeFeed && "voice-video-landscape-feed",
         aspectClass,
         isMobile ? "max-w-[min(100%,420px)] w-full" : maxWidthClass,
         className,
@@ -89,8 +96,11 @@ export function VoiceVideoFrame({
           publication,
           source: Track.Source.Camera,
         }}
-        className={cn("w-full h-full bg-black", objectFitClass)}
-        style={mirror ? { transform: "scaleX(-1)" } : undefined}
+        className={cn(
+          "w-full h-full bg-black voice-video-track",
+          portraitLayout ? "voice-video-track-portrait" : objectFitClass,
+        )}
+        style={mirrorTransform ? { transform: mirrorTransform } : undefined}
       />
       {badgeMeta && BadgeIcon && (
         <TooltipProvider delayDuration={200}>

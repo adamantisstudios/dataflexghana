@@ -46,6 +46,7 @@ import {
   VOICE_TOPIC_VIDEO_PERMISSION,
   VOICE_REACTION_EMOJIS,
 } from "@/lib/voice-room-topics"
+import { setParticipantCameraEnabled } from "@/lib/enable-participant-camera"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
 import { StableLiveKitRoom } from "@/components/voice/StableLiveKitRoom"
 import { AgentLocalVideoPip } from "@/components/voice/AgentLocalVideoPip"
@@ -176,6 +177,7 @@ function AgentRoomUI({
   onVideoActivated: () => void
 }) {
   const router = useRouter()
+  const { isMobile } = useVoiceDeviceLayout()
   const room = useRoomContext()
   useLiveKitRoomErrors(room)
   const connectionState = useConnectionState()
@@ -342,17 +344,16 @@ function AgentRoomUI({
   useEffect(() => {
     if (!pendingVideo || connectionState !== ConnectionState.Connected) return
     void (async () => {
-      try {
-        await localParticipant.setCameraEnabled(true)
+      const result = await setParticipantCameraEnabled(localParticipant, true, isMobile)
+      if (result.ok) {
         toast.success("Camera is on")
-      } catch {
-        toast.error("Allow camera access in your browser")
-      } finally {
-        setEnablingCamera(false)
-        onVideoActivated()
+      } else {
+        toast.error(result.message, { duration: result.denied ? 8000 : 5000 })
       }
+      setEnablingCamera(false)
+      onVideoActivated()
     })()
-  }, [pendingVideo, connectionState, localParticipant, onVideoActivated])
+  }, [pendingVideo, connectionState, localParticipant, onVideoActivated, isMobile])
 
   const turnOnCamera = () => {
     if (!canSpeak) {
@@ -381,8 +382,12 @@ function AgentRoomUI({
           onTokenUpgrade(token, { video: true, activateVideo: true })
           return
         }
-        await localParticipant.setCameraEnabled(true)
-        toast.success("Camera is on")
+        const result = await setParticipantCameraEnabled(localParticipant, true, isMobile)
+        if (result.ok) {
+          toast.success("Camera is on")
+        } else {
+          toast.error(result.message, { duration: result.denied ? 8000 : 5000 })
+        }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not enable camera")
       } finally {

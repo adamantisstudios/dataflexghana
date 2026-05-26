@@ -387,11 +387,43 @@ body {
   }
 }
 
-/* LiveKit portrait live — fill vertical frame (TikTok-style on phones) */
-.voice-video-portrait video,
-.voice-video-portrait [data-lk-source="camera"] video {
-  object-fit: cover !important;
-  object-position: center !important;
-  width: 100% !important;
-  height: 100% !important;
+/* LiveKit portrait live — TikTok-style 9:16 on phones */
+@media (max-width: 767px) {
+  .voice-video-portrait {
+    aspect-ratio: 9 / 16;
+    max-width: 420px;
+  }
+
+  /* Native portrait capture: balanced head + torso (~70% frame height) */
+  .voice-video-portrait .voice-video-track-portrait,
+  .voice-video-portrait .voice-video-track-portrait video,
+  .voice-video-portrait [data-lk-source="camera"] video {
+    object-fit: cover !important;
+    object-position: center 28% !important;
+    width: 100% !important;
+    height: 100% !important;
+    transform-origin: center center;
+  }
+
+  /* Landscape camera feed mapped into portrait container (rotate + scale) */
+  .voice-video-portrait.voice-video-landscape-feed .voice-video-track-portrait,
+  .voice-video-portrait.voice-video-landscape-feed .voice-video-track-portrait video,
+  .voice-video-portrait.voice-video-landscape-feed [data-lk-source="camera"] video {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    width: auto !important;
+    height: 155% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    transform: translate(-50%, -50%) rotate(90deg) scale(1.42) !important;
+    transform-origin: center center !important;
+  }
+
+  .voice-video-portrait.voice-video-landscape-feed .voice-video-track-portrait[style*="scaleX(-1)"],
+  .voice-video-portrait.voice-video-landscape-feed .voice-video-track-portrait[style*="scaleX(-1)"] video {
+    transform: translate(-50%, -50%) rotate(90deg) scale(1.42) scaleX(-1) !important;
+  }
 }

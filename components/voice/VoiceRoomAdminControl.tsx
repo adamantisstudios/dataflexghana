@@ -88,6 +88,7 @@ import { VoiceReactionsLayer } from "@/components/voice/VoiceReactionsLayer"
 import { ChatPanel } from "@/components/voice/ChatPanel"
 import { AdminLocalVideoPreview } from "@/components/voice/AdminLocalVideoPreview"
 import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
+import { setParticipantCameraEnabled } from "@/lib/enable-participant-camera"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
 import { StableLiveKitRoom } from "@/components/voice/StableLiveKitRoom"
 import {
@@ -288,6 +289,7 @@ function HostControlButtons({
   isCameraEnabled,
   localParticipant,
   onEndRoom,
+  onToggleCamera,
   speakers,
   busy,
   onMute,
@@ -296,18 +298,11 @@ function HostControlButtons({
   isCameraEnabled: boolean
   localParticipant: Participant
   onEndRoom: () => void
+  onToggleCamera: () => void | Promise<void>
   speakers: Participant[]
   busy: string | null
   onMute: (id: string) => void
 }) {
-  const toggleCamera = async () => {
-    try {
-      await localParticipant.setCameraEnabled(!isCameraEnabled)
-    } catch {
-      toast.error("Camera access is required")
-    }
-  }
-
   return (
     <>
       <button
@@ -344,7 +339,7 @@ function HostControlButtons({
       </AlertDialog>
       <button
         type="button"
-        onClick={() => void toggleCamera()}
+        onClick={() => void onToggleCamera()}
         className={ICON_BTN}
         style={isCameraEnabled ? { background: MEET_GREEN } : undefined}
         title={isCameraEnabled ? "Stop camera" : "Start camera"}
@@ -519,6 +514,7 @@ function ControlPanelInner({
 }) {
   const modBase = moderationApiBase ?? `/api/admin/voice-rooms/${roomId}`
   const room = useRoomContext()
+  const { isMobile } = useVoiceDeviceLayout()
   useLiveKitRoomErrors(room)
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant()
   const participants = useParticipants()
@@ -536,25 +532,39 @@ function ControlPanelInner({
   const fileRef = useRef<HTMLInputElement>(null)
   const sessionStart = useRef(Date.now())
 
+  const toggleHostCamera = useCallback(async () => {
+    const result = await setParticipantCameraEnabled(
+      localParticipant,
+      !isCameraEnabled,
+      isMobile,
+    )
+    if (!result.ok) {
+      toast.error(result.message, { duration: result.denied ? 8000 : 5000 })
+    }
+  }, [localParticipant, isCameraEnabled, isMobile])
+
   useEffect(() => {
     if (!enableVideo || room.state === ConnectionState.Disconnected) return
 
-    const enableHostCamera = () => {
-      void localParticipant.setCameraEnabled(true).catch((err) => {
-        console.warn("[voice-host] camera enable failed:", err)
-      })
+    const enableHostCamera = async () => {
+      const result = await setParticipantCameraEnabled(localParticipant, true, isMobile)
+      if (!result.ok) {
+        console.warn("[voice-host] camera enable failed:", result.message)
+        toast.error(result.message, { duration: result.denied ? 8000 : 5000 })
+      }
     }
 
     if (room.state === ConnectionState.Connected) {
-      enableHostCamera()
+      void enableHostCamera()
       return
     }
 
-    room.on(RoomEvent.Connected, enableHostCamera)
+    const onConnected = () => void enableHostCamera()
+    room.on(RoomEvent.Connected, onConnected)
     return () => {
-      room.off(RoomEvent.Connected, enableHostCamera)
+      room.off(RoomEvent.Connected, onConnected)
     }
-  }, [enableVideo, room, localParticipant])
+  }, [enableVideo, room, localParticipant, isMobile])
 
   useEffect(() => {
     const bump = () => setParticipantTick((n) => n + 1)
@@ -911,6 +921,7 @@ function ControlPanelInner({
               isCameraEnabled={isCameraEnabled}
               localParticipant={localParticipant}
               onEndRoom={endRoom}
+              onToggleCamera={toggleHostCamera}
               speakers={speakers}
               busy={busy}
               onMute={(id) => void muteParticipant(id)}
@@ -946,6 +957,7 @@ function ControlPanelInner({
             isCameraEnabled={isCameraEnabled}
             localParticipant={localParticipant}
             onEndRoom={endRoom}
+            onToggleCamera={toggleHostCamera}
             speakers={speakers}
             busy={busy}
             onMute={(id) => void muteParticipant(id)}
@@ -1110,6 +1122,7 @@ export function VoiceRoomAdminControl({
   onEnded,
 }: Props) {
   const { roomOptions } = useVoiceDeviceLayout()
+  const publishVideoOnConnect = enableVideo
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: MEET_BG, color: MEET_TEXT }}>
       <div className="shrink-0 px-4 py-3 border-b border-[#3c4043] flex items-center justify-between">
@@ -1132,7 +1145,7 @@ export function VoiceRoomAdminControl({
           serverUrl={serverUrl}
           connect
           audio
-          video={false}
+          video={publishVideoOnConnect}
           options={roomOptions}
           className="h-full"
           onDisconnected={(reason) => {

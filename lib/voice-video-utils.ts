@@ -26,14 +26,20 @@ export function voiceVideoCaptureDefaults(isMobile: boolean) {
       ? { width: 720, height: 1280, frameRate: 24 }
       : { width: 1280, height: 720, frameRate: 24 },
     facingMode: "user" as const,
+    /** Prefer portrait capture on phones so 9:16 frames need less CSS cropping. */
+    aspectRatio: isMobile ? 9 / 16 : 16 / 9,
   }
 }
 
 export function voiceLiveKitRoomOptions(isMobile: boolean): Partial<RoomOptions> {
+  const capture = voiceVideoCaptureDefaults(isMobile)
   return {
     disconnectOnPageLeave: false,
     publishDefaults: { simulcast: false },
-    videoCaptureDefaults: voiceVideoCaptureDefaults(isMobile),
+    videoCaptureDefaults: {
+      resolution: capture.resolution,
+      facingMode: capture.facingMode,
+    },
   }
 }
 
