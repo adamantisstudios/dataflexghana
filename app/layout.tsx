@@ -729,10 +729,16 @@ const seoKeywords = [
 // UPGRADED METADATA – now reflects the full service list
 // ==============================
 export const metadata: Metadata = {
-  title:
-    "DataFlex Agents Ghana - Earn ₵700+ Daily | MTN/AirtelTigo/Telecel Data, Business Registration, Wholesale, Jobs, School Forms, GES Books, ECG, Gift Cards, Apple Repairs, Domestic Workers, Fashion & Beauty, Salon Bookings, Product Promotion & Free Training | Order Without Registration",
-  description:
-    "Join Ghana's #1 multi-service platform. Promote & earn from: Cheap Data Bundles (MTN 1GB ₵3.70), Business Registration, Wholesale & Dropshipping, Job Recruitment, School Forms & Admission, GES Approved Books, ECG & Digital Payments, Gift Cards & Vouchers, Apple Device Repairs, Domestic Worker Recruitment, Fashion & Beauty Services, Candidate Search Portal, Salon & Beauty Bookings, Product Promotion & Commissions, Free Marketing Training. Agent-only data prices. Instant delivery. Order without registration. ₵200-₵800 daily potential. Zero agency fees.",
+  title: {
+    default: "Dataflex Ghana",
+    template: "%s | Dataflex Ghana",
+  },
+  description: "Dataflex Ghana – Agent Empowerment Platform",
+  icons: {
+    icon: "/dataflex_logo.png",
+    apple: "/dataflex_logo.png",
+    shortcut: "/dataflex_logo.png",
+  },
   keywords: seoKeywords,
   authors: [{ name: "DataFlex Ghana - Adamantis Solutions" }],
   creator: "DataFlex Ghana",
@@ -878,12 +884,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* Mobile App Tags */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-touch-fullscreen" content="yes" />
-
-        {/* Favicon and Icons */}
-        <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png" />
-        <link rel="apple-touch-icon" href="/images/logo.png" />
-        <link rel="shortcut icon" href="/images/logo.png" />
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
