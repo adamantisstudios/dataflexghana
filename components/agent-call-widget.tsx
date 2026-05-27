@@ -73,12 +73,20 @@ function AgentCallDialogUI({
       )}
 
       {phase === "calling" && (
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-3 w-full">
           <div className="h-16 w-16 rounded-full bg-emerald-500/20 flex items-center justify-center animate-pulse">
             <Phone className="h-8 w-8 text-emerald-600" />
           </div>
           <p className="font-medium text-emerald-700 dark:text-emerald-400">Calling…</p>
           <p className="text-xs text-muted-foreground">Waiting for admin to answer</p>
+          <button
+            type="button"
+            onClick={onEndCall}
+            className="mt-1 h-11 px-5 rounded-full bg-red-500 hover:bg-red-600 text-white font-medium flex items-center gap-2"
+          >
+            <PhoneOff className="h-4 w-4" />
+            Cancel
+          </button>
         </div>
       )}
 

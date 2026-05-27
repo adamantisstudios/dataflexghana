@@ -217,6 +217,7 @@ export default function AgentDashboard() {
   const [tabLoadingStates, setTabLoadingStates] = useState<Record<string, boolean>>({})
   const [jobsFetchError, setJobsFetchError] = useState<string | null>(null)
   const [showReferralDialog, setShowReferralDialog] = useState(false)
+  const [isApprovedInfluencer, setIsApprovedInfluencer] = useState(false)
   const [referralWhatsApp, setReferralWhatsApp] = useState("")
   const [referralWhatsAppError, setReferralWhatsAppError] = useState("")
   const [showDomesticReferralDialog, setShowDomesticReferralDialog] = useState(false)
@@ -412,6 +413,12 @@ export default function AgentDashboard() {
         const mergedAgent = profileRow ? { ...parsedAgent, ...profileRow } : parsedAgent
         setAgent(mergedAgent)
         localStorage.setItem("agent", JSON.stringify(mergedAgent))
+        const { data: influencerProfile } = await supabase
+          .from("influencer_profiles")
+          .select("approved")
+          .eq("agent_id", parsedAgent.id)
+          .maybeSingle()
+        setIsApprovedInfluencer(Boolean(influencerProfile?.approved))
         const cachedData = getFromCache(`dashboard-${parsedAgent.id}`)
         if (cachedData) {
           setEarningsData(cachedData.earnings)
@@ -1018,6 +1025,11 @@ DataFlex Ghana Agent 🇬🇭`
                   <span className="font-semibold text-white inline-flex items-center gap-1.5">
                     {agent?.full_name}
                     {agent?.isapproved && <AgentVerificationBadge agent={agent} />}
+                    {isApprovedInfluencer && (
+                      <span className="inline-flex items-center rounded-full border border-sky-300/30 bg-sky-500/20 px-2 py-0.5 text-[10px] text-sky-100">
+                        Approved Influencer
+                      </span>
+                    )}
                   </span>
                 </div>
               </div>

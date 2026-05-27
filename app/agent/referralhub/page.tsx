@@ -62,6 +62,21 @@ interface DataBundle {
   image_url?: string | null
 }
 
+function HubDescription({
+  title,
+  text,
+}: {
+  title: string
+  text: string
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-r from-white to-slate-50 p-4 shadow-sm">
+      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+      <p className="mt-1 text-sm text-slate-600">{text}</p>
+    </div>
+  )
+}
+
 export default function ReferralHubPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -234,70 +249,78 @@ export default function ReferralHubPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-16">
-      <header className="bg-slate-900 text-white px-4 py-4 sticky top-0 z-10 shadow-md">
-        <div className="max-w-5xl mx-auto flex items-center gap-3">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white pb-16">
+      <header className="bg-slate-900/95 text-white px-4 py-4 sticky top-0 z-10 shadow-md backdrop-blur">
+        <div className="max-w-6xl mx-auto flex items-center gap-3">
           <Link href="/agent/dashboard">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 shrink-0">
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 shrink-0 rounded-full">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-lg font-bold flex items-center gap-2">
               <Store className="h-5 w-5 shrink-0" />
               Referral Hub
             </h1>
-            <p className="text-slate-300 text-xs truncate">Storefront profile, marketplace, orders & QR</p>
+            <p className="text-slate-300 text-xs sm:text-sm truncate">
+              Welcome back. Manage your storefront, referrals, listings, and earnings in one premium workspace.
+            </p>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6">
+      <main className="max-w-6xl mx-auto px-4 py-6">
         {loading ? (
           <ReferralHubSkeleton />
         ) : (
-          <Tabs value={hubTab} onValueChange={setHubTab} className="w-full">
-            <TabsList className="w-full h-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1 p-1 rounded-xl bg-white border shadow-sm">
+          <Tabs value={hubTab} onValueChange={setHubTab} className="w-full space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white/90 p-2 shadow-sm">
+              <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto whitespace-nowrap bg-transparent p-0">
               <TabsTrigger
                 value="profile"
-                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                className="rounded-full px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow"
               >
                 Profile
               </TabsTrigger>
               <TabsTrigger
                 value="listings"
-                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                className="rounded-full px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow"
               >
                 My Listings
               </TabsTrigger>
               <TabsTrigger
                 value="marketplace"
-                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                className="rounded-full px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow"
               >
                 Marketplace
               </TabsTrigger>
               <TabsTrigger
                 value="farmers-friend"
-                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                className="rounded-full px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow"
               >
                 Farmers Friend
               </TabsTrigger>
               <TabsTrigger
                 value="orders"
-                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                className="rounded-full px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow"
               >
                 Orders
               </TabsTrigger>
               <TabsTrigger
                 value="qr"
-                className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-slate-900 data-[state=active]:text-white"
+                className="rounded-full px-4 py-2.5 text-sm font-medium transition-all data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow"
               >
                 QR code
               </TabsTrigger>
-            </TabsList>
+              </TabsList>
+            </div>
 
-            <TabsContent value="profile" className="mt-4">
-              <Card>
+            <TabsContent value="profile" className="mt-0 space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <HubDescription
+                title="Storefront Profile"
+                text="Shape your public storefront with branding, contact details, and a memorable store URL that customers can trust."
+              />
+              <Card className="rounded-2xl border-slate-200/90 bg-white/95 shadow-sm">
                 <CardHeader>
                   <CardTitle>Storefront profile</CardTitle>
                   <CardDescription>Branding shown on your public store</CardDescription>
@@ -413,15 +436,27 @@ export default function ReferralHubPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="listings" className="mt-4">
+            <TabsContent value="listings" className="mt-0 space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <HubDescription
+                title="My Listings"
+                text="Review and manage the products and offers currently visible on your storefront so your catalog stays fresh."
+              />
               {agent?.id && <MarketplaceMyListingsSection agentId={agent.id} />}
             </TabsContent>
 
-            <TabsContent value="farmers-friend" className="mt-4">
+            <TabsContent value="farmers-friend" className="mt-0 space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <HubDescription
+                title="Farmers Friend"
+                text="Support agri-focused customers with trusted farm listings, bundles, and referral opportunities designed for rural commerce."
+              />
               {agent?.id && <FarmersFriendHub agentId={agent.id} />}
             </TabsContent>
 
-            <TabsContent value="marketplace" className="mt-4">
+            <TabsContent value="marketplace" className="mt-0 space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <HubDescription
+                title="Marketplace"
+                text="Explore high-converting referral categories, publish offers, and earn commissions across bundles, services, wholesale, and more."
+              />
               {agent?.id && (
                 <MarketplaceSubTabs
                   defaultSubTab={
@@ -487,7 +522,11 @@ export default function ReferralHubPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="orders" className="mt-4">
+            <TabsContent value="orders" className="mt-0 space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <HubDescription
+                title="Orders & Commissions"
+                text="Track incoming storefront orders and monitor payout-ready balances from completed referrals and product sales."
+              />
               {agent?.id && (
                 <StorefrontOrdersSection
                   agentId={agent.id}
@@ -497,7 +536,11 @@ export default function ReferralHubPage() {
               )}
             </TabsContent>
 
-            <TabsContent value="qr" className="mt-4 space-y-4">
+            <TabsContent value="qr" className="mt-0 space-y-4 animate-in fade-in slide-in-from-bottom-2">
+              <HubDescription
+                title="QR Code"
+                text="Share your storefront instantly with a scan-ready QR code for offline promotions, events, and walk-in customers."
+              />
               <StorefrontQrCard
                 agentId={agent.id}
                 storeSlug={profile.store_slug}

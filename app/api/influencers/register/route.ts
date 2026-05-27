@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { randomBytes } from "crypto"
 import { getAdminClient } from "@/lib/supabase-base"
 import { hashPassword } from "@/lib/supabase"
 import { logAuditFromRequest, getRequestClientMeta } from "@/lib/audit-logger"
@@ -38,6 +37,7 @@ export async function POST(request: NextRequest) {
     const email = String(body.email ?? "").trim().toLowerCase()
     const bio = body.bio ? String(body.bio).trim() : null
     const photo_url = body.photo_url ? String(body.photo_url).trim() : null
+    const password = String(body.password ?? "").trim()
     const nicheRaw = String(body.niche ?? "").trim()
     const audience_size = Number(body.audience_size ?? body.audienceSize)
     const termsAccepted = Boolean(body.terms_accepted ?? body.termsAccepted)
@@ -54,6 +54,9 @@ export async function POST(request: NextRequest) {
     }
     if (!photo_url) {
       return NextResponse.json({ error: "Profile photo is required" }, { status: 400 })
+    }
+    if (password.length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 })
     }
     if (!nicheRaw) {
       return NextResponse.json({ error: "Niche is required" }, { status: 400 })
@@ -86,8 +89,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 })
     }
 
-    const tempPassword = randomBytes(32).toString("hex")
-    const passwordHash = await hashPassword(tempPassword)
+    const passwordHash = await hashPassword(password)
 
     const { data: newAgent, error: agentError } = await db
       .from("agents")

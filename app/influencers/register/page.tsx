@@ -24,6 +24,8 @@ import { toast } from "sonner"
 
 const BRAND = "#0E8F3D"
 const BRAND_LIGHT = "#35B24A"
+const WHATSAPP_REDIRECT_URL =
+  "https://wa.me/233246827049?text=Hello%2C%20I%20have%20completed%20my%20micro%E2%80%91influencer%20account%20registration%20on%20Dataflex%20Ghana.%20Please%20review%20and%20approve%20my%20account.%20Thank%20you."
 
 const NICHE_OPTIONS = [
   "Lifestyle",
@@ -51,6 +53,8 @@ export default function InfluencerRegisterPage() {
     full_name: "",
     phone_number: "",
     email: "",
+    password: "",
+    confirm_password: "",
     bio: "",
     niche: "",
     audience_size: "",
@@ -86,6 +90,14 @@ export default function InfluencerRegisterPage() {
       toast.error("Please upload a profile photo")
       return
     }
+    if (form.password.length < 6) {
+      toast.error("Password must be at least 6 characters")
+      return
+    }
+    if (form.password !== form.confirm_password) {
+      toast.error("Passwords do not match")
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -101,7 +113,11 @@ export default function InfluencerRegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Registration failed")
-      router.push("/influencers/register/thank-you")
+      try {
+        window.location.assign(WHATSAPP_REDIRECT_URL)
+      } catch {
+        router.push("/influencers/register/thank-you")
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Registration failed")
     } finally {
@@ -110,47 +126,58 @@ export default function InfluencerRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/90 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/90 via-white to-slate-50">
       <header className="border-b bg-white/95 backdrop-blur sticky top-0 z-10 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/influencers">
             <Button variant="ghost" size="icon" aria-label="Back">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <span className="font-semibold text-slate-900">Influencer Application</span>
+          <span className="font-semibold text-slate-900">Micro-Influencer Registration</span>
         </div>
       </header>
 
-      <section
-        className="text-white px-4 py-10"
-        style={{ background: `linear-gradient(135deg, ${BRAND}, ${BRAND_LIGHT})` }}
-      >
-        <div className="max-w-2xl mx-auto text-center space-y-3">
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: "Poppins, sans-serif" }}>
-            Become a Dataflex Influencer
-          </h1>
-          <p className="text-white/90 text-sm sm:text-base max-w-lg mx-auto">
-            Monetize your audience with branded packages, secure escrow payments, and a dedicated storefront — we
-            handle payments and disputes so you can focus on creating.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 pt-2 text-sm text-white/95">
-            <span className="inline-flex items-center gap-1.5">
-              <Wallet className="h-4 w-4" /> Get paid securely
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Shield className="h-4 w-4" /> Platform protection
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4" /> Your own storefront
-            </span>
-          </div>
-        </div>
-      </section>
+      <main className="max-w-6xl mx-auto px-4 py-6 sm:py-8 pb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          <section className="rounded-2xl overflow-hidden border border-emerald-100 shadow-md bg-white">
+            <div className="relative w-full h-48 sm:h-64 lg:h-full min-h-[260px]">
+              <Image
+                src="/influencer_image.png"
+                alt="Influencer campaign visual"
+                fill
+                className="object-cover"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
+              <div className="absolute left-4 right-4 bottom-4 text-white">
+                <p className="text-xs uppercase tracking-widest text-emerald-200">Dataflex Ghana</p>
+                <h1 className="text-xl sm:text-2xl font-bold mt-1" style={{ fontFamily: "Poppins, sans-serif" }}>
+                  Become a micro-influencer and earn with your audience.
+                </h1>
+                <div className="flex flex-wrap gap-3 pt-3 text-xs sm:text-sm text-white/95">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Wallet className="h-4 w-4" /> Secure payouts
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Shield className="h-4 w-4" /> Trusted platform
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4" /> Premium profile
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 pb-16">
-        <Card className="rounded-2xl border-emerald-100 shadow-md">
-          <CardContent className="p-5 sm:p-6">
+          <Card className="rounded-2xl border-emerald-100 shadow-md bg-white">
+            <CardContent className="p-5 sm:p-6 lg:p-7">
+            <div className="mb-5">
+              <h2 className="text-xl font-bold text-slate-900">Create your influencer account</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Submit your profile for review. Once approved, you can manage packages in Referral Hub.
+              </p>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="full_name">Full Name *</Label>
@@ -184,6 +211,33 @@ export default function InfluencerRegisterPage() {
                     value={form.email}
                     onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    required
+                    type="password"
+                    minLength={6}
+                    value={form.password}
+                    onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                    placeholder="Minimum 6 characters"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm_password">Confirm Password *</Label>
+                  <Input
+                    id="confirm_password"
+                    required
+                    type="password"
+                    minLength={6}
+                    value={form.confirm_password}
+                    onChange={(e) => setForm((f) => ({ ...f, confirm_password: e.target.value }))}
+                    placeholder="Re-enter password"
                   />
                 </div>
               </div>
@@ -320,8 +374,8 @@ export default function InfluencerRegisterPage() {
               <Button
                 type="submit"
                 disabled={submitting || uploading}
-                className="w-full text-white h-11"
-                style={{ backgroundColor: BRAND }}
+                className="w-full text-white h-11 font-semibold rounded-xl shadow-sm hover:shadow-md transition-shadow"
+                style={{ background: `linear-gradient(135deg, ${BRAND}, ${BRAND_LIGHT})` }}
               >
                 {submitting ? (
                   <>
@@ -333,7 +387,8 @@ export default function InfluencerRegisterPage() {
               </Button>
             </form>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       </main>
     </div>
   )
