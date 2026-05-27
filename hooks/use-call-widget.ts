@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { subscribeCallSessions } from "@/lib/call-realtime-subscribe"
+import { getStoredAdmin, getStoredAgent } from "@/lib/unified-auth-system"
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 
 export type CallWidgetPhase =
@@ -40,6 +41,10 @@ function formatCallDuration(seconds: number): string {
 }
 
 export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
+  const fallbackId =
+    role === "admin" ? String(getStoredAdmin()?.id ?? "") : String(getStoredAgent()?.id ?? "")
+  const effectiveUserId = userId || fallbackId
+
   const [phase, setPhase] = useState<CallWidgetPhase>("idle")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [adminAvailable, setAdminAvailable] = useState(true)
@@ -142,7 +147,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
   }, [])
 
   const loadAdminIncoming = useCallback(async () => {
-    if (role !== "admin" || !userId) return
+    if (role !== "admin" || !effectiveUserId) return
     try {
       const res = await fetch("/api/calls/incoming", {
         headers: getAdminAuthHeaders(),
@@ -158,7 +163,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     } catch {
       /* ignore */
     }
-  }, [role, userId, applyRingingFromApi])
+  }, [role, effectiveUserId, applyRingingFromApi])
 
   const applySessionUpdate = useCallback(
     (row: CallSession) => {
@@ -193,8 +198,8 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
       const row = (payload.new ?? payload.old) as CallSession | undefined
       if (!row?.id) return
 
-      if (role === "admin" && row.receiver_id !== userId) return
-      if (role === "agent" && row.caller_id !== userId) return
+      if (role === "admin" && row.receiver_id !== effectiveUserId) return
+      if (role === "agent" && row.caller_id !== effectiveUserId) return
 
       if (payload.eventType === "INSERT" && row.status === "ringing") {
         if (role === "admin" && phaseRef.current === "idle") {
@@ -210,7 +215,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
         applySessionUpdate(row)
       }
     },
-    [role, userId, applySessionUpdate, loadAdminIncoming],
+    [role, effectiveUserId, applySessionUpdate, loadAdminIncoming],
   )
 
   const initiateCall = useCallback(async () => {
@@ -300,31 +305,33 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
 
   // Admin: initial ringing check + realtime (no polling)
   useEffect(() => {
-    if (role !== "admin" || !userId) return
+    if (role !== "admin" || !effectiveUserId) return
 
     void loadAdminIncoming()
 
-    const unsubscribe = subscribeCallSessions<CallSession>(
-      `admin_${userId}`,
-      `receiver_id=eq.${userId}`,
-      handleCallSessionsPayload,
-    )
+    const unsubscribe = subscribeCallSessions<CallSession>({
+      channelKey: `admin_${effectiveUserId}`,
+      role: "admin",
+      userId: effectiveUserId,
+      onPayload: handleCallSessionsPayload,
+    })
 
     return unsubscribe
-  }, [role, userId, loadAdminIncoming, handleCallSessionsPayload])
+  }, [role, effectiveUserId, loadAdminIncoming, handleCallSessionsPayload])
 
   // Agent: session status via realtime (no poll interval)
   useEffect(() => {
-    if (role !== "agent" || !userId) return
+    if (role !== "agent" || !effectiveUserId) return
 
-    const unsubscribe = subscribeCallSessions<CallSession>(
-      `agent_${userId}`,
-      `caller_id=eq.${userId}`,
-      handleCallSessionsPayload,
-    )
+    const unsubscribe = subscribeCallSessions<CallSession>({
+      channelKey: `agent_${effectiveUserId}`,
+      role: "agent",
+      userId: effectiveUserId,
+      onPayload: handleCallSessionsPayload,
+    })
 
     return unsubscribe
-  }, [role, userId, handleCallSessionsPayload])
+  }, [role, effectiveUserId, handleCallSessionsPayload])
 
   // Tab close: end active call (keepalive fetch includes auth headers)
   useEffect(() => {
@@ -369,6 +376,7 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     initiateCall,
     acceptCall,
     declineCall,
+    hangUp: endCall,
     endCall,
     refreshAvailability,
   }

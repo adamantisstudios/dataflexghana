@@ -19,14 +19,16 @@ export function usePortraitVideoLayout(active: boolean) {
     const measure = (video: HTMLVideoElement) => {
       const { videoWidth: w, videoHeight: h } = video
       if (w > 0 && h > 0) {
-        const isLandscape = w > h * 1.05
+        const isLandscape = w > h
         setLandscapeFeed(isLandscape)
         root.dataset.videoOrientation = isLandscape ? "landscape" : "portrait"
       }
     }
 
     const bindVideo = (video: HTMLVideoElement) => {
-      const onMeta = () => measure(video)
+      const onMeta = () => {
+        window.requestAnimationFrame(() => measure(video))
+      }
       video.addEventListener("loadedmetadata", onMeta)
       video.addEventListener("resize", onMeta)
       video.addEventListener("loadeddata", onMeta)
@@ -50,11 +52,8 @@ export function usePortraitVideoLayout(active: boolean) {
     const obs = new MutationObserver(scan)
     obs.observe(root, { childList: true, subtree: true })
 
-    const poll = window.setInterval(scan, 1500)
-
     return () => {
       obs.disconnect()
-      window.clearInterval(poll)
       cleanups.forEach((fn) => fn())
       delete root.dataset.videoOrientation
     }

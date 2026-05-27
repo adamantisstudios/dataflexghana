@@ -387,95 +387,58 @@ body {
   }
 }
 
-/* LiveKit portrait live — simple 9:16 (host + agent share identical rules) */
-@media (max-width: 767px) {
-  .voice-video-portrait {
-    aspect-ratio: 9 / 16;
-    max-width: 420px;
-    position: relative;
-  }
+/* LiveKit portrait video framing (host + agent share same rendering rules). */
+.voice-video-portrait {
+  aspect-ratio: 9 / 16;
+  width: 100%;
+  max-width: 420px;
+  position: relative;
+  overflow: hidden;
+}
 
-  .voice-video-portrait .voice-video-inner {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-  }
+.voice-video-portrait .voice-video-inner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
 
-  /* Default: native portrait capture — head to waist */
-  .voice-video-portrait .voice-video-inner video,
-  .voice-video-portrait .voice-video-track-portrait video,
-  .voice-video-portrait [data-lk-source="camera"] video {
-    display: block !important;
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    object-position: center 42% !important;
-    transform: none !important;
-    transform-origin: center center !important;
-  }
+.voice-video-portrait .voice-video-inner video,
+.voice-video-portrait [data-lk-source="camera"] video {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 35% !important;
+  transform: none !important;
+}
 
-  .voice-video-portrait.voice-video-mirror .voice-video-inner video {
-    transform: scaleX(-1) !important;
-  }
+.voice-video-portrait.voice-video-landscape-feed .voice-video-inner video {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: auto !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 35% !important;
+  transform: translate(-50%, -50%) rotate(90deg) !important;
+  transform-origin: center center !important;
+}
 
-  /* Landscape WebRTC track only: rotate into vertical frame (minimal zoom) */
-  .voice-video-portrait.voice-video-landscape-feed .voice-video-inner video {
-    position: absolute !important;
-    left: 50% !important;
-    top: 50% !important;
-    width: auto !important;
-    height: 112% !important;
-    min-width: 100% !important;
-    max-width: none !important;
-    object-fit: cover !important;
-    object-position: center center !important;
-    transform: translate(-50%, -50%) rotate(90deg) scale(1.05) !important;
-  }
+.voice-video-portrait.voice-video-mirror .voice-video-inner video {
+  transform: scaleX(-1) !important;
+}
 
-  .voice-video-portrait.voice-video-landscape-feed.voice-video-mirror .voice-video-inner video {
-    transform: translate(-50%, -50%) rotate(90deg) scale(1.05) scaleX(-1) !important;
-  }
+.voice-video-portrait.voice-video-landscape-feed.voice-video-mirror .voice-video-inner video {
+  transform: translate(-50%, -50%) rotate(90deg) scaleX(-1) !important;
+}
 
-  .voice-video-portrait:fullscreen {
-    width: 100vw !important;
-    height: 100vh !important;
-    max-width: none !important;
-    max-height: none !important;
-    aspect-ratio: auto !important;
-    border-radius: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: #000 !important;
-  }
-
-  .voice-video-portrait:fullscreen .voice-video-inner {
-    position: relative !important;
-    width: auto !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    aspect-ratio: 9 / 16 !important;
-    max-width: min(100vw, calc(100dvh * 9 / 16)) !important;
-    inset: auto !important;
-  }
-
-  .voice-video-portrait:fullscreen .voice-video-inner video {
-    object-fit: cover !important;
-    object-position: center 42% !important;
-  }
-
-  .voice-video-portrait:fullscreen.voice-video-mirror .voice-video-inner video {
-    transform: scaleX(-1) !important;
-  }
-
-  .voice-video-portrait:fullscreen.voice-video-landscape-feed .voice-video-inner video {
-    transform: translate(-50%, -50%) rotate(90deg) scale(1.05) !important;
-    left: 50% !important;
-    top: 50% !important;
-    height: 112% !important;
-  }
-
-  .voice-video-portrait:fullscreen.voice-video-landscape-feed.voice-video-mirror .voice-video-inner video {
-    transform: translate(-50%, -50%) rotate(90deg) scale(1.05) scaleX(-1) !important;
-  }
+.voice-video-portrait:fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  border-radius: 0 !important;
+  background: #000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }

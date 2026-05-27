@@ -43,6 +43,7 @@ function AgentCallDialogUI({
   formatCallDuration: (s: number) => string
 }) {
   const controls = useCallAudioControls()
+  const elapsed = controls?.elapsed ?? 0
 
   return (
     <div className="flex flex-col items-center gap-4 py-2">
@@ -109,13 +110,20 @@ function AgentCallDialogUI({
         </div>
       )}
 
-      {phase === "in_call" && controls && (
+      {phase === "in_call" && (
         <div className="w-full space-y-4">
           <p className="text-center text-2xl font-mono tabular-nums">
-            {formatCallDuration(controls.elapsed)}
+            {formatCallDuration(elapsed)}
+          </p>
+          <p className="text-center text-xs text-muted-foreground">
+            {controls?.connected ? "In call" : "Connecting…"}
           </p>
           <div className="flex items-center justify-center gap-4">
-            <CallMuteButton isMuted={controls.isMuted} onToggle={controls.toggleMute} />
+            {controls ? (
+              <CallMuteButton isMuted={controls.isMuted} onToggle={controls.toggleMute} />
+            ) : (
+              <div className="h-14 w-14 rounded-full bg-slate-200 dark:bg-slate-700" />
+            )}
             <button
               type="button"
               onClick={onEndCall}
@@ -150,6 +158,7 @@ export function AgentCallWidget() {
     formatCallDuration,
     initiateCall,
     endCall,
+    hangUp,
     refreshAvailability,
   } = useCallWidget({
     role: "agent",
@@ -217,7 +226,7 @@ export function AgentCallWidget() {
             starting={starting}
             onCallSupport={onCallSupport}
             onRefresh={refreshAvailability}
-            onEndCall={() => void endCall()}
+            onEndCall={() => void (hangUp ?? endCall)()}
             formatCallDuration={formatCallDuration}
           />
         </DialogContent>
