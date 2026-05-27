@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,17 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { ArrowLeft, ExternalLink, Loader2, Users } from "lucide-react"
+import {
+  ArrowLeft,
+  ArrowRight,
+  ExternalLink,
+  Loader2,
+  Search,
+  Users,
+  Instagram,
+  Music2,
+  Twitter,
+} from "lucide-react"
 import type { PublicInfluencerProfile, SocialHandles } from "@/lib/influencer-types"
 
 const BRAND = "#0E8F3D"
@@ -25,6 +35,19 @@ type ListItem = {
   niche: string | null
   audience_size: number
   package_count: number
+  bio?: string | null
+}
+
+function formatAudience(n: number): string {
+  if (!Number.isFinite(n)) return "0 followers"
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(".0", "")}M followers`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(".0", "")}K followers`
+  return `${n.toLocaleString()} followers`
+}
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text
+  return `${text.slice(0, max).trim()}...`
 }
 
 function socialUrl(platform: string, handle: string): string {
@@ -67,6 +90,10 @@ export default function PublicInfluencersPage() {
   const [detail, setDetail] = useState<PublicInfluencerProfile | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [nicheFilter, setNicheFilter] = useState("all")
+  const [showFullBio, setShowFullBio] = useState(false)
+  const [expandedPackageIds, setExpandedPackageIds] = useState<Record<string, boolean>>({})
 
   const loadList = useCallback(async () => {
     setLoading(true)
@@ -90,6 +117,8 @@ export default function PublicInfluencersPage() {
     setSheetOpen(true)
     setDetailLoading(true)
     setDetail(null)
+    setShowFullBio(false)
+    setExpandedPackageIds({})
     try {
       const res = await fetch(`/api/public/influencers?profileId=${encodeURIComponent(profileId)}`, {
         cache: "no-store",
@@ -104,8 +133,22 @@ export default function PublicInfluencersPage() {
     }
   }
 
+  const uniqueNiches = useMemo(() => {
+    return Array.from(new Set(list.map((i) => i.niche || "General"))).sort()
+  }, [list])
+
+  const filteredList = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase()
+    return list.filter((item) => {
+      const itemNiche = item.niche || "General"
+      const matchesNiche = nicheFilter === "all" || itemNiche === nicheFilter
+      const matchesSearch = !q || item.full_name.toLowerCase().includes(q)
+      return matchesNiche && matchesSearch
+    })
+  }, [list, searchTerm, nicheFilter])
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/80 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/60 via-white to-slate-50">
       <header className="border-b bg-white/95 backdrop-blur sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto w-full px-4 py-3 sm:py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 min-w-0 w-full">
@@ -139,37 +182,61 @@ export default function PublicInfluencersPage() {
         </div>
       </header>
 
-      <section
-        className="w-full px-4 py-6 sm:py-8 text-white"
-        style={{ background: `linear-gradient(135deg, ${BRAND}, #35B24A)` }}
-      >
-        <div className="max-w-6xl mx-auto text-center sm:text-left">
-          <h2 className="text-lg sm:text-2xl font-bold" style={{ fontFamily: "Poppins, sans-serif" }}>
-            Partner with verified creators
+      <section className="w-full px-4 py-8 sm:py-12 border-b border-emerald-100/70 bg-gradient-to-r from-emerald-100/60 via-white to-white">
+        <div className="max-w-6xl mx-auto text-center sm:text-left space-y-3">
+          <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "Poppins, sans-serif" }}>
+            Find the Perfect Influencer for Your Brand
           </h2>
-          <p className="mt-2 text-sm sm:text-base text-white/90 max-w-xl mx-auto sm:mx-0">
-            Browse influencer storefronts, audience reach, and active packages — optimized for mobile and desktop.
+          <p className="text-sm sm:text-lg text-slate-600 max-w-3xl mx-auto sm:mx-0">
+            Browse vetted micro-influencers ready to promote your business, compare audience fit, and discover package options in minutes.
           </p>
         </div>
       </section>
 
-      <main className="max-w-6xl mx-auto w-full px-4 py-6 sm:py-8">
+      <main className="max-w-6xl mx-auto w-full px-4 py-6 sm:py-8 space-y-6">
+        <div className="rounded-2xl border border-emerald-100 bg-white p-3 sm:p-4 shadow-md">
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search influencer by name..."
+                className="w-full h-11 rounded-full border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none ring-0 focus:border-emerald-400"
+              />
+            </div>
+            <select
+              value={nicheFilter}
+              onChange={(e) => setNicheFilter(e.target.value)}
+              className="h-11 rounded-full border border-slate-200 bg-white px-4 text-sm outline-none focus:border-emerald-400 md:min-w-[190px]"
+            >
+              <option value="all">All niches</option>
+              {uniqueNiches.map((niche) => (
+                <option key={niche} value={niche}>
+                  {niche}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-10 w-10 animate-spin text-[#0E8F3D]" />
           </div>
-        ) : list.length === 0 ? (
+        ) : filteredList.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="py-16 text-center text-muted-foreground">
-              No approved influencer profiles yet. Check back soon.
+              No influencers match your search yet. Try a different name or niche.
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {list.map((item) => (
+            {filteredList.map((item) => (
               <Card
                 key={item.profile_id}
-                className="rounded-2xl border border-emerald-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden h-full"
+                className="rounded-2xl border border-emerald-100/80 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all overflow-hidden h-full"
               >
                 <CardContent className="p-4 sm:p-5 flex flex-col gap-3 h-full">
                   <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left">
@@ -193,13 +260,25 @@ export default function PublicInfluencersPage() {
                       <h2 className="font-semibold text-base sm:text-sm text-slate-900 break-words">
                         {item.full_name}
                       </h2>
-                      <p className="text-sm sm:text-xs text-slate-500 mt-0.5">{item.niche || "General"}</p>
+                      <Badge
+                        variant="secondary"
+                        className="mt-1 text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200"
+                      >
+                        {item.niche || "General"}
+                      </Badge>
                     </div>
                   </div>
                   <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-[#0E8F3D] font-medium">
                     <Users className="h-4 w-4 shrink-0" />
-                    <span>{item.audience_size.toLocaleString()} audience</span>
+                    <span>{formatAudience(item.audience_size)}</span>
                   </div>
+                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                    {truncate(
+                      item.bio?.trim() ||
+                        `${item.full_name} creates ${item.niche || "lifestyle"} content and is available for paid brand promotions.`,
+                      110,
+                    )}
+                  </p>
                   {item.package_count > 0 && (
                     <Badge
                       variant="outline"
@@ -214,6 +293,7 @@ export default function PublicInfluencersPage() {
                     onClick={() => openProfile(item.profile_id)}
                   >
                     View Profile
+                    <ArrowRight className="h-4 w-4 ml-1.5" />
                   </Button>
                 </CardContent>
               </Card>
@@ -223,68 +303,170 @@ export default function PublicInfluencersPage() {
       </main>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>{detail?.full_name || "Influencer profile"}</SheetTitle>
+        <SheetContent className="w-full sm:max-w-5xl overflow-y-auto">
+          <SheetHeader className="border-b pb-3">
+            <SheetTitle className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSheetOpen(false)}
+                className="inline-flex items-center text-sm text-emerald-700 hover:text-emerald-800"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back to Influencers
+              </button>
+            </SheetTitle>
           </SheetHeader>
           {detailLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-[#0E8F3D]" />
             </div>
           ) : detail ? (
-            <div className="mt-4 space-y-5 pb-8 px-1">
-              <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left">
-                {detail.photo_url ? (
-                  <Image
-                    src={detail.photo_url}
-                    alt={detail.full_name}
-                    width={72}
-                    height={72}
-                    className="rounded-full object-cover h-[72px] w-[72px] border-2 border-emerald-100 shrink-0"
-                  />
-                ) : (
-                  <div
-                    className="h-[72px] w-[72px] rounded-full flex items-center justify-center text-2xl font-bold text-white shrink-0"
-                    style={{ backgroundColor: BRAND }}
-                  >
-                    {detail.full_name.charAt(0)}
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <p className="text-sm text-muted-foreground">{detail.niche || "General"}</p>
-                  <p className="text-sm font-medium text-[#0E8F3D]">
-                    {detail.audience_size.toLocaleString()} audience
-                  </p>
-                </div>
-              </div>
-              {detail.bio && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Bio</p>
-                  <p className="text-sm text-slate-700 leading-relaxed">{detail.bio}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">Social handles</p>
-                <SocialLinks handles={detail.social_handles} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">Active packages</p>
-                {detail.packages.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No packages listed yet.</p>
-                ) : (
-                  <ul className="space-y-3">
-                    {detail.packages.map((pkg) => (
-                      <li key={pkg.id} className="rounded-lg border border-emerald-100 p-3 bg-emerald-50/50">
-                        <p className="font-semibold text-sm">{pkg.title}</p>
-                        {pkg.description && (
-                          <p className="text-xs text-slate-600 mt-1 line-clamp-3">{pkg.description}</p>
+            <div className="mt-4 pb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+                <aside className="space-y-4">
+                  <div className="rounded-2xl overflow-hidden border border-emerald-100 bg-white shadow-sm">
+                    <div className="relative aspect-[4/5] bg-slate-100">
+                      {detail.photo_url ? (
+                        <Image
+                          src={detail.photo_url}
+                          alt={detail.full_name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center text-5xl font-bold text-white"
+                          style={{ backgroundColor: BRAND }}
+                        >
+                          {detail.full_name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 space-y-2">
+                      <h3 className="text-lg font-semibold text-slate-900">{detail.full_name}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          {detail.niche || "General"}
+                        </Badge>
+                        <Badge variant="outline" className="border-slate-200 text-slate-700">
+                          {formatAudience(detail.audience_size)}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 pt-2">
+                        {detail.social_handles.instagram && (
+                          <a
+                            href={socialUrl("instagram", detail.social_handles.instagram)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center hover:border-emerald-400"
+                          >
+                            <Instagram className="h-4 w-4 text-slate-600" />
+                          </a>
                         )}
-                        <p className="text-base font-bold text-[#0E8F3D] mt-2">₵{Number(pkg.price).toFixed(2)}</p>
-                        <p className="text-[10px] text-muted-foreground">{pkg.delivery_days} day delivery</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                        {detail.social_handles.tiktok && (
+                          <a
+                            href={socialUrl("tiktok", detail.social_handles.tiktok)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center hover:border-emerald-400"
+                          >
+                            <Music2 className="h-4 w-4 text-slate-600" />
+                          </a>
+                        )}
+                        {(detail.social_handles["twitter/x"] || detail.social_handles.twitter || detail.social_handles.x) && (
+                          <a
+                            href={socialUrl(
+                              "twitter",
+                              detail.social_handles["twitter/x"] ||
+                                detail.social_handles.twitter ||
+                                detail.social_handles.x ||
+                                "",
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center hover:border-emerald-400"
+                          >
+                            <Twitter className="h-4 w-4 text-slate-600" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">All social handles</p>
+                    <SocialLinks handles={detail.social_handles} />
+                  </div>
+                </aside>
+
+                <section className="space-y-5">
+                  <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">About influencer</p>
+                    <p className="text-sm text-slate-700 leading-relaxed">
+                      {detail.bio
+                        ? showFullBio
+                          ? detail.bio
+                          : truncate(detail.bio, 260)
+                        : "No bio has been added yet."}
+                    </p>
+                    {detail.bio && detail.bio.length > 260 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowFullBio((s) => !s)}
+                        className="mt-2 text-sm text-emerald-700 hover:underline"
+                      >
+                        {showFullBio ? "Read less" : "Read more"}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-base font-semibold text-slate-900">Packages</h4>
+                    {detail.packages.length === 0 ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-muted-foreground">
+                        No packages listed yet.
+                      </div>
+                    ) : (
+                      <ul className="space-y-3">
+                        {detail.packages.map((pkg) => {
+                          const expanded = Boolean(expandedPackageIds[pkg.id])
+                          const description = pkg.description || "No package description provided."
+                          return (
+                            <li key={pkg.id} className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-sm text-slate-900">{pkg.title}</p>
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    {expanded ? description : truncate(description, 120)}
+                                  </p>
+                                  {description.length > 120 && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setExpandedPackageIds((prev) => ({ ...prev, [pkg.id]: !expanded }))
+                                      }
+                                      className="text-xs text-emerald-700 hover:underline mt-1"
+                                    >
+                                      {expanded ? "Read less" : "Read more"}
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-bold text-emerald-600">GH₵ {Number(pkg.price).toFixed(2)}</p>
+                                  <p className="text-[11px] text-slate-500">{pkg.delivery_days} day delivery</p>
+                                </div>
+                              </div>
+                              <div className="pt-3 mt-3 border-t border-slate-100">
+                                <Button asChild className="w-full sm:w-auto text-white" style={{ backgroundColor: BRAND }}>
+                                  <Link href="/agent/register">Book This Package</Link>
+                                </Button>
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </section>
               </div>
             </div>
           ) : (

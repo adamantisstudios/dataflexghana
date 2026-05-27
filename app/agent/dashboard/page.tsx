@@ -89,8 +89,7 @@ import {
 import AgentOnlineCoursesDisplay from "@/components/agent/online-courses/AgentOnlineCoursesDisplay"
 import AdminPortalAccess from "@/components/agent/AdminPortalAccess"
 import { ProfileVerificationBar } from "@/components/agent/ProfileVerificationBar"
-import { AgentVerificationBadge } from "@/components/agent/AgentVerificationBadge"
-import { AgentAvatar } from "@/components/agent/AgentAvatar"
+import { AgentHeader } from "@/components/agent/AgentHeader"
 import {
   agentNeedsProfileCompletion,
   isAgentProfileVerified,
@@ -1004,65 +1003,14 @@ DataFlex Ghana Agent 🇬🇭`
           setShowVerificationReminder(false)
         }}
       />
-      {/* START: HERO SECTION WITH ADMIN PORTAL ACCESS - MOBILE OPTIMIZED */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg border-b border-slate-700">
-        <div className="w-full max-w-full px-3 sm:px-4 py-3">
-          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
-            {/* Logo and User Info */}
-            <div className="flex items-center gap-3 w-full xs:w-auto">
-              <AgentAvatar
-                name={agent?.full_name}
-                imageUrl={agent?.profile_image_url}
-                size="md"
-                className="border-white/40"
-              />
-              <div className="min-w-0 flex-1 xs:flex-none">
-                <h1 className="text-base sm:text-lg md:text-xl font-bold text-white drop-shadow-sm truncate">
-                  Data Flex Agent
-                </h1>
-                <div className="text-slate-200 text-xs font-medium truncate flex items-center gap-2 flex-wrap">
-                  Welcome back,{" "}
-                  <span className="font-semibold text-white inline-flex items-center gap-1.5">
-                    {agent?.full_name}
-                    {agent?.isapproved && <AgentVerificationBadge agent={agent} />}
-                    {isApprovedInfluencer && (
-                      <span className="inline-flex items-center rounded-full border border-sky-300/30 bg-sky-500/20 px-2 py-0.5 text-[10px] text-sky-100">
-                        Approved Influencer
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons - Stacked on mobile, inline on larger screens */}
-            <div className="flex items-center justify-between xs:justify-end gap-2 w-full xs:w-auto">
-              <Button
-                variant="secondary"
-                size="sm"
-                asChild
-                className="bg-white hover:bg-slate-100 text-slate-900 border-white shadow-sm hover:shadow h-8 sm:h-9 px-3 sm:px-4 flex-1 xs:flex-none font-medium"
-              >
-                <Link href="/agent/settings" className="flex items-center justify-center">
-                  <Settings className="h-3.5 w-3.5 mr-1.5" />
-                  <span className="text-xs">Settings</span>
-                </Link>
-              </Button>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleLogout}
-                className="bg-red-500 hover:bg-red-600 text-white border-red-600 shadow-sm hover:shadow h-8 sm:h-9 px-3 sm:px-4 flex-1 xs:flex-none font-medium"
-              >
-                <LogOut className="h-3.5 w-3.5 mr-1.5" />
-                <span className="text-xs">Logout</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* END: HERO SECTION WITH ADMIN PORTAL ACCESS */}
+      <AgentHeader
+        fullName={agent?.full_name}
+        profileImageUrl={agent?.profile_image_url}
+        agent={agent}
+        isApprovedInfluencer={isApprovedInfluencer}
+        walletBalance={earningsData.walletBalance}
+        onLogout={handleLogout}
+      />
       {agentNeedsProfileCompletion(agent) && <ProfileVerificationBar />}
       <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SecurityNoticeBanner />
