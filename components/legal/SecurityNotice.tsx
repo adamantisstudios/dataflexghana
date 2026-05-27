@@ -6,27 +6,23 @@ import { AlertTriangle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   SECURITY_NOTICE_MESSAGE,
-  SECURITY_NOTICE_SESSION_KEY,
+  canShowSecurityNoticeToday,
+  recordSecurityNoticeShown,
   FOOTER_SECURITY_LINE,
 } from "@/lib/security-notice"
 
-function markAcknowledged() {
-  try {
-    sessionStorage.setItem(SECURITY_NOTICE_SESSION_KEY, "1")
-  } catch {
-    /* ignore */
-  }
-}
-
-function wasAcknowledged(): boolean {
-  try {
-    return sessionStorage.getItem(SECURITY_NOTICE_SESSION_KEY) === "1"
-  } catch {
-    return false
-  }
-}
-
 export function SecurityNoticeLogin() {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    if (canShowSecurityNoticeToday()) {
+      recordSecurityNoticeShown()
+      setVisible(true)
+    }
+  }, [])
+
+  if (!visible) return null
+
   return (
     <div
       role="alert"
@@ -47,7 +43,10 @@ export function SecurityNoticeBanner() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    setVisible(!wasAcknowledged())
+    if (canShowSecurityNoticeToday()) {
+      recordSecurityNoticeShown()
+      setVisible(true)
+    }
   }, [])
 
   if (!visible) return null
@@ -69,10 +68,7 @@ export function SecurityNoticeBanner() {
           size="icon"
           className="shrink-0 h-8 w-8 text-amber-800 hover:bg-amber-100"
           aria-label="Dismiss security notice"
-          onClick={() => {
-            markAcknowledged()
-            setVisible(false)
-          }}
+          onClick={() => setVisible(false)}
         >
           <X className="h-4 w-4" />
         </Button>
@@ -82,10 +78,7 @@ export function SecurityNoticeBanner() {
           type="button"
           size="sm"
           className="bg-amber-700 hover:bg-amber-800 text-white"
-          onClick={() => {
-            markAcknowledged()
-            setVisible(false)
-          }}
+          onClick={() => setVisible(false)}
         >
           I understand
         </Button>

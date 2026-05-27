@@ -140,8 +140,8 @@ export default function InfluencerRegisterPage() {
 
       <main className="max-w-6xl mx-auto px-4 py-6 sm:py-8 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-          <section className="rounded-2xl overflow-hidden border border-emerald-100 shadow-md bg-white">
-            <div className="relative w-full h-48 sm:h-64 lg:h-full min-h-[260px]">
+          <section className="flex flex-col">
+            <div className="relative w-full aspect-[16/10] sm:aspect-[4/3] lg:min-h-[320px] rounded-xl overflow-hidden border border-emerald-100 bg-white">
               <Image
                 src="/influencer_image.png"
                 alt="Influencer campaign visual"
@@ -149,23 +149,22 @@ export default function InfluencerRegisterPage() {
                 className="object-cover"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-transparent" />
-              <div className="absolute left-4 right-4 bottom-4 text-white">
-                <p className="text-xs uppercase tracking-widest text-emerald-200">Dataflex Ghana</p>
-                <h1 className="text-xl sm:text-2xl font-bold mt-1" style={{ fontFamily: "Poppins, sans-serif" }}>
-                  Become a micro-influencer and earn with your audience.
-                </h1>
-                <div className="flex flex-wrap gap-3 pt-3 text-xs sm:text-sm text-white/95">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Wallet className="h-4 w-4" /> Secure payouts
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Shield className="h-4 w-4" /> Trusted platform
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4" /> Premium profile
-                  </span>
-                </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              <p className="text-xs uppercase tracking-widest text-emerald-700 font-medium">Dataflex Ghana</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900" style={{ fontFamily: "Poppins, sans-serif" }}>
+                Become a micro-influencer and earn with your audience.
+              </h1>
+              <div className="flex flex-wrap gap-3 pt-1 text-xs sm:text-sm text-slate-600">
+                <span className="inline-flex items-center gap-1.5">
+                  <Wallet className="h-4 w-4 text-emerald-600" /> Secure payouts
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Shield className="h-4 w-4 text-emerald-600" /> Trusted platform
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-emerald-600" /> Premium profile
+                </span>
               </div>
             </div>
           </section>

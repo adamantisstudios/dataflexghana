@@ -62,24 +62,42 @@ function socialUrl(platform: string, handle: string): string {
   return `https://${h}`
 }
 
+function socialPlatformIcon(platform: string) {
+  const p = platform.toLowerCase()
+  if (p.includes("instagram")) return Instagram
+  if (p.includes("tiktok")) return Music2
+  if (p.includes("twitter") || p === "x") return Twitter
+  return ExternalLink
+}
+
+function shortHandle(handle: string, max = 14): string {
+  const h = handle.replace(/^@/, "").trim()
+  if (h.length <= max) return h.startsWith("@") ? h : `@${h}`
+  return `@${h.slice(0, max - 1)}…`
+}
+
 function SocialLinks({ handles }: { handles: SocialHandles }) {
   const entries = Object.entries(handles || {}).filter(([, v]) => v?.trim())
   if (!entries.length) return <p className="text-sm text-muted-foreground">No social links listed.</p>
   return (
-    <ul className="space-y-2">
-      {entries.map(([platform, handle]) => (
-        <li key={platform}>
-          <a
-            href={socialUrl(platform, handle)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-[#0E8F3D] hover:underline inline-flex items-center gap-1"
-          >
-            {platform}: {handle}
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </li>
-      ))}
+    <ul className="flex flex-wrap gap-2 max-w-full">
+      {entries.map(([platform, handle]) => {
+        const Icon = socialPlatformIcon(platform)
+        return (
+          <li key={platform} className="min-w-0 max-w-full">
+            <a
+              href={socialUrl(platform, handle)}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`${platform}: ${handle}`}
+              className="inline-flex h-9 max-w-[140px] sm:max-w-[200px] items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 text-[#0E8F3D] hover:border-emerald-400 hover:bg-emerald-50/50"
+            >
+              <Icon className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
+              <span className="hidden sm:inline truncate text-xs font-medium">{shortHandle(handle)}</span>
+            </a>
+          </li>
+        )
+      })}
     </ul>
   )
 }
@@ -182,13 +200,26 @@ export default function PublicInfluencersPage() {
         </div>
       </header>
 
-      <section className="w-full px-4 py-8 sm:py-12 border-b border-emerald-100/70 bg-gradient-to-r from-emerald-100/60 via-white to-white">
-        <div className="max-w-6xl mx-auto text-center sm:text-left space-y-3">
-          <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 tracking-tight" style={{ fontFamily: "Poppins, sans-serif" }}>
+      <section className="w-full border-b border-emerald-100/70 bg-white">
+        <div className="relative w-full aspect-[16/10] sm:aspect-[21/9] max-h-[280px] sm:max-h-[320px]">
+          <Image
+            src="/influencer_image.png"
+            alt="Micro-influencer marketplace"
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+        <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 text-center sm:text-left space-y-2">
+          <h2
+            className="text-2xl sm:text-4xl font-bold text-slate-900 tracking-tight"
+            style={{ fontFamily: "Poppins, sans-serif" }}
+          >
             Find the Perfect Influencer for Your Brand
           </h2>
           <p className="text-sm sm:text-lg text-slate-600 max-w-3xl mx-auto sm:mx-0">
-            Browse vetted micro-influencers ready to promote your business, compare audience fit, and discover package options in minutes.
+            Browse vetted micro-influencers ready to promote your business, compare audience fit, and discover package
+            options in minutes.
           </p>
         </div>
       </section>
@@ -232,68 +263,51 @@ export default function PublicInfluencersPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filteredList.map((item) => (
               <Card
                 key={item.profile_id}
-                className="rounded-2xl border border-emerald-100/80 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all overflow-hidden h-full"
+                className="rounded-xl border border-slate-200/90 bg-white shadow-sm hover:border-emerald-200 hover:shadow-md transition-all h-full"
               >
-                <CardContent className="p-4 sm:p-5 flex flex-col gap-3 h-full">
-                  <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left">
+                <CardContent className="p-3.5 flex flex-col gap-2.5 h-full">
+                  <div className="flex items-center gap-3 min-w-0">
                     {item.photo_url ? (
                       <Image
                         src={item.photo_url}
                         alt={item.full_name}
-                        width={72}
-                        height={72}
-                        className="rounded-full object-cover h-16 w-16 sm:h-14 sm:w-14 border-2 border-emerald-100 shrink-0"
+                        width={48}
+                        height={48}
+                        className="rounded-full object-cover h-12 w-12 border border-emerald-100 shrink-0"
                       />
                     ) : (
                       <div
-                        className="h-16 w-16 sm:h-14 sm:w-14 rounded-full flex items-center justify-center text-xl sm:text-lg font-bold text-white shrink-0"
+                        className="h-12 w-12 rounded-full flex items-center justify-center text-base font-semibold text-white shrink-0"
                         style={{ backgroundColor: BRAND }}
                       >
                         {item.full_name.charAt(0)}
                       </div>
                     )}
-                    <div className="min-w-0 flex-1 w-full">
-                      <h2 className="font-semibold text-base sm:text-sm text-slate-900 break-words">
-                        {item.full_name}
-                      </h2>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="truncate text-sm font-semibold text-slate-900">{item.full_name}</h2>
                       <Badge
                         variant="secondary"
-                        className="mt-1 text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200"
+                        className="mt-1 text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-100"
                       >
                         {item.niche || "General"}
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-[#0E8F3D] font-medium">
-                    <Users className="h-4 w-4 shrink-0" />
-                    <span>{formatAudience(item.audience_size)}</span>
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
-                    {truncate(
-                      item.bio?.trim() ||
-                        `${item.full_name} creates ${item.niche || "lifestyle"} content and is available for paid brand promotions.`,
-                      110,
-                    )}
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-700">
+                    <Users className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{formatAudience(item.audience_size)}</span>
                   </p>
-                  {item.package_count > 0 && (
-                    <Badge
-                      variant="outline"
-                      className="text-xs sm:text-[10px] border-emerald-200 text-emerald-800 w-fit mx-auto sm:mx-0"
-                    >
-                      {item.package_count} active package{item.package_count !== 1 ? "s" : ""}
-                    </Badge>
-                  )}
                   <Button
-                    className="w-full text-white mt-auto h-11 text-sm"
+                    className="w-full text-white mt-auto h-9 text-xs sm:text-sm"
                     style={{ backgroundColor: BRAND }}
                     onClick={() => openProfile(item.profile_id)}
                   >
                     View Profile
-                    <ArrowRight className="h-4 w-4 ml-1.5" />
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>
                 </CardContent>
               </Card>

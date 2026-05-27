@@ -57,21 +57,7 @@ export function ProductSlider() {
   }
 
   if (products.length === 0) {
-    return (
-      <Card className="w-full bg-white border-purple-200 shadow-lg">
-        <CardContent className="p-6 text-center">
-          <ShoppingBag className="h-12 w-12 text-purple-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-purple-800 mb-2">No Products Available</h3>
-          <p className="text-purple-600 mb-4">Check back soon for new wholesale products!</p>
-          <Button
-            asChild
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-          >
-            <Link href="/agent/wholesale">Browse Wholesale</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    )
+    return null
   }
 
   return (
