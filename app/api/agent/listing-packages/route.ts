@@ -7,6 +7,7 @@ import {
   getAgentActiveSubscription,
   agentCanListProducts,
 } from "@/lib/listing-packages-server"
+import { getActiveAgentFeatures } from "@/lib/listing-package-utils"
 
 export const dynamic = "force-dynamic"
 
@@ -35,7 +36,8 @@ export async function GET(request: NextRequest) {
     agentCanListProducts(agentId),
   ])
 
-  const maxListings = subscription?.package?.max_listings ?? 0
+  const features = getActiveAgentFeatures(subscription)
+  const maxListings = Number(features.max_listings ?? subscription?.package?.max_listings ?? 0)
   const daysRemaining =
     subscription?.expires_at != null
       ? Math.max(
@@ -54,6 +56,7 @@ export async function GET(request: NextRequest) {
     listings_used: productCount,
     max_listings: maxListings,
     days_remaining: daysRemaining,
-    includes_analytics: Boolean(subscription?.package?.includes_analytics),
+    includes_analytics: Boolean(features.analytics ?? subscription?.package?.includes_analytics),
+    features,
   })
 }

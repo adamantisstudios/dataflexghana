@@ -382,7 +382,8 @@ export async function getPublicStorefrontResponse(
 
     let listingProducts: AgentProduct[] = []
     try {
-      listingProducts = await getPublicAgentProducts(agentId)
+      const listingPayload = await getPublicAgentProducts(agentId)
+      listingProducts = listingPayload.products
     } catch (listingErr) {
       console.error("public storefront listing products:", listingErr)
     }

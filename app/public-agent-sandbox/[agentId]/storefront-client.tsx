@@ -81,6 +81,7 @@ import type { PublicInfluencerProfile } from "@/lib/influencer-types"
 import type { AgentProduct } from "@/lib/listing-packages-server"
 import { resolveStorefrontAccent } from "@/lib/storefront-accent"
 import { StorefrontListingsTab } from "@/components/storefront/StorefrontListingsTab"
+import { getDefaultFreeFeatures, type ListingFeatures } from "@/lib/listing-package-utils"
 
 interface DataBundle {
   id: string
@@ -140,12 +141,21 @@ function newLineId() {
 }
 
 type MainStoreTab = StorefrontTabId
+type StorefrontBanner = { id: string; image_url: string; order_index: number }
+type PublicBlogPost = {
+  id: string
+  title: string
+  content: string
+  featured_image_url: string | null
+  created_at: string
+}
 
 const DEFAULT_TAB_ORDER: MainStoreTab[] = [
   "bundles",
   "services",
   "products",
   "listings",
+  "blog",
   "business",
   "advertise",
   "writing",
@@ -159,6 +169,7 @@ const PREMIUM_TAB_ORDER: MainStoreTab[] = [
   "services",
   "products",
   "listings",
+  "blog",
   "business",
   "advertise",
   "writing",
@@ -182,6 +193,7 @@ type PublicAgentStorefrontProps = {
   initialProperties?: PublicPropertyListing[]
   initialInfluencer?: PublicInfluencerProfile | null
   initialListingProducts?: AgentProduct[]
+  initialListingFeatures?: ListingFeatures | null
   initialIsPremiumInfluencer?: boolean
 }
 
@@ -205,6 +217,7 @@ function applyStorefrontPayload(
     properties?: PublicPropertyListing[]
     influencer?: PublicInfluencerProfile | null
     listingProducts?: AgentProduct[]
+    listingFeatures?: ListingFeatures | null
     isPremiumInfluencer?: boolean
     unavailable?: boolean
   },
@@ -220,6 +233,7 @@ function applyStorefrontPayload(
     setProperties: (p: PublicPropertyListing[]) => void
     setInfluencer: (i: PublicInfluencerProfile | null) => void
     setListingProducts: (p: AgentProduct[]) => void
+    setListingFeatures: (f: ListingFeatures) => void
     setNetworkTab: (t: string) => void
     setMainTab: (t: MainStoreTab) => void
     setLoadError: (e: string | null) => void
@@ -238,6 +252,7 @@ function applyStorefrontPayload(
     setters.setProperties([])
     setters.setInfluencer(null)
     setters.setListingProducts([])
+    setters.setListingFeatures(getDefaultFreeFeatures())
     return false
   }
 
@@ -255,6 +270,7 @@ function applyStorefrontPayload(
   setters.setProperties(data.properties || [])
   setters.setInfluencer(data.influencer ?? null)
   setters.setListingProducts(data.listingProducts || [])
+  setters.setListingFeatures(data.listingFeatures ?? getDefaultFreeFeatures())
   setters.setLoadError(null)
 
   const providers = apiBundles.map((b) => normalizeProvider(b.provider))
@@ -284,6 +300,7 @@ export default function PublicAgentStorefront({
   initialProperties,
   initialInfluencer,
   initialListingProducts,
+  initialListingFeatures,
   initialIsPremiumInfluencer = false,
 }: PublicAgentStorefrontProps) {
   const params = useParams()
@@ -316,6 +333,9 @@ export default function PublicAgentStorefront({
   const [properties, setProperties] = useState<PublicPropertyListing[]>(initialProperties ?? [])
   const [influencer, setInfluencer] = useState<PublicInfluencerProfile | null>(initialInfluencer ?? null)
   const [listingProducts, setListingProducts] = useState<AgentProduct[]>(initialListingProducts ?? [])
+  const [listingFeatures, setListingFeatures] = useState<ListingFeatures>(
+    initialListingFeatures ?? getDefaultFreeFeatures(),
+  )
   const [isPremiumInfluencer, setIsPremiumInfluencer] = useState(initialIsPremiumInfluencer)
   const [wholesaleCart, setWholesaleCart] = useState<WholesaleCartLine[]>([])
   const [compliancePaidRef, setCompliancePaidRef] = useState<string | null>(null)
@@ -338,6 +358,10 @@ export default function PublicAgentStorefront({
   const [showDeliveryNotice, setShowDeliveryNotice] = useState(true)
   const [imageLightbox, setImageLightbox] = useState<{ src: string; alt: string } | null>(null)
   const [serviceModal, setServiceModal] = useState<ReferralService | null>(null)
+  const [banners, setBanners] = useState<StorefrontBanner[]>([])
+  const [activeBanner, setActiveBanner] = useState(0)
+  const [blogPosts, setBlogPosts] = useState<PublicBlogPost[]>([])
+  const [openBlogPost, setOpenBlogPost] = useState<PublicBlogPost | null>(null)
 
   useEffect(() => {
     if (!agentId) return
@@ -462,6 +486,7 @@ export default function PublicAgentStorefront({
           properties: initialProperties,
           influencer: initialInfluencer,
           listingProducts: initialListingProducts,
+          listingFeatures: initialListingFeatures ?? getDefaultFreeFeatures(),
           isPremiumInfluencer: initialIsPremiumInfluencer,
         },
         {
@@ -476,6 +501,7 @@ export default function PublicAgentStorefront({
           setProperties,
           setInfluencer,
           setListingProducts,
+          setListingFeatures,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -504,6 +530,7 @@ export default function PublicAgentStorefront({
           setProperties,
           setInfluencer,
           setListingProducts,
+          setListingFeatures,
           setNetworkTab,
           setMainTab,
           setLoadError,
@@ -529,6 +556,87 @@ export default function PublicAgentStorefront({
     initialAdPackages,
     initialFarmListings,
   ])
+
+  useEffect(() => {
+    if (!agentId) return
+    const loadListingFeatures = async () => {
+      try {
+        const res = await fetch(`/api/public/listing-products?agentId=${agentId}`, { cache: "no-store" })
+        const data = await res.json()
+        if (!res.ok) return
+        if (Array.isArray(data.products)) setListingProducts(data.products)
+        if (data.features) setListingFeatures(data.features as ListingFeatures)
+      } catch {
+        // keep fallback features enabled
+      }
+    }
+    loadListingFeatures()
+  }, [agentId])
+
+  useEffect(() => {
+    if (!agentId) return
+    if (!(listingFeatures?.banner_slider ?? false)) {
+      setBanners([])
+      return
+    }
+    const loadBanners = async () => {
+      try {
+        const res = await fetch(`/api/public/storefront/banners?agentId=${agentId}`, { cache: "no-store" })
+        const data = await res.json()
+        if (!res.ok) return
+        setBanners(Array.isArray(data.banners) ? data.banners : [])
+      } catch {
+        setBanners([])
+      }
+    }
+    loadBanners()
+  }, [agentId, listingFeatures?.banner_slider])
+
+  useEffect(() => {
+    if (!agentId) return
+    if (Number(listingFeatures?.blog_posts ?? 0) === 0) {
+      setBlogPosts([])
+      return
+    }
+    const loadBlog = async () => {
+      try {
+        const res = await fetch(`/api/public/blog?agentId=${agentId}`, { cache: "no-store" })
+        const data = await res.json()
+        if (!res.ok) return
+        setBlogPosts(Array.isArray(data.posts) ? data.posts : [])
+      } catch {
+        setBlogPosts([])
+      }
+    }
+    loadBlog()
+  }, [agentId, listingFeatures?.blog_posts])
+
+  useEffect(() => {
+    if (banners.length <= 1) return
+    const id = window.setInterval(() => {
+      setActiveBanner((prev) => (prev + 1) % banners.length)
+    }, 4000)
+    return () => window.clearInterval(id)
+  }, [banners.length])
+
+  useEffect(() => {
+    if (!agentId || !listingFeatures?.heatmap) return
+    let lastSent = 0
+    const onClick = (event: MouseEvent) => {
+      const now = Date.now()
+      if (now - lastSent < 900) return
+      lastSent = now
+      const x = (event.clientX / window.innerWidth) * 100
+      const y = (event.clientY / window.innerHeight) * 100
+      void fetch("/api/storefront/heatmap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId, x, y }),
+      })
+    }
+    window.addEventListener("click", onClick, { passive: true })
+    return () => window.removeEventListener("click", onClick)
+  }, [agentId, listingFeatures?.heatmap])
 
   const displayProfile: StoreProfile = profile ?? {
     store_name: "Data Store",
@@ -595,6 +703,7 @@ export default function PublicAgentStorefront({
       services: services.length > 0,
       products: wholesaleProducts.length > 0,
       listings: listingProducts.length > 0,
+      blog: Number(listingFeatures?.blog_posts ?? 0) !== 0,
       business: complianceForms.length > 0,
       advertise: adPackages.length > 0,
       writing: writingServices.length > 0,
@@ -607,6 +716,8 @@ export default function PublicAgentStorefront({
       services.length,
       wholesaleProducts.length,
       listingProducts.length,
+      listingFeatures?.blog_posts,
+      blogPosts.length,
       complianceForms.length,
       adPackages.length,
       writingServices.length,
@@ -621,6 +732,7 @@ export default function PublicAgentStorefront({
       services: services.length,
       products: wholesaleProducts.length,
       listings: listingProducts.length,
+      blog: blogPosts.length,
       business: complianceForms.length,
       advertise: adPackages.length,
       writing: writingServices.length,
@@ -633,6 +745,7 @@ export default function PublicAgentStorefront({
       services.length,
       wholesaleProducts.length,
       listingProducts.length,
+      blogPosts.length,
       complianceForms.length,
       adPackages.length,
       writingServices.length,
@@ -892,6 +1005,43 @@ export default function PublicAgentStorefront({
         </div>
       )}
 
+      {(listingFeatures?.banner_slider ?? true) && banners.length > 0 ? (
+        <div className="bg-slate-100 px-3 sm:px-6 pt-3">
+          <div className="max-w-6xl mx-auto rounded-2xl border bg-white p-2 shadow-sm">
+            <div className="relative overflow-hidden rounded-xl">
+              <Image
+                src={banners[activeBanner]?.image_url || banners[0].image_url}
+                alt="Store banner"
+                width={1600}
+                height={500}
+                className="h-40 w-full object-cover sm:h-56"
+              />
+            </div>
+            {banners.length > 1 && (
+              <div className="mt-2 flex items-center justify-center gap-2">
+                {banners.map((_, idx) => (
+                  <button
+                    key={`dot-${idx}`}
+                    type="button"
+                    className={`h-2.5 rounded-full transition-all ${idx === activeBanner ? "w-5 bg-slate-800" : "w-2.5 bg-slate-300"}`}
+                    onClick={() => setActiveBanner(idx)}
+                    aria-label={`Show banner ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div
+          className="h-2 sm:h-3"
+          style={{
+            background: `linear-gradient(90deg, ${accent}22, ${accent}55, ${accent}22)`,
+          }}
+          aria-hidden
+        />
+      )}
+
       <header
         className="relative overflow-hidden text-white shadow-lg"
         style={{
@@ -940,6 +1090,12 @@ export default function PublicAgentStorefront({
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
               {displayProfile.store_name || "Data Store"}
             </h1>
+            {(listingFeatures?.verified_seller_badge ?? true) && (
+              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs sm:text-sm font-semibold gap-1">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Verified Seller
+              </Badge>
+            )}
             {isPremiumInfluencer && (
               <Badge className="bg-amber-400/90 text-amber-950 border-amber-200 text-xs sm:text-sm font-semibold gap-1">
                 <Award className="h-3.5 w-3.5" />
@@ -1006,7 +1162,6 @@ export default function PublicAgentStorefront({
             counts={tabCounts}
             tabOrder={catalogTabOrder}
           />
-
           {tabVisibility.bundles && (
           <TabsContent value="bundles" className="mt-2 space-y-4 focus-visible:outline-none">
             {bundles.length === 0 ? (
@@ -1336,7 +1491,59 @@ export default function PublicAgentStorefront({
                 accent={accent}
                 whatsappPhone={whatsappPhone}
                 storeName={displayProfile.store_name || "Store"}
+                storePath={`/store/${encodeURIComponent(storeSegment || agentId)}`}
+                features={listingFeatures}
               />
+            </TabsContent>
+          )}
+
+          {tabVisibility.blog && (
+            <TabsContent value="blog" className="mt-2 focus-visible:outline-none">
+              {blogPosts.length === 0 ? (
+                <Card className="border-0 shadow-md rounded-2xl">
+                  <CardContent className="py-10 text-center text-muted-foreground text-sm">
+                    No blog posts published yet.
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {blogPosts.map((post) => (
+                  <Card
+                    key={post.id}
+                    role="button"
+                    tabIndex={0}
+                    className="overflow-hidden border border-slate-200 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => setOpenBlogPost(post)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        setOpenBlogPost(post)
+                      }
+                    }}
+                  >
+                    {post.featured_image_url && (
+                      <Image
+                        src={post.featured_image_url}
+                        alt={post.title}
+                        width={700}
+                        height={360}
+                        className="h-36 w-full object-cover"
+                      />
+                    )}
+                    <CardContent className="p-3">
+                      <p className="font-semibold text-sm line-clamp-2">{post.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(post.created_at).toLocaleDateString()}
+                      </p>
+                      <p className="text-sm text-slate-600 mt-2 line-clamp-3">
+                        {post.content.slice(0, 140)}
+                        {post.content.length > 140 ? "..." : ""}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  ))}
+                </div>
+              )}
             </TabsContent>
           )}
         </Tabs>
@@ -1473,6 +1680,7 @@ export default function PublicAgentStorefront({
         agentId={agentId}
         storeSlug={displayProfile.store_slug ?? storeSegment}
         storeName={displayProfile.store_name || "Data Store"}
+        enabled={listingFeatures?.social_share ?? true}
       />
 
       <StorefrontChannelPopup
@@ -1489,6 +1697,7 @@ export default function PublicAgentStorefront({
         whatsappPhone={whatsappPhone}
         storeName={displayProfile.store_name || "Data Store"}
         accentColor={accent}
+        enabled={listingFeatures?.whatsapp_widget ?? true}
       />
 
       <Dialog
@@ -1591,6 +1800,31 @@ export default function PublicAgentStorefront({
         alt={imageLightbox?.alt}
         onClose={() => setImageLightbox(null)}
       />
+
+      <Dialog open={openBlogPost != null} onOpenChange={(open) => !open && setOpenBlogPost(null)}>
+        <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
+          {openBlogPost && (
+            <div className="space-y-4">
+              <DialogHeader>
+                <DialogTitle className="text-xl pr-8">{openBlogPost.title}</DialogTitle>
+              </DialogHeader>
+              <p className="text-xs text-muted-foreground">
+                {new Date(openBlogPost.created_at).toLocaleDateString()}
+              </p>
+              {openBlogPost.featured_image_url && (
+                <Image
+                  src={openBlogPost.featured_image_url}
+                  alt={openBlogPost.title}
+                  width={1200}
+                  height={700}
+                  className="w-full max-h-72 rounded-lg object-cover"
+                />
+              )}
+              <article className="whitespace-pre-wrap text-sm leading-7">{openBlogPost.content}</article>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <PwaInstallPrompt
         variant="storefront"

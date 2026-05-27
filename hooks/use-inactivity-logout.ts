@@ -63,9 +63,13 @@ export function useInactivityLogout(options: UseInactivityLogoutOptions = {}) {
     if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current)
     if (warningTimerRef.current) clearTimeout(warningTimerRef.current)
 
-    // Set logout timer directly (no warning - showWarningMinutes is ignored)
+    if (showWarningMinutes > 0 && timeoutMs > warningMs) {
+      warningTimerRef.current = setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("inactivity-warning"))
+      }, timeoutMs - warningMs)
+    }
+
     inactivityTimerRef.current = setTimeout(() => {
-      console.log('[v0] Inactivity timeout reached after 15 minutes - logging out silently')
       handleLogout()
     }, timeoutMs)
   }
@@ -77,22 +81,30 @@ export function useInactivityLogout(options: UseInactivityLogoutOptions = {}) {
     resetInactivityTimer()
 
     // List of activity events to track
-    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click']
+    const activityEvents = ["mousedown", "keydown", "scroll", "touchstart", "touchmove", "click"]
 
-    // Add event listeners
     const handleActivity = () => {
       resetInactivityTimer()
     }
 
-    activityEvents.forEach((event) => {
-      window.addEventListener(event, handleActivity)
-    })
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        resetInactivityTimer()
+      }
+    }
 
-    // Cleanup
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, handleActivity, { passive: true })
+    })
+    document.addEventListener("visibilitychange", handleVisibility)
+    window.addEventListener("focus", handleActivity)
+
     return () => {
       activityEvents.forEach((event) => {
         window.removeEventListener(event, handleActivity)
       })
+      document.removeEventListener("visibilitychange", handleVisibility)
+      window.removeEventListener("focus", handleActivity)
 
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current)
       if (warningTimerRef.current) clearTimeout(warningTimerRef.current)

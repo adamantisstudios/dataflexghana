@@ -98,8 +98,8 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   return (
     <AgentSecurityProvider
       enabled={true}
-      inactivityTimeoutMinutes={15}
-      showWarningMinutes={0}
+      inactivityTimeoutMinutes={90}
+      showWarningMinutes={5}
     >
       {children}
       <AgentCallWidget />

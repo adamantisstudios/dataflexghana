@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "agentId or segment required" }, { status: 400 })
     }
 
-    const products = await getPublicAgentProducts(agentId)
-    return NextResponse.json({ success: true, products })
+    const { products, features } = await getPublicAgentProducts(agentId)
+    return NextResponse.json({ success: true, products, features })
   } catch (e) {
     console.error("[public listing-products]", e)
     return NextResponse.json({ error: "Failed to load products" }, { status: 500 })

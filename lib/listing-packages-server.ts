@@ -1,10 +1,16 @@
 import { getAdminClient } from "@/lib/supabase-base"
+import {
+  getActiveAgentFeatures,
+  getDefaultFreeFeatures,
+  type ListingFeatures,
+} from "@/lib/listing-package-utils"
 
 export type ListingPackage = {
   id: string
   name: string
   max_listings: number
   price: number
+  features: Record<string, unknown> | null
   includes_analytics: boolean
   is_active: boolean
   created_at: string
@@ -38,6 +44,11 @@ export type AgentProduct = {
   created_at: string
 }
 
+export type PublicAgentProductsPayload = {
+  products: AgentProduct[]
+  features: ListingFeatures
+}
+
 const LISTING_DURATION_DAYS = 30
 
 export async function getActiveListingPackages(): Promise<ListingPackage[]> {
@@ -51,6 +62,7 @@ export async function getActiveListingPackages(): Promise<ListingPackage[]> {
     ...p,
     price: Number(p.price),
     max_listings: Number(p.max_listings),
+    features: p.features ?? null,
     includes_analytics: Boolean(p.includes_analytics),
     is_active: Boolean(p.is_active),
   }))
@@ -85,6 +97,7 @@ export async function getAgentActiveSubscription(agentId: string): Promise<Listi
           ...pkg,
           price: Number(pkg.price),
           max_listings: Number(pkg.max_listings),
+          features: pkg.features ?? null,
           includes_analytics: Boolean(pkg.includes_analytics),
           is_active: Boolean(pkg.is_active),
         }
@@ -146,11 +159,11 @@ export async function createPendingListingSubscription(params: {
   return data as ListingSubscription
 }
 
-export async function getPublicAgentProducts(agentId: string): Promise<AgentProduct[]> {
+export async function getPublicAgentProducts(agentId: string): Promise<PublicAgentProductsPayload> {
   const canList = await agentCanListProducts(agentId)
-  if (!canList) return []
   const sub = await getAgentActiveSubscription(agentId)
-  if (!sub) return []
+  const features = getActiveAgentFeatures(sub)
+  if (!canList) return { products: [], features }
 
   const db = getAdminClient()
   const { data } = await db
@@ -160,11 +173,27 @@ export async function getPublicAgentProducts(agentId: string): Promise<AgentProd
     .eq("is_active", true)
     .order("created_at", { ascending: false })
 
-  return (data || []).map((p) => ({
+  const allProducts = (data || []).map((p) => ({
     ...p,
     price: Number(p.price),
     images: Array.isArray(p.images) ? p.images : [],
     view_count: Number(p.view_count ?? 0),
     is_active: Boolean(p.is_active),
   }))
+
+  const maxListings = Number(features.max_listings)
+  const limitedProducts =
+    Number.isFinite(maxListings) && maxListings > 0
+      ? allProducts.slice(0, maxListings)
+      : allProducts
+
+  return {
+    products: limitedProducts,
+    features: features ?? getDefaultFreeFeatures(),
+  }
+}
+
+export async function getAgentListingFeatures(agentId: string): Promise<ListingFeatures> {
+  const sub = await getAgentActiveSubscription(agentId)
+  return getActiveAgentFeatures(sub) ?? getDefaultFreeFeatures()
 }

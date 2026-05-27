@@ -10,12 +10,14 @@ interface StorefrontWhatsAppWidgetProps {
   whatsappPhone: string | null
   storeName: string
   accentColor: string
+  enabled?: boolean
 }
 
 export function StorefrontWhatsAppWidget({
   whatsappPhone,
   storeName,
   accentColor,
+  enabled = true,
 }: StorefrontWhatsAppWidgetProps) {
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState("")
@@ -31,7 +33,7 @@ export function StorefrontWhatsAppWidget({
     setOpen(false)
   }
 
-  if (!whatsappPhone) return null
+  if (!enabled || !whatsappPhone) return null
 
   return (
     <div className="fixed bottom-24 right-4 md:bottom-6 z-50 flex flex-col items-end gap-3 pb-[env(safe-area-inset-bottom)]">

@@ -12,8 +12,8 @@ export class SessionManager {
   private sessionCheckInterval: NodeJS.Timeout | null = null
   private refreshTimeout: NodeJS.Timeout | null = null
   private lastSessionCheck: number = 0
-  private readonly SESSION_CHECK_INTERVAL = 30000 // 30 seconds (less frequent to reduce noise)
-  private readonly SESSION_REFRESH_THRESHOLD = 600000 // 10 minutes before expiry
+  private readonly SESSION_CHECK_INTERVAL = 600000 // 10 minutes
+  private readonly SESSION_REFRESH_THRESHOLD = 900000 // 15 minutes before expiry
   private readonly PROACTIVE_REFRESH_THRESHOLD = 1800000 // 30 minutes before expiry
   private isRefreshing: boolean = false
   private refreshPromise: Promise<boolean> | null = null
@@ -209,13 +209,18 @@ if (typeof window !== 'undefined') {
   })
 
   // Handle visibility changes to reduce unnecessary checks when tab is hidden
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      // Tab became visible, check session health
-      console.log('Tab became visible, checking session health...')
-      sessionManager.checkAndRefreshIfNeeded().catch(error => {
-        console.debug('Session check failed:', error)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      sessionManager.checkAndRefreshIfNeeded().catch((error) => {
+        console.debug("Session check failed:", error)
+      })
+      sessionManager.refreshSession().catch((error) => {
+        console.debug("Proactive session refresh failed:", error)
       })
     }
+  })
+
+  window.addEventListener("focus", () => {
+    sessionManager.checkAndRefreshIfNeeded().catch(() => undefined)
   })
 }

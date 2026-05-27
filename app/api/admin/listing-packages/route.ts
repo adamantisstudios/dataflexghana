@@ -26,7 +26,11 @@ export async function GET(request: NextRequest) {
   const subscriptions = (subsRaw || []).map((s) => ({
     ...s,
     package: pkgMap.get(s.package_id)
-      ? { name: pkgMap.get(s.package_id)!.name, max_listings: pkgMap.get(s.package_id)!.max_listings }
+      ? {
+          name: pkgMap.get(s.package_id)!.name,
+          max_listings: pkgMap.get(s.package_id)!.max_listings,
+          features: pkgMap.get(s.package_id)!.features ?? null,
+        }
       : undefined,
   }))
 
@@ -59,6 +63,9 @@ export async function PATCH(request: NextRequest) {
     if (body.max_listings != null) updates.max_listings = parseInt(String(body.max_listings), 10)
     if (body.includes_analytics !== undefined) updates.includes_analytics = Boolean(body.includes_analytics)
     if (body.is_active !== undefined) updates.is_active = Boolean(body.is_active)
+    if (body.features != null && typeof body.features === "object") {
+      updates.features = body.features
+    }
 
     const db = getAdminClient()
     const { data, error } = await db

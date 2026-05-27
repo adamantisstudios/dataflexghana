@@ -1,3 +1,38 @@
+const MAX_WIDTH = 1200
+const JPEG_QUALITY = 0.7
+
+export async function compressImageFile(file: File): Promise<Blob> {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("File must be an image")
+  }
+
+  const bitmap = await createImageBitmap(file)
+  const ratio = Math.min(1, MAX_WIDTH / bitmap.width)
+  const width = Math.max(1, Math.round(bitmap.width * ratio))
+  const height = Math.max(1, Math.round(bitmap.height * ratio))
+
+  const canvas = document.createElement("canvas")
+  canvas.width = width
+  canvas.height = height
+
+  const ctx = canvas.getContext("2d")
+  if (!ctx) {
+    throw new Error("Could not create image canvas")
+  }
+
+  ctx.drawImage(bitmap, 0, 0, width, height)
+  bitmap.close()
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", JPEG_QUALITY)
+  })
+
+  if (!blob) {
+    throw new Error("Image compression failed")
+  }
+
+  return blob
+}
 import imageCompression from "browser-image-compression"
 
 /**

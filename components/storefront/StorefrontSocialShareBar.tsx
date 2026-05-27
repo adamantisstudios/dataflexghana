@@ -6,9 +6,11 @@ type Props = {
   agentId: string
   storeSlug?: string | null
   storeName: string
+  enabled?: boolean
 }
 
-export function StorefrontSocialShareBar({ agentId, storeSlug, storeName }: Props) {
+export function StorefrontSocialShareBar({ agentId, storeSlug, storeName, enabled = true }: Props) {
+  if (!enabled) return null
   return (
     <>
       <StoreSocialShareButtons

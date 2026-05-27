@@ -6,6 +6,7 @@ import {
   getAgentActiveSubscription,
   agentCanListProducts,
 } from "@/lib/listing-packages-server"
+import { getActiveAgentFeatures } from "@/lib/listing-package-utils"
 
 export const dynamic = "force-dynamic"
 
@@ -47,7 +48,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     const category = body.category ? String(body.category).trim() : null
     const momo_number = String(body.momo_number ?? "").trim()
     const momo_name = String(body.momo_name ?? "").trim()
-    const images = Array.isArray(body.images) ? body.images.map(String).filter(Boolean).slice(0, 2) : []
+    const rawImages = Array.isArray(body.images) ? body.images.map(String).filter(Boolean) : []
 
     if (!title || !Number.isFinite(price) || price <= 0) {
       return NextResponse.json({ error: "Title and valid price are required" }, { status: 400 })
@@ -55,7 +56,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     if (!momo_number || !momo_name) {
       return NextResponse.json({ error: "MoMo number and account name are required" }, { status: 400 })
     }
-    if (images.length === 0) {
+    if (rawImages.length === 0) {
       return NextResponse.json({ error: "At least one product image is required" }, { status: 400 })
     }
 
@@ -65,14 +66,15 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     }
 
     const sub = await getAgentActiveSubscription(user.id)
-    if (!sub?.package) {
-      return NextResponse.json({ error: "No active listing subscription" }, { status: 403 })
-    }
+    const features = getActiveAgentFeatures(sub)
+    const maxImages = Math.max(1, Number(features.max_images) || 1)
+    const images = rawImages.slice(0, maxImages)
 
     const used = await countAgentProducts(user.id, true)
-    if (used >= sub.package.max_listings) {
+    const maxListings = Math.max(0, Number(features.max_listings ?? sub?.package?.max_listings ?? 0))
+    if (used >= maxListings) {
       return NextResponse.json(
-        { error: `Maximum ${sub.package.max_listings} active listings for your package` },
+        { error: `Maximum ${maxListings} active listings for your package` },
         { status: 400 },
       )
     }
@@ -82,7 +84,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       .from("agent_products")
       .insert({
         agent_id: user.id,
-        subscription_id: sub.id,
+        subscription_id: sub?.id ?? null,
         title,
         description,
         price,
