@@ -112,6 +112,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     is_public: false,
     max_members: 50,
     image_url: "",
+    assignedTeacherId: "",
+    assignedTeacherRole: "teacher" as "teacher" | "admin",
   })
   const [editingChannelId, setEditingChannelId] = useState<string | null>(null)
   const [editingChannelName, setEditingChannelName] = useState("")
@@ -226,18 +228,37 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       return
     }
     try {
-      await supabase.from("teaching_channels").insert([
-        {
-          name: channelForm.name,
-          description: channelForm.description,
-          category: channelForm.category,
-          is_public: channelForm.is_public,
-          max_members: channelForm.max_members,
-          image_url: channelForm.image_url || null,
-          created_by: "admin",
-          is_active: true,
-        },
-      ])
+      const { data: channel, error } = await supabase
+        .from("teaching_channels")
+        .insert([
+          {
+            name: channelForm.name,
+            description: channelForm.description,
+            category: channelForm.category,
+            is_public: channelForm.is_public,
+            max_members: channelForm.max_members,
+            image_url: channelForm.image_url || null,
+            created_by: "admin",
+            is_active: true,
+          },
+        ])
+        .select("id")
+        .single()
+
+      if (error || !channel) throw error
+
+      if (channelForm.assignedTeacherId) {
+        const result = await ensureChannelMemberActive(
+          supabase,
+          channel.id,
+          channelForm.assignedTeacherId,
+          channelForm.assignedTeacherRole,
+        )
+        if (!result.ok) {
+          toast.error(result.error || "Channel created but failed to assign teacher.")
+        }
+      }
+
       toast.success("Channel created successfully!")
       setShowChannelDialog(false)
       setChannelForm({
@@ -247,6 +268,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         is_public: false,
         max_members: 50,
         image_url: "",
+        assignedTeacherId: "",
+        assignedTeacherRole: "teacher",
       })
       loadData()
     } catch (error) {
@@ -754,6 +777,49 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                     />
                     <Label htmlFor="is-public">Public Channel</Label>
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="channel-teacher">Channel Admin / Teacher</Label>
+                    <Select
+                      value={channelForm.assignedTeacherId || "__none__"}
+                      onValueChange={(val) =>
+                        setChannelForm({
+                          ...channelForm,
+                          assignedTeacherId: val === "__none__" ? "" : val,
+                        })
+                      }
+                    >
+                      <SelectTrigger id="channel-teacher">
+                        <SelectValue placeholder="Select agent to manage channel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Assign later</SelectItem>
+                        {agents.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.full_name} ({a.phone_number})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {channelForm.assignedTeacherId && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="teacher-role">Role</Label>
+                      <Select
+                        value={channelForm.assignedTeacherRole}
+                        onValueChange={(val: "teacher" | "admin") =>
+                          setChannelForm({ ...channelForm, assignedTeacherRole: val })
+                        }
+                      >
+                        <SelectTrigger id="teacher-role">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="teacher">Teacher</SelectItem>
+                          <SelectItem value="admin">Channel Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button onClick={handleCreateChannel} className="h-11 bg-green-500 text-white hover:bg-green-600">

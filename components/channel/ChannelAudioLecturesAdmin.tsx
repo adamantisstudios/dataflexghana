@@ -17,6 +17,8 @@ import { formatUploadErrorMessage } from "@/lib/upload-error-messages"
 import { toast } from "sonner"
 import { Headphones, Trash2, Upload, Plus, X, Play, ChevronLeft } from "lucide-react"
 import { ChannelAudioRecorder } from "@/components/channel/ChannelAudioRecorder"
+import { AudioLectureAttachments } from "@/components/channel/AudioLectureAttachments"
+import { cn } from "@/lib/utils"
 
 type Props = {
   channelId: string
@@ -34,6 +36,8 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
   const [attachmentUrl, setAttachmentUrl] = useState("")
   const [attachmentName, setAttachmentName] = useState("")
   const [previewLecture, setPreviewLecture] = useState<AudioLecture | null>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const [uploadingAttachments, setUploadingAttachments] = useState(false)
 
   const loadLectures = useCallback(async () => {
     setLoading(true)
@@ -71,6 +75,25 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || "Attachment upload failed")
     return data.attachment as AudioAttachment
+  }
+
+  const addAttachmentFiles = async (files: FileList | File[]) => {
+    const list = Array.from(files)
+    if (list.length === 0) return
+    setUploadingAttachments(true)
+    try {
+      const uploaded: AudioAttachment[] = []
+      for (const file of list) {
+        const att = await uploadAttachmentFile(file)
+        uploaded.push(att)
+      }
+      setAttachments((prev) => [...prev, ...uploaded])
+      toast.success(uploaded.length === 1 ? "Attachment added" : `${uploaded.length} attachments added`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed")
+    } finally {
+      setUploadingAttachments(false)
+    }
   }
 
   const addUrlAttachment = () => {
@@ -181,20 +204,7 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
             className="!relative !static rounded-2xl"
           />
           {attachments.length > 0 && (
-            <ul className="text-sm space-y-1">
-              {attachments.map((a, i) => (
-                <li key={`${a.url}-${i}`}>
-                  <a
-                    href={a.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-green-700 hover:underline break-all"
-                  >
-                    {a.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <AudioLectureAttachments attachments={attachments} className="mt-2" />
           )}
         </div>
       </TeachingSectionErrorBoundary>
@@ -269,8 +279,37 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
             )}
           </div>
 
-          <div className="rounded-lg border border-dashed border-gray-200 p-3 space-y-2">
-            <p className="text-xs font-medium text-gray-700">Attachments (optional)</p>
+          <div
+            className={cn(
+              "rounded-xl border border-dashed p-4 space-y-3 transition-colors",
+              dragOver ? "border-emerald-400 bg-emerald-50/50" : "border-slate-200 bg-slate-50/50",
+            )}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setDragOver(true)
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDragOver(false)
+              if (e.dataTransfer.files?.length) void addAttachmentFiles(e.dataTransfer.files)
+            }}
+          >
+            <p className="text-xs font-semibold text-slate-700">Attachments (optional)</p>
+            <p className="text-[11px] text-slate-500">
+              Drag & drop PDFs, images, or notes — or browse below. Multiple files supported.
+            </p>
+            <Input
+              type="file"
+              multiple
+              accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.txt,.md,image/*,application/pdf"
+              className="h-11 text-sm"
+              disabled={uploadingAttachments}
+              onChange={(e) => {
+                if (e.target.files?.length) void addAttachmentFiles(e.target.files)
+                e.target.value = ""
+              }}
+            />
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 placeholder="Display name"
@@ -279,7 +318,7 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
                 className="h-11 text-sm flex-1"
               />
               <Input
-                placeholder="https://…"
+                placeholder="Or paste URL…"
                 value={attachmentUrl}
                 onChange={(e) => setAttachmentUrl(e.target.value)}
                 className="h-11 text-sm flex-[2]"
@@ -288,33 +327,21 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-            <Input
-              type="file"
-              className="h-11 text-sm"
-              onChange={async (e) => {
-                const f = e.target.files?.[0]
-                if (!f) return
-                try {
-                  const att = await uploadAttachmentFile(f)
-                  setAttachments((prev) => [...prev, att])
-                  toast.success("Attachment added")
-                } catch (err) {
-                  toast.error(err instanceof Error ? err.message : "Upload failed")
-                }
-                e.target.value = ""
-              }}
-            />
+            {uploadingAttachments && (
+              <p className="text-xs text-emerald-700">Uploading attachments…</p>
+            )}
             {attachments.length > 0 && (
               <ul className="text-xs space-y-1">
                 {attachments.map((a, i) => (
-                  <li key={i} className="flex items-center justify-between gap-2 bg-gray-50 rounded px-2 py-1">
-                    <span className="truncate">{a.name}</span>
+                  <li key={i} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                    <span className="truncate font-medium text-slate-800">{a.name}</span>
                     <button
                       type="button"
                       onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
-                      className="text-gray-500 hover:text-red-600 p-2"
+                      className="flex h-11 w-11 items-center justify-center text-slate-400 hover:text-red-600"
+                      aria-label="Remove attachment"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </li>
                 ))}

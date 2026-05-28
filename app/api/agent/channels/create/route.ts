@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
+import { isPlatformAdminAgent } from "@/lib/platform-admin"
 import { getAdminClient } from "@/lib/supabase-base"
 
 export const dynamic = "force-dynamic"
@@ -36,9 +37,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Only approved agents can create channels" }, { status: 403 })
     }
 
-    if (!agentRow.can_teach) {
+    if (!isPlatformAdminAgent(agent)) {
       return NextResponse.json(
-        { error: "Only approved teachers can create channels. Contact admin for approval." },
+        { error: "Only the platform administrator can create channels. Contact support to request a new channel." },
         { status: 403 },
       )
     }

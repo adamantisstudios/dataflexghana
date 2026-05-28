@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { AudioPlayer, type AudioPlayerHandle } from "@/components/channel/AudioPlayer"
 import { AudioLectureComments } from "@/components/channel/AudioLectureComments"
+import { AudioLectureAttachments } from "@/components/channel/AudioLectureAttachments"
 import type { AudioLecture } from "@/lib/channel-audio-types"
 import { formatTimestamp, parseAttachments } from "@/lib/channel-audio-types"
 import {
@@ -14,7 +15,7 @@ import {
   teachingHubFullBleedClass,
 } from "@/components/teaching/teaching-hub-ui"
 import { TeachingSectionErrorBoundary } from "@/components/teaching/TeachingSectionErrorBoundary"
-import { Headphones, Paperclip, Play, X } from "lucide-react"
+import { Headphones, Play, X } from "lucide-react"
 
 type Props = {
   channelId: string
@@ -137,31 +138,9 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
               <p className="mt-1 text-sm leading-relaxed text-gray-600 line-clamp-2">{selected.description}</p>
             )}
           </div>
-          {attachments.length > 0 && (
-            <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-1">
-              <p className="text-xs font-semibold text-gray-800 flex items-center gap-1">
-                <Paperclip className="h-3.5 w-3.5" />
-                Attachments
-              </p>
-              <ul className="space-y-1">
-                {attachments.map((a, i) => (
-                  <li key={`${a.url}-${i}`}>
-                    <a
-                      href={a.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-green-700 hover:underline break-all min-h-[44px] inline-flex items-center"
-                    >
-                      {a.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
 
-        {/* Player — fixed height, no sticky/fixed positioning */}
+        {/* Player */}
         <div className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-5">
           <AudioPlayer
             ref={playerRef}
@@ -172,10 +151,17 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
           />
         </div>
 
-        {/* Comments — scrollable list + sticky composer */}
+        {attachments.length > 0 && (
+          <div className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-5">
+            <AudioLectureAttachments attachments={attachments} />
+          </div>
+        )}
+
+        {/* Comments */}
         {selected.id && (
           <AudioLectureComments
             layout="panel"
+            defaultExpanded={false}
             lectureId={selected.id}
             currentUserId={memberId}
             currentUserName={memberName}

@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase-client";
-import { Heart, Trash2, Edit2, Reply, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react'
+import { Heart, Trash2, Edit2, Reply, ChevronDown, ChevronUp, AlertCircle, MessageCircle, Send } from 'lucide-react'
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
   import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +60,10 @@ export function CommentThread({
   const [editText, setEditText] = useState("")
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
+
+  const totalCount = comments.reduce((sum, c) => sum + 1 + (c.replies?.length || 0), 0)
+  const MAX_LENGTH = 2000
 
   useEffect(() => {
     loadComments()
@@ -146,6 +151,7 @@ export function CommentThread({
 
       toast.success("Comment posted!")
       setNewComment("")
+      setExpanded(true)
       loadComments()
     } catch (error) {
       console.error("Error posting comment:", error)
@@ -317,10 +323,28 @@ export function CommentThread({
     return <div className="text-center py-4 text-gray-600">Loading comments...</div>
   }
 
+  const toggleButton = (
+    <button
+      type="button"
+      onClick={() => setExpanded((v) => !v)}
+      className="flex min-h-[44px] w-full items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-left shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/30"
+    >
+      <span className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+        <MessageCircle className="h-4 w-4 text-emerald-600" />
+        Comments {totalCount > 0 ? `(${totalCount})` : ""}
+      </span>
+      {expanded ? (
+        <ChevronUp className="h-4 w-4 shrink-0 text-slate-500" />
+      ) : (
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
+      )}
+    </button>
+  )
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {channelId && !isMember && (
-        <Card className="border-amber-200 bg-amber-50">
+        <Card className="border-amber-200 bg-amber-50 rounded-2xl shadow-sm">
           <CardContent className="pt-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -335,26 +359,45 @@ export function CommentThread({
         </Card>
       )}
 
-      <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <CardContent className="pt-4">
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder={isMember ? "Add a comment..." : "You must be a member to comment"}
-                disabled={channelId && !isMember}
-                className="h-11 border-gray-200 text-gray-900"
-              />
-              <Button
-                onClick={handleAddComment}
-                disabled={!newComment.trim() || (channelId && !isMember)}
-                className="h-11 bg-green-500 text-white hover:bg-green-600"
-              >
-                Post
-              </Button>
-            </div>
+      {toggleButton}
+
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-300 ease-out",
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="overflow-hidden space-y-4">
+      <Card className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <CardContent className="pt-4 pb-4">
+          <div className="relative flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-2 shadow-inner focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-100">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value.slice(0, MAX_LENGTH))}
+              placeholder={isMember ? "Add a comment…" : "You must be a member to comment"}
+              disabled={Boolean(channelId && !isMember)}
+              rows={2}
+              className="min-h-[44px] max-h-28 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  void handleAddComment()
+                }
+              }}
+            />
+            <Button
+              onClick={handleAddComment}
+              disabled={!newComment.trim() || Boolean(channelId && !isMember)}
+              size="icon"
+              className="h-11 w-11 shrink-0 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+              aria-label="Post comment"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
           </div>
+          <p className="mt-1.5 px-1 text-right text-[11px] tabular-nums text-slate-400">
+            {newComment.length}/{MAX_LENGTH}
+          </p>
         </CardContent>
       </Card>
 
@@ -541,6 +584,12 @@ export function CommentThread({
           ))
         )}
       </div>
+        </div>
+      </div>
+
+      {!expanded && (
+        <p className="text-center text-xs text-slate-500">Expand comments to join the discussion</p>
+      )}
 
       <AlertDialog open={!!showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(null)}>
         <AlertDialogContent className="w-[95vw] max-w-sm">

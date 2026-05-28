@@ -70,6 +70,24 @@ export function nestAudioComments(
   return roots
 }
 
+export type AttachmentIconKind = "pdf" | "image" | "document" | "file"
+
+export function getAttachmentIconKind(type: string, name?: string): AttachmentIconKind {
+  const t = (type || "").toLowerCase()
+  const n = (name || "").toLowerCase()
+  if (t.includes("pdf") || n.endsWith(".pdf")) return "pdf"
+  if (t.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg)$/.test(n)) return "image"
+  if (
+    t.includes("word") ||
+    t.includes("document") ||
+    t.includes("text") ||
+    /\.(doc|docx|txt|md|rtf)$/.test(n)
+  ) {
+    return "document"
+  }
+  return "file"
+}
+
 export function formatTimestamp(seconds: number | null | undefined): string {
   if (seconds == null || Number.isNaN(seconds)) return ""
   const s = Math.max(0, Math.floor(seconds))
