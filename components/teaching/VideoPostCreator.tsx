@@ -17,6 +17,8 @@ import { Progress } from "@/components/ui/progress"
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { formatHttpUploadError } from "@/lib/upload-error-messages"
 import { Plus, Upload, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 
@@ -187,72 +189,96 @@ export function VideoPostCreator({ channelId, teacherId, teacherName, onVideoCre
 
       setUploadProgress(20)
 
-      const uploadBody = new FormData()
-      uploadBody.append("file", videoFile)
-      uploadBody.append("channelId", channelId)
-      uploadBody.append("title", formData.title)
-      uploadBody.append("duration", formData.duration.toString())
-      uploadBody.append("width", videoSize.width.toString())
-      uploadBody.append("height", videoSize.height.toString())
-      uploadBody.append("description", formData.description)
+      const authHeaders = getAgentAuthHeaders()
 
+      const presignRes = await fetch("/api/videos/upload/presign", {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          channelId,
+          fileName: videoFile!.name,
+          contentType: videoFile!.type || "video/mp4",
+          fileSize: videoFile!.size,
+          duration: formData.duration,
+          title: formData.title,
+          description: formData.description,
+        }),
+      })
+
+      const presignJson = await presignRes.json()
+      if (!presignRes.ok || !presignJson.success) {
+        throw new Error(formatHttpUploadError(presignRes.status, presignJson.error))
+      }
+
+      setUploadProgress(40)
+
+      const putRes = await fetch(presignJson.uploadUrl, {
+        method: "PUT",
+        body: videoFile,
+        headers: {
+          "Content-Type": presignJson.contentType || videoFile!.type || "video/mp4",
+        },
+      })
+
+      if (!putRes.ok) {
+        throw new Error(
+          `Video storage upload failed (HTTP ${putRes.status}). Check your connection and try again.`,
+        )
+      }
+
+      setUploadProgress(65)
+
+      let thumbnailObjectKey: string | null = null
       if (thumbnailBlob) {
-        uploadBody.append("thumbnail", thumbnailBlob, "thumbnail.jpg")
-      }
-
-      setUploadProgress(50)
-
-      let uploadResponse
-      let retryCount = 0
-      const maxRetries = 2
-
-      while (retryCount <= maxRetries) {
-        try {
-          uploadResponse = await fetch("/api/videos/upload", {
-            method: "POST",
-            body: uploadBody,
-            headers: {
-              "x-agent-id": agent.id,
-              "x-agent-phone": agent.phone_number,
-            },
-            signal: AbortSignal.timeout(180000),
+        const thumbPresignRes = await fetch("/api/videos/upload/presign-thumbnail", {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({
+            channelId,
+            fileSize: thumbnailBlob.size,
+          }),
+        })
+        const thumbPresignJson = await thumbPresignRes.json()
+        if (thumbPresignRes.ok && thumbPresignJson.success) {
+          const thumbPut = await fetch(thumbPresignJson.uploadUrl, {
+            method: "PUT",
+            body: thumbnailBlob,
+            headers: { "Content-Type": "image/jpeg" },
           })
-          break // Success, exit retry loop
-        } catch (err: any) {
-          retryCount++
-          if (retryCount > maxRetries) {
-            throw err
+          if (thumbPut.ok) {
+            thumbnailObjectKey = thumbPresignJson.objectKey
+          } else {
+            toast.warning("Video uploaded but thumbnail could not be saved.")
           }
-          console.log(`[v0] Upload attempt ${retryCount} failed, retrying...`)
-          toast.info(`Retrying upload (attempt ${retryCount + 1}/${maxRetries + 1})...`)
-          await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait 2 seconds before retry
         }
       }
 
-      if (!uploadResponse?.ok) {
-        let errorMessage = "Upload failed"
-        try {
-          const errorData = await uploadResponse?.json()
-          errorMessage = errorData.error || errorMessage
-        } catch {
-          errorMessage = `Upload failed with status ${uploadResponse?.status}`
-        }
-        throw new Error(errorMessage)
+      setUploadProgress(85)
+
+      const completeRes = await fetch("/api/videos/upload/complete", {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          channelId,
+          objectKey: presignJson.objectKey,
+          thumbnailObjectKey,
+          title: formData.title,
+          description: formData.description,
+          duration: formData.duration,
+          width: videoSize.width,
+          height: videoSize.height,
+          fileSize: videoFile!.size,
+        }),
+      })
+
+      const uploadJson = await completeRes.json()
+      if (!completeRes.ok || !uploadJson.success) {
+        throw new Error(formatHttpUploadError(completeRes.status, uploadJson.error))
       }
 
-      let uploadJson: any
-      try {
-        uploadJson = await uploadResponse?.json()
-      } catch (jsonErr) {
-        console.error("[v0] Failed to parse JSON:", jsonErr)
-        throw new Error("Server returned invalid JSON response")
-      }
-
-      if (!uploadJson.success || !uploadJson.videoId) {
+      if (!uploadJson.videoId) {
         throw new Error(uploadJson.error || "Upload completed but video ID not returned")
       }
-
-      const { videoId } = uploadJson
 
       setUploadProgress(100)
       toast.success("Video posted successfully! ✅")

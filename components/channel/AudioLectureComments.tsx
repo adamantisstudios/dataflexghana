@@ -8,7 +8,7 @@ import { realtimeManager } from "@/lib/realtime-manager"
 import { toast } from "sonner"
 import type { AudioComment } from "@/lib/channel-audio-types"
 import { formatTimestamp } from "@/lib/channel-audio-types"
-import { Trash2, MessageCircle } from "lucide-react"
+import { Trash2, MessageCircle, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -18,6 +18,8 @@ type Props = {
   isChannelAdmin?: boolean
   getCurrentPlaybackTime: () => number
   onSeek: (seconds: number) => void
+  layout?: "panel" | "inline"
+  className?: string
   composerBottomClass?: string
 }
 
@@ -42,6 +44,8 @@ export function AudioLectureComments({
   isChannelAdmin = false,
   getCurrentPlaybackTime,
   onSeek,
+  layout = "inline",
+  className,
   composerBottomClass = "bottom-0",
 }: Props) {
   const [comments, setComments] = useState<AudioComment[]>([])
@@ -50,6 +54,7 @@ export function AudioLectureComments({
   const [atTimestamp, setAtTimestamp] = useState(false)
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [, setTick] = useState(0)
 
   const loadComments = useCallback(async () => {
     try {
@@ -68,6 +73,7 @@ export function AudioLectureComments({
   }, [lectureId])
 
   useEffect(() => {
+    setLoading(true)
     void loadComments()
   }, [loadComments])
 
@@ -102,6 +108,14 @@ export function AudioLectureComments({
     return () => unsub()
   }, [lectureId, currentUserId, currentUserName])
 
+  useEffect(() => {
+    if (!atTimestamp) return
+    const id = window.setInterval(() => setTick((t) => t + 1), 1000)
+    return () => window.clearInterval(id)
+  }, [atTimestamp])
+
+  const currentTimeLabel = formatTimestamp(Math.floor(getCurrentPlaybackTime()))
+
   const submitComment = async () => {
     if (!content.trim() || submitting) return
     setSubmitting(true)
@@ -121,6 +135,8 @@ export function AudioLectureComments({
 
       if (String(data.comment.author_id) === currentUserId) {
         setComments((prev) => mergeComment(prev, data.comment))
+      } else {
+        void loadComments()
       }
       setContent("")
       setReplyTo(null)
@@ -167,7 +183,7 @@ export function AudioLectureComments({
               <button
                 type="button"
                 onClick={() => onSeek(c.timestamp!)}
-                className="text-[11px] font-medium text-green-600 hover:underline mt-0.5"
+                className="text-[11px] font-medium text-green-600 hover:underline mt-0.5 min-h-[44px] inline-flex items-center"
               >
                 at {formatTimestamp(c.timestamp)}
               </button>
@@ -202,59 +218,95 @@ export function AudioLectureComments({
     )
   }
 
-  return (
-    <div className="flex flex-col gap-3 pb-32 sm:pb-4">
-      <h3 className="text-sm font-semibold text-gray-900">Comments</h3>
+  const composer = (
+    <div
+      className={cn(
+        layout === "panel"
+          ? "shrink-0 border-t border-slate-200 bg-white p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+          : cn(
+              "fixed left-0 right-0 z-30 border-t border-gray-200 bg-white p-3 sm:static sm:z-auto sm:border-0 sm:p-0 sm:bg-transparent",
+              composerBottomClass,
+            ),
+      )}
+    >
+      {replyTo && (
+        <p className="text-xs text-gray-600 mb-2">
+          Replying…{" "}
+          <button type="button" className="text-green-600 underline min-h-[44px]" onClick={() => setReplyTo(null)}>
+            Cancel
+          </button>
+        </p>
+      )}
+      <Textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder="Write a comment…"
+        rows={2}
+        className="text-sm min-h-[44px] resize-none w-full"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            void submitComment()
+          }
+        }}
+      />
+      <div className="flex flex-wrap items-center gap-2 mt-2">
+        <Button
+          type="button"
+          variant={atTimestamp ? "default" : "outline"}
+          size="sm"
+          className={cn(
+            "h-11 min-h-[44px] text-xs",
+            atTimestamp && "bg-emerald-600 hover:bg-emerald-700 text-white",
+          )}
+          onClick={() => setAtTimestamp((v) => !v)}
+        >
+          <Clock className="h-3.5 w-3.5 mr-1.5 shrink-0" />
+          {atTimestamp ? `At ${currentTimeLabel}` : "Comment at current time"}
+        </Button>
+        <Button
+          size="sm"
+          disabled={submitting || !content.trim()}
+          className="h-11 min-h-[44px] ml-auto bg-green-500 hover:bg-green-600 text-white px-5"
+          onClick={() => void submitComment()}
+        >
+          {submitting ? "Sending…" : "Send"}
+        </Button>
+      </div>
+    </div>
+  )
 
+  const commentsList = (
+    <>
       {loading ? (
-        <p className="text-sm text-gray-500">Loading comments…</p>
+        <p className="text-sm text-gray-500 py-4">Loading comments…</p>
       ) : comments.length === 0 ? (
-        <p className="text-sm text-gray-500">No comments yet. Be the first!</p>
+        <p className="text-sm text-gray-500 py-4">No comments yet. Be the first!</p>
       ) : (
         <div className="space-y-3">{comments.map((c) => renderComment(c))}</div>
       )}
+    </>
+  )
 
-      <div
-        className={cn(
-          "fixed left-0 right-0 z-30 border-t border-gray-200 bg-white p-3 sm:static sm:z-auto sm:border-0 sm:p-0 sm:bg-transparent",
-          composerBottomClass,
-        )}
-      >
-        {replyTo && (
-          <p className="text-xs text-gray-600 mb-1">
-            Replying…{" "}
-            <button type="button" className="text-green-600 underline" onClick={() => setReplyTo(null)}>
-              Cancel
-            </button>
-          </p>
-        )}
-        <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Leave a comment…"
-          rows={2}
-          className="text-sm min-h-[44px] resize-none"
-        />
-        <div className="flex flex-wrap gap-2 mt-2">
-          <label className="flex items-center gap-2 text-xs text-gray-700 min-h-[44px]">
-            <input
-              type="checkbox"
-              checked={atTimestamp}
-              onChange={(e) => setAtTimestamp(e.target.checked)}
-              className="h-4 w-4 accent-green-600"
-            />
-            Comment at {formatTimestamp(Math.floor(getCurrentPlaybackTime()))}
-          </label>
-          <Button
-            size="sm"
-            disabled={submitting || !content.trim()}
-            className="h-11 ml-auto bg-green-500 hover:bg-green-600 text-white"
-            onClick={() => void submitComment()}
-          >
-            {submitting ? "Posting…" : "Post"}
-          </Button>
+  if (layout === "panel") {
+    return (
+      <div className={cn("flex flex-1 flex-col min-h-0 overflow-hidden", className)}>
+        <div className="shrink-0 px-4 pt-3 sm:px-5">
+          <h3 className="text-sm font-semibold text-gray-900">Comments</h3>
         </div>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-2 sm:px-5">
+          {commentsList}
+        </div>
+        {composer}
       </div>
+    )
+  }
+
+  return (
+    <div className={cn("flex flex-col gap-3 pb-32 sm:pb-4", className)}>
+      <h3 className="text-sm font-semibold text-gray-900">Comments</h3>
+      {commentsList}
+      {composer}
     </div>
   )
 }

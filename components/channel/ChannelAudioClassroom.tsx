@@ -14,7 +14,7 @@ import {
   teachingHubFullBleedClass,
 } from "@/components/teaching/teaching-hub-ui"
 import { TeachingSectionErrorBoundary } from "@/components/teaching/TeachingSectionErrorBoundary"
-import { Headphones, ChevronLeft, Paperclip, Play } from "lucide-react"
+import { Headphones, Paperclip, Play, X } from "lucide-react"
 
 type Props = {
   channelId: string
@@ -34,16 +34,16 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
       const res = await fetch(`/api/channel/${channelId}/audio`, {
         headers: getAgentAuthHeaders(),
       })
-        const data = await res.json()
-        if (!res.ok) {
-          console.error("[audio classroom]", data.error)
-          return
-        }
-        const list = (data.lectures || []).map((lecture: AudioLecture) => ({
-          ...lecture,
-          attachments: parseAttachments(lecture.attachments),
-        }))
-        setLectures(list)
+      const data = await res.json()
+      if (!res.ok) {
+        console.error("[audio classroom]", data.error)
+        return
+      }
+      const list = (data.lectures || []).map((lecture: AudioLecture) => ({
+        ...lecture,
+        attachments: parseAttachments(lecture.attachments),
+      }))
+      setLectures(list)
     } finally {
       setLoading(false)
     }
@@ -52,6 +52,11 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
   useEffect(() => {
     void loadLectures()
   }, [loadLectures])
+
+  const closeDetail = () => {
+    playerRef.current?.pause()
+    setSelected(null)
+  }
 
   if (loading) {
     return <p className="text-center text-gray-600 py-8 text-sm">Loading audio lectures…</p>
@@ -112,66 +117,73 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
 
   return (
     <TeachingSectionErrorBoundary sectionName="audio lecture">
-    <div className="w-full space-y-4 pb-48 sm:pb-8 overflow-x-hidden">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-11 text-gray-900"
-        onClick={() => setSelected(null)}
+      <div
+        className={`flex w-full max-w-none flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ${teachingHubFullBleedClass}`}
+        style={{ minHeight: "min(72dvh, 680px)", maxHeight: "85dvh" }}
       >
-        <ChevronLeft className="h-4 w-4 mr-1" />
-        All lectures
-      </Button>
+        {/* Header + close */}
+        <div className="relative shrink-0 border-b border-slate-100 px-4 py-3 sm:px-5">
+          <button
+            type="button"
+            onClick={closeDetail}
+            className="absolute right-3 top-3 flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-gray-500 hover:bg-slate-100 hover:text-gray-900"
+            aria-label="Close lecture"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="pr-14">
+            <h3 className="text-base font-semibold text-gray-900 break-words sm:text-lg">{selected.title}</h3>
+            {selected.description && (
+              <p className="mt-1 text-sm leading-relaxed text-gray-600 line-clamp-2">{selected.description}</p>
+            )}
+          </div>
+          {attachments.length > 0 && (
+            <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-1">
+              <p className="text-xs font-semibold text-gray-800 flex items-center gap-1">
+                <Paperclip className="h-3.5 w-3.5" />
+                Attachments
+              </p>
+              <ul className="space-y-1">
+                {attachments.map((a, i) => (
+                  <li key={`${a.url}-${i}`}>
+                    <a
+                      href={a.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-green-700 hover:underline break-all min-h-[44px] inline-flex items-center"
+                    >
+                      {a.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
 
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 break-words">{selected.title}</h3>
-        {selected.description && (
-          <p className="text-sm text-gray-600 mt-2 leading-relaxed">{selected.description}</p>
+        {/* Player — fixed height, no sticky/fixed positioning */}
+        <div className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-5">
+          <AudioPlayer
+            ref={playerRef}
+            src={resolveAudioPlaybackSrc(selected)}
+            title={selected.title}
+            sticky={false}
+            className="shadow-none border-0 p-0"
+          />
+        </div>
+
+        {/* Comments — scrollable list + sticky composer */}
+        {selected.id && (
+          <AudioLectureComments
+            layout="panel"
+            lectureId={selected.id}
+            currentUserId={memberId}
+            currentUserName={memberName}
+            getCurrentPlaybackTime={() => playerRef.current?.getCurrentTime() ?? 0}
+            onSeek={(s) => playerRef.current?.seekTo(s)}
+          />
         )}
       </div>
-
-      {attachments.length > 0 && (
-        <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-2">
-          <p className="text-xs font-semibold text-gray-800 flex items-center gap-1">
-            <Paperclip className="h-3.5 w-3.5" />
-            Attachments
-          </p>
-          <ul className="space-y-1">
-            {attachments.map((a, i) => (
-              <li key={`${a.url}-${i}`}>
-                <a
-                  href={a.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-green-700 hover:underline break-all min-h-[44px] inline-flex items-center"
-                >
-                  {a.name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <AudioPlayer
-        ref={playerRef}
-        src={resolveAudioPlaybackSrc(selected)}
-        title={selected.title}
-        sticky
-        className="sm:!relative sm:!static sm:rounded-2xl"
-      />
-
-      {selected.id && (
-        <AudioLectureComments
-          lectureId={selected.id}
-          currentUserId={memberId}
-          currentUserName={memberName}
-          getCurrentPlaybackTime={() => playerRef.current?.getCurrentTime() ?? 0}
-          onSeek={(s) => playerRef.current?.seekTo(s)}
-          composerBottomClass="bottom-[11.5rem] sm:bottom-0"
-        />
-      )}
-    </div>
     </TeachingSectionErrorBoundary>
   )
 }

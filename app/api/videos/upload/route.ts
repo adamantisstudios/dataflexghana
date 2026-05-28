@@ -1,9 +1,11 @@
 export const runtime = "nodejs"
+export const maxDuration = 300
 
 import { type NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2-client"
+import { formatUploadErrorMessage } from "@/lib/upload-error-messages"
 
 const MAX_SIZE_MB = 100
 
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Video too large. Please record at a lower quality or trim the video.",
+          error: `Video is ${sizeMB.toFixed(1)}MB. Maximum allowed size is ${MAX_SIZE_MB}MB. Try lower quality or use direct upload.`,
         },
         { status: 400 },
       )
@@ -161,11 +163,9 @@ export async function POST(request: NextRequest) {
 
     console.error("[channel-video] Upload error:", err)
 
-    let userMessage = err instanceof Error ? err.message : "Upload failed. Please try again."
-    if (userMessage.includes("network") || userMessage.includes("timeout") || userMessage.includes("ECONN")) {
-      userMessage = "Network connection issue. Please check your internet and try again."
-    }
-
-    return NextResponse.json({ success: false, error: userMessage }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: formatUploadErrorMessage(err, "Video upload failed") },
+      { status: 500 },
+    )
   }
 }

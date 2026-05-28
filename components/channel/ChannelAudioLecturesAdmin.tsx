@@ -13,6 +13,7 @@ import { formatTimestamp, parseAttachments } from "@/lib/channel-audio-types"
 import { resolveAudioPlaybackSrc, teachingHubFullBleedClass } from "@/components/teaching/teaching-hub-ui"
 import { TeachingSectionErrorBoundary } from "@/components/teaching/TeachingSectionErrorBoundary"
 import { AudioPlayer } from "@/components/channel/AudioPlayer"
+import { formatUploadErrorMessage } from "@/lib/upload-error-messages"
 import { toast } from "sonner"
 import { Headphones, Trash2, Upload, Plus, X, Play, ChevronLeft } from "lucide-react"
 import { ChannelAudioRecorder } from "@/components/channel/ChannelAudioRecorder"
@@ -136,9 +137,7 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
     try {
       await uploadLectureFile(audioFile)
     } catch (e) {
-      if (e instanceof Error && e.message !== "Title required") {
-        toast.error(e.message || "Upload failed")
-      }
+      toast.error(formatUploadErrorMessage(e, "Audio upload failed"))
     }
   }
 

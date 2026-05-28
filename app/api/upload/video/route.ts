@@ -3,6 +3,7 @@ export const runtime = "nodejs"
 import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { uploadBufferToR2 } from "@/lib/r2-client"
+import { formatUploadErrorMessage } from "@/lib/upload-error-messages"
 
 const MAX_SIZE_MB = 100
 
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     console.error("[upload/video] error:", err)
     return NextResponse.json(
-      { success: false, error: err instanceof Error ? err.message : "Upload failed" },
+      { success: false, error: formatUploadErrorMessage(err, "Video upload failed") },
       { status: 500 },
     )
   }

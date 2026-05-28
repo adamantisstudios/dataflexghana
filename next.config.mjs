@@ -7,6 +7,11 @@ const nextConfig = {
     unoptimized: true,
   },
   serverExternalPackages: ["fluent-ffmpeg", "@ffmpeg-installer/ffmpeg"],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "500mb",
+    },
+  },
   turbopack: {},
 }
 

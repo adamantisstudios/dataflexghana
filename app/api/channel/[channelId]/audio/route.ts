@@ -8,6 +8,7 @@ import {
   getAudioStreamPath,
   repairChannelAudioPublicUrl,
 } from "@/lib/channel-audio-playback"
+import { formatUploadErrorMessage } from "@/lib/upload-error-messages"
 import { parseAttachments, type AudioLecture } from "@/lib/channel-audio-types"
 import { randomUUID } from "crypto"
 
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   } catch (error) {
     console.error("channel audio POST:", error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Upload failed" },
+      { error: formatUploadErrorMessage(error, "Audio upload failed") },
       { status: 500 },
     )
   }
