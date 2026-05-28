@@ -3,14 +3,21 @@
 export type DbOp = "gt" | "gte" | "lt" | "lte" | "neq";
 
 export const OP_KEY_REGEX = /^__(gte|gt|lte|lt|neq)__(.+)$/;
+export const IS_KEY_REGEX = /^__is__(.+)$/;
 
 export function isOpFilterKey(key: string): boolean {
-  return key.startsWith("__in__") || OP_KEY_REGEX.test(key);
+  return key.startsWith("__in__") || OP_KEY_REGEX.test(key) || IS_KEY_REGEX.test(key);
 }
 
-export function parseFilterKey(key: string): { type: "eq" | "in" | "op"; column: string; op?: DbOp } | null {
+export function parseFilterKey(
+  key: string,
+): { type: "eq" | "in" | "op" | "is"; column: string; op?: DbOp; isNull?: boolean } | null {
   if (key.startsWith("__in__")) {
     return { type: "in", column: key.replace(/^__in__/, "") };
+  }
+  const isMatch = key.match(IS_KEY_REGEX);
+  if (isMatch) {
+    return { type: "is", column: isMatch[1] };
   }
   const m = key.match(OP_KEY_REGEX);
   if (m) {
@@ -29,6 +36,12 @@ export function applyFiltersToSupabaseQuery(query: any, filters: Record<string, 
 
     if (parsed.type === "in") {
       q = q.in(parsed.column, v as unknown[]);
+    } else if (parsed.type === "is") {
+      if (v === null || v === "null") {
+        q = q.is(parsed.column, null);
+      } else {
+        q = q.not.is(parsed.column, null);
+      }
     } else if (parsed.type === "op" && parsed.op) {
       switch (parsed.op) {
         case "gt":

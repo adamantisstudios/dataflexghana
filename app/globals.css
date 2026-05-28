@@ -391,9 +391,12 @@ body {
 .voice-video-portrait {
   aspect-ratio: 9 / 16;
   width: 100%;
-  max-width: 420px;
   position: relative;
   overflow: hidden;
+}
+
+.voice-video-portrait:not(.max-w-none) {
+  max-width: 420px;
 }
 
 .voice-video-portrait .voice-video-inner {

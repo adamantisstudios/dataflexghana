@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, Eye, ThumbsUp, MoreVertical, Share2, Play, X } from 'lucide-react';
+import { Trash2, Eye, ThumbsUp, MoreVertical, Share2, Play, X, MessageSquare } from 'lucide-react';
 import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner";
   import {
@@ -280,7 +280,7 @@ export function VideoPostDisplay({
     <Card className="border-[#0E8F3D]/20 overflow-hidden hover:shadow-lg transition-shadow rounded-xl">
       <CardContent className="p-0">
         {/* Video Container - Vertical Aspect Ratio 9:16 */}
-        <div className="relative bg-black w-full max-w-xs mx-auto aspect-[9/16] rounded-lg overflow-hidden group">
+        <div className="relative bg-black w-full max-w-sm sm:max-w-md mx-auto aspect-[9/16] rounded-lg overflow-hidden group">
           {videoError ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900 text-white">
               <p className="text-sm font-semibold mb-2">Unable to Play Video</p>
@@ -406,13 +406,10 @@ export function VideoPostDisplay({
               <ThumbsUp className={`h-3 w-3 ${isLiked ? 'fill-current' : ''}`} />
               <span className="font-medium">{currentLikes}</span>
             </button>
-            <button 
-              onClick={() => setShowComments(!showComments)}
-              className="flex items-center gap-1 hover:text-purple-600 transition-colors"
-            >
+            <span className="flex items-center gap-1 text-gray-600">
               <MessageSquare className="h-3 w-3" />
-              <span className="font-medium">{comments.length}</span>
-            </button>
+              <span className="font-medium">{commentCount}</span>
+            </span>
             <button 
               onClick={handleShare}
               className="flex items-center gap-1 hover:text-blue-600 transition-colors"

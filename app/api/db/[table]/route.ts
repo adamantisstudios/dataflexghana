@@ -61,6 +61,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const eqFilters: Record<string, string | boolean | number> = {};
     const inFilters: Record<string, string[]> = {};
     const opFilters: { op: "gt" | "gte" | "lt" | "lte" | "neq"; column: string; value: string }[] = [];
+    const isNullFilters: string[] = [];
+    const isNotNullFilters: string[] = [];
     const orderClauses: { column: string; ascending: boolean }[] = [];
     let orFilter: string | null = null;
     let selectColumns = "*";
@@ -96,6 +98,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
             column: opMatch[2],
             value,
           });
+        } else if (value === "is.null") {
+          isNullFilters.push(key);
+        } else if (value === "not.is.null") {
+          isNotNullFilters.push(key);
         } else {
           eqFilters[key] = coerceFilterValue(value);
         }
@@ -118,6 +124,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
     Object.entries(eqFilters).forEach(([k, v]) => {
       query = query.eq(k, v);
     });
+
+    for (const column of isNullFilters) {
+      query = query.is(column, null);
+    }
+
+    for (const column of isNotNullFilters) {
+      query = query.not.is(column, null);
+    }
 
     for (const { op, column, value } of opFilters) {
       const coerced = coerceFilterValue(value);

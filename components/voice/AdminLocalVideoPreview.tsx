@@ -1,49 +1,35 @@
 "use client"
 
-import { VideoTrack, useLocalParticipant } from "@livekit/components-react"
+import { useLocalParticipant } from "@livekit/components-react"
 import { Track } from "livekit-client"
 import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
-import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
 import { cn } from "@/lib/utils"
 
-/** Small self-preview when admin camera is on — same framing as main stage. */
+const PIP_SHELL =
+  "absolute z-30 overflow-hidden rounded-xl border-2 border-[#0E8F3D]/50 bg-black shadow-xl aspect-[9/16] w-24 sm:w-60 sm:max-w-[240px]"
+
+/** Self-preview when admin camera is on — same 9:16 portrait framing as main stage. */
 export function AdminLocalVideoPreview() {
   const { localParticipant, isCameraEnabled } = useLocalParticipant()
-  const { isMobile } = useVoiceDeviceLayout()
   const pub = localParticipant.getTrackPublication(Track.Source.Camera)
 
   if (!isCameraEnabled || !pub?.track || pub.isMuted) return null
 
-  if (isMobile) {
-    return (
-      <div
-        className={cn(
-          "absolute z-20 bottom-24 right-2 w-[108px] rounded-lg overflow-hidden",
-          "border-2 border-[#0E8F3D]/50 shadow-lg",
-        )}
-      >
-        <VoiceVideoFrame
-          participant={localParticipant}
-          publication={pub}
-          badge="admin"
-          mirror
-          compact
-          className="w-full rounded-lg"
-        />
-      </div>
-    )
-  }
-
   return (
-    <div className="absolute z-20 bottom-4 right-4 w-40 rounded-lg overflow-hidden border-2 border-[#0E8F3D]/50 shadow-lg bg-black">
-      <VideoTrack
-        trackRef={{
-          participant: localParticipant,
-          publication: pub,
-          source: Track.Source.Camera,
-        }}
-        className="w-full h-full aspect-video object-contain bg-black"
-        style={{ transform: "scaleX(-1)" }}
+    <div
+      className={cn(
+        PIP_SHELL,
+        "bottom-[max(5.5rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))]",
+        "sm:bottom-4 sm:right-4",
+      )}
+    >
+      <VoiceVideoFrame
+        participant={localParticipant}
+        publication={pub}
+        badge="admin"
+        mirror
+        compact
+        className="h-full w-full rounded-xl"
       />
     </div>
   )

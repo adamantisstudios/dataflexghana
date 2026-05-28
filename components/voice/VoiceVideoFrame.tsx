@@ -55,9 +55,12 @@ export function VoiceVideoFrame({
   enableFullscreen = false,
   enablePinchZoom = false,
 }: Props) {
-  const { aspectClass, objectFitClass, isMobile } = useVoiceDeviceLayout()
-  const portraitLayout = isMobile && badge !== "screen"
-  const rawDimensions = (publication.track as { dimensions?: { width?: number; height?: number } } | null)?.dimensions
+  const { objectFitClass, isMobile } = useVoiceDeviceLayout()
+  /** Camera feeds use 9:16 portrait framing on all devices; screen share stays 16:9. */
+  const portraitLayout = badge !== "screen"
+  const pubDims = (publication as { dimensions?: { width?: number; height?: number } }).dimensions
+  const trackDims = (publication.track as { dimensions?: { width?: number; height?: number } } | null)?.dimensions
+  const rawDimensions = pubDims ?? trackDims
   const trackDimensions = rawDimensions
     ? { width: Number(rawDimensions.width ?? 0), height: Number(rawDimensions.height ?? 0) }
     : null
@@ -131,9 +134,13 @@ export function VoiceVideoFrame({
         portraitLayout && "voice-video-portrait",
         portraitLayout && landscapeFeed && "voice-video-landscape-feed",
         portraitLayout && mirror && "voice-video-mirror",
-        aspectClass,
-        portraitLayout && !compact && "max-w-[420px]",
-        !portraitLayout && maxWidthClass,
+        portraitLayout
+          ? compact
+            ? "aspect-[9/16] max-w-none"
+            : "aspect-[9/16] max-h-[min(85dvh,720px)] max-w-[min(100%,420px)]"
+          : isMobile
+            ? "aspect-[9/16] max-h-[min(85dvh,720px)]"
+            : `aspect-video max-h-[min(70vh,720px)] ${maxWidthClass}`,
         compact && "max-w-none",
         className,
       )}

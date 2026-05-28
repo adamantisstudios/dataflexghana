@@ -48,6 +48,12 @@ import {
 } from "@/lib/voice-room-topics"
 import { setParticipantCameraEnabled } from "@/lib/enable-participant-camera"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
+import {
+  pickFilmstripParticipants,
+  pickMainStageParticipant,
+  participantHasCamera,
+} from "@/lib/voice-stage-utils"
+import { VoiceStageFilmstrip } from "@/components/voice/VoiceStageFilmstrip"
 import { StableLiveKitRoom } from "@/components/voice/StableLiveKitRoom"
 import { AgentLocalVideoPip } from "@/components/voice/AgentLocalVideoPip"
 import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
@@ -56,7 +62,7 @@ import {
   voiceAvatarRingColor,
   voiceInitials,
 } from "@/lib/voice-ui-utils"
-import { getParticipantRole, isHostParticipant, isSpeakerRole } from "@/components/voice/voice-participant-utils"
+import { getParticipantRole, isHostParticipant } from "@/components/voice/voice-participant-utils"
 import { useParticipantAudioLevel } from "@/components/voice/useParticipantAudioLevel"
 import { VoiceReactionsLayer, sendVoiceReaction } from "@/components/voice/VoiceReactionsLayer"
 import { ChatPanel } from "@/components/voice/ChatPanel"
@@ -450,42 +456,34 @@ function AgentRoomUI({
 
   const connected = connectionState === ConnectionState.Connected
 
-  const hostOrSpeaker = useMemo(() => {
-    const speakers = participants.filter((p) => {
-      const role = getParticipantRole(p)
-      return isSpeakerRole(role) || isHostParticipant(p.identity, role)
-    })
-    return (
-      speakers.find((p) => p.isSpeaking) ||
-      speakers.find((p) => isHostParticipant(p.identity, getParticipantRole(p))) ||
-      speakers[0] ||
-      null
-    )
-  }, [participants])
-
-  const otherParticipants = useMemo(
+  const mainStageParticipant = useMemo(
     () =>
-      participants.filter(
-        (p) => !p.isLocal && p.identity !== hostOrSpeaker?.identity,
-      ),
-    [participants, hostOrSpeaker],
+      pickMainStageParticipant({
+        localParticipant,
+        participants,
+        allowLocalFallback: false,
+      }),
+    [localParticipant, participants],
   )
 
-  const displayName = hostOrSpeaker?.name || hostOrSpeaker?.identity || "Host"
-  const hostLevel = useParticipantAudioLevel(hostOrSpeaker ?? localParticipant)
-  const hostMicPub = hostOrSpeaker?.getTrackPublication(Track.Source.Microphone)
-  const hostHasAudio = hostMicPub && !hostMicPub.isMuted
-  const hostCamPub = hostOrSpeaker?.getTrackPublication(Track.Source.Camera)
-  const hostShowVideo =
-    hostOrSpeaker &&
-    !hostOrSpeaker.isLocal &&
-    hostCamPub?.track &&
-    !hostCamPub.isMuted
+  const filmstripParticipants = useMemo(
+    () => pickFilmstripParticipants(mainStageParticipant, participants),
+    [mainStageParticipant, participants],
+  )
 
-  const hostVideoBadge = hostOrSpeaker
-    ? isHostParticipant(hostOrSpeaker.identity, getParticipantRole(hostOrSpeaker))
-      ? "host"
-      : "speaker"
+  const displayName = mainStageParticipant?.name || mainStageParticipant?.identity || "Host"
+  const hostLevel = useParticipantAudioLevel(mainStageParticipant ?? localParticipant)
+  const hostMicPub = mainStageParticipant?.getTrackPublication(Track.Source.Microphone)
+  const hostHasAudio = hostMicPub && !hostMicPub.isMuted
+  const hostCamPub = mainStageParticipant?.getTrackPublication(Track.Source.Camera)
+  const hostShowVideo = Boolean(mainStageParticipant && participantHasCamera(mainStageParticipant))
+
+  const hostVideoBadge = mainStageParticipant
+    ? mainStageParticipant.identity === localParticipant.identity
+      ? "agent"
+      : isHostParticipant(mainStageParticipant.identity, getParticipantRole(mainStageParticipant))
+        ? "host"
+        : "speaker"
     : undefined
 
   const mayUseCamera = canSpeak && (canPublishVideo || videoAllowedByHost)
@@ -522,58 +520,47 @@ function AgentRoomUI({
 
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden pb-2">
         <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 gap-4 min-h-0">
-          {hostOrSpeaker ? (
-            <div className="flex flex-col items-center gap-3 w-full max-w-[min(100%,420px)] mx-auto">
+          {mainStageParticipant ? (
+            <div className="flex flex-col items-center gap-3 w-full flex-1 min-h-0 mx-auto">
               {hostShowVideo && hostCamPub ? (
-                <VoiceVideoFrame
-                  participant={hostOrSpeaker}
-                  publication={hostCamPub}
-                  badge={hostVideoBadge}
-                  enableFullscreen
-                  enablePinchZoom
-                  className="w-full"
-                />
+                <div className="w-full flex flex-1 justify-center items-center min-h-0 px-1">
+                  <VoiceVideoFrame
+                    participant={mainStageParticipant}
+                    publication={hostCamPub}
+                    badge={hostVideoBadge}
+                    mirror={mainStageParticipant.identity === localParticipant.identity}
+                    enableFullscreen
+                    enablePinchZoom
+                    maxWidthClass="max-w-none"
+                    className="w-full max-w-[min(100%,420px)] md:max-w-[min(55vw,480px)]"
+                  />
+                </div>
               ) : (
                 <MeetAvatar
                   name={displayName}
-                  identity={hostOrSpeaker.identity}
+                  identity={mainStageParticipant.identity}
                   size="lg"
-                  isSpeaking={hostOrSpeaker.isSpeaking || hostLevel > 0.08}
-                  showWave={!!hostHasAudio || hostOrSpeaker.isSpeaking}
+                  isSpeaking={mainStageParticipant.isSpeaking || hostLevel > 0.08}
+                  showWave={!!hostHasAudio || mainStageParticipant.isSpeaking}
                 />
               )}
-              <p className="text-lg font-medium">{displayName.split(" ")[0]}</p>
-              <p className="text-xs text-[#9aa0a6]">
-                {isHostParticipant(hostOrSpeaker.identity, getParticipantRole(hostOrSpeaker))
-                  ? "Host"
-                  : "Speaker"}
+              <p className="text-lg font-medium shrink-0">{displayName.split(" ")[0]}</p>
+              <p className="text-xs text-[#9aa0a6] shrink-0">
+                {mainStageParticipant.identity === localParticipant.identity
+                  ? "You"
+                  : isHostParticipant(mainStageParticipant.identity, getParticipantRole(mainStageParticipant))
+                    ? "Host"
+                    : "Speaker"}
               </p>
+              <VoiceStageFilmstrip
+                participants={filmstripParticipants}
+                localIdentity={localParticipant.identity}
+              />
             </div>
           ) : (
-            <div className="text-center text-[#9aa0a6] text-sm">Waiting for host…</div>
-          )}
-
-          {otherParticipants.length > 0 && (
-            <div className="w-full max-w-md">
-              <p className="text-[10px] uppercase tracking-wider text-[#9aa0a6] text-center mb-2">
-                In call ({participants.length})
-              </p>
-              <div className="flex gap-3 overflow-x-auto pb-1 justify-center">
-                {otherParticipants.slice(0, 12).map((p) => (
-                  <div key={p.identity} className="flex flex-col items-center gap-1 shrink-0">
-                    <MeetAvatar
-                      name={p.name || p.identity}
-                      identity={p.identity}
-                      size="sm"
-                      isSpeaking={p.isSpeaking}
-                      showWave={p.isSpeaking}
-                    />
-                    <span className="text-[10px] text-[#9aa0a6] max-w-[56px] truncate">
-                      {p.isLocal ? "You" : (p.name || "").split(" ")[0]}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div className="text-center text-[#9aa0a6] text-sm px-4">
+              <p className="text-base mb-1">Waiting for host video…</p>
+              <p className="text-xs">The host will appear here when their camera is on.</p>
             </div>
           )}
         </div>

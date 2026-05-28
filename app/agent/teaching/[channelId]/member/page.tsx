@@ -134,7 +134,7 @@ export default function MemberChannelPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-          <div className="container mx-auto px-4 py-5">
+          <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold text-white lg:text-3xl">Channel Access</h1>
               <Button
@@ -150,20 +150,31 @@ export default function MemberChannelPage() {
           </div>
         </div>
 
-        <div className="container mx-auto px-4 py-8">
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
           <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-sm">
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
                 <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-1" />
                 <div>
-                  <h2 className="text-lg font-semibold text-red-800 mb-2">Access Denied</h2>
-                  <p className="text-red-700 mb-4">You do not have permission to access this channel.</p>
-                  <Button
-                    onClick={() => router.push("/agent/teaching")}
-                    className="h-11 bg-red-600 text-white hover:bg-red-700"
-                  >
-                    Back to Teaching Platform
-                  </Button>
+                  <h2 className="text-lg font-semibold text-red-800 mb-2">Not a Channel Member</h2>
+                  <p className="text-red-700 mb-4">
+                    You are not a member of this channel. Please subscribe to access the content.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={() => router.push(`/agent/teaching/channels/${channelId}/join`)}
+                      className="h-11 bg-green-500 text-white hover:bg-green-600"
+                    >
+                      Subscribe to Join
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/agent/teaching")}
+                      className="h-11 border-red-300 text-red-800 hover:bg-red-100"
+                    >
+                      Back to Channels
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -179,7 +190,7 @@ export default function MemberChannelPage() {
 
       {/* Header */}
       <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="container mx-auto px-4 py-6">
+        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Button
@@ -209,7 +220,7 @@ export default function MemberChannelPage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
         {/* Channel Info */}
         <Card className="mb-8 rounded-2xl border border-gray-100 bg-white shadow-sm">
           <CardContent className="pt-6">
@@ -286,8 +297,8 @@ export default function MemberChannelPage() {
                     <CommentThread
                       postId={post.id}
                       channelId={channelId}
-                      agentId={agent.id}
-                      agentName={agent.full_name || agent.email}
+                      currentUserId={agent.id}
+                      currentUserName={agent.full_name || agent.email}
                       isMember={true}
                     />
                   </div>

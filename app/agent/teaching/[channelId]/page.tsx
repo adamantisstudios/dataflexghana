@@ -58,6 +58,7 @@ export default function ChannelPage() {
         console.error("[v0] Error checking access:", err)
         setAccessDenied(true)
         setLoading(false)
+        return
       }
     }
     checkAccess()
@@ -130,27 +131,33 @@ export default function ChannelPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-          <div className="mx-auto w-full max-w-5xl px-4 py-4 sm:px-6">
+          <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
             <h1 className="text-lg font-semibold text-white">Channel Access</h1>
           </div>
         </div>
-        <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
           <div className="max-w-2xl">
             <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h2 className="mb-2 text-lg font-semibold text-red-800">Access Denied</h2>
+                    <h2 className="mb-2 text-lg font-semibold text-red-800">Not a Channel Member</h2>
                     <p className="mb-4 text-sm text-red-700">
-                      You are not a member of this channel. Please request to join or contact the channel admin.
+                      You are not a member of this channel. Please subscribe to access the content, or go back to browse other channels.
                     </p>
-                    <Button
-                      onClick={() => router.push("/agent/teaching")}
-                      className="h-11 bg-red-600 text-sm text-white hover:bg-red-700"
-                    >
-                      Back to Teaching Platform
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild className="h-11 bg-green-500 text-sm text-white hover:bg-green-600">
+                        <Link href={`/agent/teaching/channels/${channelId}/join`}>Subscribe to Join</Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push("/agent/teaching")}
+                        className="h-11 text-sm text-gray-900"
+                      >
+                        Back to Channels
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -166,7 +173,7 @@ export default function ChannelPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="sticky top-0 z-50 w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="mx-auto w-full max-w-6xl px-4 py-3 sm:px-6">
+        <div className="mx-auto w-full max-w-7xl px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -183,7 +190,7 @@ export default function ChannelPage() {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         {isTeacherOrAdmin ? (
           <TeacherChannelDashboard
             channelId={channelId}

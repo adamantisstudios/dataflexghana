@@ -40,6 +40,13 @@ function appendFiltersToParams(params: URLSearchParams, filters: Filters, orFilt
       });
     }
   });
+
+  Object.entries(filters).forEach(([k, v]) => {
+    if (k.startsWith("__is__")) {
+      const column = k.replace(/^__is__/, "");
+      params.set(column, v === null || v === "null" ? "is.null" : "not.is.null");
+    }
+  });
 }
 
 type FilterableBuilder = {
@@ -50,6 +57,7 @@ type FilterableBuilder = {
 function mixinFilters<T extends FilterableBuilder>(builder: T): T & {
   eq: (column: string, value: unknown) => T;
   in: (column: string, values: unknown[]) => T;
+  is: (column: string, value: unknown) => T;
   gt: (column: string, value: unknown) => T;
   gte: (column: string, value: unknown) => T;
   lt: (column: string, value: unknown) => T;
@@ -65,6 +73,10 @@ function mixinFilters<T extends FilterableBuilder>(builder: T): T & {
     },
     in(column: string, values: unknown[]) {
       b.filters[`__in__${column}`] = values;
+      return builder;
+    },
+    is(column: string, value: unknown) {
+      b.filters[`__is__${column}`] = value;
       return builder;
     },
     gt(column: string, value: unknown) {

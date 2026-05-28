@@ -90,6 +90,12 @@ import { AdminLocalVideoPreview } from "@/components/voice/AdminLocalVideoPrevie
 import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
 import { setParticipantCameraEnabled } from "@/lib/enable-participant-camera"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
+import {
+  pickFilmstripParticipants,
+  pickMainStageParticipant,
+  participantHasCamera,
+} from "@/lib/voice-stage-utils"
+import { VoiceStageFilmstrip } from "@/components/voice/VoiceStageFilmstrip"
 import { StableLiveKitRoom } from "@/components/voice/StableLiveKitRoom"
 import {
   Sheet,
@@ -212,44 +218,54 @@ function StreamHealthDot() {
 }
 
 function MainStage({
-  activeSpeaker,
+  stageParticipant,
   localParticipant,
+  filmstrip,
 }: {
-  activeSpeaker: Participant | null
+  stageParticipant: Participant | null
   localParticipant: Participant
+  filmstrip: Participant[]
 }) {
   const { isMobile } = useVoiceDeviceLayout()
-  const focus = activeSpeaker
+  const focus = stageParticipant
   const level = useParticipantAudioLevel(focus ?? localParticipant)
   const ring = voiceAvatarRingColor(focus?.identity ?? "stage")
 
-  if (focus) {
-    const camPub = focus.getTrackPublication(Track.Source.Camera)
-    const showVideo = camPub?.track && !camPub.isMuted
+  if (focus && participantHasCamera(focus)) {
+    const camPub = focus.getTrackPublication(Track.Source.Camera)!
+    const isLocal = focus.identity === localParticipant.identity
     const badge =
-      focus.identity.startsWith("admin-") || isHostParticipant(focus.identity, getParticipantRole(focus))
+      isLocal || focus.identity.startsWith("admin-") || isHostParticipant(focus.identity, getParticipantRole(focus))
         ? "admin"
         : "agent"
 
-    if (showVideo && camPub?.track) {
-      return (
+    return (
+      <div className="flex flex-col items-center w-full min-h-0 flex-1 gap-3">
         <div
-          className={`w-full flex justify-center min-h-0 ${
-            isMobile ? "max-w-[min(100%,420px)] mx-auto px-1" : ""
+          className={`w-full flex flex-1 justify-center items-center min-h-0 ${
+            isMobile ? "px-1" : "px-2"
           }`}
         >
           <VoiceVideoFrame
             participant={focus}
             publication={camPub}
             badge={badge}
-            mirror={focus.identity === localParticipant.identity}
-            maxWidthClass="max-w-4xl"
-            className="w-full"
+            mirror={isLocal}
+            enableFullscreen={isMobile}
+            enablePinchZoom={isMobile}
+            maxWidthClass="max-w-none"
+            className="w-full max-w-[min(100%,420px)] md:max-w-[min(55vw,480px)] h-auto"
           />
         </div>
-      )
-    }
+        <p className="text-sm font-medium text-[#e8eaed] truncate max-w-full px-4 shrink-0">
+          {isLocal ? "You (host)" : focus.name || focus.identity}
+        </p>
+        <VoiceStageFilmstrip participants={filmstrip} localIdentity={localParticipant.identity} />
+      </div>
+    )
+  }
 
+  if (focus) {
     return (
       <div className="flex flex-col items-center justify-center gap-4">
         <div className="relative">
@@ -273,14 +289,15 @@ function MainStage({
           {focus.name || focus.identity}
         </p>
         <VoiceAudioMeter level={level} className="w-32" />
+        <VoiceStageFilmstrip participants={filmstrip} localIdentity={localParticipant.identity} />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3 text-[#9aa0a6]">
-      <p className="text-lg">Waiting for speakers…</p>
-      <p className="text-xs">Your camera preview appears in the corner when enabled</p>
+    <div className="flex flex-col items-center justify-center gap-3 text-[#9aa0a6] px-4 text-center">
+      <p className="text-lg">Ready to go live</p>
+      <p className="text-xs">Turn on your camera to appear on stage, or wait for a guest to join with video.</p>
     </div>
   )
 }
@@ -808,20 +825,31 @@ function ControlPanelInner({
     [remoteParticipants],
   )
 
-  const activeSpeaker = useMemo(
+  const mainStageParticipant = useMemo(
     () =>
-      speakers.find((p) => p.isSpeaking) ||
-      speakers[0] ||
-      null,
-    [speakers],
+      pickMainStageParticipant({
+        localParticipant,
+        participants,
+        allowLocalFallback: true,
+      }),
+    [localParticipant, participants],
   )
+
+  const filmstripParticipants = useMemo(
+    () => pickFilmstripParticipants(mainStageParticipant, participants),
+    [mainStageParticipant, participants],
+  )
+
+  const showLocalPip =
+    mainStageParticipant?.identity !== localParticipant.identity &&
+    participantHasCamera(localParticipant)
 
   const listenerAvatars = useMemo(() => listeners.slice(0, 16), [listeners])
 
   return (
     <div className="flex flex-col h-full min-h-0 relative" style={{ color: MEET_TEXT }}>
       <VoiceReactionsLayer />
-      <AdminLocalVideoPreview />
+      {showLocalPip && <AdminLocalVideoPreview />}
 
       {raisedHands.length > 0 && (
         <div className="shrink-0 mx-3 mt-2 px-3 py-2 rounded-lg bg-amber-900/40 border border-amber-600/30 flex items-center justify-between gap-2">
@@ -886,7 +914,11 @@ function ControlPanelInner({
           onDrop={onDrop}
         >
           <div className="flex-1 flex items-center justify-center min-h-0 py-3 lg:py-4">
-            <MainStage activeSpeaker={activeSpeaker} localParticipant={localParticipant} />
+            <MainStage
+              stageParticipant={mainStageParticipant}
+              localParticipant={localParticipant}
+              filmstrip={filmstripParticipants}
+            />
           </div>
           {listenerAvatars.length > 0 && (
             <div className="shrink-0 pb-2 lg:pb-4">
