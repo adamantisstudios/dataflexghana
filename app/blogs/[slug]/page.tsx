@@ -8,9 +8,9 @@ import { StructuredData } from "@/components/seo/StructuredData"
 import { generateBlogStructuredData } from "@/lib/seo"
 
 interface BlogPageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 async function getBlog(slug: string) {
@@ -77,7 +77,8 @@ async function getRelatedPosts(categoryId: string, currentBlogId: string) {
 }
 
 export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
-  const blog = await getBlog(params.slug)
+  const { slug } = await params
+  const blog = await getBlog(slug)
 
   if (!blog) {
     return {
@@ -128,7 +129,8 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
 }
 
 export default async function BlogPage({ params }: BlogPageProps) {
-  const blog = await getBlog(params.slug)
+  const { slug } = await params
+  const blog = await getBlog(slug)
 
   if (!blog) {
     notFound()

@@ -7,9 +7,9 @@ import { StructuredData } from "@/components/seo/StructuredData"
 import { generateSEOMetadata, generateBlogListStructuredData } from "@/lib/seo"
 
 interface CategoryPageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 async function getCategory(slug: string) {
@@ -54,6 +54,7 @@ async function getBlogsByCategory(categoryId: string) {
 }
 
 async function getAllCategories() {
+  const supabase = getAdminClient()
   try {
     const { data: categories, error } = await supabase.from("blog_categories").select("*").order("name")
 
@@ -70,7 +71,8 @@ async function getAllCategories() {
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-  const category = await getCategory(params.slug)
+  const { slug } = await params
+  const category = await getCategory(slug)
 
   if (!category) {
     return {
@@ -89,7 +91,8 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const category = await getCategory(params.slug)
+  const { slug } = await params
+  const category = await getCategory(slug)
 
   if (!category) {
     notFound()

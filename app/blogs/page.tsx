@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { getAdminClient } from "@/lib/supabase-base";
+import { getAdminClient } from "@/lib/supabase-base"
 import { BlogList } from "@/components/public/blog/BlogList"
 import { BlogHero } from "@/components/public/blog/BlogHero"
 import { BlogCategories } from "@/components/public/blog/BlogCategories"
@@ -112,15 +112,15 @@ export default async function BlogsPage() {
 
       <div className="min-h-screen bg-gray-50">
         <BlogHero />
-        <div className="container mx-auto px-4 py-8 sm:py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
             {/* Main Content */}
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-8">
               <BlogList blogs={blogs} />
             </div>
 
             {/* Sidebar */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-4">
               <BlogCategories categories={categories} />
             </div>
           </div>

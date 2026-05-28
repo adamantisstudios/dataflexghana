@@ -80,15 +80,15 @@ export function BlogList({ blogs }: BlogListProps) {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <div className="flex flex-col gap-4 items-start justify-between bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-blue-200 shadow-lg">
+      <div className="flex flex-col gap-4 items-start justify-between rounded-2xl p-4 border border-gray-100 bg-white shadow-sm">
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Filter className="h-5 w-5 text-blue-600" />
-          <span className="font-medium text-blue-800">Filter & Sort</span>
+          <Filter className="h-5 w-5 text-emerald-600" />
+          <span className="font-medium text-gray-900">Filter & Sort</span>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <Select value={filterCategory} onValueChange={setFilterCategory}>
-            <SelectTrigger className="w-full sm:w-40">
+            <SelectTrigger className="h-11 w-full sm:w-40">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
@@ -101,8 +101,8 @@ export function BlogList({ blogs }: BlogListProps) {
             </SelectContent>
           </Select>
 
-          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-            <SelectTrigger className="w-full sm:w-40">
+          <Select value={sortBy} onValueChange={(value: "newest" | "popular" | "reading_time") => setSortBy(value)}>
+            <SelectTrigger className="h-11 w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -123,8 +123,8 @@ export function BlogList({ blogs }: BlogListProps) {
       {displayedBlogs.length > 0 && (
         <div className="mb-8 sm:mb-12">
           <div className="flex items-center gap-3 mb-4 sm:mb-6">
-            <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></div>
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-800">Featured Post</h2>
+            <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-emerald-500 to-green-500 rounded-full"></div>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Featured Post</h2>
           </div>
           <BlogCard blog={displayedBlogs[0]} featured />
         </div>
@@ -135,8 +135,8 @@ export function BlogList({ blogs }: BlogListProps) {
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 sm:mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-blue-800">
+              <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-emerald-500 to-green-500 rounded-full"></div>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
                 {filterCategory === "all" ? "Latest Posts" : `${filterCategory} Posts`}
               </h2>
             </div>
@@ -159,7 +159,7 @@ export function BlogList({ blogs }: BlogListProps) {
           <Button
             onClick={loadMore}
             size="lg"
-            className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-6 sm:px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base"
+            className="min-h-[44px] bg-emerald-500 hover:bg-emerald-600 text-white px-6 sm:px-8 py-3 rounded-xl shadow-sm transition-all duration-300 text-sm sm:text-base"
           >
             Load More Posts ({filteredAndSortedBlogs.length - displayCount} remaining)
           </Button>
@@ -167,7 +167,7 @@ export function BlogList({ blogs }: BlogListProps) {
       )}
 
       {filteredAndSortedBlogs.length === 0 && filterCategory !== "all" && (
-        <div className="text-center py-16 bg-white/50 backdrop-blur-sm rounded-xl border border-blue-200">
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
           <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl sm:text-2xl font-semibold text-gray-600 mb-2">No posts found in "{filterCategory}"</h3>
           <p className="text-gray-500 mb-4 text-sm sm:text-base">
@@ -176,7 +176,7 @@ export function BlogList({ blogs }: BlogListProps) {
           <Button
             onClick={() => setFilterCategory("all")}
             variant="outline"
-            className="border-blue-300 text-blue-600 hover:bg-blue-50"
+            className="border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             View All Posts
           </Button>

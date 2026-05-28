@@ -36,7 +36,7 @@ export function BlogCard({ blog, featured = false }: BlogCardProps) {
 
   if (featured) {
     return (
-      <Card className="overflow-hidden bg-white/95 backdrop-blur-sm shadow-2xl border-0 hover:shadow-3xl transition-all duration-500 group">
+      <Card className="overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 group">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
           {/* Image */}
           <div className="relative h-64 sm:h-80 lg:h-96">
@@ -85,18 +85,18 @@ export function BlogCard({ blog, featured = false }: BlogCardProps) {
               </span>
             </div>
 
-            <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-blue-800 mb-4 text-balance leading-tight group-hover:text-blue-600 transition-colors">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-4 text-balance leading-tight group-hover:text-emerald-700 transition-colors">
               {blog.title}
             </h2>
 
-            <p className="text-blue-600 mb-6 text-sm sm:text-base lg:text-lg leading-relaxed line-clamp-3">
+            <p className="text-gray-600 mb-6 text-sm sm:text-base lg:text-lg leading-relaxed line-clamp-3">
               {blog.excerpt}
             </p>
 
             <Button
               asChild
               size="lg"
-              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 w-fit shadow-lg hover:shadow-xl transition-all duration-300 text-sm sm:text-base"
+              className="min-h-[44px] bg-emerald-500 hover:bg-emerald-600 w-fit text-white transition-all duration-300 text-sm sm:text-base"
             >
               <Link href={`/blogs/${blog.slug}`}>
                 <span className="hidden sm:inline">Read Full Article</span>
@@ -111,7 +111,7 @@ export function BlogCard({ blog, featured = false }: BlogCardProps) {
   }
 
   return (
-    <Card className="overflow-hidden bg-white/95 backdrop-blur-sm shadow-lg border border-blue-100 hover:shadow-2xl hover:border-blue-200 transition-all duration-300 group h-full flex flex-col">
+    <Card className="overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 group h-full flex flex-col">
       {/* Image */}
       <div className="relative h-48 sm:h-52 overflow-hidden">
         <img
@@ -133,7 +133,7 @@ export function BlogCard({ blog, featured = false }: BlogCardProps) {
           </Badge>
         )}
 
-        <Badge className="absolute top-3 right-3 bg-black/70 text-white border-0 backdrop-blur-sm text-xs">
+        <Badge className="absolute top-3 right-3 bg-black/70 text-white border-0 text-xs">
           <Clock className="h-3 w-3 mr-1" />
           {blog.reading_time} min
         </Badge>
@@ -153,13 +153,13 @@ export function BlogCard({ blog, featured = false }: BlogCardProps) {
           </span>
         </div>
 
-        <h3 className="text-base sm:text-lg lg:text-xl font-bold text-blue-800 mb-3 text-balance group-hover:text-blue-600 transition-colors leading-tight">
+        <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-3 text-balance group-hover:text-emerald-700 transition-colors leading-tight">
           <Link href={`/blogs/${blog.slug}`} className="hover:underline">
             {blog.title}
           </Link>
         </h3>
 
-        <p className="text-blue-600 mb-4 leading-relaxed line-clamp-3 flex-grow text-sm sm:text-base">{blog.excerpt}</p>
+        <p className="text-gray-600 mb-4 leading-relaxed line-clamp-3 flex-grow text-sm sm:text-base">{blog.excerpt}</p>
 
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <div className="flex items-center gap-1 sm:gap-2">
@@ -169,7 +169,7 @@ export function BlogCard({ blog, featured = false }: BlogCardProps) {
               </Badge>
             )}
             {blog.reading_time <= 3 && (
-              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+              <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700">
                 Quick Read
               </Badge>
             )}
@@ -179,7 +179,7 @@ export function BlogCard({ blog, featured = false }: BlogCardProps) {
             variant="ghost"
             size="sm"
             asChild
-            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 group-hover:bg-blue-100 transition-all duration-200 text-xs sm:text-sm px-2 sm:px-3"
+            className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 group-hover:bg-emerald-100 transition-all duration-200 text-xs sm:text-sm px-2 sm:px-3"
           >
             <Link href={`/blogs/${blog.slug}`}>
               Read More

@@ -32,7 +32,7 @@ import {
   Heading2,
   Heading3,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase-client";
+import { supabase } from "@/lib/supabase-client"
 import { useAdminTabCache } from "@/lib/admin-tabs-cache"
 import { toast } from "sonner"
 
@@ -417,7 +417,7 @@ export default function BlogsTab() {
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i} className="border-blue-200 bg-white/90 backdrop-blur-sm">
+            <Card key={i} className="rounded-2xl border border-gray-100 bg-white shadow-sm">
               <CardContent className="p-6">
                 <div className="animate-pulse space-y-2">
                   <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -432,7 +432,7 @@ export default function BlogsTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 rounded-2xl border border-gray-100 bg-gray-50 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -452,93 +452,93 @@ export default function BlogsTab() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-blue-100 flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-green-600" />
               Total Posts
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPosts}</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.totalPosts}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0 shadow-xl">
+        <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-green-100 flex items-center gap-2">
-              <Globe className="h-4 w-4" />
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <Globe className="h-4 w-4 text-green-600" />
               Published
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.publishedPosts}</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.publishedPosts}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white border-0 shadow-xl">
+        <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-amber-100 flex items-center gap-2">
-              <Edit className="h-4 w-4" />
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <Edit className="h-4 w-4 text-green-600" />
               Drafts
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.draftPosts}</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.draftPosts}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-0 shadow-xl">
+        <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-purple-100 flex items-center gap-2">
-              <Eye className="h-4 w-4" />
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <Eye className="h-4 w-4 text-green-600" />
               Total Views
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalViews.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.totalViews.toLocaleString()}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-pink-500 to-rose-600 text-white border-0 shadow-xl">
+        <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-pink-100 flex items-center gap-2">
-              <Tag className="h-4 w-4" />
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <Tag className="h-4 w-4 text-green-600" />
               Categories
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCategories}</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.totalCategories}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-teal-500 to-cyan-600 text-white border-0 shadow-xl">
+        <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-teal-100 flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-green-600" />
               Today
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.todayPosts}</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.todayPosts}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-sm shadow-lg border border-blue-200 p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-2 bg-white shadow-sm border border-gray-100 p-1 rounded-2xl">
           <TabsTrigger
             value="posts"
-            className="text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg"
+            className="min-h-[44px] text-sm font-medium data-[state=active]:bg-green-600 data-[state=active]:text-white transition-all duration-200 rounded-xl"
           >
             <FileText className="h-4 w-4 mr-2" />
             Blog Posts ({stats.totalPosts})
           </TabsTrigger>
           <TabsTrigger
             value="categories"
-            className="text-sm font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-lg"
+            className="min-h-[44px] text-sm font-medium data-[state=active]:bg-green-600 data-[state=active]:text-white transition-all duration-200 rounded-xl"
           >
             <Tag className="h-4 w-4 mr-2" />
             Categories ({stats.totalCategories})
@@ -548,7 +548,7 @@ export default function BlogsTab() {
         {/* Blog Posts Tab */}
         <TabsContent value="posts" className="space-y-6">
           {/* Filters */}
-          <Card className="bg-white/90 backdrop-blur-sm shadow-lg border border-blue-200">
+          <Card className="rounded-2xl bg-white shadow-sm border border-gray-100">
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
@@ -558,12 +558,12 @@ export default function BlogsTab() {
                       placeholder="Search blog posts..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
+                      className="h-11 pl-10"
                     />
                   </div>
                 </div>
                 <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-full sm:w-40">
+                  <SelectTrigger className="h-11 w-full sm:w-40">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -574,7 +574,7 @@ export default function BlogsTab() {
                   </SelectContent>
                 </Select>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-full sm:w-40">
+                  <SelectTrigger className="h-11 w-full sm:w-40">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -593,12 +593,12 @@ export default function BlogsTab() {
           {/* Blog Posts List */}
           <div className="grid gap-4">
             {filteredBlogs.map((blog) => (
-              <Card key={blog.id} className="bg-white/90 backdrop-blur-sm shadow-lg border border-blue-200">
+              <Card key={blog.id} className="rounded-2xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex flex-col lg:flex-row items-start gap-4">
                     <div className="flex-1 min-w-0 w-full">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                        <h3 className="text-base sm:text-lg font-semibold text-blue-800 break-words">{blog.title}</h3>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">{blog.title}</h3>
                         <div className="flex flex-wrap gap-2">
                           <Badge
                             variant={blog.status === "published" ? "default" : "secondary"}
@@ -654,7 +654,7 @@ export default function BlogsTab() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleEditBlog(blog)}
-                          className="border-blue-300 text-blue-600 hover:bg-blue-50 text-xs px-3 py-2"
+                          className="min-h-[44px] border-gray-300 text-gray-700 hover:bg-gray-50 text-xs px-3 py-2"
                         >
                           <Edit className="h-3 w-3 lg:h-4 lg:w-4" />
                           <span className="ml-1 hidden sm:inline">Edit</span>
@@ -663,7 +663,7 @@ export default function BlogsTab() {
                           size="sm"
                           variant="outline"
                           onClick={() => window.open(`/blogs/${blog.slug}`, "_blank")}
-                          className="border-green-300 text-green-600 hover:bg-green-50 text-xs px-3 py-2"
+                          className="min-h-[44px] border-green-200 text-green-700 hover:bg-green-50 text-xs px-3 py-2"
                         >
                           <Eye className="h-3 w-3 lg:h-4 lg:w-4" />
                           <span className="ml-1 hidden sm:inline">View</span>
@@ -672,7 +672,7 @@ export default function BlogsTab() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleDeleteBlog(blog.id)}
-                          className="border-red-300 text-red-600 hover:bg-red-50 text-xs px-3 py-2"
+                          className="min-h-[44px] border-red-300 text-red-600 hover:bg-red-50 text-xs px-3 py-2"
                         >
                           <Trash2 className="h-3 w-3 lg:h-4 lg:w-4" />
                           <span className="ml-1 hidden sm:inline">Delete</span>
@@ -686,7 +686,7 @@ export default function BlogsTab() {
           </div>
 
           {filteredBlogs.length === 0 && (
-            <Card className="bg-white/90 backdrop-blur-sm shadow-lg border border-blue-200">
+            <Card className="rounded-2xl bg-white shadow-sm border border-gray-100">
               <CardContent className="p-12 text-center">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-600 mb-2">No blog posts found</h3>
@@ -696,7 +696,7 @@ export default function BlogsTab() {
                     resetBlogForm()
                     setIsEditorOpen(true)
                   }}
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+                  className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Blog Post
@@ -714,7 +714,7 @@ export default function BlogsTab() {
                 resetCategoryForm()
                 setIsCategoryEditorOpen(true)
               }}
-              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+              className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               New Category
@@ -723,7 +723,7 @@ export default function BlogsTab() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {categories.map((category) => (
-              <Card key={category.id} className="bg-white/90 backdrop-blur-sm shadow-lg border border-blue-200">
+              <Card key={category.id} className="rounded-2xl bg-white shadow-sm border border-gray-100">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-4 h-4 rounded-full" style={{ backgroundColor: category.color }} />
@@ -732,7 +732,7 @@ export default function BlogsTab() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleEditCategory(category)}
-                        className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                        className="min-h-[44px] border-gray-300 text-gray-700 hover:bg-gray-50"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -746,8 +746,8 @@ export default function BlogsTab() {
                       </Button>
                     </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-blue-800 mb-2">{category.name}</h3>
-                  <p className="text-blue-600 text-sm mb-2">{category.description}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{category.name}</h3>
+                  <p className="text-gray-600 text-sm mb-2">{category.description}</p>
                   <p className="text-xs text-gray-500">
                     {blogs.filter((b) => b.category_id === category.id).length} posts
                   </p>
@@ -760,9 +760,9 @@ export default function BlogsTab() {
 
       {/* Blog Editor Dialog */}
       <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="w-[95vw] max-w-6xl h-[95vh] max-h-[95vh] overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="w-[95vw] max-w-6xl h-[95vh] max-h-[95vh] overflow-y-auto rounded-2xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl font-bold text-blue-800">
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-900">
               {editingBlog ? "Edit Blog Post" : "Create New Blog Post"}
             </DialogTitle>
           </DialogHeader>
@@ -782,7 +782,7 @@ export default function BlogsTab() {
                     }))
                   }}
                   placeholder="Enter blog title"
-                  className="text-base sm:text-lg font-semibold"
+                  className="h-11 text-base sm:text-lg font-semibold"
                 />
               </div>
               <div>
@@ -792,6 +792,7 @@ export default function BlogsTab() {
                   value={blogForm.slug}
                   onChange={(e) => setBlogForm((prev) => ({ ...prev, slug: e.target.value }))}
                   placeholder="url-friendly-slug"
+                  className="h-11"
                 />
               </div>
             </div>
@@ -806,6 +807,7 @@ export default function BlogsTab() {
                     size="sm"
                     variant={editorMode === "visual" ? "default" : "outline"}
                     onClick={() => setEditorMode("visual")}
+                    className="min-h-[44px]"
                   >
                     Visual
                   </Button>
@@ -814,6 +816,7 @@ export default function BlogsTab() {
                     size="sm"
                     variant={editorMode === "markdown" ? "default" : "outline"}
                     onClick={() => setEditorMode("markdown")}
+                    className="min-h-[44px]"
                   >
                     Markdown
                   </Button>
@@ -902,7 +905,7 @@ export default function BlogsTab() {
                   variant="outline"
                   onClick={insertTOC}
                   title="Insert Table of Contents"
-                  className="text-xs px-2 bg-transparent"
+                    className="min-h-[44px] text-xs px-2 bg-transparent"
                 >
                   TOC
                 </Button>
@@ -914,7 +917,7 @@ export default function BlogsTab() {
                 onChange={(e) => setBlogForm((prev) => ({ ...prev, content: e.target.value }))}
                 placeholder="Write your blog content here... Use Markdown for formatting."
                 rows={15}
-                className="font-mono text-sm rounded-t-none border-t-0 resize-none"
+                className="min-h-[220px] font-mono text-sm rounded-t-none border-t-0 resize-none"
               />
 
               <div className="text-xs text-gray-500 mt-1 p-2 bg-gray-50 rounded-b-lg">
@@ -935,6 +938,7 @@ export default function BlogsTab() {
                 onChange={(e) => setBlogForm((prev) => ({ ...prev, excerpt: e.target.value }))}
                 placeholder="Brief description of the blog post (recommended: 150-160 characters for SEO)"
                 rows={3}
+                className="min-h-[110px]"
               />
               <div className="text-xs text-gray-500 mt-1">{blogForm.excerpt.length}/160 characters</div>
             </div>
@@ -947,6 +951,7 @@ export default function BlogsTab() {
                 value={blogForm.featured_image_url}
                 onChange={(e) => setBlogForm((prev) => ({ ...prev, featured_image_url: e.target.value }))}
                 placeholder="https://example.com/image.jpg"
+                className="h-11"
               />
               {blogForm.featured_image_url && (
                 <div className="mt-2">
@@ -970,7 +975,7 @@ export default function BlogsTab() {
                   value={blogForm.category_id}
                   onValueChange={(value) => setBlogForm((prev) => ({ ...prev, category_id: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -986,9 +991,11 @@ export default function BlogsTab() {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={blogForm.status}
-                  onValueChange={(value: any) => setBlogForm((prev) => ({ ...prev, status: value }))}
+                  onValueChange={(value: "draft" | "published" | "archived") =>
+                    setBlogForm((prev) => ({ ...prev, status: value }))
+                  }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1017,12 +1024,13 @@ export default function BlogsTab() {
                   }))
                 }
                 placeholder="tag1, tag2, tag3"
+                className="h-11"
               />
             </div>
 
             {/* SEO Section */}
             <div className="space-y-4 border-t pt-4">
-              <h4 className="font-semibold text-blue-800 flex items-center gap-2">
+              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 SEO Settings
               </h4>
@@ -1033,6 +1041,7 @@ export default function BlogsTab() {
                   value={blogForm.meta_title}
                   onChange={(e) => setBlogForm((prev) => ({ ...prev, meta_title: e.target.value }))}
                   placeholder="SEO title (defaults to blog title)"
+                  className="h-11"
                 />
                 <div className="text-xs text-gray-500 mt-1">
                   {blogForm.meta_title.length}/60 characters (recommended)
@@ -1046,6 +1055,7 @@ export default function BlogsTab() {
                   onChange={(e) => setBlogForm((prev) => ({ ...prev, meta_description: e.target.value }))}
                   placeholder="SEO description (defaults to excerpt)"
                   rows={3}
+                  className="min-h-[110px]"
                 />
                 <div className="text-xs text-gray-500 mt-1">
                   {blogForm.meta_description.length}/160 characters (recommended)
@@ -1058,6 +1068,7 @@ export default function BlogsTab() {
                   value={blogForm.meta_keywords}
                   onChange={(e) => setBlogForm((prev) => ({ ...prev, meta_keywords: e.target.value }))}
                   placeholder="keyword1, keyword2, keyword3"
+                  className="h-11"
                 />
               </div>
             </div>
@@ -1068,13 +1079,13 @@ export default function BlogsTab() {
                 Reading time: ~{calculateReadingTime(blogForm.content)} minutes
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-                <Button variant="outline" onClick={() => setIsEditorOpen(false)} className="w-full sm:w-auto">
+                <Button variant="outline" onClick={() => setIsEditorOpen(false)} className="min-h-[44px] w-full sm:w-auto">
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
                 <Button
                   onClick={handleBlogSubmit}
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 w-full sm:w-auto"
+                  className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {editingBlog ? "Update" : "Create"} Blog
@@ -1087,7 +1098,7 @@ export default function BlogsTab() {
 
       {/* Category Editor Dialog */}
       <Dialog open={isCategoryEditorOpen} onOpenChange={setIsCategoryEditorOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>{editingCategory ? "Edit Category" : "Create New Category"}</DialogTitle>
           </DialogHeader>
@@ -1105,6 +1116,7 @@ export default function BlogsTab() {
                   }))
                 }}
                 placeholder="Category name"
+                className="h-11"
               />
             </div>
             <div>
@@ -1114,6 +1126,7 @@ export default function BlogsTab() {
                 value={categoryForm.slug}
                 onChange={(e) => setCategoryForm((prev) => ({ ...prev, slug: e.target.value }))}
                 placeholder="category-slug"
+                className="h-11"
               />
             </div>
             <div>
@@ -1124,6 +1137,7 @@ export default function BlogsTab() {
                 onChange={(e) => setCategoryForm((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="Category description"
                 rows={3}
+                className="min-h-[110px]"
               />
             </div>
             <div>
@@ -1133,15 +1147,16 @@ export default function BlogsTab() {
                 type="color"
                 value={categoryForm.color}
                 onChange={(e) => setCategoryForm((prev) => ({ ...prev, color: e.target.value }))}
+                className="h-11"
               />
             </div>
             <div className="flex justify-end gap-4 pt-4">
-              <Button variant="outline" onClick={() => setIsCategoryEditorOpen(false)}>
+              <Button variant="outline" onClick={() => setIsCategoryEditorOpen(false)} className="min-h-[44px]">
                 Cancel
               </Button>
               <Button
                 onClick={handleCategorySubmit}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+                className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white"
               >
                 {editingCategory ? "Update" : "Create"} Category
               </Button>

@@ -5,7 +5,7 @@ import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { supabase } from "@/lib/supabase-client";
+import { supabase } from "@/lib/supabase-client"
 
 interface FeaturedBlog {
   id: string
@@ -80,58 +80,67 @@ export function BlogHero() {
 
   if (featuredBlogs.length === 0) {
     return (
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-balance">DataFlex Blog</h1>
-          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto text-balance">
+      <section className="border-b border-gray-100 bg-white">
+        <div className="mx-auto w-full max-w-7xl px-4 py-14 text-center sm:py-16">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-5xl">DataFlex Blog</h1>
+          <p className="mx-auto mt-4 max-w-3xl text-base text-gray-600 sm:text-lg">
             Stay updated with the latest insights, tips, and industry news from our experts
           </p>
         </div>
-      </div>
+      </section>
     )
   }
 
   const currentBlog = featuredBlogs[currentSlide]
 
   return (
-    <div className="relative h-[70vh] md:h-[80vh] overflow-hidden">
+    <section className="border-b border-gray-100 bg-white">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:py-8">
+        <div className="mb-5 sm:mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-5xl">DataFlex Blog</h1>
+          <p className="mt-3 max-w-3xl text-sm text-gray-600 sm:text-base">
+            Product updates, earning tips, and practical guides for agents and partners.
+          </p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
       {/* Background Image with Overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
         style={{
           backgroundImage: currentBlog?.featured_image_url
             ? `url(${currentBlog.featured_image_url})`
-            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            : "linear-gradient(135deg, #22c55e 0%, #0f172a 100%)",
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/45 to-black/70" />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 h-full flex items-center">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center text-white">
+      <div className="relative z-10 min-h-[420px] sm:min-h-[520px] flex items-center">
+        <div className="w-full px-5 py-8 sm:px-8">
+          <div className="max-w-4xl text-white">
             {/* Category Badge */}
             {currentBlog?.category && (
-              <Badge className="mb-4 text-sm px-3 py-1" style={{ backgroundColor: currentBlog.category.color }}>
+              <Badge className="mb-4 bg-emerald-500 text-white border-0" style={{ backgroundColor: currentBlog.category.color }}>
                 {currentBlog.category.name}
               </Badge>
             )}
 
             {/* Title */}
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 text-balance leading-tight">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-4 text-balance leading-tight">
               {currentBlog?.title || "DataFlex Blog"}
-            </h1>
+            </h2>
 
             {/* Excerpt */}
-            <p className="text-lg md:text-xl text-gray-200 mb-8 max-w-3xl mx-auto text-balance">
+            <p className="text-sm md:text-lg text-gray-100 mb-6 max-w-3xl text-balance">
               {currentBlog?.excerpt ||
                 "Stay updated with the latest insights, tips, and industry news from our experts"}
             </p>
 
             {/* Meta Info */}
             {currentBlog && (
-              <div className="flex items-center justify-center gap-4 text-sm text-gray-300 mb-8">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-200 mb-6">
                 <span>{new Date(currentBlog.published_at).toLocaleDateString()}</span>
                 <span>•</span>
                 <span>{currentBlog.reading_time} min read</span>
@@ -142,7 +151,7 @@ export function BlogHero() {
             {currentBlog && (
               <Button
                 size="lg"
-                className="bg-white text-blue-600 hover:bg-blue-50 mb-8 px-8 py-3 text-lg font-semibold"
+                className="mb-6 min-h-[44px] bg-emerald-500 text-white hover:bg-emerald-600 px-6 text-sm sm:text-base"
                 onClick={() => (window.location.href = `/blogs/${currentBlog.slug}`)}
               >
                 Read Article
@@ -150,20 +159,20 @@ export function BlogHero() {
             )}
 
             {/* Search Bar */}
-            <div className="max-w-md mx-auto">
+            <div className="max-w-xl">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search articles..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder-blue-200 focus:bg-white/20 focus:border-white/40"
+                  className="h-11 pl-10 pr-24 bg-white/95 border-white/60 text-gray-900 placeholder:text-gray-500"
                 />
                 <Button
                   size="sm"
                   onClick={handleSearch}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-white text-blue-600 hover:bg-blue-50"
+                  className="absolute right-1 top-1/2 h-9 -translate-y-1/2 bg-emerald-500 text-white hover:bg-emerald-600"
                 >
                   Search
                 </Button>
@@ -179,25 +188,25 @@ export function BlogHero() {
           <Button
             variant="ghost"
             size="lg"
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-20"
+            className="absolute left-3 top-1/2 h-10 w-10 -translate-y-1/2 text-white hover:bg-white/20 z-20"
             onClick={prevSlide}
           >
-            <ChevronLeft className="h-8 w-8" />
+            <ChevronLeft className="h-5 w-5" />
           </Button>
           <Button
             variant="ghost"
             size="lg"
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-20"
+            className="absolute right-3 top-1/2 h-10 w-10 -translate-y-1/2 text-white hover:bg-white/20 z-20"
             onClick={nextSlide}
           >
-            <ChevronRight className="h-8 w-8" />
+            <ChevronRight className="h-5 w-5" />
           </Button>
         </>
       )}
 
       {/* Slide Indicators */}
       {featuredBlogs.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
           {featuredBlogs.map((_, index) => (
             <button
               key={index}
@@ -207,6 +216,8 @@ export function BlogHero() {
           ))}
         </div>
       )}
-    </div>
+        </div>
+      </div>
+    </section>
   )
 }

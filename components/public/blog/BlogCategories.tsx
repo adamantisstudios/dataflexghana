@@ -17,10 +17,10 @@ interface BlogCategoriesProps {
 
 export function BlogCategories({ categories, currentCategory }: BlogCategoriesProps) {
   return (
-    <Card className="bg-white/90 backdrop-blur-sm shadow-lg border border-blue-200 sticky top-8">
+    <Card className="sticky top-8 rounded-2xl border border-gray-100 bg-white shadow-sm">
       <CardHeader>
-        <CardTitle className="text-blue-800 flex items-center gap-2">
-          <Tag className="h-5 w-5" />
+        <CardTitle className="text-gray-900 flex items-center gap-2">
+          <Tag className="h-5 w-5 text-emerald-600" />
           Categories
         </CardTitle>
       </CardHeader>
@@ -28,7 +28,7 @@ export function BlogCategories({ categories, currentCategory }: BlogCategoriesPr
         <Link
           href="/blogs"
           className={`block p-3 rounded-lg transition-colors ${
-            !currentCategory ? "bg-blue-100 text-blue-800 font-medium" : "hover:bg-blue-50 text-blue-600"
+            !currentCategory ? "bg-emerald-50 text-emerald-700 font-medium" : "hover:bg-gray-50 text-gray-700"
           }`}
         >
           All Posts
@@ -40,8 +40,8 @@ export function BlogCategories({ categories, currentCategory }: BlogCategoriesPr
             href={`/blogs/category/${category.slug}`}
             className={`block p-3 rounded-lg transition-colors ${
               currentCategory === category.slug
-                ? "bg-blue-100 text-blue-800 font-medium"
-                : "hover:bg-blue-50 text-blue-600"
+                ? "bg-emerald-50 text-emerald-700 font-medium"
+                : "hover:bg-gray-50 text-gray-700"
             }`}
           >
             <div className="flex items-center justify-between">
