@@ -10,8 +10,9 @@ import {
   Award,
   Leaf,
   Banknote,
+  FileText,
+  Shield,
   RefreshCw,
-  Loader2,
   ChevronRight,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -25,6 +26,8 @@ type PendingOrdersPayload = {
   ad_orders: unknown[]
   influencer_orders: unknown[]
   farm_orders: unknown[]
+  writing_orders: unknown[]
+  compliance_orders: unknown[]
   withdrawals: unknown[]
   total_pending: number
 }
@@ -43,6 +46,8 @@ const CATEGORIES: CategoryCard[] = [
   { key: "ad_orders", label: "Advertising", hrefTab: "advertising", icon: Megaphone },
   { key: "influencer_orders", label: "Influencers", hrefTab: "micro-influencers", icon: Award },
   { key: "farm_orders", label: "Farmers Friend", hrefTab: "farmers-friend", icon: Leaf },
+  { key: "writing_orders", label: "Writing Orders", hrefTab: "professional-writing", icon: FileText },
+  { key: "compliance_orders", label: "Compliance", hrefTab: "compliance", icon: Shield },
   { key: "withdrawals", label: "Withdrawals", hrefTab: "payouts", icon: Banknote },
 ]
 

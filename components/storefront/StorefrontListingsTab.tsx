@@ -161,6 +161,11 @@ export function StorefrontListingsTab({ products, accent, whatsappPhone, storeNa
             )}
             <CardContent className="space-y-1.5 p-3.5">
               <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900">{p.title}</h3>
+              {p.listing_type === "service" && (
+                <Badge className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-200 w-fit">
+                  Service
+                </Badge>
+              )}
               {f.featured_badge && (
                 <Badge className="text-[10px] bg-amber-100 text-amber-800 border-amber-200 w-fit">Featured</Badge>
               )}
@@ -196,6 +201,9 @@ export function StorefrontListingsTab({ products, accent, whatsappPhone, storeNa
           </DialogHeader>
           {selected && (
             <div className="space-y-4 pb-2">
+              {selected.listing_type === "service" && (
+                <Badge className="w-fit bg-emerald-100 text-emerald-800 border-emerald-200">Service</Badge>
+              )}
               {selected.images?.length > 0 && (
                 <div className="grid grid-cols-2 gap-2">
                   {selected.images.map((src, i) => (

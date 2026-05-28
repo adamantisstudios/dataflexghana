@@ -57,7 +57,11 @@ export function VoiceVideoFrame({
 }: Props) {
   const { aspectClass, objectFitClass, isMobile } = useVoiceDeviceLayout()
   const portraitLayout = isMobile && badge !== "screen"
-  const { containerRef, landscapeFeed } = usePortraitVideoLayout(portraitLayout)
+  const rawDimensions = (publication.track as { dimensions?: { width?: number; height?: number } } | null)?.dimensions
+  const trackDimensions = rawDimensions
+    ? { width: Number(rawDimensions.width ?? 0), height: Number(rawDimensions.height ?? 0) }
+    : null
+  const { containerRef, landscapeFeed } = usePortraitVideoLayout(portraitLayout, trackDimensions)
   const frameRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -128,7 +132,7 @@ export function VoiceVideoFrame({
         portraitLayout && landscapeFeed && "voice-video-landscape-feed",
         portraitLayout && mirror && "voice-video-mirror",
         aspectClass,
-        portraitLayout && !compact && "max-w-[min(100%,420px)]",
+        portraitLayout && !compact && "max-w-[420px]",
         !portraitLayout && maxWidthClass,
         compact && "max-w-none",
         className,

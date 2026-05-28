@@ -36,6 +36,13 @@ export async function PATCH(
     if (body.category !== undefined) {
       updates.category = body.category ? String(body.category).trim() : null
     }
+    if (body.listing_type !== undefined) {
+      const listingType = String(body.listing_type).trim().toLowerCase()
+      if (listingType !== "product" && listingType !== "service") {
+        return NextResponse.json({ error: "listing_type must be product or service" }, { status: 400 })
+      }
+      updates.listing_type = listingType
+    }
     if (body.momo_number != null) updates.momo_number = String(body.momo_number).trim()
     if (body.momo_name != null) updates.momo_name = String(body.momo_name).trim()
     if (body.is_active !== undefined) updates.is_active = Boolean(body.is_active)

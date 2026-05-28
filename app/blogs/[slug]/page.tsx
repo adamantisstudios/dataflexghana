@@ -157,7 +157,7 @@ export default async function BlogPage({ params }: BlogPageProps) {
     <>
       <StructuredData data={blogStructuredData} />
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Main Content - Takes 8 columns on desktop for better centering */}

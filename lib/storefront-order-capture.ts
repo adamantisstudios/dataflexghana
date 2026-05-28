@@ -147,6 +147,21 @@ export async function captureStorefrontPaidOrder(params: {
     ipAddress: params.ipAddress ?? null,
     userAgent: params.userAgent ?? null,
   })
+  await logAudit({
+    actorType: params.actorType ?? "system",
+    action: "new_order",
+    severity: "warning",
+    targetTable: "storefront_orders",
+    targetId: orderIds[0] ?? reference,
+    newData: {
+      paystack_reference: reference,
+      agent_id: agentId,
+      order_ids: orderIds,
+      order_type: "data_bundle",
+    },
+    ipAddress: params.ipAddress ?? null,
+    userAgent: params.userAgent ?? null,
+  })
 
   return {
     ok: true,
@@ -236,6 +251,22 @@ export async function captureWholesalePaidOrder(params: {
     }
   }
 
+  await logAudit({
+    actorType: params.actorType ?? "system",
+    action: "new_order",
+    severity: "warning",
+    targetTable: "storefront_orders",
+    targetId: orderIds[0] ?? reference,
+    newData: {
+      paystack_reference: reference,
+      agent_id: agentId,
+      order_ids: orderIds,
+      order_type: "wholesale",
+    },
+    ipAddress: params.ipAddress ?? null,
+    userAgent: params.userAgent ?? null,
+  })
+
   return {
     ok: true,
     alreadyRecorded: false,
@@ -272,6 +303,20 @@ export async function captureCompliancePayment(params: {
   if (error) {
     return { ok: false, error: error.message }
   }
+  await logAudit({
+    actorType: "system",
+    action: "new_order",
+    severity: "warning",
+    targetTable: "storefront_compliance_submissions",
+    targetId: params.reference,
+    newData: {
+      paystack_reference: params.reference,
+      agent_id: params.agentId,
+      form_type: params.formType,
+      amount_paid: params.amountPaid,
+      order_type: "compliance",
+    },
+  })
   return { ok: true }
 }
 

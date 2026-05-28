@@ -30,6 +30,7 @@ export const GET = withUnifiedAuth(async (request: NextRequest, user) => {
     price: Number(p.price),
     images: Array.isArray(p.images) ? p.images : [],
     view_count: Number(p.view_count ?? 0),
+    listing_type: p.listing_type === "service" ? "service" : "product",
   }))
 
   return NextResponse.json({ success: true, products })
@@ -46,6 +47,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     const description = body.description ? String(body.description).trim() : null
     const price = Number(body.price)
     const category = body.category ? String(body.category).trim() : null
+    const listing_type = String(body.listing_type ?? "product").trim().toLowerCase()
     const momo_number = String(body.momo_number ?? "").trim()
     const momo_name = String(body.momo_name ?? "").trim()
     const rawImages = Array.isArray(body.images) ? body.images.map(String).filter(Boolean) : []
@@ -55,6 +57,9 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     }
     if (!momo_number || !momo_name) {
       return NextResponse.json({ error: "MoMo number and account name are required" }, { status: 400 })
+    }
+    if (listing_type !== "product" && listing_type !== "service") {
+      return NextResponse.json({ error: "listing_type must be product or service" }, { status: 400 })
     }
     if (rawImages.length === 0) {
       return NextResponse.json({ error: "At least one product image is required" }, { status: 400 })
@@ -92,6 +97,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
         momo_number,
         momo_name,
         category,
+        listing_type,
         is_active: true,
       })
       .select("*")

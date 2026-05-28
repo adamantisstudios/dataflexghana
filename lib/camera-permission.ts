@@ -7,12 +7,14 @@ export type CameraPermissionResult =
   | { ok: false; message: string; denied: boolean }
 
 function captureConstraints(isMobile: boolean): MediaStreamConstraints {
-  const { resolution, facingMode } = voiceVideoCaptureDefaults(isMobile)
+  const { facingMode } = voiceVideoCaptureDefaults(isMobile)
+  const portraitWidth = 1080
+  const portraitHeight = 1920
   return {
     video: {
-      width: { ideal: resolution.width, min: isMobile ? 720 : 640 },
-      height: { ideal: resolution.height, min: isMobile ? 1280 : 480 },
-      aspectRatio: { ideal: isMobile ? 9 / 16 : 16 / 9 },
+      width: { ideal: portraitWidth, min: isMobile ? 720 : 640 },
+      height: { ideal: portraitHeight, min: isMobile ? 1280 : 480 },
+      aspectRatio: { ideal: 9 / 16 },
       facingMode,
     },
     audio: false,

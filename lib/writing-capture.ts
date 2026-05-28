@@ -82,6 +82,22 @@ export async function captureWritingOrderFromPaystack(params: {
     ipAddress: params.ipAddress ?? null,
     userAgent: params.userAgent ?? null,
   })
+  await logAudit({
+    actorType: params.actorType ?? "storefront_customer",
+    action: "new_order",
+    severity: "warning",
+    targetTable: "writing_orders",
+    targetId: inserted.id,
+    newData: {
+      paystack_reference: reference,
+      agent_id: params.agentId,
+      service_id: params.serviceId,
+      total_paid: params.totalPaid,
+      order_type: "writing",
+    },
+    ipAddress: params.ipAddress ?? null,
+    userAgent: params.userAgent ?? null,
+  })
 
   return { ok: true, alreadyRecorded: false, orderId: inserted.id }
 }

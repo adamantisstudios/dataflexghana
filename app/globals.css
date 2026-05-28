@@ -387,7 +387,7 @@ body {
   }
 }
 
-/* LiveKit portrait video framing (host + agent share same rendering rules). */
+/* LiveKit portrait video framing (clean permanent layout). */
 .voice-video-portrait {
   aspect-ratio: 9 / 16;
   width: 100%;
@@ -408,7 +408,6 @@ body {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
-  object-position: center 35% !important;
   transform: none !important;
 }
 
@@ -416,12 +415,10 @@ body {
   position: absolute !important;
   top: 50% !important;
   left: 50% !important;
-  width: auto !important;
-  height: 100% !important;
+  width: 177.8% !important;
+  height: 56.25% !important;
   object-fit: cover !important;
-  object-position: center 35% !important;
   transform: translate(-50%, -50%) rotate(90deg) !important;
-  transform-origin: center center !important;
 }
 
 .voice-video-portrait.voice-video-mirror .voice-video-inner video {
@@ -430,15 +427,4 @@ body {
 
 .voice-video-portrait.voice-video-landscape-feed.voice-video-mirror .voice-video-inner video {
   transform: translate(-50%, -50%) rotate(90deg) scaleX(-1) !important;
-}
-
-.voice-video-portrait:fullscreen {
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  border-radius: 0 !important;
-  background: #000 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
 }

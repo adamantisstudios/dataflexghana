@@ -98,6 +98,7 @@ type Product = {
   momo_number: string | null
   momo_name: string | null
   category: string | null
+  listing_type: "product" | "service"
   is_active: boolean
   view_count: number
 }
@@ -150,6 +151,7 @@ export function MarketplaceMyListingsSection({ agentId }: Props) {
     description: "",
     price: "",
     category: "",
+    listing_type: "product" as "product" | "service",
     momo_number: "",
     momo_name: "",
   })
@@ -279,8 +281,16 @@ export function MarketplaceMyListingsSection({ agentId }: Props) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      toast.success("Product added")
-      setForm({ title: "", description: "", price: "", category: "", momo_number: "", momo_name: "" })
+      toast.success(`${form.listing_type === "service" ? "Service" : "Product"} added`)
+      setForm({
+        title: "",
+        description: "",
+        price: "",
+        category: "",
+        listing_type: "product",
+        momo_number: "",
+        momo_name: "",
+      })
       setImageUrls([])
       load()
     } catch (e) {
@@ -655,12 +665,33 @@ export function MarketplaceMyListingsSection({ agentId }: Props) {
           <TabsContent value="products" className="mt-4 space-y-4">
             <Card className="mx-auto w-full max-w-lg rounded-2xl border-slate-200/90 shadow-sm sm:max-w-none">
               <CardHeader>
-                <CardTitle className="text-base">Add product</CardTitle>
+                <CardTitle className="text-base">Add listing</CardTitle>
                 <CardDescription>
-                  Max {maxImages} image{maxImages !== 1 ? "s" : ""} per product.
+                  Max {maxImages} image{maxImages !== 1 ? "s" : ""} per listing.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div>
+                  <Label>Type</Label>
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={form.listing_type === "product" ? "default" : "outline"}
+                      className="h-11"
+                      onClick={() => setForm((f) => ({ ...f, listing_type: "product" }))}
+                    >
+                      Product
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={form.listing_type === "service" ? "default" : "outline"}
+                      className="h-11"
+                      onClick={() => setForm((f) => ({ ...f, listing_type: "service" }))}
+                    >
+                      Service
+                    </Button>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>Title *</Label>
@@ -714,7 +745,7 @@ export function MarketplaceMyListingsSection({ agentId }: Props) {
                   ))}
                 </div>
                 <Button onClick={saveProduct} disabled={saving} style={{ backgroundColor: BRAND }} className="text-white w-full min-h-[44px]">
-                  {saving ? "Saving…" : "Save product"}
+                  {saving ? "Saving…" : `Save ${form.listing_type === "service" ? "service" : "product"}`}
                 </Button>
               </CardContent>
             </Card>
@@ -728,6 +759,9 @@ export function MarketplaceMyListingsSection({ agentId }: Props) {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-sm truncate">{p.title}</p>
+                      <Badge variant="outline" className="mt-1 text-[10px] capitalize">
+                        {p.listing_type || "product"}
+                      </Badge>
                       <p className="text-[#0E8F3D] font-medium text-sm">₵{Number(p.price).toFixed(2)}</p>
                       <p className="text-xs text-muted-foreground">{p.view_count} views · {p.is_active ? "Active" : "Hidden"}</p>
                     </div>

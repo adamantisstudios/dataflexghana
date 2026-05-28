@@ -110,7 +110,7 @@ export default async function BlogsPage() {
       <StructuredData data={blogListStructuredData} />
       <StructuredData data={websiteStructuredData} />
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      <div className="min-h-screen bg-gray-50">
         <BlogHero />
         <div className="container mx-auto px-4 py-8 sm:py-12">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">

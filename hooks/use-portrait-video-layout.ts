@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react"
 
 /** Detect landscape camera feed inside a 9:16 portrait frame (common on phones / WebRTC). */
-export function usePortraitVideoLayout(active: boolean) {
+export function usePortraitVideoLayout(
+  active: boolean,
+  dimensions?: { width?: number; height?: number } | null,
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [landscapeFeed, setLandscapeFeed] = useState(false)
 
@@ -15,6 +18,17 @@ export function usePortraitVideoLayout(active: boolean) {
 
     const root = containerRef.current
     if (!root) return
+
+    const width = Number(dimensions?.width ?? 0)
+    const height = Number(dimensions?.height ?? 0)
+    if (width > 0 && height > 0) {
+      const isLandscape = width > height
+      setLandscapeFeed(isLandscape)
+      root.dataset.videoOrientation = isLandscape ? "landscape" : "portrait"
+      return () => {
+        delete root.dataset.videoOrientation
+      }
+    }
 
     const measure = (video: HTMLVideoElement) => {
       const { videoWidth: w, videoHeight: h } = video
@@ -57,7 +71,7 @@ export function usePortraitVideoLayout(active: boolean) {
       cleanups.forEach((fn) => fn())
       delete root.dataset.videoOrientation
     }
-  }, [active])
+  }, [active, dimensions?.width, dimensions?.height])
 
   return { containerRef, landscapeFeed }
 }

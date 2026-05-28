@@ -984,7 +984,7 @@ DataFlex Ghana Agent 🇬🇭`
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-20">
       <InactivityNotificationManager agentId={agent?.id} />
       <DashboardLoginNotification />
       <AgentDashboardNotification agentId={agent?.id} />
@@ -1012,7 +1012,7 @@ DataFlex Ghana Agent 🇬🇭`
         onLogout={handleLogout}
       />
       {agentNeedsProfileCompletion(agent) && <ProfileVerificationBar />}
-      <div className="w-full max-w-full px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <div className="mx-auto w-full max-w-7xl px-3 sm:px-5 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SecurityNoticeBanner />
 
         <Suspense fallback={<div className="h-24 w-full animate-pulse bg-indigo-100 rounded-xl" />}>
@@ -1045,7 +1045,7 @@ DataFlex Ghana Agent 🇬🇭`
         <DashboardQuickActions onInviteFriends={() => setShowReferralDialog(true)} />
         <LegalFooterLinks className="py-2" />
         <div className="w-full max-w-full px-4 sm:px-6 py-6 sm:py-8">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-6 sm:p-10 shadow-2xl">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-6 sm:p-10 shadow-md">
             {/* soft glow overlay */}
             <div className="absolute inset-0 bg-white/10 pointer-events-none rounded-3xl" />
 
@@ -1077,7 +1077,7 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
           {/* START: MORE THAN JUST DATA CARD */}
           <div className="mb-8">
-            <Card className="w-full max-w-fullborder-amber-100 bg-amber-50/50 shadow-sm hover:shadow-md transition-shadow w-full">
+            <Card className="w-full border-amber-100 bg-amber-50/50 shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col gap-3 sm:gap-4">
                   <div className="flex items-start gap-3 sm:gap-4">

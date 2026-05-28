@@ -78,6 +78,22 @@ export async function captureInfluencerOrderFromPaystack(params: {
     ipAddress: params.ipAddress ?? null,
     userAgent: params.userAgent ?? null,
   })
+  await logAudit({
+    actorType: params.actorType ?? "storefront_customer",
+    action: "new_order",
+    severity: "warning",
+    targetTable: "influencer_orders",
+    targetId: inserted.id,
+    newData: {
+      paystack_reference: reference,
+      agent_id: params.agentId,
+      package_id: params.packageId,
+      total_price: fees.total_price,
+      order_type: "influencer",
+    },
+    ipAddress: params.ipAddress ?? null,
+    userAgent: params.userAgent ?? null,
+  })
 
   return { ok: true, alreadyRecorded: false, orderId: inserted.id }
 }

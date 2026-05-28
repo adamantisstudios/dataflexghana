@@ -36,6 +36,7 @@ function summarizeAction(action: string, data?: Record<string, unknown> | null):
     agent_login: "Agent login",
     withdrawal_requested: "Withdrawal requested",
     storefront_webhook_capture_failed: "Storefront payment capture failed",
+    new_order: "New pending order",
   }
   if (labels[action]) return labels[action]
   if (data?.error && typeof data.error === "string") {
@@ -66,7 +67,7 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
 
   const ingestEvent = useCallback((row: SecurityEvent) => {
     const sev = row.severity || "info"
-    if (sev !== "warning" && sev !== "critical") return
+    if (sev !== "warning" && sev !== "critical" && row.action !== "new_order") return
 
     setRecent((prev) => {
       if (prev.some((e) => e.id === row.id)) return prev

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-  import {
+import {
   FileText,
   Plus,
   Edit,
@@ -436,15 +436,15 @@ export default function BlogsTab() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-blue-800">Blog Management</h2>
-          <p className="text-blue-600">Create and manage your blog content with full SEO optimization</p>
+          <h2 className="text-2xl font-bold text-slate-900">Blog Management</h2>
+          <p className="text-slate-600">Create, format, and publish clean blog content for your public audience.</p>
         </div>
         <Button
           onClick={() => {
             resetBlogForm()
             setIsEditorOpen(true)
           }}
-          className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+          className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           New Blog Post
@@ -619,7 +619,7 @@ export default function BlogsTab() {
                           )}
                         </div>
                       </div>
-                      <p className="text-blue-600 text-sm mb-2 line-clamp-2 break-words">{blog.excerpt}</p>
+                      <p className="text-slate-600 text-sm mb-2 line-clamp-2 break-words">{blog.excerpt}</p>
                       <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-gray-500">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
@@ -921,6 +921,9 @@ export default function BlogsTab() {
                 <strong>Markdown Tips:</strong> Use **bold**, *italic*, # Heading, - Lists, [Link](url), &lt;img
                 src=&quot;url&quot; alt=&quot;description&quot;&gt;, ```code```, &gt; Blockquote
               </div>
+              <p className="mt-2 text-xs text-slate-500">
+                This editor output is rendered directly on `/blogs`, so headings, lists, tables, images, and links are preserved.
+              </p>
             </div>
 
             {/* Excerpt */}

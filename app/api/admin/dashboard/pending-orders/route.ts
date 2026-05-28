@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
       adOrdersRes,
       influencerOrdersRes,
       farmOrdersRes,
+      writingOrdersRes,
+      complianceOrdersRes,
       withdrawalsRes,
     ] = await Promise.all([
       db
@@ -94,6 +96,30 @@ export async function GET(request: NextRequest) {
         .limit(5),
 
       db
+        .from("writing_orders")
+        .select(
+          `
+          id, status, created_at, agent_id, total_paid, customer_name, customer_phone,
+          agents ( id, full_name, phone_number )
+        `,
+        )
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(5),
+
+      db
+        .from("storefront_compliance_submissions")
+        .select(
+          `
+          id, status, created_at, agent_id, amount_paid, form_type, customer_data,
+          agents ( id, full_name, phone_number )
+        `,
+        )
+        .in("status", ["paid_pending_form", "pending", "Pending"])
+        .order("created_at", { ascending: false })
+        .limit(5),
+
+      db
         .from("withdrawals")
         .select(
           `
@@ -113,6 +139,8 @@ export async function GET(request: NextRequest) {
       adOrdersRes.error,
       influencerOrdersRes.error,
       farmOrdersRes.error,
+      writingOrdersRes.error,
+      complianceOrdersRes.error,
       withdrawalsRes.error,
     ].filter(Boolean)
 
@@ -197,6 +225,34 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    const writing_orders = (writingOrdersRes.data || []).map((o) => {
+      const agent = Array.isArray(o.agents) ? o.agents[0] : o.agents
+      return {
+        id: o.id,
+        created_at: o.created_at,
+        customer_phone: o.customer_phone,
+        agent_name: pickAgentName(agent),
+        product: o.customer_name ? `Writing: ${o.customer_name}` : "Writing order",
+        amount: o.total_paid,
+        href_tab: "professional-writing",
+      }
+    })
+
+    const compliance_orders = (complianceOrdersRes.data || []).map((o) => {
+      const agent = Array.isArray(o.agents) ? o.agents[0] : o.agents
+      return {
+        id: o.id,
+        created_at: o.created_at,
+        customer_phone:
+          (o.customer_data && typeof o.customer_data === "object" ? (o.customer_data as Record<string, unknown>).phone : null) ||
+          null,
+        agent_name: pickAgentName(agent),
+        product: `Compliance: ${String(o.form_type || "submission").replace(/_/g, " ")}`,
+        amount: o.amount_paid,
+        href_tab: "compliance",
+      }
+    })
+
     const withdrawals = (withdrawalsRes.data || []).map((w) => {
       const agent = Array.isArray(w.agents) ? w.agents[0] : w.agents
       return {
@@ -217,6 +273,8 @@ export async function GET(request: NextRequest) {
       ad_orders.length +
       influencer_orders.length +
       farm_orders.length +
+      writing_orders.length +
+      compliance_orders.length +
       withdrawals.length
 
     return NextResponse.json({
@@ -226,6 +284,8 @@ export async function GET(request: NextRequest) {
       ad_orders,
       influencer_orders,
       farm_orders,
+      writing_orders,
+      compliance_orders,
       withdrawals,
       total_pending,
     })

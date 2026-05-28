@@ -39,6 +39,7 @@ export type AgentProduct = {
   momo_number: string | null
   momo_name: string | null
   category: string | null
+  listing_type: "product" | "service"
   is_active: boolean
   view_count: number
   created_at: string
@@ -179,6 +180,7 @@ export async function getPublicAgentProducts(agentId: string): Promise<PublicAge
     images: Array.isArray(p.images) ? p.images : [],
     view_count: Number(p.view_count ?? 0),
     is_active: Boolean(p.is_active),
+    listing_type: p.listing_type === "service" ? "service" : "product",
   }))
 
   const maxListings = Number(features.max_listings)
