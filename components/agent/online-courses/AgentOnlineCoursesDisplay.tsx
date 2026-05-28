@@ -59,7 +59,7 @@ export default function AgentOnlineCoursesDisplay({ courses, loading = false }: 
         <CardContent className="pt-6 text-center py-16">
           <BookOpen className="h-20 w-20 mx-auto mb-4 text-blue-300" />
           <h3 className="text-2xl font-semibold text-blue-800 mb-2">No Courses Available Yet</h3>
-          <p className="text-blue-600 max-w-md mx-auto">
+          <p className="text-blue-600 w-full">
             Check back soon! New online courses will be published here by the admin. These courses will help you enhance
             your skills and advance your career.
           </p>

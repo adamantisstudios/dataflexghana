@@ -17,7 +17,7 @@ export function VerificationReminderPopup({ isVisible, onClose }: Props) {
       }`}
     >
       <div className="bg-gradient-to-r from-emerald-50 to-green-50 border-t-2 border-[#0E8F3D]/30 shadow-2xl">
-        <div className="container mx-auto px-4 py-4 sm:py-5">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">

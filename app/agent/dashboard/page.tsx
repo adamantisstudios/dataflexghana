@@ -1012,7 +1012,7 @@ DataFlex Ghana Agent 🇬🇭`
         onLogout={handleLogout}
       />
       {agentNeedsProfileCompletion(agent) && <ProfileVerificationBar />}
-      <div className="mx-auto w-full max-w-7xl px-3 sm:px-5 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SecurityNoticeBanner />
 
         <Suspense fallback={<div className="h-24 w-full animate-pulse bg-indigo-100 rounded-xl" />}>
@@ -1044,7 +1044,7 @@ DataFlex Ghana Agent 🇬🇭`
         <AgentMenuCards activeTab={activeTab} onTabChange={handleTabChange} />
         <DashboardQuickActions onInviteFriends={() => setShowReferralDialog(true)} />
         <LegalFooterLinks className="py-2" />
-        <div className="w-full max-w-full px-4 sm:px-6 py-6 sm:py-8">
+        <div className="w-full space-y-4 sm:space-y-6">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 p-6 sm:p-10 shadow-md">
             {/* soft glow overlay */}
             <div className="absolute inset-0 bg-white/10 pointer-events-none rounded-3xl" />
@@ -1109,7 +1109,7 @@ DataFlex Ghana Agent 🇬🇭`
           {/* END: MORE THAN JUST DATA CARD */}
           {/* START: APPLE SERVICE CENTER CARD */}
           <div className="mb-8">
-            <Card className="w-full max-w-full border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+            <Card className="w-full border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
               <CardContent className="p-0">
                 <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-center">
                   {/* Image Section */}
@@ -1194,7 +1194,7 @@ DataFlex Ghana Agent 🇬🇭`
           {/* END: APPLE SERVICE CENTER CARD */}
           {/* START: FASHIONABLY HIRED CARD */}
           <div className="mb-8">
-            <Card className="w-full max-w-full border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+            <Card className="w-full border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
               <CardContent className="p-0">
                 <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-center">
                   {/* Image Section */}
@@ -1285,7 +1285,7 @@ DataFlex Ghana Agent 🇬🇭`
           </div>
           {/* END: FASHIONABLY HIRED CARD */}
           <div className="mb-8">
-            <Card className="w-full max-w-full bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-2xl border-[3px] border-emerald-800 hover:shadow-[0_0_35px_rgba(16,185,129,0.7)] transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.01] rounded-2xl">
+            <Card className="w-full bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 shadow-2xl border-[3px] border-emerald-800 hover:shadow-[0_0_35px_rgba(16,185,129,0.7)] transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.01] rounded-2xl">
               <CardContent className="p-5 sm:p-7">
                 <div className="space-y-6">
                   <div className="flex items-start gap-4 bg-white/10 rounded-xl p-4 border border-white/20 shadow-inner backdrop-blur-sm">
@@ -1341,7 +1341,7 @@ DataFlex Ghana Agent 🇬🇭`
             </Card>
           </div>
           <div className="mb-8">
-            <Card className="w-full max-w-full border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-xl transition-all duration-300">
+            <Card className="w-full border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-xl transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="flex items-center gap-4">
@@ -1373,7 +1373,7 @@ DataFlex Ghana Agent 🇬🇭`
               </CardContent>
             </Card>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3 w-full max-w-full">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3 w-full">
             <div className="lg:col-span-2 space-y-6">
               {showWalletStrategy && (
                 <div className="p-5 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg shadow-lg border-l-4 border-l-blue-700 relative">
@@ -1407,11 +1407,11 @@ DataFlex Ghana Agent 🇬🇭`
               </div>
             </div>
           </div>
-          <div className="max-w-7xl mx-auto mb-8">
+          <div className="w-full mb-8">
             <Tabs
               value={activeTab}
               onValueChange={handleTabChange}
-              className="w-full max-w-full space-y-4 sm:space-y-6"
+              className="w-full space-y-4 sm:space-y-6"
             >
               <TabsList className="grid grid-flow-col overflow-x-auto no-scrollbar h-auto py-2 px-3 rounded-xl border border-emerald-200 bg-white/80 backdrop-blur-sm shadow-lg">
                 <TabsTrigger value="services" className="text-xs sm:text-sm font-medium">
@@ -1437,7 +1437,7 @@ DataFlex Ghana Agent 🇬🇭`
                     </Link>
                   </Button>
                 </div>
-                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                <Card className="w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
                   <CardContent className="pt-6 text-center py-12">
                     <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-emerald-300" />
                     <h3 className="text-xl font-semibold text-emerald-800 mb-2">Wholesale Products</h3>
@@ -1445,7 +1445,7 @@ DataFlex Ghana Agent 🇬🇭`
                       Browse and purchase wholesale products with competitive pricing and earn commissions on every
                       purchase.
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-6">
                       <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                         <Package className="h-8 w-8 mx-auto mb-1 text-emerald-600" />
                         <h4 className="font-semibold text-emerald-800">Quality Products</h4>
@@ -1489,14 +1489,14 @@ DataFlex Ghana Agent 🇬🇭`
                     </Link>
                   </Button>
                 </div>
-                <Card className="w-full max-w-full border-blue-200 bg-white/90 backdrop-blur-sm">
+                <Card className="w-full border-blue-200 bg-white/90 backdrop-blur-sm">
                   <CardContent className="pt-6 text-center py-12">
                     <Upload className="h-16 w-16 mx-auto mb-4 text-blue-300" />
                     <h3 className="text-xl font-semibold text-blue-800 mb-2">Upload Wholesale Products</h3>
                     <p className="text-blue-600 mb-6">
                       Share your products with the wholesale platform. Submit products for admin review and approval to make them available to other agents.
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-6">
                       <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                         <Upload className="h-8 w-8 mx-auto mb-1 text-blue-600" />
                         <h4 className="font-semibold text-blue-800">Easy Submission</h4>
@@ -1814,7 +1814,7 @@ DataFlex Ghana Agent 🇬🇭`
                                   </Badge>
                                 </div>
                                 {providerBundles.length === 0 ? (
-                                  <Card className="w-full max-w-full border-red-100 bg-white/90 backdrop-blur-sm">
+                                  <Card className="w-full border-red-100 bg-white/90 backdrop-blur-sm">
                                     <CardContent className="pt-6 text-center">
                                       <div className="text-gray-500 mb-4">
                                         <Smartphone className="h-12 w-12 mx-auto mb-2 opacity-50 text-red-400" />
@@ -2072,7 +2072,7 @@ DataFlex Ghana Agent 🇬🇭`
                         </Card>
                       ))}
                       {getPaginatedData(filteredReferrals, currentReferralsPage).length === 0 && (
-                        <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                        <Card className="w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
                           <CardContent className="text-center py-8">
                             <div className="text-gray-500 mb-4">
                               <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -2169,7 +2169,7 @@ DataFlex Ghana Agent 🇬🇭`
                         </Card>
                       ))}
                       {getPaginatedData(tabData.withdrawals, currentWithdrawalsPage).length === 0 && (
-                        <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                        <Card className="w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
                           <CardContent className="text-center py-8">
                             <div className="text-gray-500 mb-4">
                               <Banknote className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -2192,7 +2192,7 @@ DataFlex Ghana Agent 🇬🇭`
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-emerald-800">Profile Settings</h2>
                 </div>
-                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                <Card className="w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
                   <CardContent className="pt-6">
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2396,7 +2396,7 @@ DataFlex Ghana Agent 🇬🇭`
                     </Button>
                   </div>
                 </div>
-                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                <Card className="w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
                   <CardContent className="pt-6 text-center py-12">
                     <PiggyBank className="h-16 w-16 mx-auto mb-4 text-emerald-300" />
                     <h3 className="text-xl font-semibold text-emerald-800 mb-2">Smart Savings Plans</h3>
@@ -2404,7 +2404,7 @@ DataFlex Ghana Agent 🇬🇭`
                       Grow your money with our competitive savings plans. Earn interest on your deposits and build your
                       financial future.
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-6">
                       <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                         <TrendingUp className="h-8 w-8 mx-auto mb-2 text-emerald-600" />
                         <h4 className="font-semibold text-emerald-800">High Returns</h4>
@@ -2449,7 +2449,7 @@ DataFlex Ghana Agent 🇬🇭`
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h2 className="text-2xl font-bold text-emerald-800">Paid Commissions</h2>
                 </div>
-                <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                <Card className="w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
                   <CardContent className="pt-6 text-center py-12">
                     <div className="space-y-4">
                       <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-green-500 rounded-full flex items-center justify-center mx-auto">
@@ -2529,7 +2529,7 @@ DataFlex Ghana Agent 🇬🇭`
                     </Card>
                   ))}
                   {getPaginatedData(tabData.paidWithdrawals, currentPaidWithdrawalsPage).length === 0 && (
-                    <Card className="w-full max-w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
+                    <Card className="w-full border-emerald-200 bg-white/90 backdrop-blur-sm">
                       <CardContent className="text-center py-8">
                         <div className="text-gray-500 mb-4">
                           <Banknote className="h-12 w-12 mx-auto mb-2 opacity-50" />

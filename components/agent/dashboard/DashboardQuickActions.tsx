@@ -10,7 +10,7 @@ type Props = {
 
 export function DashboardQuickActions({ onInviteFriends }: Props) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 w-full max-w-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 w-full">
       <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4 sm:p-5">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 bg-violet-100 rounded-full flex items-center justify-center shrink-0">

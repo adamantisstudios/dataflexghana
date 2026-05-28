@@ -10,7 +10,7 @@ export function ProfileVerificationBar() {
       className="sticky top-14 z-30 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 shadow-sm"
       role="status"
     >
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
         <div className="flex items-start sm:items-center gap-2 flex-1 min-w-0">
           <ShieldCheck className="h-5 w-5 text-[#0E8F3D] shrink-0 mt-0.5 sm:mt-0" />
           <p className="text-sm text-emerald-900 leading-snug">
