@@ -50,6 +50,8 @@ export default function JoinChannelPage() {
   const [submitting, setSubmitting] = useState(false)
   const [requestMessage, setRequestMessage] = useState("")
   const [showPaymentNotification, setShowPaymentNotification] = useState(false)
+  const [membershipStatus, setMembershipStatus] = useState<string>("none")
+  const [canRenew, setCanRenew] = useState(false)
 
   useEffect(() => {
     if (user?.id && channelId) {
@@ -71,6 +73,8 @@ export default function JoinChannelPage() {
 
       setChannel(data.channel)
       setSubscription(data.subscription)
+      setMembershipStatus(data.membershipStatus || "none")
+      setCanRenew(Boolean(data.canRenew))
       if (data.joinRequest) {
         setJoinRequest(data.joinRequest)
         if (data.joinRequest.status === "pending" && data.subscription?.is_enabled) {
@@ -106,7 +110,9 @@ export default function JoinChannelPage() {
       setJoinRequest(data.joinRequest)
       setShowPaymentNotification(data.requiresPayment || false)
 
-      if (data.requiresPayment) {
+      if (data.isRenewal) {
+        toast.success("Renewal request submitted! Complete payment if required, then await admin verification.")
+      } else if (data.requiresPayment) {
         toast.success("Join request sent! Please complete payment using the instructions below.")
       } else {
         toast.success("Join request sent! Awaiting approval.")
@@ -144,7 +150,7 @@ export default function JoinChannelPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-8">
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <Button variant="ghost" onClick={() => router.back()} className="mb-6 text-gray-600 hover:text-gray-800">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
@@ -247,7 +253,18 @@ export default function JoinChannelPage() {
               )}
 
               <div className="space-y-4">
-                <h3 className="font-semibold text-gray-800">Request to Join</h3>
+                <h3 className="font-semibold text-gray-800">
+                  {canRenew || membershipStatus === "expired" ? "Renew subscription" : "Request to Join"}
+                </h3>
+                {(canRenew || membershipStatus === "expired") && (
+                  <Alert className="bg-amber-50 border-amber-200">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-sm text-amber-900">
+                      Your previous subscription has expired. Submit a new request and payment to restore access for
+                      another 30 days after admin verification.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="message" className="text-sm font-medium">
@@ -282,7 +299,13 @@ export default function JoinChannelPage() {
                   disabled={submitting}
                   className="w-full bg-[#0E8F3D] hover:bg-[#35B24A] text-white h-11"
                 >
-                  {submitting ? "Sending…" : isPaid ? "Submit Request & View Payment Info" : "Send Join Request"}
+                  {submitting
+                    ? "Sending…"
+                    : canRenew || membershipStatus === "expired"
+                      ? "Submit renewal request"
+                      : isPaid
+                        ? "Submit Request & View Payment Info"
+                        : "Send Join Request"}
                 </Button>
               </div>
             </CardContent>

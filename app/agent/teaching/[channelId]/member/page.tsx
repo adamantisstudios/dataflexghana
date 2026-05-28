@@ -95,12 +95,12 @@ export default function MemberChannelPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-          <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full w-full px-4 py-5 sm:px-6 lg:px-8">
             <h1 className="text-xl font-semibold text-white sm:text-2xl">Channel access</h1>
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full w-full px-4 py-8 sm:px-6 lg:px-8">
           <Card
             className={`rounded-2xl shadow-sm ${
               denyReason === "subscription"
@@ -165,7 +165,7 @@ export default function MemberChannelPage() {
       <WhatsAppPromoNotification memberId={agent.id} userType="member" />
 
       <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full w-full items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2">
             <Button
               variant="ghost"
@@ -189,7 +189,7 @@ export default function MemberChannelPage() {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-7xl">
+      <div className="mx-auto w-full w-full">
         <MemberChannelView
           channelId={channelId}
           memberId={agent.id}

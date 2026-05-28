@@ -67,8 +67,39 @@ export const checkChannelMembership = async (
     }
 
     if (membership.status === "active") {
+      const hasSub = await hasActiveChannelSubscription(supabase, channelId, agentId)
+      if (!hasSub) {
+        const { data: settings } = await supabase
+          .from("channel_subscription_settings")
+          .select("is_enabled")
+          .eq("channel_id", channelId)
+          .maybeSingle()
+        if (settings?.is_enabled) {
+          return {
+            isMember: false,
+            role: membership.role,
+            status: "expired",
+          }
+        }
+      }
       return {
         isMember: true,
+        role: membership.role,
+        status: membership.status,
+      }
+    }
+
+    if (membership.status === "expired" || membership.status === "pending") {
+      const activated = await tryActivateMembershipFromSubscription(channelId, agentId, membership.id)
+      if (activated) {
+        return {
+          isMember: true,
+          role: membership.role,
+          status: "active",
+        }
+      }
+      return {
+        isMember: false,
         role: membership.role,
         status: membership.status,
       }

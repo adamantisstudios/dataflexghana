@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { ChannelSubscriptionBadge } from "@/components/teaching/channel-subscription-badge"
+import { computeMembershipUiStatus, type MembershipUiStatus } from "@/lib/channel-membership-lifecycle"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 
@@ -52,6 +53,8 @@ interface TeachingChannel {
   subscription_fee?: number
   days_until_expiry?: number
   is_subscription_active?: boolean
+  membership_status?: MembershipUiStatus
+  join_request_status?: string | null
 }
 interface ChannelPost {
   id: string
@@ -177,12 +180,21 @@ export default function TeachingPlatformPage() {
           const expiresAt = new Date(s.subscription_expires_at)
           const now = new Date()
           const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          return [s.channel_id, { isActive: s.is_active, daysUntilExpiry: daysLeft }]
+          const isActive = Boolean(s.is_active) && daysLeft > 0
+          return [s.channel_id, { isActive, daysUntilExpiry: daysLeft }]
         }) || [],
       )
 
+      const { data: joinRequests } = await supabase
+        .from("channel_join_requests")
+        .select("channel_id, status")
+        .eq("agent_id", agent.id)
+
+      const joinRequestMap = new Map(joinRequests?.map((r: any) => [r.channel_id, r.status]) || [])
+
       const memberChannelIds = memberChannels?.map((m) => m.channel_id) || []
       const roleMap = new Map(memberChannels?.map((m) => [m.channel_id, m.role]) || [])
+      const memberStatusMap = new Map(memberChannels?.map((m) => [m.channel_id, m.status]) || [])
       const { data: memberCounts, error: countError } = await supabase.from("channel_members").select("channel_id")
       if (countError) console.error("Error loading member counts:", countError)
       const countMap = new Map<string, number>()
@@ -190,11 +202,20 @@ export default function TeachingPlatformPage() {
         countMap.set(m.channel_id, (countMap.get(m.channel_id) || 0) + 1)
       })
       const enrichedChannels = (publicChannels || []).map((channel: any) => {
-        const subSettings = subscriptionMap.get(channel.id) || {}
-        const subStatus = subscriptionStatusMap.get(channel.id) || {}
+        const subSettings = subscriptionMap.get(channel.id) || { enabled: false, fee: 0 }
+        const subStatus = subscriptionStatusMap.get(channel.id) || { isActive: false, daysUntilExpiry: undefined }
+        const joinStatus = joinRequestMap.get(channel.id) ?? null
+        const membership_status = computeMembershipUiStatus({
+          joinRequestStatus: joinStatus,
+          subscriptionEnabled: Boolean(subSettings.enabled),
+          subscriptionActive: Boolean(subStatus.isActive),
+          daysUntilExpiry: subStatus.daysUntilExpiry,
+          isChannelMember: memberChannelIds.includes(channel.id),
+          memberRowStatus: memberStatusMap.get(channel.id),
+        })
         return {
           ...channel,
-          is_member: memberChannelIds.includes(channel.id),
+          is_member: membership_status === "active",
           member_count: countMap.get(channel.id) || 0,
           user_role: roleMap.get(channel.id),
           is_active: true,
@@ -202,6 +223,8 @@ export default function TeachingPlatformPage() {
           subscription_fee: subSettings.fee || 0,
           days_until_expiry: subStatus.daysUntilExpiry,
           is_subscription_active: subStatus.isActive,
+          membership_status,
+          join_request_status: joinStatus,
         }
       })
       setChannels(enrichedChannels)
@@ -214,10 +237,20 @@ export default function TeachingPlatformPage() {
           .order("created_at", { ascending: false })
         if (userChannelsError) throw userChannelsError
         const enrichedUserChannels = (userChannels || []).map((channel: any) => {
-          const subSettings = subscriptionMap.get(channel.id) || {}
-          const subStatus = subscriptionStatusMap.get(channel.id) || {}
+          const subSettings = subscriptionMap.get(channel.id) || { enabled: false, fee: 0 }
+          const subStatus = subscriptionStatusMap.get(channel.id) || { isActive: false, daysUntilExpiry: undefined }
+          const joinStatus = joinRequestMap.get(channel.id) ?? null
+          const membership_status = computeMembershipUiStatus({
+            joinRequestStatus: joinStatus,
+            subscriptionEnabled: Boolean(subSettings.enabled),
+            subscriptionActive: Boolean(subStatus.isActive),
+            daysUntilExpiry: subStatus.daysUntilExpiry,
+            isChannelMember: true,
+            memberRowStatus: memberStatusMap.get(channel.id),
+          })
           return {
             ...channel,
+            is_member: membership_status === "active",
             member_count: countMap.get(channel.id) || 0,
             user_role: roleMap.get(channel.id),
             is_active: true,
@@ -225,6 +258,8 @@ export default function TeachingPlatformPage() {
             subscription_fee: subSettings.fee || 0,
             days_until_expiry: subStatus.daysUntilExpiry,
             is_subscription_active: subStatus.isActive,
+            membership_status,
+            join_request_status: joinStatus,
           }
         })
         setMyChannels(enrichedUserChannels)
@@ -258,53 +293,39 @@ export default function TeachingPlatformPage() {
   const handleJoinChannel = async () => {
     if (!selectedChannelForJoin || !agent) return
     try {
-      const { data: existingRequest } = await supabase
-        .from("channel_join_requests")
-        .select("id, status")
-        .eq("channel_id", selectedChannelForJoin.id)
-        .eq("agent_id", agent.id)
-        .maybeSingle()
-      if (existingRequest) {
-        if (existingRequest.status === "pending") {
-          toast.error("You already have a pending join request for this channel.")
-        } else if (existingRequest.status === "approved") {
-          toast.error("You are already a member of this channel.")
-        } else {
-          toast.error(`Your join request was ${existingRequest.status}.`)
-        }
-        setShowJoinDialog(false)
-        setSelectedChannelForJoin(null)
-        return
+      const res = await fetch(`/api/agent/channels/${selectedChannelForJoin.id}/join`, {
+        method: "POST",
+        headers: { ...getAgentAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ request_message: joinMessage }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to send join request")
+
+      if (data.isRenewal) {
+        toast.success("Renewal request sent! Complete payment if required, then await admin approval.")
+      } else if (data.requiresPayment) {
+        toast.success("Join request sent! Complete payment on the join page.")
+        router.push(`/agent/teaching/channels/${selectedChannelForJoin.id}/join`)
+      } else {
+        toast.success("Join request sent! Waiting for approval.")
       }
-      const { data: existing } = await supabase
-        .from("channel_members")
-        .select("id")
-        .eq("channel_id", selectedChannelForJoin.id)
-        .eq("agent_id", agent.id)
-        .maybeSingle()
-      if (existing) {
-        toast.error("You are already a member of this channel.")
-        setShowJoinDialog(false)
-        setSelectedChannelForJoin(null)
-        return
-      }
-      const { error: requestError } = await supabase.from("channel_join_requests").insert([
-        {
-          channel_id: selectedChannelForJoin.id,
-          agent_id: agent.id,
-          request_message: joinMessage || "",
-          status: "pending",
-        },
-      ])
-      if (requestError) throw requestError
-      toast.success("Join request sent! Waiting for approval.")
+
       setShowJoinDialog(false)
       setJoinMessage("")
       setSelectedChannelForJoin(null)
       await loadChannels()
     } catch (error) {
-      toast.error("Failed to send join request. Please try again.")
+      toast.error(error instanceof Error ? error.message : "Failed to send join request.")
     }
+  }
+
+  const openJoinFlow = (channel: TeachingChannel) => {
+    if (channel.membership_status === "expired") {
+      router.push(`/agent/teaching/channels/${channel.id}/join`)
+      return
+    }
+    setSelectedChannelForJoin(channel)
+    setShowJoinDialog(true)
   }
 
   const handleCreateChannel = async () => {
@@ -365,7 +386,7 @@ export default function TeachingPlatformPage() {
     <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900">
       {/* Top Navigation */}
       <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="mx-auto w-full max-w-7xl px-3 py-3 sm:px-6">
+        <div className="mx-auto w-full w-full px-3 py-3 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <Button
@@ -398,7 +419,7 @@ export default function TeachingPlatformPage() {
       </div>
 
       <div className="w-full border-b border-gray-100 bg-white">
-        <div className="mx-auto max-w-7xl space-y-4 px-4 py-8 text-center sm:px-6">
+        <div className="mx-auto w-full space-y-4 px-4 py-8 text-center sm:px-6">
           <h2 className="text-2xl font-semibold text-gray-900 sm:text-3xl">Welcome to Dataflex Channels Hub</h2>
           <p className="mx-auto max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
             Browse public teaching channels, join communities, and access lessons, quizzes, videos, and notes.
@@ -468,7 +489,7 @@ export default function TeachingPlatformPage() {
       <div className="flex-1 overflow-y-auto">
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
           <div className="w-full border-b border-gray-100 bg-white">
-            <div className="mx-auto w-full max-w-7xl px-4 py-3 sm:px-6">
+            <div className="mx-auto w-full w-full px-4 py-3 sm:px-6">
               <TabsList className="flex w-full items-center justify-start gap-2 overflow-x-auto bg-transparent p-0">
                 <TabsTrigger
                   value="channels"
@@ -489,8 +510,8 @@ export default function TeachingPlatformPage() {
           </div>
 
           {/* Search */}
-          <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
-            <div className="relative w-full max-w-xl">
+          <div className="mx-auto w-full w-full px-4 py-4 sm:px-6">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 placeholder="Search channels..."
@@ -502,7 +523,7 @@ export default function TeachingPlatformPage() {
           </div>
 
           {/* Channels Tab */}
-          <TabsContent value="channels" className="mx-auto w-full max-w-7xl space-y-4 px-4 pb-8 sm:px-6">
+          <TabsContent value="channels" className="mx-auto w-full w-full space-y-4 px-4 pb-8 sm:px-6">
             <div className="w-full">
               {loading ? (
                 <div className="space-y-2 w-full">
@@ -563,7 +584,24 @@ export default function TeachingPlatformPage() {
                               <Eye className="h-3 w-3 mr-1" />
                               View
                             </Button>
-                            {!channel.is_member ? (
+                            {channel.membership_status === "active" ? (
+                              <Badge className="bg-green-100 text-green-800 border-green-200 text-xs h-11 px-3 flex items-center justify-center">
+                                <CheckCircle2 className="mr-1 h-3 w-3" />
+                                Member
+                              </Badge>
+                            ) : channel.membership_status === "pending" ? (
+                              <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs h-11 px-3 flex items-center justify-center">
+                                Awaiting approval
+                              </Badge>
+                            ) : channel.membership_status === "expired" ? (
+                              <Button
+                                size="sm"
+                                className="h-11 text-sm bg-amber-600 text-white hover:bg-amber-700"
+                                onClick={() => openJoinFlow(channel)}
+                              >
+                                Renew
+                              </Button>
+                            ) : (
                               <Dialog
                                 open={showJoinDialog && selectedChannelForJoin?.id === channel.id}
                                 onOpenChange={setShowJoinDialog}
@@ -572,10 +610,7 @@ export default function TeachingPlatformPage() {
                                   <Button
                                     size="sm"
                                     className="h-11 text-sm bg-green-500 text-white hover:bg-green-600"
-                                    onClick={() => {
-                                      setSelectedChannelForJoin(channel)
-                                      setShowJoinDialog(true)
-                                    }}
+                                    onClick={() => openJoinFlow(channel)}
                                   >
                                     <Plus className="h-3 w-3 mr-1" />
                                     Join
@@ -623,11 +658,6 @@ export default function TeachingPlatformPage() {
                                   </DialogFooter>
                                 </DialogContent>
                               </Dialog>
-                            ) : (
-                              <Badge className="bg-green-100 text-green-800 border-green-200 text-xs h-7 px-2 flex items-center justify-center">
-                                <CheckCircle2 className="mr-1 h-3 w-3" />
-                                Member
-                              </Badge>
                             )}
                           </div>
                         </div>
@@ -637,9 +667,10 @@ export default function TeachingPlatformPage() {
                               isEnabled={channel.subscription_enabled}
                               monthlyFee={channel.subscription_fee}
                               daysUntilExpiry={channel.days_until_expiry}
-                              isPaid={channel.is_member && channel.is_subscription_active}
-                              isExpired={channel.is_member && !channel.is_subscription_active}
+                              membershipStatus={channel.membership_status}
                               isTeacherOrAdmin={channel.user_role === "admin" || channel.user_role === "teacher"}
+                              onJoin={() => openJoinFlow(channel)}
+                              onRenew={() => openJoinFlow(channel)}
                             />
                           </div>
                         )}
@@ -652,7 +683,7 @@ export default function TeachingPlatformPage() {
           </TabsContent>
 
           {/* My Channels Tab */}
-          <TabsContent value="my-channels" className="mx-auto w-full max-w-7xl space-y-4 px-4 pb-8 sm:px-6">
+          <TabsContent value="my-channels" className="mx-auto w-full w-full space-y-4 px-4 pb-8 sm:px-6">
             <div className="w-full">
               {loading ? (
                 <div className="space-y-2 w-full">

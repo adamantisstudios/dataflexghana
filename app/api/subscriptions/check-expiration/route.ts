@@ -31,7 +31,11 @@ export async function POST(request: NextRequest) {
 
     for (const sub of expiredSubscriptions || []) {
       await db.from("member_subscription_status").update({ is_active: false }).eq("id", sub.id)
-      await db.from("channel_members").delete().eq("channel_id", sub.channel_id).eq("agent_id", sub.agent_id)
+      await db
+        .from("channel_members")
+        .update({ status: "expired" })
+        .eq("channel_id", sub.channel_id)
+        .eq("agent_id", sub.agent_id)
     }
 
     const reminderDate = new Date()

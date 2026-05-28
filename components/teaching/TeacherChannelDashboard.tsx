@@ -213,17 +213,16 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
         }))
         setMembers(membersWithDetails)
       }
-      const { data: requestsData, error: requestsError } = await supabase
-        .from("channel_join_requests_with_agents")
-        .select("id, agent_id, request_message, status, requested_at, full_name, phone_number")
-        .eq("channel_id", channelId)
-        .eq("status", "pending")
-      if (requestsError) {
-        console.error("[v0] Error loading join requests:", requestsError)
-        toast.error("Failed to load join requests")
-        setJoinRequests([])
-      } else {
-        const requestsWithDetails = (requestsData || []).map((r: any) => ({
+      try {
+        const requestsRes = await fetch(
+          `/api/agent/channels/${encodeURIComponent(channelId)}/requests?status=pending`,
+          { headers: getAgentAuthHeaders(), cache: "no-store" },
+        )
+        const requestsJson = await requestsRes.json()
+        if (!requestsRes.ok) {
+          throw new Error(requestsJson.error || "Failed to load join requests")
+        }
+        const requestsWithDetails = (requestsJson.requests || []).map((r: Record<string, string>) => ({
           id: r.id,
           agent_id: r.agent_id,
           agent_name: r.full_name || r.agent_id,
@@ -233,6 +232,10 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           created_at: r.requested_at,
         }))
         setJoinRequests(requestsWithDetails)
+      } catch (reqErr) {
+        console.error("[v0] Error loading join requests:", reqErr)
+        toast.error(reqErr instanceof Error ? reqErr.message : "Failed to load join requests")
+        setJoinRequests([])
       }
       const { data: postsData, error: postsError } = await supabase
         .from("channel_posts")
@@ -624,49 +627,45 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
 
   const handleApproveRequest = async (requestId: string, agentId: string) => {
     try {
-      const { error: memberError } = await supabase.from("channel_members").insert([
-        {
-          channel_id: channelId,
-          agent_id: agentId,
-          role: "member",
-          status: "active",
-        },
-      ])
-      if (memberError) {
-        console.error("[v0] Error adding member:", memberError)
-        throw memberError
-      }
-      const { error: requestError } = await supabase
-        .from("channel_join_requests")
-        .update({ status: "approved", responded_at: new Date().toISOString() })
-        .eq("id", requestId)
-      if (requestError) {
-        console.error("[v0] Error updating request:", requestError)
-        throw requestError
-      }
-      toast.success("Request approved! Member added as member.")
+      const { data: settings } = await supabase
+        .from("channel_subscription_settings")
+        .select("is_enabled, monthly_fee")
+        .eq("channel_id", channelId)
+        .maybeSingle()
+
+      const res = await fetch(`/api/agent/channels/${encodeURIComponent(channelId)}/requests/approve`, {
+        method: "POST",
+        headers: { ...getAgentAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId,
+          amountVerified: settings?.is_enabled ? settings.monthly_fee ?? 0 : undefined,
+          notes: "Approved from channel dashboard",
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Approval failed")
+      toast.success(data.message || "Request approved.")
       loadChannelData()
     } catch (error) {
       console.error("[v0] Error approving request:", error)
-      toast.error("Failed to approve request")
+      toast.error(error instanceof Error ? error.message : "Failed to approve request")
     }
   }
 
   const handleRejectRequest = async (requestId: string) => {
     try {
-      const { error } = await supabase
-        .from("channel_join_requests")
-        .update({ status: "rejected", responded_at: new Date().toISOString() })
-        .eq("id", requestId)
-      if (error) {
-        console.error("[v0] Error rejecting request:", error)
-        throw error
-      }
+      const res = await fetch("/api/channel-join-requests/reject", {
+        method: "POST",
+        headers: { ...getAgentAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, channelId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Reject failed")
       toast.success("Request rejected")
       loadChannelData()
     } catch (error) {
       console.error("[v0] Error rejecting request:", error)
-      toast.error("Failed to reject request")
+      toast.error(error instanceof Error ? error.message : "Failed to reject request")
     }
   }
 
@@ -1673,16 +1672,16 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           </TabsContent>
 
           {/* Requests Tab */}
-          <TabsContent value="requests" className="space-y-2 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="requests" className="space-y-3 w-full px-4 sm:px-6 lg:px-8">
             {joinRequests.length === 0 ? (
-              <div className="bg-green-50 border-b-2 border-green-200 rounded p-3 text-center text-green-600 text-xs">
-                <CheckCircle2 className="h-6 w-6 mx-auto mb-1 opacity-50" />
-                <p>No pending requests</p>
+              <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center text-green-700 text-sm">
+                <CheckCircle2 className="mx-auto mb-2 h-8 w-8 opacity-60" />
+                <p>No pending join requests</p>
               </div>
             ) : (
-              <div className="space-y-1 w-full">
+              <div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {joinRequests.map((request) => (
-                  <div key={request.id} className="border-b-2 border-amber-200 bg-amber-50 p-2 rounded w-full">
+                  <div key={request.id} className="w-full rounded-xl border border-amber-200 bg-white p-4 shadow-sm">
                     <div className="space-y-1">
                       <div>
                         <p className="font-medium text-gray-800 text-sm">{request.agent_name}</p>
@@ -1702,20 +1701,20 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                           <li>Can react to content</li>
                         </ul>
                       </div>
-                      <div className="flex gap-1 pt-1">
+                      <div className="flex gap-2 pt-2">
                         <Button
                           size="sm"
                           onClick={() => handleApproveRequest(request.id, request.agent_id)}
-                          className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs h-7"
+                          className="h-11 flex-1 bg-green-600 hover:bg-green-700 text-white text-xs"
                         >
-                          <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                           Approve
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => handleRejectRequest(request.id)}
-                          className="flex-1 text-xs h-7"
+                          className="h-11 flex-1 text-xs"
                         >
                           Reject
                         </Button>

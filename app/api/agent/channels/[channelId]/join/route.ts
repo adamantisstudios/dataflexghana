@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAuthAgentId } from "@/lib/agent-auth-utils"
 import { getAdminClient } from "@/lib/supabase-base"
+import { hasActiveChannelSubscription } from "@/lib/ensure-channel-member-active"
+import { computeMembershipUiStatus, submitChannelJoinRequest } from "@/lib/channel-membership-lifecycle"
 
 export const dynamic = "force-dynamic"
 
@@ -39,16 +41,53 @@ export async function GET(
 
     const { data: joinRequest } = await db
       .from("channel_join_requests")
-      .select("id, status, created_at, request_message")
+      .select("id, status, created_at, request_message, requested_at")
       .eq("channel_id", channelId)
       .eq("agent_id", agentId)
       .maybeSingle()
+
+    const { data: member } = await db
+      .from("channel_members")
+      .select("status")
+      .eq("channel_id", channelId)
+      .eq("agent_id", agentId)
+      .maybeSingle()
+
+    const { data: subRow } = await db
+      .from("member_subscription_status")
+      .select("is_active, subscription_expires_at")
+      .eq("channel_id", channelId)
+      .eq("agent_id", agentId)
+      .maybeSingle()
+
+    let daysUntilExpiry: number | undefined
+    let subscriptionActive = false
+    if (subRow) {
+      const expiresAt = new Date(subRow.subscription_expires_at)
+      daysUntilExpiry = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      subscriptionActive = Boolean(subRow.is_active) && daysUntilExpiry > 0
+    }
+
+    const membershipStatus = computeMembershipUiStatus({
+      joinRequestStatus: joinRequest?.status,
+      subscriptionEnabled: Boolean(subscription?.is_enabled),
+      subscriptionActive,
+      daysUntilExpiry,
+      isChannelMember: Boolean(member),
+      memberRowStatus: member?.status,
+    })
+
+    const hasActiveSub = await hasActiveChannelSubscription(db, channelId, agentId)
 
     return NextResponse.json({
       success: true,
       channel,
       subscription: subscription || null,
       joinRequest: joinRequest || null,
+      membershipStatus,
+      canRenew:
+        membershipStatus === "expired" ||
+        (joinRequest?.status === "approved" && !hasActiveSub),
     })
   } catch (error) {
     console.error("[agent channel join GET]", error)
@@ -88,40 +127,20 @@ export async function POST(
       )
     }
 
-    const { data: existing } = await db
-      .from("channel_join_requests")
-      .select("id, status")
-      .eq("channel_id", channelId)
-      .eq("agent_id", agentId)
-      .maybeSingle()
-
-    if (existing) {
-      return NextResponse.json({ error: "You have already requested to join this channel" }, { status: 409 })
-    }
-
-    const { data: newRequest, error } = await db
-      .from("channel_join_requests")
-      .insert({
-        channel_id: channelId,
-        agent_id: agentId,
-        request_message: requestMessage || null,
-        status: "pending",
-        requested_at: new Date().toISOString(),
-      })
-      .select("id, status, created_at, request_message")
-      .single()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    const result = await submitChannelJoinRequest(db, channelId, agentId, requestMessage)
 
     return NextResponse.json({
       success: true,
-      joinRequest: newRequest,
-      requiresPayment: Boolean(subscription?.is_enabled),
+      joinRequest: result.joinRequest,
+      requiresPayment: result.requiresPayment,
+      isRenewal: result.isRenewal,
     })
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Internal server error"
+    if (message.includes("pending") || message.includes("active membership")) {
+      return NextResponse.json({ error: message }, { status: 409 })
+    }
     console.error("[agent channel join POST]", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

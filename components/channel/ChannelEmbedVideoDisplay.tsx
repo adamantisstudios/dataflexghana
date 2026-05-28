@@ -44,7 +44,7 @@ export function ChannelEmbedVideoDisplay({
         </div>
       </div>
       <div
-        className="relative mx-auto mb-3 aspect-[9/16] w-full max-w-md overflow-hidden rounded-xl bg-black sm:max-w-lg lg:max-w-xl [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:h-full [&_iframe]:w-full"
+        className="relative mb-3 aspect-[9/16] w-full max-h-[min(80vh,720px)] overflow-hidden rounded-xl bg-black [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:h-full [&_iframe]:w-full"
         dangerouslySetInnerHTML={{ __html: preparedEmbed }}
       />
     </div>

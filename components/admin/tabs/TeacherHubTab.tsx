@@ -130,19 +130,16 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   const loadData = async () => {
     setLoading(true)
     try {
-      const [channelsRes, agentsRes, joinRequestsRes, verificationsRes] = await Promise.all([
+      const [channelsRes, agentsRes, joinRequestsResRaw, verificationsRes] = await Promise.all([
         supabase.from("teaching_channels").select("*").order("created_at", { ascending: false }),
         supabase
           .from("agents")
           .select("id, full_name, phone_number, can_teach")
           .eq("isapproved", true),
-        supabase
-          .from("channel_join_requests_with_agents")
-          .select(
-            "id, channel_id, agent_id, request_message, status, requested_at, full_name, phone_number, teaching_channels(name)",
-          )
-          .eq("status", "pending")
-          .order("requested_at", { ascending: false }),
+        fetch("/api/admin/channel-join-requests?status=pending", {
+          headers: getAdminAuthHeaders(),
+          cache: "no-store",
+        }),
         fetch("/api/admin/subscriptions/pending-verifications", {
           headers: getAdminAuthHeaders(),
           cache: "no-store",
@@ -156,9 +153,17 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         member_count: countMap.get(channel.id) || 0,
       }))
 
+      let joinRequestsList: unknown[] = []
+      if (joinRequestsResRaw instanceof Response) {
+        if (joinRequestsResRaw.ok) {
+          const jr = await joinRequestsResRaw.json()
+          joinRequestsList = jr.requests || []
+        }
+      }
+
       setChannels(channelsWithCounts)
       setAgents(agentsRes.data || [])
-      setJoinRequests(joinRequestsRes.data || [])
+      setJoinRequests(joinRequestsList as typeof joinRequests)
 
       if (verificationsRes.ok) {
         const verificationsData = await verificationsRes.json()
@@ -372,17 +377,27 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   }
 
   // Approve/Reject Join Request
-  const handleApproveJoinRequest = async (requestId: string, agentId: string, channelId: string) => {
-    if (paidChannelIds.has(channelId)) {
-      toast.error("Paid channel — verify payment in Pending Verifications first.")
-      setActiveSubTab("verifications")
+  const handleApproveJoinRequest = async (request: {
+    id: string
+    agent_id: string
+    channel_id: string
+    requires_payment?: boolean
+    monthly_fee?: number
+  }) => {
+    if (request.requires_payment || paidChannelIds.has(request.channel_id)) {
+      await handleVerifyJoinPayment({
+        id: request.id,
+        channel_id: request.channel_id,
+        agent_id: request.agent_id,
+        amount: request.monthly_fee ?? 0,
+      })
       return
     }
     try {
       const response = await fetch("/api/channel-join-requests/approve", {
         method: "POST",
         headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ requestId }),
+        body: JSON.stringify({ requestId: request.id }),
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "Approval failed")
@@ -538,17 +553,17 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   }
   const handleRejectJoinRequest = async (requestId: string) => {
     try {
-      await supabase
-        .from("channel_join_requests")
-        .update({
-          status: "rejected",
-          responded_at: new Date().toISOString(),
-        })
-        .eq("id", requestId)
+      const res = await fetch("/api/channel-join-requests/reject", {
+        method: "POST",
+        headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Reject failed")
       toast.success("Join request rejected.")
       loadData()
     } catch (error) {
-      toast.error("Failed to reject request.")
+      toast.error(error instanceof Error ? error.message : "Failed to reject request.")
     }
   }
 
@@ -587,7 +602,9 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         return (
           item.full_name?.toLowerCase().includes(searchLower) ||
           item.phone_number?.toLowerCase().includes(searchLower) ||
-          item.teaching_channels?.name?.toLowerCase().includes(searchLower)
+          (item.channel_name || item.teaching_channels?.name || "")
+            .toLowerCase()
+            .includes(searchLower)
         )
       }
     })
@@ -888,7 +905,9 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                         <p className="text-xs text-gray-500">📞 {request.phone_number || "No contact"}</p>
                         <p className="text-xs text-gray-500 mt-1">
                           Requested to join:{" "}
-                          <span className="font-medium break-words">{request.teaching_channels?.name}</span>
+                          <span className="font-medium break-words">
+                            {request.channel_name || request.teaching_channels?.name || "Channel"}
+                          </span>
                         </p>
                         {request.request_message && (
                           <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 break-words">
@@ -898,20 +917,16 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       </div>
                     </div>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                      {paidChannelIds.has(request.channel_id) ? (
-                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 flex-1">
-                          Paid channel — verify payment in <strong>Pending Verifications</strong> after the agent pays.
-                        </p>
-                      ) : (
-                        <Button
-                          size="sm"
-                          className="h-11 flex-1 bg-green-500 text-white hover:bg-green-600"
-                          onClick={() => handleApproveJoinRequest(request.id, request.agent_id, request.channel_id)}
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        className="h-11 flex-1 bg-green-500 text-white hover:bg-green-600"
+                        onClick={() => handleApproveJoinRequest(request)}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        {request.requires_payment || paidChannelIds.has(request.channel_id)
+                          ? "Verify & Approve"
+                          : "Approve"}
+                      </Button>
                       <Button
                         size="sm"
                         variant="destructive"

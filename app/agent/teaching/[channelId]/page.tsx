@@ -80,11 +80,11 @@ export default function ChannelPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-          <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
+          <div className="mx-auto w-full w-full px-4 py-4 sm:px-6">
             <h1 className="text-lg font-semibold text-white">Channel Access</h1>
           </div>
         </div>
-        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+        <div className="mx-auto w-full w-full px-4 py-8 sm:px-6">
           <div className="w-full">
             <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-sm">
               <CardContent className="pt-6">
@@ -127,11 +127,11 @@ export default function ChannelPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-          <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
+          <div className="mx-auto w-full w-full px-4 py-4 sm:px-6">
             <h1 className="text-lg font-semibold text-white">Channel Access</h1>
           </div>
         </div>
-        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+        <div className="mx-auto w-full w-full px-4 py-8 sm:px-6">
           <div className="w-full">
             <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-sm">
               <CardContent className="pt-6">
@@ -169,7 +169,7 @@ export default function ChannelPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="sticky top-0 z-50 w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="mx-auto w-full max-w-7xl px-4 py-3 sm:px-6">
+        <div className="mx-auto w-full w-full px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -186,7 +186,7 @@ export default function ChannelPage() {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full w-full px-4 py-6 sm:px-6">
         {isTeacherOrAdmin ? (
           <TeacherChannelDashboard
             channelId={channelId}
