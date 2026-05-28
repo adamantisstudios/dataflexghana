@@ -39,6 +39,8 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, Props>(function AudioPl
   const [rate, setRate] = useState(1)
   const [volume, setVolume] = useState(1)
   const [muted, setMuted] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const resolvedSrc = normalizeMediaUrl(src)
 
   useImperativeHandle(ref, () => ({
     getCurrentTime: () => audioRef.current?.currentTime ?? 0,

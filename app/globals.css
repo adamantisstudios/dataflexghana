@@ -284,6 +284,15 @@ body {
 
 /* Mobile-first responsive utilities */
 @layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .container-mobile {
     width: 100%;
     max-width: 100vw;

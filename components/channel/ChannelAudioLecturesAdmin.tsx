@@ -9,9 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import type { AudioAttachment, AudioLecture } from "@/lib/channel-audio-types"
-import { formatTimestamp } from "@/lib/channel-audio-types"
+import { formatTimestamp, parseAttachments } from "@/lib/channel-audio-types"
+import { normalizeMediaUrl } from "@/components/teaching/teaching-hub-ui"
+import { TeachingSectionErrorBoundary } from "@/components/teaching/TeachingSectionErrorBoundary"
+import { AudioPlayer } from "@/components/channel/AudioPlayer"
 import { toast } from "sonner"
-import { Headphones, Trash2, Upload, Plus, X } from "lucide-react"
+import { Headphones, Trash2, Upload, Plus, X, Play, ChevronLeft } from "lucide-react"
 import { ChannelAudioRecorder } from "@/components/channel/ChannelAudioRecorder"
 
 type Props = {
@@ -29,6 +32,7 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
   const [attachments, setAttachments] = useState<AudioAttachment[]>([])
   const [attachmentUrl, setAttachmentUrl] = useState("")
   const [attachmentName, setAttachmentName] = useState("")
+  const [previewLecture, setPreviewLecture] = useState<AudioLecture | null>(null)
 
   const loadLectures = useCallback(async () => {
     setLoading(true)
@@ -37,7 +41,14 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
         headers: getAgentAuthHeaders(),
       })
       const data = await res.json()
-      if (res.ok) setLectures(data.lectures || [])
+      if (res.ok) {
+        const list = (data.lectures || []).map((lecture: AudioLecture) => ({
+          ...lecture,
+          audio_url: normalizeMediaUrl(lecture.audio_url),
+          attachments: parseAttachments(lecture.attachments),
+        }))
+        setLectures(list)
+      }
       else toast.error(data.error || "Failed to load lectures")
     } finally {
       setLoading(false)
@@ -148,8 +159,52 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
     }
   }
 
+  if (previewLecture) {
+    const attachments = parseAttachments(previewLecture.attachments)
+    return (
+      <TeachingSectionErrorBoundary sectionName="audio preview">
+        <div className="w-full space-y-4 overflow-x-hidden">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-11 text-gray-900"
+            onClick={() => setPreviewLecture(null)}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to lectures
+          </Button>
+          <h3 className="text-lg font-semibold text-gray-900 break-words">{previewLecture.title}</h3>
+          {previewLecture.description && (
+            <p className="text-sm text-gray-600">{previewLecture.description}</p>
+          )}
+          <AudioPlayer
+            src={previewLecture.audio_url}
+            title={previewLecture.title}
+            className="!relative !static rounded-2xl"
+          />
+          {attachments.length > 0 && (
+            <ul className="text-sm space-y-1">
+              {attachments.map((a, i) => (
+                <li key={`${a.url}-${i}`}>
+                  <a
+                    href={a.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-700 hover:underline break-all"
+                  >
+                    {a.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </TeachingSectionErrorBoundary>
+    )
+  }
+
   return (
-    <div className="space-y-4 w-full px-2 sm:px-3">
+    <div className="space-y-4 w-full">
       <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
         <Headphones className="h-4 w-4 text-green-600" />
         Audio Lectures
@@ -290,20 +345,32 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
           <p className="text-xs text-gray-500">No lectures yet.</p>
         ) : (
           lectures.map((lecture) => (
-            <Card key={lecture.id} className="rounded-xl border border-gray-100">
+            <Card
+              key={lecture.id}
+              className="rounded-xl border border-gray-100 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setPreviewLecture(lecture)}
+            >
               <CardContent className="p-3 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-medium text-sm text-gray-900 break-words">{lecture.title}</p>
-                  <p className="text-[11px] text-gray-500 mt-1">
-                    {formatTimestamp(lecture.duration ?? 0)} ·{" "}
-                    {new Date(lecture.created_at).toLocaleString()}
-                  </p>
+                <div className="min-w-0 flex items-start gap-3 flex-1">
+                  <div className="h-11 w-11 min-h-[44px] min-w-[44px] rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                    <Play className="h-5 w-5 text-green-600 ml-0.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm text-gray-900 break-words">{lecture.title}</p>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      {formatTimestamp(lecture.duration ?? 0)} ·{" "}
+                      {new Date(lecture.created_at).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="shrink-0 h-11 w-11 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => void deleteLecture(lecture.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void deleteLecture(lecture.id)
+                  }}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

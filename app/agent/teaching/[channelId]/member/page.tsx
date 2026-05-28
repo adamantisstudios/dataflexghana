@@ -10,6 +10,7 @@ import { checkChannelSubscriptionAccess } from "@/lib/channel-subscription-acces
 import { MemberChannelView } from "@/components/teaching/MemberChannelView"
 import { BackToTop } from "@/components/back-to-top"
 import { teachingHubMainClass, teachingHubPageClass } from "@/components/teaching/teaching-hub-ui"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -81,7 +82,7 @@ export default function MemberChannelPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <div className={`flex min-h-screen items-center justify-center p-4 ${teachingHubPageClass}`}>
         <div className="text-center">
           <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-b-2 border-green-500" />
           <p className="text-sm text-gray-600">Loading channel…</p>
@@ -93,7 +94,7 @@ export default function MemberChannelPage() {
   if (accessDenied) {
     const isExpired = subscriptionBlocked?.reason === "subscription_expired"
     return (
-      <div className={teachingHubPageClass}>
+      <div className={cn(teachingHubPageClass, "overflow-x-hidden")}>
         <div className="border-b border-green-100 bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm">
           <div className="w-full px-4 py-5 sm:px-6 lg:px-8">
             <h1 className="text-xl font-semibold text-white sm:text-2xl">Channel access</h1>
@@ -161,7 +162,7 @@ export default function MemberChannelPage() {
   }
 
   return (
-    <div className={teachingHubPageClass}>
+    <div className={cn(teachingHubPageClass, "overflow-x-hidden")}>
       <div className="border-b border-green-100 bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm sticky top-0 z-40">
         <div className="flex w-full items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2">

@@ -182,7 +182,7 @@ export default function ChannelPage() {
   const isTeacherOrAdmin = userRole === "admin" || userRole === "teacher"
 
   return (
-    <div className={teachingHubPageClass}>
+    <div className={`${teachingHubPageClass} overflow-x-hidden`}>
       <div className="sticky top-0 z-50 w-full border-b border-green-100 bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm">
         <div className="w-full px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">

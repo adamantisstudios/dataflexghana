@@ -723,7 +723,7 @@ export default function AdminDashboard() {
               </Dialog>
         }
       />
-      <div className="container mx-auto max-w-full px-3 py-6 sm:px-4 sm:py-8">
+      <div className="w-full px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
         {showNotification && (
           <UnreadNotification
             unreadCount={adminUnreadCount}

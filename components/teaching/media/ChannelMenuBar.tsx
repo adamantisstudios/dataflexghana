@@ -12,7 +12,11 @@ import {
   CreditCard,
   Headphones,
 } from "lucide-react"
-import { teachingHubTabListClass, teachingHubTabTriggerClass } from "@/components/teaching/teaching-hub-ui"
+import {
+  teachingHubTabBarStickyClass,
+  teachingHubTabListClass,
+  teachingHubTabTriggerClass,
+} from "@/components/teaching/teaching-hub-ui"
 import { cn } from "@/lib/utils"
 
 interface ChannelMenuBarProps {
@@ -35,9 +39,10 @@ const menuItems = [
 
 export function ChannelMenuBar({ activeTab, onTabChange }: ChannelMenuBarProps) {
   return (
-    <div className="sticky top-0 z-30 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <div className={cn(teachingHubTabListClass, "mx-4 my-3 sm:mx-6 lg:mx-8 border-0 shadow-none bg-slate-50")}>
-        <div className="flex w-full gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+    <div className={teachingHubTabBarStickyClass}>
+      <div className="w-full px-4 py-3 sm:px-6 lg:px-8">
+        <div className={cn(teachingHubTabListClass, "border-0 bg-slate-50 shadow-none")}>
+          <div className="flex w-full flex-nowrap gap-2 overflow-x-auto pb-0.5">
           {menuItems.map((item) => {
             const Icon = item.icon
             const isActive = activeTab === item.id
@@ -59,6 +64,7 @@ export function ChannelMenuBar({ activeTab, onTabChange }: ChannelMenuBarProps) 
               </button>
             )
           })}
+          </div>
         </div>
       </div>
     </div>

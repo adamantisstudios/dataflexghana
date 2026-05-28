@@ -139,7 +139,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         showMaintenanceLink
         onLogout={handleLogout}
       />
-      <main className="container mx-auto max-w-full px-3 py-4 sm:px-4 sm:py-6">{children}</main>
+      <main className="w-full px-4 py-4 sm:px-6 lg:px-8 sm:py-6">{children}</main>
       <AdminCallWidget />
     </div>
   )

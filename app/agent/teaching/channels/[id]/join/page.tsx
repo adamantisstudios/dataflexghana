@@ -13,6 +13,7 @@ import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { ArrowLeft, AlertCircle, Check, Lock, DollarSign, CreditCard } from "lucide-react"
 import { toast } from "sonner"
 import { SubscriptionPaymentNotification } from "@/components/teaching/subscription-payment-notification"
+import { teachingHubMainClass, teachingHubPageClass } from "@/components/teaching/teaching-hub-ui"
 
 interface Channel {
   id: string
@@ -127,7 +128,7 @@ export default function JoinChannelPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className={`flex min-h-screen items-center justify-center ${teachingHubPageClass}`}>
         <p className="text-gray-500">Loading...</p>
       </div>
     )
@@ -135,7 +136,7 @@ export default function JoinChannelPage() {
 
   if (!channel) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className={`flex min-h-screen items-center justify-center ${teachingHubPageClass}`}>
         <Card className="bg-red-50 border-red-200">
           <CardContent className="p-6 text-center">
             <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
@@ -149,8 +150,8 @@ export default function JoinChannelPage() {
   const isPaid = Boolean(subscription?.is_enabled)
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8">
-      <div className="w-full px-4 sm:px-6 lg:px-8">
+    <main className={`${teachingHubPageClass} overflow-x-hidden`}>
+      <div className={teachingHubMainClass}>
         <Button variant="ghost" onClick={() => router.back()} className="mb-6 text-gray-600 hover:text-gray-800">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back

@@ -20,6 +20,7 @@ import { ChannelLiveSection } from "@/components/channel/ChannelLiveSection"
 import { ChannelAudioClassroom } from "@/components/channel/ChannelAudioClassroom"
 import {
   teachingHubContentCardClass,
+  teachingHubTabBarStickyClass,
   teachingHubTabListClass,
   teachingHubTabTriggerClass,
 } from "@/components/teaching/teaching-hub-ui"
@@ -301,10 +302,10 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 text-gray-900" style={{ fontSize: `${fontSize}px` }}>
+    <div className="w-full text-gray-900 overflow-x-hidden" style={{ fontSize: `${fontSize}px` }}>
       <FontSizeControl onFontSizeChange={setFontSize} initialSize={16} />
 
-      <div className="w-full py-6">
+      <div className="w-full py-4 sm:py-6">
         {channel?.image_url && (
           <div className="w-full mb-4 px-4 sm:px-6 lg:px-8">
             <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden bg-gray-100 shadow-md border-4 border-white">
@@ -341,24 +342,26 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4 w-full">
-          <div className="w-full px-4 sm:px-6 lg:px-8">
-            <TabsList className={cn(teachingHubTabListClass, "flex-wrap h-auto")}>
-              <TabsTrigger value="feeds" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
-                Feeds
-              </TabsTrigger>
-              <TabsTrigger value="videos" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
-                Videos
-              </TabsTrigger>
-              <TabsTrigger value="audio" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
-                Audio
-              </TabsTrigger>
-              <TabsTrigger value="notes" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
-                Notes
-              </TabsTrigger>
-              <TabsTrigger value="saved" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
-                Saved
-              </TabsTrigger>
-            </TabsList>
+          <div className={teachingHubTabBarStickyClass}>
+            <div className="w-full px-4 py-3 sm:px-6 lg:px-8">
+              <TabsList className={cn(teachingHubTabListClass, "inline-flex h-auto bg-slate-50")}>
+                <TabsTrigger value="feeds" className={cn(teachingHubTabTriggerClass, "shrink-0 min-w-[88px]")}>
+                  Feeds
+                </TabsTrigger>
+                <TabsTrigger value="videos" className={cn(teachingHubTabTriggerClass, "shrink-0 min-w-[88px]")}>
+                  Videos
+                </TabsTrigger>
+                <TabsTrigger value="audio" className={cn(teachingHubTabTriggerClass, "shrink-0 min-w-[88px]")}>
+                  Audio
+                </TabsTrigger>
+                <TabsTrigger value="notes" className={cn(teachingHubTabTriggerClass, "shrink-0 min-w-[88px]")}>
+                  Notes
+                </TabsTrigger>
+                <TabsTrigger value="saved" className={cn(teachingHubTabTriggerClass, "shrink-0 min-w-[88px]")}>
+                  Saved
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
           <TabsContent value="feeds" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">

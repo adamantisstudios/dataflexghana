@@ -10,9 +10,14 @@ export const teachingHubContentCardClass =
   "w-full rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6"
 
 export const teachingHubTabListClass = cn(
-  "h-auto w-full justify-start gap-2 overflow-x-auto whitespace-nowrap rounded-2xl p-2",
-  "border border-slate-200 bg-white shadow-sm",
+  "flex h-auto w-full flex-nowrap items-center justify-start gap-2 overflow-x-auto overscroll-x-contain",
+  "whitespace-nowrap rounded-2xl p-2 border border-slate-200 bg-white shadow-sm",
+  "no-scrollbar scroll-smooth",
 )
+
+/** Sticky wrapper for channel / member tab bars */
+export const teachingHubTabBarStickyClass =
+  "sticky top-0 z-30 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80"
 
 export const teachingHubTabTriggerClass = cn(
   "rounded-full py-2.5 px-4 text-xs sm:text-sm font-semibold transition-all border border-transparent whitespace-nowrap min-h-[44px]",

@@ -6,9 +6,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { AudioPlayer, type AudioPlayerHandle } from "@/components/channel/AudioPlayer"
 import { AudioLectureComments } from "@/components/channel/AudioLectureComments"
-import type { AudioAttachment, AudioLecture } from "@/lib/channel-audio-types"
-import { formatTimestamp } from "@/lib/channel-audio-types"
+import type { AudioLecture } from "@/lib/channel-audio-types"
+import { formatTimestamp, parseAttachments } from "@/lib/channel-audio-types"
 import { normalizeMediaUrl, teachingHubContentCardClass } from "@/components/teaching/teaching-hub-ui"
+import { TeachingSectionErrorBoundary } from "@/components/teaching/TeachingSectionErrorBoundary"
 import { Headphones, ChevronLeft, Paperclip, Play } from "lucide-react"
 
 type Props = {
@@ -37,6 +38,7 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
         const list = (data.lectures || []).map((lecture: AudioLecture) => ({
           ...lecture,
           audio_url: normalizeMediaUrl(lecture.audio_url),
+          attachments: parseAttachments(lecture.attachments),
         }))
         setLectures(list)
     } finally {
@@ -71,7 +73,13 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
               <Card
                 key={lecture.id}
                 className="rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setSelected(lecture)}
+                onClick={() =>
+                  setSelected({
+                    ...lecture,
+                    audio_url: normalizeMediaUrl(lecture.audio_url),
+                    attachments: parseAttachments(lecture.attachments),
+                  })
+                }
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
@@ -98,10 +106,11 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
     )
   }
 
-  const attachments = (selected.attachments || []) as AudioAttachment[]
+  const attachments = parseAttachments(selected.attachments)
 
   return (
-    <div className="w-full space-y-4 pb-48 sm:pb-8">
+    <TeachingSectionErrorBoundary sectionName="audio lecture">
+    <div className="w-full space-y-4 pb-48 sm:pb-8 overflow-x-hidden">
       <Button
         variant="ghost"
         size="sm"
@@ -150,14 +159,17 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
         className="sm:!relative sm:!static sm:rounded-2xl"
       />
 
-      <AudioLectureComments
-        lectureId={selected.id}
-        currentUserId={memberId}
-        currentUserName={memberName}
-        getCurrentPlaybackTime={() => playerRef.current?.getCurrentTime() ?? 0}
-        onSeek={(s) => playerRef.current?.seekTo(s)}
-        composerBottomClass="bottom-[11.5rem] sm:bottom-0"
-      />
+      {selected.id && (
+        <AudioLectureComments
+          lectureId={selected.id}
+          currentUserId={memberId}
+          currentUserName={memberName}
+          getCurrentPlaybackTime={() => playerRef.current?.getCurrentTime() ?? 0}
+          onSeek={(s) => playerRef.current?.seekTo(s)}
+          composerBottomClass="bottom-[11.5rem] sm:bottom-0"
+        />
+      )}
     </div>
+    </TeachingSectionErrorBoundary>
   )
 }

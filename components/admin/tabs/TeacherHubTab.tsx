@@ -767,9 +767,9 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       </div>
 
       {/* Sub-Tabs — Referral Hub pill style */}
-      <div className="w-full px-4 sm:px-5 pt-2">
+      <div className="w-full px-4 sm:px-6 lg:px-8 pt-2">
         <div className={teachingHubTabListClass}>
-          <div className="flex w-full gap-2 overflow-x-auto no-scrollbar">
+          <div className="flex w-full flex-nowrap gap-2 overflow-x-auto">
             {[
               { id: "channels" as const, icon: BookOpen, label: "Channels" },
               { id: "join-requests" as const, icon: UserPlus, label: "Join Requests" },
@@ -801,7 +801,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 w-full">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:px-6 lg:px-8 sm:py-5 w-full">
         {/* Channels View */}
         {activeSubTab === "channels" && (
           <div className="space-y-3">
