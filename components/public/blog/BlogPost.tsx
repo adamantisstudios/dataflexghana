@@ -51,7 +51,7 @@ export function BlogPost({ blog }: BlogPostProps) {
   }
 
   return (
-    <article className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <article className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <Link
         href="/blogs"
         className="mb-8 inline-flex items-center text-sm text-gray-500 hover:text-emerald-700 transition-colors"
@@ -60,7 +60,7 @@ export function BlogPost({ blog }: BlogPostProps) {
         Back to blog
       </Link>
 
-      <header className="mb-8 text-center sm:mb-10">
+      <header className="mb-6 text-center sm:mb-8">
         {blog.category && (
           <Link href={`/blogs/category/${blog.category.slug}`} className="inline-block mb-4">
             <Badge
@@ -116,7 +116,7 @@ export function BlogPost({ blog }: BlogPostProps) {
       )}
 
       <div
-        className="blog-content text-base leading-relaxed text-gray-700"
+        className="blog-content text-base text-gray-700"
         dangerouslySetInnerHTML={{ __html: processMarkdown(blog.content) }}
       />
 

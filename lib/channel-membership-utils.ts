@@ -1,15 +1,38 @@
-import { supabase } from "@/lib/supabase-client";
+import { supabase } from "@/lib/supabase-client"
+import { ensureChannelMemberActive, hasActiveChannelSubscription } from "@/lib/ensure-channel-member-active"
 
 /**
  * Diagnostic logging for channel membership issues
  */
-export const logMembershipDiagnostic = (message: string, data?: any) => {
+export const logMembershipDiagnostic = (message: string, data?: unknown) => {
   console.log(`[v0] MEMBERSHIP_DIAGNOSTIC: ${message}`, data || "")
 }
 
+async function tryActivateMembershipFromSubscription(
+  channelId: string,
+  agentId: string,
+  membershipId: string,
+): Promise<boolean> {
+  const hasSub = await hasActiveChannelSubscription(supabase, channelId, agentId)
+  if (!hasSub) return false
+
+  const { error } = await supabase
+    .from("channel_members")
+    .update({ status: "active", joined_at: new Date().toISOString() })
+    .eq("id", membershipId)
+
+  if (error) {
+    logMembershipDiagnostic(`Failed to activate member from subscription: ${error.message}`)
+    return false
+  }
+
+  logMembershipDiagnostic(`Activated pending member ${agentId} via active subscription`)
+  return true
+}
+
 /**
- * Check if a user is an active member of a channel
- * Uses regular supabase client since RLS is disabled
+ * Check if a user is an active member of a channel.
+ * If they have an active paid subscription but membership row is pending, auto-activate.
  */
 export const checkChannelMembership = async (
   channelId: string,
@@ -20,33 +43,52 @@ export const checkChannelMembership = async (
 
     const { data: membership, error } = await supabase
       .from("channel_members")
-      .select("role, status")
+      .select("id, role, status")
       .eq("channel_id", channelId)
       .eq("agent_id", agentId)
-      .single()
+      .maybeSingle()
 
     if (error) {
-      if (error.code === "PGRST116") {
-        // No rows returned - not a member
-        logMembershipDiagnostic(`Agent ${agentId} is NOT a member of channel ${channelId}`)
-        return { isMember: false }
-      }
       logMembershipDiagnostic(`Error checking membership: ${error.message}`, error)
       return { isMember: false, error: error.message }
     }
 
     if (!membership) {
+      const hasSub = await hasActiveChannelSubscription(supabase, channelId, agentId)
+      if (hasSub) {
+        const result = await ensureChannelMemberActive(supabase, channelId, agentId, "member")
+        if (result.ok) {
+          return { isMember: true, role: "member", status: "active" }
+        }
+        return { isMember: false, error: result.error }
+      }
       logMembershipDiagnostic(`Agent ${agentId} is NOT a member of channel ${channelId}`)
       return { isMember: false }
     }
 
-    const isActive = membership.status === "active"
+    if (membership.status === "active") {
+      return {
+        isMember: true,
+        role: membership.role,
+        status: membership.status,
+      }
+    }
+
+    const activated = await tryActivateMembershipFromSubscription(channelId, agentId, membership.id)
+    if (activated) {
+      return {
+        isMember: true,
+        role: membership.role,
+        status: "active",
+      }
+    }
+
     logMembershipDiagnostic(
-      `Agent ${agentId} membership status: ${membership.status}, role: ${membership.role}, active: ${isActive}`,
+      `Agent ${agentId} membership status: ${membership.status}, role: ${membership.role}, active: false`,
     )
 
     return {
-      isMember: isActive,
+      isMember: false,
       role: membership.role,
       status: membership.status,
     }

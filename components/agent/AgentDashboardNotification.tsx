@@ -105,8 +105,8 @@ export default function AgentDashboardNotification({ agentId }: Props) {
 
   return (
     <div
-      className={`fixed top-14 left-0 right-0 z-40 px-4 pt-2 transition-all duration-300 ease-out ${
-        isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
+      className={`fixed top-14 left-0 right-0 z-[70] px-4 pt-2 transition-all duration-300 ease-out ${
+        isVisible ? "translate-y-0 opacity-100 pointer-events-auto" : "-translate-y-full opacity-0 pointer-events-none"
       }`}
     >
       <div className="relative mx-auto w-full max-w-md rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">

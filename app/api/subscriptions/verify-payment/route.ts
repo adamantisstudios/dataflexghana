@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { requireAdminSession } from "@/lib/api-auth"
+import { ensureChannelMemberActive } from "@/lib/ensure-channel-member-active"
 
 export const dynamic = "force-dynamic"
 
@@ -43,23 +44,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: subError.message }, { status: 500 })
     }
 
-    const { data: existingMember } = await db
-      .from("channel_members")
-      .select("id")
-      .eq("channel_id", channelId)
-      .eq("agent_id", agentId)
-      .maybeSingle()
-
-    if (!existingMember) {
-      const { error: memberError } = await db.from("channel_members").insert({
-        channel_id: channelId,
-        agent_id: agentId,
-        role: "member",
-        status: "active",
-      })
-      if (memberError && !memberError.message.includes("duplicate")) {
-        return NextResponse.json({ error: memberError.message }, { status: 500 })
-      }
+    const memberResult = await ensureChannelMemberActive(db, channelId, agentId, "member")
+    if (!memberResult.ok) {
+      return NextResponse.json({ error: memberResult.error || "Failed to activate membership" }, { status: 500 })
     }
 
     await db.from("subscription_verification_log").insert({

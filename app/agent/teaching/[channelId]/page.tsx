@@ -5,11 +5,11 @@ import Link from "next/link"
 import { AlertCircle } from "lucide-react"
 import { getStoredAgent } from "@/lib/unified-auth-system"
 import { checkChannelSubscriptionAccess } from "@/lib/channel-subscription-access"
+import { checkChannelMembership } from "@/lib/channel-membership-utils"
 import { TeacherChannelDashboard } from "@/components/teaching/TeacherChannelDashboard"
 import { MemberChannelView } from "@/components/teaching/MemberChannelView"
 import { ChannelChatWidget } from "@/components/teaching/ChannelChatWidget"
 import { BackToTop } from "@/components/back-to-top"
-import { supabase } from "@/lib/supabase-client";
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
@@ -33,26 +33,22 @@ export default function ChannelPage() {
     }
     const checkAccess = async () => {
       try {
-        const { data: membership, error } = await supabase
-          .from("channel_members")
-          .select("role")
-          .eq("channel_id", channelId)
-          .eq("agent_id", agent.id)
-          .single()
-        if (error || !membership) {
+        const { isMember, role, error: memberError } = await checkChannelMembership(channelId, agent.id)
+        if (!isMember || !role) {
+          console.error("[v0] Channel access denied:", memberError)
           setAccessDenied(true)
           setLoading(false)
           return
         }
 
-        const subAccess = await checkChannelSubscriptionAccess(channelId, agent.id, membership.role)
+        const subAccess = await checkChannelSubscriptionAccess(channelId, agent.id, role)
         if (!subAccess.allowed) {
           setSubscriptionBlocked({ reason: subAccess.reason, channelId })
           setLoading(false)
           return
         }
 
-        setUserRole(membership.role)
+        setUserRole(role)
         setLoading(false)
       } catch (err) {
         console.error("[v0] Error checking access:", err)

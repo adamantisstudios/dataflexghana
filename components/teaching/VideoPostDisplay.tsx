@@ -280,7 +280,7 @@ export function VideoPostDisplay({
     <Card className="border-[#0E8F3D]/20 overflow-hidden hover:shadow-lg transition-shadow rounded-xl">
       <CardContent className="p-0">
         {/* Video Container - Vertical Aspect Ratio 9:16 */}
-        <div className="relative bg-black w-full max-w-sm sm:max-w-md mx-auto aspect-[9/16] rounded-lg overflow-hidden group">
+        <div className="relative mx-auto aspect-[9/16] w-full max-w-md overflow-hidden rounded-lg bg-black group sm:max-w-lg lg:max-w-xl">
           {videoError ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900 text-white">
               <p className="text-sm font-semibold mb-2">Unable to Play Video</p>

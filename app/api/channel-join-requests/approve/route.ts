@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { requireAdminSession } from "@/lib/api-auth"
+import { ensureChannelMemberActive } from "@/lib/ensure-channel-member-active"
 
 export const dynamic = "force-dynamic"
 
@@ -38,23 +39,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    const { data: existingMember } = await db
-      .from("channel_members")
-      .select("id")
-      .eq("channel_id", joinRequest.channel_id)
-      .eq("agent_id", joinRequest.agent_id)
-      .maybeSingle()
-
-    if (!existingMember) {
-      const { error: memberError } = await db.from("channel_members").insert({
-        channel_id: joinRequest.channel_id,
-        agent_id: joinRequest.agent_id,
-        role: "member",
-        status: "active",
-      })
-      if (memberError) {
-        return NextResponse.json({ error: memberError.message }, { status: 500 })
-      }
+    const memberResult = await ensureChannelMemberActive(
+      db,
+      joinRequest.channel_id,
+      joinRequest.agent_id,
+      "member",
+    )
+    if (!memberResult.ok) {
+      return NextResponse.json({ error: memberResult.error || "Failed to activate membership" }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, message: "Join request approved" })

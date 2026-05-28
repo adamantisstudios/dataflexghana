@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 export function ProfileVerificationBar() {
   return (
     <div
-      className="sticky top-0 z-40 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 shadow-sm"
+      className="sticky top-14 z-30 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 shadow-sm"
       role="status"
     >
       <div className="max-w-6xl mx-auto px-3 sm:px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">

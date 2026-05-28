@@ -1,55 +1,29 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, AlertCircle, MessageSquare, Eye, Users } from "lucide-react"
+import Link from "next/link"
+import { AlertCircle, LogOut } from "lucide-react"
 import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
-import { supabase } from "@/lib/supabase-client";
-import { BackToTop } from "@/components/back-to-top"
-import { CommentThread } from "@/components/teaching/CommentThread"
+import { checkChannelMembership, logMembershipDiagnostic } from "@/lib/channel-membership-utils"
+import { checkChannelSubscriptionAccess } from "@/lib/channel-subscription-access"
+import { MemberChannelView } from "@/components/teaching/MemberChannelView"
 import { WhatsAppPromoNotification } from "@/components/teaching/whatsapp-promo-notification"
-import { toast } from "sonner"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ChannelAudioClassroom } from "@/components/channel/ChannelAudioClassroom"
-import {
-  checkChannelMembership,
-  logMembershipDiagnostic,
-  getChannelPostsForMember,
-} from "@/lib/channel-membership-utils"
-
-interface ChannelPost {
-  id: string
-  channel_id: string
-  title: string
-  content: string
-  post_type: string
-  author_id: string
-  author_name?: string
-  view_count: number
-  created_at: string
-  comment_count?: number
-  media_url?: string
-}
-
-interface TeachingChannel {
-  id: string
-  name: string
-  description: string
-  category: string
-  member_count?: number
-}
+import { BackToTop } from "@/components/back-to-top"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 
 export default function MemberChannelPage() {
   const router = useRouter()
   const params = useParams()
   const agent = getStoredAgent()
   const channelId = params.channelId as string
-  const [channel, setChannel] = useState<TeachingChannel | null>(null)
-  const [posts, setPosts] = useState<ChannelPost[]>([])
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
-  const [memberTab, setMemberTab] = useState<"posts" | "audio">("posts")
+  const [denyReason, setDenyReason] = useState<"not_member" | "subscription" | "teacher_redirect">("not_member")
+  const [subscriptionBlocked, setSubscriptionBlocked] = useState<{
+    reason: "subscription_required" | "subscription_expired"
+  } | null>(null)
 
   useEffect(() => {
     if (!agent) {
@@ -57,60 +31,45 @@ export default function MemberChannelPage() {
       return
     }
 
-    const checkAccessAndLoadData = async () => {
+    const verifyAccess = async () => {
       try {
-        logMembershipDiagnostic(`Member page loading for agent ${agent.id} in channel ${channelId}`)
+        logMembershipDiagnostic(`Member page: verifying ${agent.id} for channel ${channelId}`)
 
-        const { isMember, role, error: memberError } = await checkChannelMembership(channelId, agent.id)
+        const { isMember, role, status, error } = await checkChannelMembership(channelId, agent.id)
 
         if (!isMember) {
-          logMembershipDiagnostic(`Access denied: ${memberError || "Not a member"}`)
+          logMembershipDiagnostic(`Member page denied: ${error || status || "not a member"}`)
+          setDenyReason("not_member")
           setAccessDenied(true)
           setLoading(false)
           return
         }
 
         if (role === "admin" || role === "teacher") {
-          logMembershipDiagnostic(`Redirecting ${role} to teacher dashboard`)
-          router.push(`/agent/teaching/${channelId}`)
+          setLoading(false)
+          router.replace(`/agent/teaching/${channelId}`)
           return
         }
 
-        const { data: channelData, error: channelError } = await supabase
-          .from("teaching_channels")
-          .select("*")
-          .eq("id", channelId)
-          .single()
-
-        if (channelError || !channelData) {
-          logMembershipDiagnostic(`Channel not found: ${channelError?.message}`)
+        const subAccess = await checkChannelSubscriptionAccess(channelId, agent.id, role)
+        if (!subAccess.allowed) {
+          setSubscriptionBlocked({ reason: subAccess.reason })
+          setDenyReason("subscription")
           setAccessDenied(true)
           setLoading(false)
           return
         }
 
-        setChannel(channelData)
-
-        const { posts: postsData, error: postsError } = await getChannelPostsForMember(channelId, agent.id)
-
-        if (postsError) {
-          console.error("[v0] Error loading posts:", postsError)
-          toast.error("Failed to load posts")
-        } else {
-          logMembershipDiagnostic(`Loaded ${postsData.length} posts for member`)
-          setPosts(postsData)
-        }
-
         setLoading(false)
       } catch (err) {
-        console.error("[v0] Error checking access:", err)
-        logMembershipDiagnostic(`Exception during access check: ${err}`)
+        console.error("[v0] Member page access error:", err)
+        setDenyReason("not_member")
         setAccessDenied(true)
         setLoading(false)
       }
     }
 
-    checkAccessAndLoadData()
+    void verifyAccess()
   }, [agent, router, channelId])
 
   const handleLogout = () => {
@@ -118,66 +77,80 @@ export default function MemberChannelPage() {
     router.push("/agent/login")
   }
 
-  if (!agent) {
-    return null
-  }
+  if (!agent) return null
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading channel...</p>
+          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-b-2 border-green-500" />
+          <p className="text-sm text-gray-600">Loading channel…</p>
         </div>
       </div>
     )
   }
 
-  if (accessDenied || !channel) {
+  if (accessDenied) {
+    const isExpired = subscriptionBlocked?.reason === "subscription_expired"
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-          <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-semibold text-white lg:text-3xl">Channel Access</h1>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleLogout}
-                className="h-11 border-white/30 bg-white/20 text-sm text-white hover:bg-white/30"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
+          <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+            <h1 className="text-xl font-semibold text-white sm:text-2xl">Channel access</h1>
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
-          <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-sm">
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <Card
+            className={`rounded-2xl shadow-sm ${
+              denyReason === "subscription"
+                ? "border-amber-200 bg-amber-50"
+                : "border-red-200 bg-red-50"
+            }`}
+          >
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
-                <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-1" />
+                <AlertCircle
+                  className={`h-6 w-6 shrink-0 mt-1 ${
+                    denyReason === "subscription" ? "text-amber-600" : "text-red-600"
+                  }`}
+                />
                 <div>
-                  <h2 className="text-lg font-semibold text-red-800 mb-2">Not a Channel Member</h2>
-                  <p className="text-red-700 mb-4">
-                    You are not a member of this channel. Please subscribe to access the content.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      onClick={() => router.push(`/agent/teaching/channels/${channelId}/join`)}
-                      className="h-11 bg-green-500 text-white hover:bg-green-600"
-                    >
-                      Subscribe to Join
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/agent/teaching")}
-                      className="h-11 border-red-300 text-red-800 hover:bg-red-100"
-                    >
-                      Back to Channels
-                    </Button>
-                  </div>
+                  {denyReason === "subscription" ? (
+                    <>
+                      <h2 className="mb-2 text-lg font-semibold text-amber-900">
+                        {isExpired ? "Subscription expired" : "Subscription required"}
+                      </h2>
+                      <p className="mb-4 text-sm text-amber-800">
+                        {isExpired
+                          ? "Renew your subscription to continue accessing this channel."
+                          : "This channel requires an active subscription. Complete payment and wait for admin approval."}
+                      </p>
+                      <Button asChild className="h-11 bg-green-500 text-white hover:bg-green-600">
+                        <Link href={`/agent/teaching/channels/${channelId}/join`}>
+                          {isExpired ? "Renew subscription" : "Subscribe now"}
+                        </Link>
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="mb-2 text-lg font-semibold text-red-800">Cannot access this channel</h2>
+                      <p className="mb-4 text-sm text-red-700">
+                        You are not an active member yet. If you have paid, ask the channel admin to approve your
+                        subscription, then try again.
+                      </p>
+                      <Button asChild className="h-11 bg-green-500 text-white hover:bg-green-600">
+                        <Link href={`/agent/teaching/channels/${channelId}/join`}>Request to join</Link>
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push("/agent/teaching")}
+                    className="mt-3 h-11 w-full sm:w-auto"
+                  >
+                    Back to channels hub
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -188,152 +161,40 @@ export default function MemberChannelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      {!loading && agent && <WhatsAppPromoNotification memberId={agent.id} userType="member" />}
+    <div className="min-h-screen w-full bg-gray-50">
+      <WhatsAppPromoNotification memberId={agent.id} userType="member" />
 
-      {/* Header */}
       <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/agent/teaching")}
-                className="h-11 text-sm text-white hover:bg-white/20"
-              >
-                ← Back
-              </Button>
-              <div>
-                <h1 className="text-2xl font-semibold text-white lg:text-3xl">{channel.name}</h1>
-                <p className="text-sm text-green-50">Channel • Member</p>
-              </div>
-            </div>
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2">
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
-              onClick={handleLogout}
-              className="h-11 border-white/30 bg-white/20 text-sm text-white hover:bg-white/30"
+              onClick={() => router.push("/agent/teaching")}
+              className="h-11 shrink-0 text-sm text-white hover:bg-white/20"
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              ← Back
             </Button>
+            <p className="truncate text-base font-semibold text-white sm:text-lg">Channel (member)</p>
           </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleLogout}
+            className="h-11 shrink-0 border-white/30 bg-white/20 text-white hover:bg-white/30"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
-        {/* Channel Info */}
-        <Card className="mb-8 rounded-2xl border border-gray-100 bg-white shadow-sm">
-          <CardContent className="pt-6">
-            <div className="space-y-2">
-              <p className="text-gray-700 leading-7">{channel.description}</p>
-              <div className="flex flex-wrap items-center gap-6 pt-2 text-sm text-gray-600">
-                <span className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  {channel.member_count || 0} members
-                </span>
-                <span className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  {posts.length} posts
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Tabs value={memberTab} onValueChange={(v) => setMemberTab(v as "posts" | "audio")} className="w-full">
-          <TabsList className="mb-6 grid h-auto w-full max-w-md grid-cols-2 gap-2 rounded-2xl border border-gray-100 bg-white p-2 shadow-sm">
-            <TabsTrigger
-              value="posts"
-              className="h-11 rounded-xl text-sm data-[state=active]:bg-green-500 data-[state=active]:text-white"
-            >
-              Posts
-            </TabsTrigger>
-            <TabsTrigger
-              value="audio"
-              className="h-11 rounded-xl text-sm data-[state=active]:bg-green-500 data-[state=active]:text-white"
-            >
-              Audio
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="audio" className="mt-0">
-            <ChannelAudioClassroom
-              channelId={channelId}
-              memberId={agent.id}
-              memberName={agent.full_name || agent.email}
-            />
-          </TabsContent>
-
-          <TabsContent value="posts" className="mt-0 space-y-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Channel Posts</h2>
-
-          {posts.length === 0 ? (
-            <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
-              <CardContent className="pt-6 text-center">
-                <MessageSquare className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                <p className="text-gray-600">No posts yet in this channel</p>
-              </CardContent>
-            </Card>
-          ) : (
-            posts.map((post) => (
-              <Card key={post.id} className="rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-gray-900">{post.title}</CardTitle>
-                      <p className="text-xs text-gray-500 mt-1">
-                        By {post.author_name || "Unknown"} • {new Date(post.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Post Content */}
-                  <div className="prose prose-sm max-w-none">
-                    <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
-                  </div>
-
-                  {/* Media if exists */}
-                  {post.media_url && post.post_type === "audio" && (
-                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                      <audio controls className="w-full">
-                        <source src={post.media_url} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                      </audio>
-                    </div>
-                  )}
-
-                  {/* Post Stats */}
-                  <div className="flex items-center gap-4 text-xs text-gray-600 pt-2 border-t border-gray-200">
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-3 w-3" />
-                      {post.view_count} views
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="h-3 w-3" />
-                      {post.comment_count || 0} comments
-                    </span>
-                  </div>
-
-                  {/* Comments Section */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <CommentThread
-                      postId={post.id}
-                      channelId={channelId}
-                      currentUserId={agent.id}
-                      currentUserName={agent.full_name || agent.email}
-                      isMember={true}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-          </TabsContent>
-        </Tabs>
+      <div className="mx-auto w-full max-w-7xl">
+        <MemberChannelView
+          channelId={channelId}
+          memberId={agent.id}
+          memberName={agent.full_name || agent.email}
+        />
       </div>
 
       <BackToTop />
