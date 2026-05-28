@@ -591,98 +591,75 @@ export default function BlogsTab() {
           </Card>
 
           {/* Blog Posts List */}
-          <div className="grid gap-4">
-            {filteredBlogs.map((blog) => (
-              <Card key={blog.id} className="rounded-2xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col lg:flex-row items-start gap-4">
-                    <div className="flex-1 min-w-0 w-full">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">{blog.title}</h3>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge
-                            variant={blog.status === "published" ? "default" : "secondary"}
-                            className={
-                              blog.status === "published"
-                                ? "bg-green-500 hover:bg-green-600 text-xs"
-                                : blog.status === "draft"
-                                  ? "bg-amber-500 hover:bg-amber-600 text-xs"
-                                  : "bg-gray-500 hover:bg-gray-600 text-xs"
-                            }
-                          >
-                            {blog.status}
-                          </Badge>
-                          {blog.category && (
-                            <Badge style={{ backgroundColor: blog.category.color }} className="text-white text-xs">
-                              {blog.category.name}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-slate-600 text-sm mb-2 line-clamp-2 break-words">{blog.excerpt}</p>
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(blog.created_at).toLocaleDateString()}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          {blog.views_count} views
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {blog.reading_time} min read
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-3 w-full lg:w-auto">
-                      {blog.featured_image_url && (
-                        <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                          <img
-                            src={blog.featured_image_url || "/placeholder.svg"}
-                            alt={blog.title}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none"
-                            }}
-                          />
-                        </div>
-                      )}
-                      <div className="flex flex-row gap-2 justify-center lg:justify-start">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditBlog(blog)}
-                          className="min-h-[44px] border-gray-300 text-gray-700 hover:bg-gray-50 text-xs px-3 py-2"
-                        >
-                          <Edit className="h-3 w-3 lg:h-4 lg:w-4" />
-                          <span className="ml-1 hidden sm:inline">Edit</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(`/blogs/${blog.slug}`, "_blank")}
-                          className="min-h-[44px] border-green-200 text-green-700 hover:bg-green-50 text-xs px-3 py-2"
-                        >
-                          <Eye className="h-3 w-3 lg:h-4 lg:w-4" />
-                          <span className="ml-1 hidden sm:inline">View</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteBlog(blog.id)}
-                          className="min-h-[44px] border-red-300 text-red-600 hover:bg-red-50 text-xs px-3 py-2"
-                        >
-                          <Trash2 className="h-3 w-3 lg:h-4 lg:w-4" />
-                          <span className="ml-1 hidden sm:inline">Delete</span>
-                        </Button>
-                      </div>
+          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div className="hidden md:grid md:grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-3 border-b border-gray-100 bg-gray-50/80 text-xs font-medium uppercase tracking-wide text-gray-500">
+              <span>Title</span>
+              <span className="w-24 text-center">Status</span>
+              <span className="w-28">Date</span>
+              <span className="w-[132px] text-right">Actions</span>
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {filteredBlogs.map((blog) => (
+                <li
+                  key={blog.id}
+                  className="p-4 hover:bg-gray-50/50 transition-colors md:grid md:grid-cols-[1fr_auto_auto_auto] md:gap-4 md:items-center"
+                >
+                  <div className="min-w-0 mb-3 md:mb-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate md:whitespace-normal md:line-clamp-2">
+                      {blog.title}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-1 md:hidden">
+                      {new Date(blog.created_at).toLocaleDateString()} · {blog.views_count} views
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 md:contents">
+                    <Badge
+                      className={`md:w-24 md:justify-center text-xs capitalize ${
+                        blog.status === "published"
+                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                          : blog.status === "draft"
+                            ? "bg-amber-100 text-amber-800 hover:bg-amber-100"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {blog.status}
+                    </Badge>
+                    <span className="hidden md:block text-sm text-gray-600 w-28 tabular-nums">
+                      {new Date(blog.created_at).toLocaleDateString()}
+                    </span>
+                    <div className="flex gap-2 md:w-[132px] md:justify-end">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => handleEditBlog(blog)}
+                        className="h-11 w-11 shrink-0 border-gray-200"
+                        aria-label="Edit"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => window.open(`/blogs/${blog.slug}`, "_blank")}
+                        className="h-11 w-11 shrink-0 border-emerald-200 text-emerald-700"
+                        aria-label="View"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => handleDeleteBlog(blog.id)}
+                        className="h-11 w-11 shrink-0 border-red-200 text-red-600 hover:bg-red-50"
+                        aria-label="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </li>
+              ))}
+            </ul>
           </div>
 
           {filteredBlogs.length === 0 && (

@@ -64,6 +64,7 @@
     "jspdf": "latest",
     "jspdf-autotable": "latest",
     "jszip": "latest",
+    "lamejs": "^1.2.1",
     "livekit-client": "^2.19.0",
     "livekit-server-sdk": "^2.15.3",
     "lucide-react": "^0.454.0",

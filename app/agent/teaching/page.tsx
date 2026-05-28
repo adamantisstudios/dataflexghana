@@ -365,7 +365,7 @@ export default function TeachingPlatformPage() {
     <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900">
       {/* Top Navigation */}
       <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="mx-auto w-full max-w-6xl px-3 py-3 sm:px-6">
+        <div className="mx-auto w-full max-w-7xl px-3 py-3 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <Button
@@ -398,7 +398,7 @@ export default function TeachingPlatformPage() {
       </div>
 
       <div className="w-full border-b border-gray-100 bg-white">
-        <div className="mx-auto max-w-6xl space-y-4 px-4 py-8 text-center sm:px-6">
+        <div className="mx-auto max-w-7xl space-y-4 px-4 py-8 text-center sm:px-6">
           <h2 className="text-2xl font-semibold text-gray-900 sm:text-3xl">Welcome to Dataflex Channels Hub</h2>
           <p className="mx-auto max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
             Browse public teaching channels, join communities, and access lessons, quizzes, videos, and notes.
@@ -468,7 +468,7 @@ export default function TeachingPlatformPage() {
       <div className="flex-1 overflow-y-auto">
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
           <div className="w-full border-b border-gray-100 bg-white">
-            <div className="mx-auto w-full max-w-6xl px-4 py-3 sm:px-6">
+            <div className="mx-auto w-full max-w-7xl px-4 py-3 sm:px-6">
               <TabsList className="flex w-full items-center justify-start gap-2 overflow-x-auto bg-transparent p-0">
                 <TabsTrigger
                   value="channels"
@@ -489,7 +489,7 @@ export default function TeachingPlatformPage() {
           </div>
 
           {/* Search */}
-          <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6">
+          <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
             <div className="relative w-full max-w-xl">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
@@ -502,7 +502,7 @@ export default function TeachingPlatformPage() {
           </div>
 
           {/* Channels Tab */}
-          <TabsContent value="channels" className="mx-auto w-full max-w-6xl space-y-4 px-4 pb-8 sm:px-6">
+          <TabsContent value="channels" className="mx-auto w-full max-w-7xl space-y-4 px-4 pb-8 sm:px-6">
             <div className="w-full">
               {loading ? (
                 <div className="space-y-2 w-full">
@@ -652,7 +652,7 @@ export default function TeachingPlatformPage() {
           </TabsContent>
 
           {/* My Channels Tab */}
-          <TabsContent value="my-channels" className="mx-auto w-full max-w-6xl space-y-4 px-4 pb-8 sm:px-6">
+          <TabsContent value="my-channels" className="mx-auto w-full max-w-7xl space-y-4 px-4 pb-8 sm:px-6">
             <div className="w-full">
               {loading ? (
                 <div className="space-y-2 w-full">

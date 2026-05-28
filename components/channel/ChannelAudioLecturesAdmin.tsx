@@ -12,6 +12,7 @@ import type { AudioAttachment, AudioLecture } from "@/lib/channel-audio-types"
 import { formatTimestamp } from "@/lib/channel-audio-types"
 import { toast } from "sonner"
 import { Headphones, Trash2, Upload, Plus, X } from "lucide-react"
+import { ChannelAudioRecorder } from "@/components/channel/ChannelAudioRecorder"
 
 type Props = {
   channelId: string
@@ -75,20 +76,22 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
     setAttachmentName("")
   }
 
-  const handleUpload = async () => {
-    if (!title.trim() || !audioFile) {
-      toast.error("Title and audio file are required")
-      return
+  const uploadLectureFile = async (file: File, onProgress?: (p: number) => void) => {
+    if (!title.trim()) {
+      toast.error("Enter a title before uploading")
+      throw new Error("Title required")
     }
 
     setUploading(true)
+    onProgress?.(10)
     setProgress(10)
     try {
       const form = new FormData()
       form.append("title", title.trim())
       form.append("description", description.trim())
-      form.append("audio", audioFile)
+      form.append("audio", file)
       form.append("attachments", JSON.stringify(attachments))
+      onProgress?.(40)
       setProgress(40)
 
       const res = await fetch(`/api/channel/${channelId}/audio`, {
@@ -96,6 +99,7 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
         headers: { Authorization: getAgentAuthHeaders().Authorization || "" },
         body: form,
       })
+      onProgress?.(90)
       setProgress(90)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Upload failed")
@@ -105,13 +109,26 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
       setDescription("")
       setAudioFile(null)
       setAttachments([])
+      onProgress?.(100)
       setProgress(100)
       await loadLectures()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed")
     } finally {
       setUploading(false)
       setTimeout(() => setProgress(0), 500)
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!title.trim() || !audioFile) {
+      toast.error("Title and audio file are required")
+      return
+    }
+    try {
+      await uploadLectureFile(audioFile)
+    } catch (e) {
+      if (e instanceof Error && e.message !== "Title required") {
+        toast.error(e.message || "Upload failed")
+      }
     }
   }
 
@@ -168,9 +185,22 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
               placeholder="What members will learn…"
             />
           </div>
+          <ChannelAudioRecorder
+            disabled={uploading}
+            onRecordedFile={(file) => setAudioFile(file)}
+            onUploadProgress={setProgress}
+            autoUpload={
+              title.trim()
+                ? async (file, onProgress) => {
+                    await uploadLectureFile(file, onProgress)
+                  }
+                : undefined
+            }
+          />
+
           <div className="grid gap-2">
             <Label htmlFor="audio-file" className="text-xs">
-              Audio file (MP3, WAV, M4A)
+              Or upload a file (MP3, WAV, M4A)
             </Label>
             <Input
               id="audio-file"
@@ -179,6 +209,11 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
               className="h-11 text-sm"
               onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
             />
+            {audioFile && (
+              <p className="text-xs text-gray-600 truncate">
+                Selected: {audioFile.name} ({(audioFile.size / 1024).toFixed(0)} KB)
+              </p>
+            )}
           </div>
 
           <div className="rounded-lg border border-dashed border-gray-200 p-3 space-y-2">

@@ -144,7 +144,7 @@ export default function JoinChannelPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-2xl">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <Button variant="ghost" onClick={() => router.back()} className="mb-6 text-gray-600 hover:text-gray-800">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back

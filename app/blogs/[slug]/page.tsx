@@ -159,19 +159,16 @@ export default async function BlogPage({ params }: BlogPageProps) {
     <>
       <StructuredData data={blogStructuredData} />
 
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Main Content - Takes 8 columns on desktop for better centering */}
+      <div className="min-h-screen bg-white">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12 py-6 sm:py-8">
             <div className="lg:col-span-8">
               <BlogPost blog={blog} />
             </div>
-
-            {/* Sidebar - Takes 4 columns on desktop */}
-            <div className="lg:col-span-4 space-y-6">
+            <aside className="lg:col-span-4 space-y-6 lg:pt-8">
               <RelatedPosts posts={relatedPosts} />
               {categories && categories.length > 0 && <BlogCategories categories={categories} />}
-            </div>
+            </aside>
           </div>
         </div>
       </div>

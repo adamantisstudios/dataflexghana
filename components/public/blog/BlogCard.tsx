@@ -1,8 +1,8 @@
 import Link from "next/link"
-import { Calendar, Clock, Eye, ArrowRight, TrendingUp } from "lucide-react"
+import Image from "next/image"
+import { Calendar, ArrowRight } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 
 interface Blog {
   id: string
@@ -29,165 +29,88 @@ export function BlogCard({ blog, featured = false }: BlogCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
     })
   }
 
+  const imageSrc = blog.featured_image_url || "/placeholder.svg?height=240&width=400"
+
   if (featured) {
     return (
-      <Card className="overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 group">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-          {/* Image */}
-          <div className="relative h-64 sm:h-80 lg:h-96">
-            <img
-              src={blog.featured_image_url || "/placeholder.svg?height=400&width=600&query=blog featured image"}
+      <Card className="overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow group">
+        <Link href={`/blogs/${blog.slug}`} className="grid grid-cols-1 md:grid-cols-2">
+          <div className="relative aspect-[16/10] md:aspect-auto md:min-h-[220px] bg-gray-100">
+            <Image
+              src={imageSrc}
               alt={blog.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              onError={(e) => {
-                e.currentTarget.src = "/blog-featured-image.jpg"
-              }}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-
             {blog.category && (
               <Badge
-                className="absolute top-4 left-4 text-white border-0 shadow-lg backdrop-blur-sm text-xs sm:text-sm"
+                className="absolute top-3 left-3 text-white border-0 text-xs"
                 style={{ backgroundColor: blog.category.color }}
               >
                 {blog.category.name}
               </Badge>
             )}
-
-            {blog.views_count > 1000 && (
-              <Badge className="absolute top-4 right-4 bg-orange-500 text-white border-0 shadow-lg text-xs sm:text-sm">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                Trending
-              </Badge>
-            )}
           </div>
-
-          {/* Content */}
-          <CardContent className="p-4 sm:p-6 lg:p-8 xl:p-10 flex flex-col justify-center">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mb-4">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">{formatDate(blog.published_at)}</span>
-                <span className="sm:hidden">{new Date(blog.published_at).toLocaleDateString()}</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                {blog.reading_time} min read
-              </span>
-              <span className="flex items-center gap-1">
-                <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                {blog.views_count.toLocaleString()} views
-              </span>
-            </div>
-
-            <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-4 text-balance leading-tight group-hover:text-emerald-700 transition-colors">
+          <CardContent className="flex flex-col justify-center p-6 md:p-8">
+            <time className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
+              <Calendar className="h-3.5 w-3.5" />
+              {formatDate(blog.published_at)}
+            </time>
+            <h2 className="text-xl font-semibold text-gray-900 mb-3 leading-snug group-hover:text-emerald-700 transition-colors">
               {blog.title}
             </h2>
-
-            <p className="text-gray-600 mb-6 text-sm sm:text-base lg:text-lg leading-relaxed line-clamp-3">
-              {blog.excerpt}
-            </p>
-
-            <Button
-              asChild
-              size="lg"
-              className="min-h-[44px] bg-emerald-500 hover:bg-emerald-600 w-fit text-white transition-all duration-300 text-sm sm:text-base"
-            >
-              <Link href={`/blogs/${blog.slug}`}>
-                <span className="hidden sm:inline">Read Full Article</span>
-                <span className="sm:hidden">Read More</span>
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            <p className="text-base text-gray-600 leading-relaxed line-clamp-3 mb-4">{blog.excerpt}</p>
+            <span className="inline-flex items-center text-sm font-medium text-emerald-700">
+              Read More
+              <ArrowRight className="ml-1 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+            </span>
           </CardContent>
-        </div>
+        </Link>
       </Card>
     )
   }
 
   return (
-    <Card className="overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 group h-full flex flex-col">
-      {/* Image */}
-      <div className="relative h-48 sm:h-52 overflow-hidden">
-        <img
-          src={blog.featured_image_url || "/placeholder.svg?height=300&width=400&query=blog post image"}
-          alt={blog.title}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          onError={(e) => {
-            e.currentTarget.src = "/blog-post-image.png"
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-        {blog.category && (
-          <Badge
-            className="absolute top-3 left-3 text-white border-0 shadow-md text-xs"
-            style={{ backgroundColor: blog.category.color }}
-          >
-            {blog.category.name}
-          </Badge>
-        )}
-
-        <Badge className="absolute top-3 right-3 bg-black/70 text-white border-0 text-xs">
-          <Clock className="h-3 w-3 mr-1" />
-          {blog.reading_time} min
-        </Badge>
-      </div>
-
-      {/* Content */}
-      <CardContent className="p-4 sm:p-5 lg:p-6 flex flex-col flex-grow">
-        <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-500 mb-3">
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            <span className="hidden sm:inline">{formatDate(blog.published_at)}</span>
-            <span className="sm:hidden">{new Date(blog.published_at).toLocaleDateString()}</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {blog.views_count.toLocaleString()}
-          </span>
+    <Card className="overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow group h-full flex flex-col">
+      <Link href={`/blogs/${blog.slug}`} className="flex flex-col h-full">
+        <div className="relative aspect-[16/10] bg-gray-100">
+          <Image
+            src={imageSrc}
+            alt={blog.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+          />
+          {blog.category && (
+            <Badge
+              className="absolute top-3 left-3 text-white border-0 text-xs"
+              style={{ backgroundColor: blog.category.color }}
+            >
+              {blog.category.name}
+            </Badge>
+          )}
         </div>
-
-        <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-3 text-balance group-hover:text-emerald-700 transition-colors leading-tight">
-          <Link href={`/blogs/${blog.slug}`} className="hover:underline">
+        <CardContent className="flex flex-col flex-1 p-5">
+          <time className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
+            <Calendar className="h-3.5 w-3.5" />
+            {formatDate(blog.published_at)}
+          </time>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 leading-snug group-hover:text-emerald-700 transition-colors line-clamp-2">
             {blog.title}
-          </Link>
-        </h3>
-
-        <p className="text-gray-600 mb-4 leading-relaxed line-clamp-3 flex-grow text-sm sm:text-base">{blog.excerpt}</p>
-
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          <div className="flex items-center gap-1 sm:gap-2">
-            {blog.views_count > 500 && (
-              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                Popular
-              </Badge>
-            )}
-            {blog.reading_time <= 3 && (
-              <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700">
-                Quick Read
-              </Badge>
-            )}
-          </div>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 group-hover:bg-emerald-100 transition-all duration-200 text-xs sm:text-sm px-2 sm:px-3"
-          >
-            <Link href={`/blogs/${blog.slug}`}>
-              Read More
-              <ArrowRight className="ml-1 h-3 w-3 group-hover:translate-x-1 transition-transform duration-200" />
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
+          </h3>
+          <p className="text-base text-gray-600 leading-relaxed line-clamp-3 flex-1 mb-4">{blog.excerpt}</p>
+          <span className="inline-flex items-center text-sm font-medium text-emerald-700 mt-auto">
+            Read More
+            <ArrowRight className="ml-1 h-4 w-4" />
+          </span>
+        </CardContent>
+      </Link>
     </Card>
   )
 }

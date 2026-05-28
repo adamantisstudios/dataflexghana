@@ -110,19 +110,16 @@ export default async function BlogsPage() {
       <StructuredData data={blogListStructuredData} />
       <StructuredData data={websiteStructuredData} />
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <BlogHero />
-        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-            {/* Main Content */}
+        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:py-14 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-8">
               <BlogList blogs={blogs} />
             </div>
-
-            {/* Sidebar */}
-            <div className="lg:col-span-4">
+            <aside className="lg:col-span-4">
               <BlogCategories categories={categories} />
-            </div>
+            </aside>
           </div>
         </div>
 

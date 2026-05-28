@@ -115,30 +115,28 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     <>
       <StructuredData data={categoryStructuredData} />
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-        {/* Category Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white py-16">
-          <div className="container mx-auto px-4 text-center">
-            <div className="inline-block w-4 h-4 rounded-full mb-4" style={{ backgroundColor: category.color }} />
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">{category.name}</h1>
-            {category.description && <p className="text-xl text-blue-100 max-w-2xl mx-auto">{category.description}</p>}
-            <p className="text-blue-200 mt-4">
+      <div className="min-h-screen bg-white">
+        <div className="border-b border-gray-100 bg-white">
+          <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 text-center">
+            <div className="inline-block h-3 w-3 rounded-full mb-4" style={{ backgroundColor: category.color }} />
+            <h1 className="text-3xl font-semibold text-gray-900 sm:text-4xl">{category.name}</h1>
+            {category.description && (
+              <p className="mt-3 max-w-xl mx-auto text-base text-gray-600">{category.description}</p>
+            )}
+            <p className="mt-3 text-sm text-gray-500">
               {blogs.length} {blogs.length === 1 ? "post" : "posts"}
             </p>
           </div>
         </div>
 
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-3">
+        <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:py-14 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
+            <div className="lg:col-span-8">
               <BlogList blogs={blogs} />
             </div>
-
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
+            <aside className="lg:col-span-4">
               <BlogCategories categories={allCategories} currentCategory={category.slug} />
-            </div>
+            </aside>
           </div>
         </div>
       </div>
