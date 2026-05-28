@@ -10,6 +10,7 @@ import {
 import { Pause, Play, Volume2, VolumeX } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatTimestamp } from "@/lib/channel-audio-types"
+import { normalizeMediaUrl } from "@/components/teaching/teaching-hub-ui"
 
 export type AudioPlayerHandle = {
   getCurrentTime: () => number
@@ -58,7 +59,8 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, Props>(function AudioPl
     setPlaying(false)
     setCurrent(0)
     setDuration(0)
-  }, [src])
+    setLoadError(null)
+  }, [resolvedSrc])
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = rate
@@ -72,11 +74,13 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, Props>(function AudioPl
 
   const togglePlay = () => {
     const el = audioRef.current
-    if (!el) return
+    if (!el || !resolvedSrc) return
     if (playing) {
       el.pause()
     } else {
-      void el.play()
+      void el.play().catch(() => {
+        setLoadError("Unable to play this audio. Check your connection or contact the channel admin.")
+      })
     }
   }
 
@@ -95,11 +99,18 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, Props>(function AudioPl
     >
       <audio
         ref={audioRef}
-        src={src}
+        src={resolvedSrc || undefined}
         preload="metadata"
         playsInline
-        onPlay={() => setPlaying(true)}
+        onPlay={() => {
+          setLoadError(null)
+          setPlaying(true)
+        }}
         onPause={() => setPlaying(false)}
+        onError={() => {
+          setLoadError("Audio file could not be loaded.")
+          setPlaying(false)
+        }}
         onTimeUpdate={() => {
           const t = audioRef.current?.currentTime ?? 0
           setCurrent(t)
@@ -109,9 +120,19 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, Props>(function AudioPl
           const d = audioRef.current?.duration ?? 0
           setDuration(Number.isFinite(d) ? d : 0)
           onDurationChange?.(Number.isFinite(d) ? d : 0)
+          setLoadError(null)
         }}
         onEnded={() => setPlaying(false)}
       />
+
+      {loadError && (
+        <p className="mb-2 text-xs text-red-600" role="alert">
+          {loadError}
+        </p>
+      )}
+      {!resolvedSrc && (
+        <p className="mb-2 text-xs text-amber-700">No audio URL available for this lecture.</p>
+      )}
 
       {title && (
         <p className="text-xs font-medium text-gray-900 truncate mb-2 sm:text-sm">{title}</p>

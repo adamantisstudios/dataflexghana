@@ -4,6 +4,12 @@ import { BookOpen, CheckCircle2, Trash2, Plus, Eye, UserPlus, Edit2, ImageIcon, 
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase-client";
 import { ensureChannelMemberActive } from "@/lib/ensure-channel-member-active"
+import {
+  teachingHubContentCardClass,
+  teachingHubTabListClass,
+  teachingHubTabTriggerClass,
+} from "@/components/teaching/teaching-hub-ui"
+import { cn } from "@/lib/utils"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { parseJsonResponse } from "@/lib/agent-auth-utils"
 import { Card, CardContent } from "@/components/ui/card"
@@ -760,31 +766,42 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         </div>
       </div>
 
-      {/* Sub-Tabs */}
-      <div className="flex overflow-x-auto border-b border-gray-100 bg-white">
-        {[
-          { id: "channels" as const, icon: BookOpen, label: "Channels" },
-          { id: "join-requests" as const, icon: UserPlus, label: "Join Requests" },
-          { id: "teachers" as const, icon: GraduationCap, label: "Teachers" },
-          { id: "verifications" as const, icon: CreditCard, label: "Pending Verifications" },
-          { id: "embed-videos" as const, icon: Video, label: "Embed Videos" },
-        ].map(({ id, icon: Icon, label }) => (
-          <button
-            key={id}
-            onClick={() => {
-              setActiveSubTab(id)
-              setCurrentPage(1)
-            }}
-            className={`h-12 min-w-[110px] shrink-0 border-b-2 px-3 text-center text-sm ${activeSubTab === id ? "border-green-500 text-green-600" : "border-transparent text-gray-500"}`}
-          >
-            <Icon className="h-5 w-5 mx-auto" />
-            <span className="text-xs">{label}</span>
-          </button>
-        ))}
+      {/* Sub-Tabs — Referral Hub pill style */}
+      <div className="w-full px-4 sm:px-5 pt-2">
+        <div className={teachingHubTabListClass}>
+          <div className="flex w-full gap-2 overflow-x-auto no-scrollbar">
+            {[
+              { id: "channels" as const, icon: BookOpen, label: "Channels" },
+              { id: "join-requests" as const, icon: UserPlus, label: "Join Requests" },
+              { id: "teachers" as const, icon: GraduationCap, label: "Teachers" },
+              { id: "verifications" as const, icon: CreditCard, label: "Verifications" },
+              { id: "embed-videos" as const, icon: Video, label: "Embed Videos" },
+            ].map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setActiveSubTab(id)
+                  setCurrentPage(1)
+                }}
+                className={cn(
+                  teachingHubTabTriggerClass,
+                  "inline-flex shrink-0 items-center gap-1.5",
+                  activeSubTab === id
+                    ? "bg-emerald-600 text-white shadow"
+                    : "bg-white text-slate-600 hover:bg-slate-100 border-slate-200",
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 w-full">
         {/* Channels View */}
         {activeSubTab === "channels" && (
           <div className="space-y-3">

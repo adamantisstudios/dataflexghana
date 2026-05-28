@@ -18,6 +18,12 @@ import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { LessonNotesViewer } from "./lesson-notes/LessonNotesViewer"
 import { ChannelLiveSection } from "@/components/channel/ChannelLiveSection"
 import { ChannelAudioClassroom } from "@/components/channel/ChannelAudioClassroom"
+import {
+  teachingHubContentCardClass,
+  teachingHubTabListClass,
+  teachingHubTabTriggerClass,
+} from "@/components/teaching/teaching-hub-ui"
+import { cn } from "@/lib/utils"
 
 interface Channel {
   id: string
@@ -335,13 +341,25 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4 w-full">
-          <TabsList className="mx-4 flex h-auto w-auto flex-wrap gap-2 rounded-2xl border border-gray-100 bg-white p-2 shadow-sm sm:mx-6 lg:mx-8">
-            <TabsTrigger value="feeds" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Feeds</TabsTrigger>
-            <TabsTrigger value="videos" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Videos</TabsTrigger>
-            <TabsTrigger value="audio" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Audio</TabsTrigger>
-            <TabsTrigger value="notes" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Notes</TabsTrigger>
-            <TabsTrigger value="saved" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Saved</TabsTrigger>
-          </TabsList>
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <TabsList className={cn(teachingHubTabListClass, "flex-wrap h-auto")}>
+              <TabsTrigger value="feeds" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
+                Feeds
+              </TabsTrigger>
+              <TabsTrigger value="videos" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
+                Videos
+              </TabsTrigger>
+              <TabsTrigger value="audio" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
+                Audio
+              </TabsTrigger>
+              <TabsTrigger value="notes" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
+                Notes
+              </TabsTrigger>
+              <TabsTrigger value="saved" className={cn(teachingHubTabTriggerClass, "min-w-[88px]")}>
+                Saved
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="feeds" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
             {posts.length === 0 && qaPosts.length === 0 && youtubeVideos.length === 0 ? (
@@ -362,7 +380,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                   ].sort((a, b) => b.timestamp - a.timestamp)
 
                   return allContent.map((item) => (
-                    <div key={`${item.type}-${item.id}`} className="w-full rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                    <div key={`${item.type}-${item.id}`} className={teachingHubContentCardClass}>
                       {/* YouTube Videos */}
                       {item.type === "youtube" && (
                         <div className="border-b-2 border-red-200 pb-4">

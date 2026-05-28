@@ -8,6 +8,7 @@ import { AudioPlayer, type AudioPlayerHandle } from "@/components/channel/AudioP
 import { AudioLectureComments } from "@/components/channel/AudioLectureComments"
 import type { AudioAttachment, AudioLecture } from "@/lib/channel-audio-types"
 import { formatTimestamp } from "@/lib/channel-audio-types"
+import { normalizeMediaUrl, teachingHubContentCardClass } from "@/components/teaching/teaching-hub-ui"
 import { Headphones, ChevronLeft, Paperclip, Play } from "lucide-react"
 
 type Props = {
@@ -28,8 +29,16 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
       const res = await fetch(`/api/channel/${channelId}/audio`, {
         headers: getAgentAuthHeaders(),
       })
-      const data = await res.json()
-      if (res.ok) setLectures(data.lectures || [])
+        const data = await res.json()
+        if (!res.ok) {
+          console.error("[audio classroom]", data.error)
+          return
+        }
+        const list = (data.lectures || []).map((lecture: AudioLecture) => ({
+          ...lecture,
+          audio_url: normalizeMediaUrl(lecture.audio_url),
+        }))
+        setLectures(list)
     } finally {
       setLoading(false)
     }
@@ -51,7 +60,7 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
           Audio Classroom
         </h3>
         {lectures.length === 0 ? (
-          <Card className="rounded-2xl border border-gray-100">
+          <Card className={teachingHubContentCardClass}>
             <CardContent className="py-8 text-center text-gray-600 text-sm">
               No audio lectures yet. Check back soon.
             </CardContent>

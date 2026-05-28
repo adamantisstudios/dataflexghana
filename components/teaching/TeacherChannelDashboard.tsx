@@ -1034,7 +1034,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 text-gray-900">
+    <div className="min-h-screen w-full bg-transparent text-gray-900">
       <FontSizeControl onFontSizeChange={setFontSize} initialSize={16} />
       <ChannelMenuBar activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="w-full space-y-4 py-3">

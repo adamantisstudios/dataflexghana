@@ -95,6 +95,9 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     return null
   }
 
+  const hideChannelDistractions =
+    pathname === "/agent/teaching" || pathname.startsWith("/agent/teaching/")
+
   return (
     <AgentSecurityProvider
       enabled={true}
@@ -102,7 +105,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
       showWarningMinutes={5}
     >
       {children}
-      <AgentCallWidget />
+      {!hideChannelDistractions && <AgentCallWidget />}
     </AgentSecurityProvider>
   )
 }

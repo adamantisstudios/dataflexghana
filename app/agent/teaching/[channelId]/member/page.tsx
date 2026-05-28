@@ -8,8 +8,8 @@ import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
 import { checkChannelMembership, logMembershipDiagnostic } from "@/lib/channel-membership-utils"
 import { checkChannelSubscriptionAccess } from "@/lib/channel-subscription-access"
 import { MemberChannelView } from "@/components/teaching/MemberChannelView"
-import { WhatsAppPromoNotification } from "@/components/teaching/whatsapp-promo-notification"
 import { BackToTop } from "@/components/back-to-top"
+import { teachingHubMainClass, teachingHubPageClass } from "@/components/teaching/teaching-hub-ui"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -93,14 +93,14 @@ export default function MemberChannelPage() {
   if (accessDenied) {
     const isExpired = subscriptionBlocked?.reason === "subscription_expired"
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-          <div className="mx-auto w-full w-full px-4 py-5 sm:px-6 lg:px-8">
+      <div className={teachingHubPageClass}>
+        <div className="border-b border-green-100 bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm">
+          <div className="w-full px-4 py-5 sm:px-6 lg:px-8">
             <h1 className="text-xl font-semibold text-white sm:text-2xl">Channel access</h1>
           </div>
         </div>
 
-        <div className="mx-auto w-full w-full px-4 py-8 sm:px-6 lg:px-8">
+        <div className={teachingHubMainClass}>
           <Card
             className={`rounded-2xl shadow-sm ${
               denyReason === "subscription"
@@ -161,11 +161,9 @@ export default function MemberChannelPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50">
-      <WhatsAppPromoNotification memberId={agent.id} userType="member" />
-
-      <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="mx-auto flex w-full w-full items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+    <div className={teachingHubPageClass}>
+      <div className="border-b border-green-100 bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm sticky top-0 z-40">
+        <div className="flex w-full items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2">
             <Button
               variant="ghost"
@@ -189,7 +187,7 @@ export default function MemberChannelPage() {
         </div>
       </div>
 
-      <div className="mx-auto w-full w-full">
+      <div className="w-full">
         <MemberChannelView
           channelId={channelId}
           memberId={agent.id}

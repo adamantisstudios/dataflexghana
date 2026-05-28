@@ -8,8 +8,8 @@ import { checkChannelSubscriptionAccess } from "@/lib/channel-subscription-acces
 import { checkChannelMembership } from "@/lib/channel-membership-utils"
 import { TeacherChannelDashboard } from "@/components/teaching/TeacherChannelDashboard"
 import { MemberChannelView } from "@/components/teaching/MemberChannelView"
-import { ChannelChatWidget } from "@/components/teaching/ChannelChatWidget"
 import { BackToTop } from "@/components/back-to-top"
+import { teachingHubMainClass, teachingHubPageClass } from "@/components/teaching/teaching-hub-ui"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
@@ -81,7 +81,7 @@ export default function ChannelPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <div className={`flex min-h-screen items-center justify-center p-4 ${teachingHubPageClass}`}>
         <div className="text-center">
           <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-b-2 border-green-500"></div>
           <p className="text-sm text-gray-600">Loading channel...</p>
@@ -93,13 +93,13 @@ export default function ChannelPage() {
   if (subscriptionBlocked) {
     const isExpired = subscriptionBlocked.reason === "subscription_expired"
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-          <div className="mx-auto w-full w-full px-4 py-4 sm:px-6">
+      <div className={teachingHubPageClass}>
+        <div className="w-full border-b border-green-100 bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm">
+          <div className="w-full px-4 py-4 sm:px-6">
             <h1 className="text-lg font-semibold text-white">Channel Access</h1>
           </div>
         </div>
-        <div className="mx-auto w-full w-full px-4 py-8 sm:px-6">
+        <div className={teachingHubMainClass}>
           <div className="w-full">
             <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-sm">
               <CardContent className="pt-6">
@@ -140,13 +140,13 @@ export default function ChannelPage() {
 
   if (accessDenied) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-          <div className="mx-auto w-full w-full px-4 py-4 sm:px-6">
+      <div className={teachingHubPageClass}>
+        <div className="w-full border-b border-green-100 bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm">
+          <div className="w-full px-4 py-4 sm:px-6">
             <h1 className="text-lg font-semibold text-white">Channel Access</h1>
           </div>
         </div>
-        <div className="mx-auto w-full w-full px-4 py-8 sm:px-6">
+        <div className={teachingHubMainClass}>
           <div className="w-full">
             <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-sm">
               <CardContent className="pt-6">
@@ -182,9 +182,9 @@ export default function ChannelPage() {
   const isTeacherOrAdmin = userRole === "admin" || userRole === "teacher"
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="sticky top-0 z-50 w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="mx-auto w-full w-full px-4 py-3 sm:px-6">
+    <div className={teachingHubPageClass}>
+      <div className="sticky top-0 z-50 w-full border-b border-green-100 bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm">
+        <div className="w-full px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -201,7 +201,7 @@ export default function ChannelPage() {
         </div>
       </div>
 
-      <div className="mx-auto w-full w-full px-4 py-6 sm:px-6">
+      <div className={teachingHubMainClass}>
         {isTeacherOrAdmin ? (
           <TeacherChannelDashboard
             channelId={channelId}
@@ -212,8 +212,6 @@ export default function ChannelPage() {
           <MemberChannelView channelId={channelId} memberId={agent.id} memberName={agent.full_name || agent.email} />
         )}
       </div>
-
-      <ChannelChatWidget />
 
       <BackToTop />
     </div>

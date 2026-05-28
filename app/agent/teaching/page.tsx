@@ -35,6 +35,14 @@ import { ChannelSubscriptionBadge } from "@/components/teaching/channel-subscrip
 import { computeMembershipUiStatus, type MembershipUiStatus } from "@/lib/channel-membership-lifecycle"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import {
+  isChannelManager,
+  teachingHubMainClass,
+  teachingHubPageClass,
+  teachingHubTabListClass,
+  teachingHubTabTriggerClass,
+} from "@/components/teaching/teaching-hub-ui"
+import { Settings } from "lucide-react"
 
 // Types
 interface TeachingChannel {
@@ -46,6 +54,7 @@ interface TeachingChannel {
   max_members: number
   image_url?: string
   created_at: string
+  created_by?: string
   member_count?: number
   is_member?: boolean
   user_role?: string
@@ -383,10 +392,10 @@ export default function TeachingPlatformPage() {
   if (!agent) return null
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900">
+    <div className={`flex min-h-screen flex-col ${teachingHubPageClass}`}>
       {/* Top Navigation */}
-      <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
-        <div className="mx-auto w-full w-full px-3 py-3 sm:px-6">
+      <div className="w-full border-b border-green-100 bg-gradient-to-r from-emerald-600 to-green-500 shadow-sm sticky top-0 z-40">
+        <div className="w-full px-3 py-3 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <Button
@@ -418,10 +427,10 @@ export default function TeachingPlatformPage() {
         </div>
       </div>
 
-      <div className="w-full border-b border-gray-100 bg-white">
-        <div className="mx-auto w-full space-y-4 px-4 py-8 text-center sm:px-6">
+      <div className="w-full border-b border-slate-200/80 bg-white/90">
+        <div className={`${teachingHubMainClass} space-y-4 py-8 text-center`}>
           <h2 className="text-2xl font-semibold text-gray-900 sm:text-3xl">Welcome to Dataflex Channels Hub</h2>
-          <p className="mx-auto max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
+          <p className="w-full text-sm leading-6 text-gray-600 sm:text-base">
             Browse public teaching channels, join communities, and access lessons, quizzes, videos, and notes.
           </p>
           <div className="flex flex-wrap justify-center gap-3 pt-2">
@@ -488,29 +497,21 @@ export default function TeachingPlatformPage() {
       {/* Tabs */}
       <div className="flex-1 overflow-y-auto">
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
-          <div className="w-full border-b border-gray-100 bg-white">
-            <div className="mx-auto w-full w-full px-4 py-3 sm:px-6">
-              <TabsList className="flex w-full items-center justify-start gap-2 overflow-x-auto bg-transparent p-0">
-                <TabsTrigger
-                  value="channels"
-                  className="h-11 whitespace-nowrap rounded-xl border border-transparent px-4 text-sm font-medium text-gray-700 data-[state=active]:border-green-200 data-[state=active]:bg-green-500 data-[state=active]:text-white"
-                >
-                  <BookOpen className="h-3 w-3 mr-1" />
-                  View Channels
-                </TabsTrigger>
-                <TabsTrigger
-                  value="my-channels"
-                  className="h-11 whitespace-nowrap rounded-xl border border-transparent px-4 text-sm font-medium text-gray-700 data-[state=active]:border-green-200 data-[state=active]:bg-green-500 data-[state=active]:text-white"
-                >
-                  <Users className="h-3 w-3 mr-1" />
-                  My Channels
-                </TabsTrigger>
-              </TabsList>
-            </div>
+          <div className={`${teachingHubMainClass} pb-2`}>
+            <TabsList className={teachingHubTabListClass}>
+              <TabsTrigger value="channels" className={teachingHubTabTriggerClass}>
+                <BookOpen className="h-4 w-4 mr-1.5 shrink-0" />
+                View Channels
+              </TabsTrigger>
+              <TabsTrigger value="my-channels" className={teachingHubTabTriggerClass}>
+                <Users className="h-4 w-4 mr-1.5 shrink-0" />
+                My Channels
+              </TabsTrigger>
+            </TabsList>
           </div>
 
           {/* Search */}
-          <div className="mx-auto w-full w-full px-4 py-4 sm:px-6">
+          <div className={`${teachingHubMainClass} py-4`}>
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
@@ -523,7 +524,7 @@ export default function TeachingPlatformPage() {
           </div>
 
           {/* Channels Tab */}
-          <TabsContent value="channels" className="mx-auto w-full w-full space-y-4 px-4 pb-8 sm:px-6">
+          <TabsContent value="channels" className={`${teachingHubMainClass} space-y-4 pb-8`}>
             <div className="w-full">
               {loading ? (
                 <div className="space-y-2 w-full">
@@ -584,7 +585,16 @@ export default function TeachingPlatformPage() {
                               <Eye className="h-3 w-3 mr-1" />
                               View
                             </Button>
-                            {channel.membership_status === "active" ? (
+                            {isChannelManager(channel, agent?.id) ? (
+                              <Button
+                                size="sm"
+                                className="h-11 text-sm bg-emerald-600 text-white hover:bg-emerald-700"
+                                onClick={() => handleOpenChannel(channel)}
+                              >
+                                <Settings className="h-3 w-3 mr-1" />
+                                Admin
+                              </Button>
+                            ) : channel.membership_status === "active" ? (
                               <Badge className="bg-green-100 text-green-800 border-green-200 text-xs h-11 px-3 flex items-center justify-center">
                                 <CheckCircle2 className="mr-1 h-3 w-3" />
                                 Member
@@ -661,14 +671,14 @@ export default function TeachingPlatformPage() {
                             )}
                           </div>
                         </div>
-                        {channel.subscription_enabled && (
+                        {channel.subscription_enabled && !isChannelManager(channel, agent?.id) && (
                           <div className="mt-2 pt-2 border-t border-blue-100">
                             <ChannelSubscriptionBadge
                               isEnabled={channel.subscription_enabled}
                               monthlyFee={channel.subscription_fee}
                               daysUntilExpiry={channel.days_until_expiry}
                               membershipStatus={channel.membership_status}
-                              isTeacherOrAdmin={channel.user_role === "admin" || channel.user_role === "teacher"}
+                              isTeacherOrAdmin={false}
                               onJoin={() => openJoinFlow(channel)}
                               onRenew={() => openJoinFlow(channel)}
                             />
@@ -683,7 +693,7 @@ export default function TeachingPlatformPage() {
           </TabsContent>
 
           {/* My Channels Tab */}
-          <TabsContent value="my-channels" className="mx-auto w-full w-full space-y-4 px-4 pb-8 sm:px-6">
+          <TabsContent value="my-channels" className={`${teachingHubMainClass} space-y-4 pb-8`}>
             <div className="w-full">
               {loading ? (
                 <div className="space-y-2 w-full">
