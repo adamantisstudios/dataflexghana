@@ -33,9 +33,20 @@ export default function ChannelPage() {
     }
     const checkAccess = async () => {
       try {
-        const { isMember, role, error: memberError } = await checkChannelMembership(channelId, agent.id)
-        if (!isMember || !role) {
-          console.error("[v0] Channel access denied:", memberError)
+        const { isMember, role, status, error: memberError } = await checkChannelMembership(
+          channelId,
+          agent.id,
+        )
+
+        if (!isMember) {
+          console.error("[v0] Channel access denied:", memberError || status)
+          setAccessDenied(true)
+          setLoading(false)
+          return
+        }
+
+        if (!role) {
+          console.error("[v0] Channel access denied: missing role on membership row")
           setAccessDenied(true)
           setLoading(false)
           return
@@ -43,7 +54,11 @@ export default function ChannelPage() {
 
         const subAccess = await checkChannelSubscriptionAccess(channelId, agent.id, role)
         if (!subAccess.allowed) {
-          setSubscriptionBlocked({ reason: subAccess.reason, channelId })
+          if (subAccess.reason === "subscription_expired" || subAccess.reason === "subscription_required") {
+            setSubscriptionBlocked({ reason: subAccess.reason, channelId })
+          } else {
+            setAccessDenied(true)
+          }
           setLoading(false)
           return
         }

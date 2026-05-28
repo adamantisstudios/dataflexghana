@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react"
 import { BookOpen, CheckCircle2, Trash2, Plus, Eye, UserPlus, Edit2, ImageIcon, MoreVertical, X, RefreshCw, GraduationCap, CreditCard, Video } from "lucide-react"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase-client";
+import { ensureChannelMemberActive } from "@/lib/ensure-channel-member-active"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { parseJsonResponse } from "@/lib/agent-auth-utils"
 import { Card, CardContent } from "@/components/ui/card"
@@ -277,15 +278,13 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       return
     }
     try {
-      const { error: insertError } = await supabase.from("channel_members").insert([
-        {
-          channel_id: selectedChannel.id,
-          agent_id: selectedAgentForAdd,
-          role: selectedRoleForAdd,
-          status: "active",
-        },
-      ])
-      if (insertError) throw insertError
+      const result = await ensureChannelMemberActive(
+        supabase,
+        selectedChannel.id,
+        selectedAgentForAdd,
+        selectedRoleForAdd,
+      )
+      if (!result.ok) throw new Error(result.error || "Failed to add member")
       toast.success(`Member added as ${selectedRoleForAdd}!`)
       setShowAddMemberDialog(false)
       setSelectedAgentForAdd("")

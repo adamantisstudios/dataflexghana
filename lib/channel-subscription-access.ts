@@ -47,12 +47,24 @@ export async function checkChannelSubscriptionAccess(
     return { allowed: true, requiresSubscription: false }
   }
 
+  const { data: membership } = await supabase
+    .from("channel_members")
+    .select("status")
+    .eq("channel_id", channelId)
+    .eq("agent_id", agentId)
+    .maybeSingle()
+
   const { data: subscription } = await supabase
     .from("member_subscription_status")
     .select("id, channel_id, agent_id, subscription_expires_at, is_active, payment_amount")
     .eq("channel_id", channelId)
     .eq("agent_id", agentId)
     .maybeSingle()
+
+  // Admin/channel direct add: active member row without a subscription record
+  if (!subscription && membership?.status === "active") {
+    return { allowed: true, requiresSubscription: false }
+  }
 
   if (!subscription) {
     return {

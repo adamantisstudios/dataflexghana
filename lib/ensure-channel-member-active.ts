@@ -44,11 +44,20 @@ export async function ensureChannelMemberActive(
 
   if (existing) {
     if (existing.status === "active") {
+      if (role && existing.role !== role) {
+        const { error: roleError } = await db
+          .from("channel_members")
+          .update({ role })
+          .eq("id", existing.id)
+        if (roleError) {
+          return { ok: false, error: roleError.message }
+        }
+      }
       return { ok: true }
     }
     const { error: updateError } = await db
       .from("channel_members")
-      .update({ status: "active", joined_at: now })
+      .update({ status: "active", joined_at: now, role })
       .eq("id", existing.id)
 
     if (updateError) {

@@ -67,21 +67,9 @@ export const checkChannelMembership = async (
     }
 
     if (membership.status === "active") {
-      const hasSub = await hasActiveChannelSubscription(supabase, channelId, agentId)
-      if (!hasSub) {
-        const { data: settings } = await supabase
-          .from("channel_subscription_settings")
-          .select("is_enabled")
-          .eq("channel_id", channelId)
-          .maybeSingle()
-        if (settings?.is_enabled) {
-          return {
-            isMember: false,
-            role: membership.role,
-            status: "expired",
-          }
-        }
-      }
+      logMembershipDiagnostic(`Agent ${agentId} is an active member of channel ${channelId}`, {
+        role: membership.role,
+      })
       return {
         isMember: true,
         role: membership.role,
@@ -259,36 +247,30 @@ export const addMemberToChannel = async (
   try {
     logMembershipDiagnostic(`Adding agent ${agentId} to channel ${channelId} as ${role}`)
 
-    // Check if already a member
+    const result = await ensureChannelMemberActive(supabase, channelId, agentId, role)
+    if (!result.ok) {
+      logMembershipDiagnostic(`Error adding member: ${result.error}`)
+      return { success: false, error: result.error }
+    }
+
     const { data: existing } = await supabase
       .from("channel_members")
-      .select("id")
+      .select("id, role")
       .eq("channel_id", channelId)
       .eq("agent_id", agentId)
-      .single()
+      .maybeSingle()
 
-    if (existing) {
-      logMembershipDiagnostic(`Agent ${agentId} is already a member of channel ${channelId}`)
-      return { success: false, error: "Agent is already a member of this channel" }
+    if (existing && existing.role !== role) {
+      const { error: roleError } = await supabase
+        .from("channel_members")
+        .update({ role })
+        .eq("id", existing.id)
+      if (roleError) {
+        return { success: false, error: roleError.message }
+      }
     }
 
-    // Add the member
-    const { error } = await supabase.from("channel_members").insert([
-      {
-        channel_id: channelId,
-        agent_id: agentId,
-        role,
-        status: "active",
-        joined_at: new Date().toISOString(),
-      },
-    ])
-
-    if (error) {
-      logMembershipDiagnostic(`Error adding member: ${error.message}`, error)
-      return { success: false, error: error.message }
-    }
-
-    logMembershipDiagnostic(`Successfully added agent ${agentId} to channel ${channelId}`)
+    logMembershipDiagnostic(`Successfully added/reactivated agent ${agentId} in channel ${channelId}`)
     return { success: true }
   } catch (err) {
     logMembershipDiagnostic(`Exception adding member: ${err}`, err)
