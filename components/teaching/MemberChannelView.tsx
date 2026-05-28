@@ -17,6 +17,7 @@ import { ChannelEmbedVideoDisplay } from "@/components/channel/ChannelEmbedVideo
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { LessonNotesViewer } from "./lesson-notes/LessonNotesViewer"
 import { ChannelLiveSection } from "@/components/channel/ChannelLiveSection"
+import { ChannelAudioClassroom } from "@/components/channel/ChannelAudioClassroom"
 
 interface Channel {
   id: string
@@ -50,7 +51,7 @@ interface MemberChannelViewProps {
 }
 
 export function MemberChannelView({ channelId, memberId, memberName }: MemberChannelViewProps) {
-  const [activeTab, setActiveTab] = useState<"feeds" | "videos" | "notes" | "saved">("feeds")
+  const [activeTab, setActiveTab] = useState<"feeds" | "videos" | "audio" | "notes" | "saved">("feeds")
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
   const [channel, setChannel] = useState<Channel | null>(null)
   const [posts, setPosts] = useState<ChannelPost[]>([])
@@ -334,11 +335,12 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4 w-full">
-          <TabsList className="mx-4 grid h-auto w-auto grid-cols-2 gap-2 rounded-2xl border border-gray-100 bg-white p-2 shadow-sm sm:mx-6 sm:grid-cols-4 lg:mx-8">
-            <TabsTrigger value="feeds" className="h-11 rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Feeds</TabsTrigger>
-            <TabsTrigger value="videos" className="h-11 rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Videos</TabsTrigger>
-            <TabsTrigger value="notes" className="h-11 rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Notes</TabsTrigger>
-            <TabsTrigger value="saved" className="h-11 rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Saved</TabsTrigger>
+          <TabsList className="mx-4 flex h-auto w-auto flex-wrap gap-2 rounded-2xl border border-gray-100 bg-white p-2 shadow-sm sm:mx-6 lg:mx-8">
+            <TabsTrigger value="feeds" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Feeds</TabsTrigger>
+            <TabsTrigger value="videos" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Videos</TabsTrigger>
+            <TabsTrigger value="audio" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Audio</TabsTrigger>
+            <TabsTrigger value="notes" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Notes</TabsTrigger>
+            <TabsTrigger value="saved" className="h-11 flex-1 min-w-[72px] rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Saved</TabsTrigger>
           </TabsList>
 
           <TabsContent value="feeds" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
@@ -538,6 +540,14 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                 })()}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="audio" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
+            <ChannelAudioClassroom
+              channelId={channelId}
+              memberId={memberId}
+              memberName={memberName}
+            />
           </TabsContent>
 
           <TabsContent value="videos" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">

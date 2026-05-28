@@ -60,6 +60,7 @@ import { YouTubeVideoDisplay } from "./youtube/YouTubeVideoDisplay"
 } from "@/components/ui/alert-dialog"
 import { ChannelSubscriptionManager } from "./channel-subscription-manager"
 import { ChannelLiveSection } from "@/components/channel/ChannelLiveSection"
+import { ChannelAudioLecturesAdmin } from "@/components/channel/ChannelAudioLecturesAdmin"
 
 interface Channel {
   id: string
@@ -130,6 +131,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
     | "qa"
     | "videos"
     | "youtube-videos"
+    | "audio-lectures"
     | "subscriptions"
   >("feeds")
   const [channel, setChannel] = useState<Channel | null>(null)
@@ -544,16 +546,26 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           throw mediaError
         }
       } else if (mediaForm.type === "video" && mediaForm.selectedAudio instanceof File) {
-        // Handle video upload
         const videoFile = mediaForm.selectedAudio as File
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("media")
-          .upload(`${channelId}/${videoFile.name}`, videoFile)
-        if (uploadError) {
-          console.error("[v0] Error uploading video:", uploadError)
-          throw uploadError
+        const uploadForm = new FormData()
+        uploadForm.append("file", videoFile)
+        uploadForm.append("channelId", channelId)
+        uploadForm.append("folder", "channel-messages")
+        const auth = getAgentAuthHeaders()
+        const uploadRes = await fetch("/api/upload/video", {
+          method: "POST",
+          headers: {
+            ...(auth.Authorization ? { Authorization: auth.Authorization } : {}),
+            ...(auth["x-agent-id"] ? { "x-agent-id": auth["x-agent-id"] } : {}),
+            ...(auth["x-agent-phone"] ? { "x-agent-phone": auth["x-agent-phone"] } : {}),
+          },
+          body: uploadForm,
+        })
+        const uploadJson = await uploadRes.json()
+        if (!uploadRes.ok || !uploadJson.success) {
+          throw new Error(uploadJson.error || "Video upload failed")
         }
-        const mediaUrl = `https://your-supabase-storage-url.com/${channelId}/${videoFile.name}` // Replace with your actual storage URL
+        const mediaUrl = uploadJson.url as string
         const { error: mediaError } = await supabase.from("message_media").insert([
           {
             message_id: messageData.id,
@@ -1864,6 +1876,9 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                 </div>
               )}
             </div>
+          </TabsContent>
+          <TabsContent value="audio-lectures" className="space-y-2 w-full px-2 sm:px-3">
+            <ChannelAudioLecturesAdmin channelId={channelId} />
           </TabsContent>
           {/* Subscriptions Tab */}
           <TabsContent value="subscriptions" className="space-y-2 w-full px-2 sm:px-3">

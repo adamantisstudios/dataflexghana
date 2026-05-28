@@ -10,7 +10,9 @@ import { BackToTop } from "@/components/back-to-top"
 import { CommentThread } from "@/components/teaching/CommentThread"
 import { WhatsAppPromoNotification } from "@/components/teaching/whatsapp-promo-notification"
 import { toast } from "sonner"
-  import {
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ChannelAudioClassroom } from "@/components/channel/ChannelAudioClassroom"
+import {
   checkChannelMembership,
   logMembershipDiagnostic,
   getChannelPostsForMember,
@@ -47,6 +49,7 @@ export default function MemberChannelPage() {
   const [posts, setPosts] = useState<ChannelPost[]>([])
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
+  const [memberTab, setMemberTab] = useState<"posts" | "audio">("posts")
 
   useEffect(() => {
     if (!agent) {
@@ -240,8 +243,31 @@ export default function MemberChannelPage() {
           </CardContent>
         </Card>
 
-        {/* Posts */}
-        <div className="space-y-6">
+        <Tabs value={memberTab} onValueChange={(v) => setMemberTab(v as "posts" | "audio")} className="w-full">
+          <TabsList className="mb-6 grid h-auto w-full max-w-md grid-cols-2 gap-2 rounded-2xl border border-gray-100 bg-white p-2 shadow-sm">
+            <TabsTrigger
+              value="posts"
+              className="h-11 rounded-xl text-sm data-[state=active]:bg-green-500 data-[state=active]:text-white"
+            >
+              Posts
+            </TabsTrigger>
+            <TabsTrigger
+              value="audio"
+              className="h-11 rounded-xl text-sm data-[state=active]:bg-green-500 data-[state=active]:text-white"
+            >
+              Audio
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="audio" className="mt-0">
+            <ChannelAudioClassroom
+              channelId={channelId}
+              memberId={agent.id}
+              memberName={agent.full_name || agent.email}
+            />
+          </TabsContent>
+
+          <TabsContent value="posts" className="mt-0 space-y-6">
           <h2 className="text-2xl font-semibold text-gray-900">Channel Posts</h2>
 
           {posts.length === 0 ? (
@@ -306,7 +332,8 @@ export default function MemberChannelPage() {
               </Card>
             ))
           )}
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <BackToTop />

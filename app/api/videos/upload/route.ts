@@ -3,9 +3,8 @@ export const runtime = "nodejs"
 import { type NextRequest, NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase-admin"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
-import { compressVideoBuffer } from "@/lib/compress-video"
+import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2-client"
 
-const BUCKET = "teaching-media"
 const MAX_SIZE_MB = 100
 
 async function readFileBuffer(file: File): Promise<Buffer> {
@@ -21,7 +20,7 @@ function getInputExtension(file: File): string {
 }
 
 export async function POST(request: NextRequest) {
-  let originalStoragePath: string | null = null
+  let videoObjectKey: string | null = null
 
   try {
     const authResult = await authenticateAgent(request)
@@ -100,78 +99,20 @@ export async function POST(request: NextRequest) {
 
     const inputExt = getInputExtension(file)
     const token = `${channelId}/${Date.now()}-${Math.random().toString(36).substring(7)}`
-    originalStoragePath = `channel-videos/${token}-original.${inputExt}`
-    const compressedStoragePath = `channel-videos/${token}.mp4`
+    videoObjectKey = `channel-videos/${token}.${inputExt}`
 
-    const uploadTimeoutMs = isMobileRequest ? 120000 : 90000
-
-    const uploadOriginalPromise = supabaseAdmin.storage.from(BUCKET).upload(originalStoragePath, rawBuffer, {
-      contentType: file.type || "video/mp4",
-      upsert: false,
-    })
-
-    const uploadTimeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Upload timed out. Please check your connection and try again.")), uploadTimeoutMs),
+    const videoUrl = await uploadBufferToR2(
+      rawBuffer,
+      videoObjectKey,
+      file.type || "video/mp4",
     )
-
-    const { error: originalUploadError } = await Promise.race([uploadOriginalPromise, uploadTimeout])
-
-    if (originalUploadError) {
-      return NextResponse.json(
-        { success: false, error: `Failed to upload video: ${originalUploadError.message}` },
-        { status: 500 },
-      )
-    }
-
-    let compressedBuffer: Buffer
-    let compressedSize: number
-
-    try {
-      const compressed = await compressVideoBuffer(rawBuffer, inputExt)
-      compressedBuffer = compressed.buffer
-      compressedSize = compressed.size
-    } catch (compressErr) {
-      await supabaseAdmin.storage.from(BUCKET).remove([originalStoragePath]).catch(() => {})
-      originalStoragePath = null
-      const message = compressErr instanceof Error ? compressErr.message : "Video compression failed"
-      return NextResponse.json({ success: false, error: message }, { status: 500 })
-    }
-
-    const { error: compressedUploadError } = await supabaseAdmin.storage
-      .from(BUCKET)
-      .upload(compressedStoragePath, compressedBuffer, {
-        contentType: "video/mp4",
-        upsert: true,
-      })
-
-    if (compressedUploadError) {
-      await supabaseAdmin.storage.from(BUCKET).remove([originalStoragePath]).catch(() => {})
-      originalStoragePath = null
-      return NextResponse.json(
-        { success: false, error: `Failed to save compressed video: ${compressedUploadError.message}` },
-        { status: 500 },
-      )
-    }
-
-    await supabaseAdmin.storage.from(BUCKET).remove([originalStoragePath]).catch(() => {})
-    originalStoragePath = null
-
-    const { data: urlData } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(compressedStoragePath)
-    const videoUrl = urlData.publicUrl
 
     let thumbnailUrl = ""
     try {
       if (thumbnailFile) {
-        const thumbName = `channel-videos/thumbnails/${channelId}-${Date.now()}.jpg`
+        const thumbKey = `channel-videos/thumbnails/${channelId}-${Date.now()}.jpg`
         const thumbnailBuffer = await readFileBuffer(thumbnailFile)
-        const { error: thumbError } = await supabaseAdmin.storage.from(BUCKET).upload(thumbName, thumbnailBuffer, {
-          contentType: "image/jpeg",
-          upsert: false,
-        })
-        if (!thumbError) {
-          const { data: thumbUrlData } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(thumbName)
-          thumbnailUrl = thumbUrlData.publicUrl
-        }
+        thumbnailUrl = await uploadBufferToR2(thumbnailBuffer, thumbKey, "image/jpeg")
       }
     } catch (thumbErr) {
       console.warn("[channel-video] Thumbnail upload skipped:", thumbErr)
@@ -187,7 +128,7 @@ export async function POST(request: NextRequest) {
         video_url: videoUrl,
         thumbnail_url: thumbnailUrl,
         duration,
-        file_size: compressedSize,
+        file_size: rawBuffer.byteLength,
         width,
         height,
         status: "published",
@@ -202,7 +143,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (dbError) {
-      await supabaseAdmin.storage.from(BUCKET).remove([compressedStoragePath]).catch(() => {})
+      await deleteFromR2(videoObjectKey).catch(() => {})
       return NextResponse.json({ success: false, error: `Database error: ${dbError.message}` }, { status: 500 })
     }
 
@@ -211,11 +152,11 @@ export async function POST(request: NextRequest) {
       videoId: videoData.id,
       videoUrl,
       thumbnailUrl,
-      message: "Video uploaded and compressed successfully",
+      message: "Video uploaded successfully",
     })
   } catch (err: unknown) {
-    if (originalStoragePath) {
-      await supabaseAdmin.storage.from(BUCKET).remove([originalStoragePath]).catch(() => {})
+    if (videoObjectKey) {
+      await deleteFromR2(videoObjectKey).catch(() => {})
     }
 
     console.error("[channel-video] Upload error:", err)
