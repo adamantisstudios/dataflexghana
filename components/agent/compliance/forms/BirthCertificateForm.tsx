@@ -76,6 +76,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCostPopup, setShowCostPopup] = useState(true)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
   const [selectedCostTier, setSelectedCostTier] = useState<CostTier | null>(null)
   const [isFormFilled, setIsFormFilled] = useState(false)
 
@@ -415,7 +416,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
   </div>
 )}
 
-      <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
+      <Card className="rounded-2xl border-emerald-200 bg-white/90 backdrop-blur-sm shadow-sm">
         <CardHeader>
           <CardTitle className="text-emerald-800 flex items-center gap-2">
             <Baby className="h-5 w-5" />
@@ -431,7 +432,22 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
             ></div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6" data-form-section>
+        <CardContent className="space-y-6 [&_input]:min-h-11 [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-green-500 [&_input]:focus-visible:ring-offset-0 [&_textarea]:focus-visible:ring-2 [&_textarea]:focus-visible:ring-green-500 [&_textarea]:focus-visible:ring-offset-0 [&_button]:min-h-11" data-form-section>
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-3">
+            <p className="text-sm text-amber-900">
+              📌 <strong>Payment Required</strong> - Please send the exact fee via MoMo to the admin before
+              submitting this form. Once payment is confirmed, your submission will be processed.
+            </p>
+            <label className="flex items-start gap-2 text-sm text-amber-900">
+              <input
+                type="checkbox"
+                checked={paymentConfirmed}
+                onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-amber-300 text-green-600 focus:ring-green-500"
+              />
+              I have completed the MoMo payment and will send proof to the admin if requested.
+            </label>
+          </div>
           {/* Step 1: Child Information */}
           {currentStep === 1 && (
             <div className="space-y-4">
@@ -1226,7 +1242,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !selectedCostTier}
+                disabled={isSubmitting || !selectedCostTier || !paymentConfirmed}
                 className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 transition-all duration-300"
               >
                 {isSubmitting ? "Submitting..." : "Submit Application"}

@@ -77,6 +77,7 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCostPopup, setShowCostPopup] = useState(true)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
   const formRef = useRef<HTMLDivElement>(null)
 
   const [formData, setFormData] = useState({
@@ -811,7 +812,7 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
 }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden w-full mx-0">
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden w-full mx-0 border border-gray-100">
       <div className="px-4 py-3 bg-gray-50 border-b">
         <div className="flex justify-between items-center text-xs">
           <span>
@@ -820,14 +821,29 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
           <span className="font-medium">{steps[currentStep].title}</span>
         </div>
       </div>
-      <div className="px-4 py-6" ref={formRef}>
+      <div className="px-4 py-6 [&_input]:min-h-11 [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-green-500 [&_input]:focus-visible:ring-offset-0 [&_textarea]:focus-visible:ring-2 [&_textarea]:focus-visible:ring-green-500 [&_textarea]:focus-visible:ring-offset-0 [&_button]:min-h-11" ref={formRef}>
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-3 mb-6">
+          <p className="text-sm text-amber-900">
+            📌 <strong>Payment Required</strong> - Please send the exact fee via MoMo to the admin before submitting
+            this form. Once payment is confirmed, your submission will be processed.
+          </p>
+          <label className="flex items-start gap-2 text-sm text-amber-900">
+            <input
+              type="checkbox"
+              checked={paymentConfirmed}
+              onChange={(e) => setPaymentConfirmed(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-amber-300 text-green-600 focus:ring-green-500"
+            />
+            I have completed the MoMo payment and will send proof to the admin if requested.
+          </label>
+        </div>
         {renderStep()}
       </div>
-      <div className="px-4 py-3 bg-gray-50 border-t flex justify-between items-center">
+      <div className="px-4 py-3 bg-gray-50 border-t flex flex-col sm:flex-row justify-between items-center gap-2">
         <Button
           onClick={handlePrevious}
           disabled={currentStep === 0}
-          className="flex items-center space-x-2 text-xs bg-transparent"
+          className="w-full sm:w-auto flex items-center space-x-2 text-xs bg-transparent border border-gray-300 text-gray-700"
           variant="outline"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -837,13 +853,13 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
           Step {currentStep + 1} of {steps.length}
         </span>
         {currentStep < steps.length - 1 ? (
-          <Button onClick={handleNext} className="flex items-center space-x-2 text-xs">
+          <Button onClick={handleNext} className="w-full sm:w-auto flex items-center space-x-2 text-xs bg-green-600 hover:bg-green-700 text-white">
             <span>Next</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="flex items-center space-x-2 text-xs">
-            <span>{isSubmitting ? "Submitting..." : "Submit"}</span>
+          <Button onClick={handleSubmit} disabled={isSubmitting || !paymentConfirmed} className="w-full sm:w-auto flex items-center space-x-2 text-xs bg-green-600 hover:bg-green-700 text-white">
+            <span>{isSubmitting ? "Submitting..." : "Submit Application"}</span>
           </Button>
         )}
       </div>

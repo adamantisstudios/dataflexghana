@@ -1,4 +1,4 @@
-export const INFLUENCER_PLATFORM_FEE_RATE = 0.08
+export const INFLUENCER_PLATFORM_FEE_RATE = 0.1
 export const MIN_INFLUENCER_AUDIENCE = 50_000
 
 export type InfluencerOrderStatus =

@@ -20,7 +20,7 @@ export function ChannelVideoWithComments({
   const [commentsOpen, setCommentsOpen] = useState(false)
 
   return (
-    <div className={`flex flex-col overflow-hidden rounded-xl border border-[#0E8F3D]/15 bg-white shadow-sm ${className}`}>
+    <div className={`flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${className}`}>
       <div
         className={`relative transition-all duration-300 ease-out ${commentsOpen ? "h-[40%] min-h-[200px] shrink-0" : "flex-1"}`}
       >
@@ -28,10 +28,10 @@ export function ChannelVideoWithComments({
         <button
           type="button"
           onClick={() => setCommentsOpen(true)}
-          className="absolute bottom-3 right-3 z-20 flex flex-col items-center gap-0.5 text-white/90 hover:text-white transition-colors"
+          className="absolute bottom-3 right-3 z-20 flex flex-col items-center gap-0.5 text-white/90 transition-colors hover:text-white"
           aria-label="Open comments"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm shadow-md">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm shadow-md">
             <MessageCircle className="h-5 w-5" />
           </span>
           <span className="text-[10px] font-medium drop-shadow">Comments</span>
@@ -46,7 +46,7 @@ export function ChannelVideoWithComments({
         )}
       </div>
       <div
-        className={`shrink-0 overflow-hidden transition-all duration-300 ease-out border-t border-[#0E8F3D]/10 ${
+        className={`shrink-0 overflow-hidden border-t border-gray-100 transition-all duration-300 ease-out ${
           commentsOpen ? "h-[60%] min-h-[240px]" : "h-0"
         }`}
       >

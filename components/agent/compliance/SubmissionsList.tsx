@@ -353,7 +353,7 @@ export function SubmissionsList({
             return (
               <div
                 key={submission.id}
-                className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-4"
+                className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   {/* Left section: icon + main info */}
@@ -374,12 +374,12 @@ export function SubmissionsList({
                 </div>
 
                 {/* Action buttons */}
-                <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleViewSubmission(submission)}
-                    className="text-xs sm:text-sm border-gray-300 hover:bg-gray-50"
+                    className="min-h-11 text-xs sm:text-sm border-gray-300 text-gray-900 hover:bg-gray-50"
                   >
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     View Details
@@ -388,7 +388,7 @@ export function SubmissionsList({
                     variant="outline"
                     size="sm"
                     onClick={() => handleOpenChat(submission)}
-                    className="text-xs sm:text-sm border-gray-300 hover:bg-gray-50"
+                    className="min-h-11 text-xs sm:text-sm border-gray-300 text-gray-900 hover:bg-gray-50"
                   >
                     <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
                     Chat
@@ -459,7 +459,7 @@ export function SubmissionsList({
 
       {/* Chat Dialog – Mobile Optimized */}
       {selectedSubmission && (
-        <Dialog open={showChatDialog} onOpenChange={setShowChatDialog}>
+      <Dialog open={showChatDialog} onOpenChange={setShowChatDialog}>
           <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] flex flex-col p-4 sm:p-6">
             <DialogHeader className="pb-2">
               <DialogTitle className="text-base sm:text-lg md:text-xl font-bold text-blue-800">
@@ -471,7 +471,7 @@ export function SubmissionsList({
             </DialogHeader>
 
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto space-y-2 sm:space-y-3 p-2 sm:p-3 bg-gray-50 rounded-lg min-h-[250px] sm:min-h-[350px] max-h-[400px]">
+            <div className="flex-1 overflow-y-auto space-y-2 sm:space-y-3 p-2 sm:p-3 bg-gray-50 rounded-xl min-h-[250px] sm:min-h-[350px] max-h-[400px]">
               {chatMessages.length === 0 ? (
                 <div className="text-center text-gray-500 py-8 text-xs sm:text-sm">
                   No messages yet. Start the conversation with admin!
@@ -482,8 +482,8 @@ export function SubmissionsList({
                     <div
                       className={`max-w-[85%] sm:max-w-[70%] rounded-lg p-2 sm:p-3 ${
                         msg.sender_type === "agent"
-                          ? "bg-blue-600 text-white"
-                          : "bg-white border border-blue-200 text-gray-800"
+                          ? "bg-green-500 text-white"
+                          : "bg-white border border-gray-200 text-gray-800"
                       }`}
                     >
                       <div className="text-[10px] sm:text-xs opacity-75 mb-1">
@@ -498,15 +498,15 @@ export function SubmissionsList({
             </div>
 
             {/* Message input */}
-            <div className="flex gap-2 pt-3 sm:pt-4 border-t border-blue-200 mt-2">
+            <div className="flex gap-2 pt-3 sm:pt-4 border-t border-gray-200 mt-2">
               <Input
                 placeholder="Type your message..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                className="flex-1 border-blue-200 focus:border-blue-500 text-xs sm:text-sm h-9 sm:h-10"
+                className="flex-1 border-gray-200 focus-visible:ring-green-500 text-xs sm:text-sm h-11"
               />
-              <Button onClick={handleSendMessage} className="bg-blue-600 hover:bg-blue-700 shrink-0 h-9 sm:h-10 px-3 sm:px-4">
+              <Button onClick={handleSendMessage} className="bg-green-500 hover:bg-green-600 text-white shrink-0 h-11 px-4">
                 <Send className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>

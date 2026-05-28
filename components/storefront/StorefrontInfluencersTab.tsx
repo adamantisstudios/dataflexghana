@@ -105,6 +105,9 @@ export function StorefrontInfluencersTab({ agentId, storeSegment, accent, influe
           We hold funds in escrow and only release to the influencer after you confirm the work is done. This protects
           your investment.
         </p>
+        <p className="mt-2 font-semibold text-blue-900">
+          Platform fee policy: 10% for buyer and 10% for influencer on every order.
+        </p>
       </div>
 
       {paymentSuccess && (
@@ -208,7 +211,7 @@ export function StorefrontInfluencersTab({ agentId, storeSegment, accent, influe
         <Link href="/influencer-terms" className="underline">
           Influencer Terms
         </Link>{" "}
-        · 8% platform service fee applies at checkout
+        · 10% platform service fee applies at checkout
       </p>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
@@ -266,7 +269,7 @@ export function StorefrontInfluencersTab({ agentId, storeSegment, accent, influe
                   <span>₵{fees.package_price.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Platform service fee (8%)</span>
+                  <span>Platform service fee (10%)</span>
                   <span>₵{fees.platform_fee_client.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-bold pt-1 border-t">

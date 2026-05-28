@@ -294,7 +294,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-b from-green-50/50 to-white" style={{ fontSize: `${fontSize}px` }}>
+    <div className="min-h-screen w-full bg-gray-50 text-gray-900" style={{ fontSize: `${fontSize}px` }}>
       <FontSizeControl onFontSizeChange={setFontSize} initialSize={16} />
 
       <div className="w-full py-6">
@@ -311,10 +311,10 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         )}
 
         {/* Channel Header */}
-        <div className="border-b-2 border-[#0E8F3D]/20 pb-4 w-full mb-6 px-4 sm:px-6 lg:px-8">
+        <div className="mb-6 w-full border-b border-gray-100 bg-white px-4 pb-5 pt-2 shadow-sm sm:px-6 lg:px-8">
           <div className="space-y-2">
-            <h2 className="text-lg sm:text-xl font-semibold text-[#0E8F3D]">{channel.name}</h2>
-            <p className="text-sm text-gray-600">{channel.description}</p>
+            <h2 className="text-xl font-semibold text-gray-900 sm:text-2xl">{channel.name}</h2>
+            <p className="text-sm leading-6 text-gray-600">{channel.description}</p>
             <div className="flex flex-wrap gap-2 pt-2">
               <Badge variant="secondary">{channel.category}</Badge>
               <Badge variant={channel.is_active ? "default" : "destructive"}>
@@ -334,11 +334,11 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         </div>
 
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4 w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 h-auto p-1 bg-white/80 shadow-sm rounded-xl mx-4 sm:mx-6 lg:mx-8">
-            <TabsTrigger value="feeds" className="text-xs sm:text-sm data-[state=active]:bg-[#0E8F3D] data-[state=active]:text-white rounded-lg">Feeds</TabsTrigger>
-            <TabsTrigger value="videos" className="text-xs sm:text-sm data-[state=active]:bg-[#0E8F3D] data-[state=active]:text-white rounded-lg">Videos</TabsTrigger>
-            <TabsTrigger value="notes" className="text-xs sm:text-sm data-[state=active]:bg-[#0E8F3D] data-[state=active]:text-white rounded-lg">Notes</TabsTrigger>
-            <TabsTrigger value="saved" className="text-xs sm:text-sm data-[state=active]:bg-[#0E8F3D] data-[state=active]:text-white rounded-lg">Saved</TabsTrigger>
+          <TabsList className="mx-4 grid h-auto w-auto grid-cols-2 gap-2 rounded-2xl border border-gray-100 bg-white p-2 shadow-sm sm:mx-6 sm:grid-cols-4 lg:mx-8">
+            <TabsTrigger value="feeds" className="h-11 rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Feeds</TabsTrigger>
+            <TabsTrigger value="videos" className="h-11 rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Videos</TabsTrigger>
+            <TabsTrigger value="notes" className="h-11 rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Notes</TabsTrigger>
+            <TabsTrigger value="saved" className="h-11 rounded-xl text-sm text-gray-700 data-[state=active]:bg-green-500 data-[state=active]:text-white">Saved</TabsTrigger>
           </TabsList>
 
           <TabsContent value="feeds" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
@@ -360,7 +360,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                   ].sort((a, b) => b.timestamp - a.timestamp)
 
                   return allContent.map((item) => (
-                    <div key={`${item.type}-${item.id}`} className="border-b-2 pb-4 w-full">
+                    <div key={`${item.type}-${item.id}`} className="w-full rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                       {/* YouTube Videos */}
                       {item.type === "youtube" && (
                         <div className="border-b-2 border-red-200 pb-4">
@@ -419,12 +419,12 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                             </span>
                           </div>
 
-                          <div className="flex gap-2 pt-3 mt-3 border-t border-gray-200 flex-wrap">
+                          <div className="mt-3 flex flex-wrap gap-2 border-t border-gray-200 pt-3">
                             <Button
                               size="sm"
                               variant={likedPosts.has(item.id) ? "default" : "outline"}
                               onClick={() => handleLikePost(item.id)}
-                              className="flex-1 gap-2 min-w-[100px]"
+                              className="h-11 min-w-[100px] flex-1 gap-2 text-gray-900"
                             >
                               <Heart className={`h-4 w-4 ${likedPosts.has(item.id) ? "fill-current" : ""}`} />
                               Like
@@ -433,7 +433,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                               size="sm"
                               variant={savedPosts.has(item.id) ? "default" : "outline"}
                               onClick={() => handleSavePost(item.id, false)}
-                              className="flex-1 gap-2 min-w-[100px]"
+                              className="h-11 min-w-[100px] flex-1 gap-2 text-gray-900"
                             >
                               <Bookmark className={`h-4 w-4 ${savedPosts.has(item.id) ? "fill-current" : ""}`} />
                               Save
@@ -450,7 +450,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                                 }
                                 setExpandedComments(newExpanded)
                               }}
-                              className="flex-1 gap-2 min-w-[100px]"
+                              className="h-11 min-w-[100px] flex-1 gap-2 text-gray-900"
                             >
                               <MessageSquare className="h-4 w-4" />
                               Comment
@@ -459,7 +459,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                               size="sm"
                               variant="outline"
                               onClick={() => handleSharePost(item)}
-                              className="flex-1 gap-2 min-w-[100px]"
+                              className="h-11 min-w-[100px] flex-1 gap-2 text-gray-900"
                             >
                               <Share2 className="h-4 w-4" />
                               Share
@@ -541,7 +541,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
           </TabsContent>
 
           <TabsContent value="videos" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
-            <h3 className="text-lg font-semibold text-[#0E8F3D]">Channel Videos</h3>
+            <h3 className="text-xl font-semibold text-gray-900">Channel Videos</h3>
             {uploadedVideos.length === 0 && embedVideos.length === 0 ? (
               <div className="bg-green-50 border border-green-200 rounded p-6 text-center text-green-700">
                 <p>No videos yet.</p>
@@ -583,7 +583,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
           </TabsContent>
 
           <TabsContent value="notes" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
-            <h3 className="text-lg font-semibold text-[#0E8F3D]">Lesson Notes</h3>
+            <h3 className="text-xl font-semibold text-gray-900">Lesson Notes</h3>
             <LessonNotesViewer channelId={channelId} />
           </TabsContent>
 

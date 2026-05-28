@@ -225,6 +225,9 @@ export default function PublicInfluencersPage() {
       </section>
 
       <main className="max-w-6xl mx-auto w-full px-4 py-6 sm:py-8 space-y-6">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-800">
+          A 10% service fee applies to each transaction (10% buyer fee and 10% influencer fee).
+        </div>
         <div className="rounded-2xl border border-emerald-100 bg-white p-3 sm:p-4 shadow-md">
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">

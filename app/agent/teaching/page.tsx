@@ -362,33 +362,33 @@ export default function TeachingPlatformPage() {
   if (!agent) return null
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
+    <div className="flex min-h-screen flex-col bg-gray-50 text-gray-900">
       {/* Top Navigation */}
-      <div className="w-full bg-gradient-to-r from-[#0E8F3D] to-[#35B24A] shadow-lg border-b-2 border-[#0E8F3D]">
-        <div className="w-full px-2 py-2 sm:px-3 sm:py-2">
-          <div className="flex items-center justify-between gap-2">
+      <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
+        <div className="mx-auto w-full max-w-6xl px-3 py-3 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => router.push("/agent/dashboard")}
-                className="text-white hover:bg-white/20 h-7 px-2 text-xs"
+                className="h-11 px-3 text-sm text-white hover:bg-white/20"
               >
                 ← Back
               </Button>
-              <div className="w-8 h-8 bg-white rounded-lg shadow-lg flex items-center justify-center p-1 flex-shrink-0">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-sm">
                 <BookOpen className="w-full h-full text-[#0E8F3D]" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-sm sm:text-base font-bold text-white drop-shadow-lg truncate">Dataflex Channels</h1>
-                <p className="text-xs text-green-100 truncate">Learn, teach, and grow together</p>
+                <h1 className="truncate text-base font-semibold text-white sm:text-lg">Dataflex Channels</h1>
+                <p className="truncate text-xs text-green-50 sm:text-sm">Learn, teach, and grow together</p>
               </div>
             </div>
             <Button
               variant="secondary"
               size="sm"
               onClick={handleLogout}
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-7 px-2 text-xs flex-shrink-0"
+              className="h-11 flex-shrink-0 border-white/30 bg-white/20 px-3 text-sm text-white hover:bg-white/30"
             >
               <LogOut className="h-3 w-3 mr-1" />
               Logout
@@ -397,23 +397,23 @@ export default function TeachingPlatformPage() {
         </div>
       </div>
 
-      <div className="w-full px-3 py-6 sm:px-6 bg-white/70 border-b border-green-100">
-        <div className="max-w-4xl mx-auto text-center space-y-2">
-          <h2 className="text-xl sm:text-2xl font-bold text-[#0E8F3D]">Welcome to Dataflex Channels</h2>
-          <p className="text-sm text-gray-600 max-w-2xl mx-auto">
+      <div className="w-full border-b border-gray-100 bg-white">
+        <div className="mx-auto max-w-6xl space-y-4 px-4 py-8 text-center sm:px-6">
+          <h2 className="text-2xl font-semibold text-gray-900 sm:text-3xl">Welcome to Dataflex Channels Hub</h2>
+          <p className="mx-auto max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
             Browse public teaching channels, join communities, and access lessons, quizzes, videos, and notes.
           </p>
-          <div className="flex flex-wrap justify-center gap-2 pt-2">
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
             <TooltipProvider>
               {canTeach ? (
                 <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                   <DialogTrigger asChild>
-                    <Button size="sm" className="bg-[#0E8F3D] hover:bg-[#35B24A] text-white">
+                    <Button size="sm" className="h-11 bg-green-500 px-4 text-sm text-white hover:bg-green-600">
                       <Plus className="h-3 w-3 mr-1" />
                       Create Channel
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-100">
                     <DialogHeader>
                       <DialogTitle>Create Channel</DialogTitle>
                       <DialogDescription>Start a new teaching channel for your community.</DialogDescription>
@@ -428,14 +428,14 @@ export default function TeachingPlatformPage() {
                         placeholder="Description"
                         value={createForm.description}
                         onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-md text-sm min-h-[80px]"
+                        className="min-h-[96px] w-full rounded-xl border border-gray-200 px-3 py-3 text-sm text-gray-900"
                       />
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
                         Cancel
                       </Button>
-                      <Button onClick={handleCreateChannel} className="bg-[#0E8F3D] hover:bg-[#35B24A]">
+                      <Button onClick={handleCreateChannel} className="h-11 bg-green-500 text-white hover:bg-green-600">
                         Create
                       </Button>
                     </DialogFooter>
@@ -445,7 +445,7 @@ export default function TeachingPlatformPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span tabIndex={0}>
-                      <Button size="sm" className="bg-gray-300 text-gray-600 cursor-not-allowed" disabled>
+                      <Button size="sm" className="h-11 cursor-not-allowed bg-gray-200 text-gray-700" disabled>
                         <Plus className="h-3 w-3 mr-1" />
                         Create Channel
                       </Button>
@@ -457,7 +457,7 @@ export default function TeachingPlatformPage() {
                 </Tooltip>
               )}
             </TooltipProvider>
-            <Button size="sm" variant="outline" onClick={() => router.push("/agent/my-subscriptions")}>
+            <Button size="sm" variant="outline" className="h-11 border-gray-200 text-gray-900" onClick={() => router.push("/agent/my-subscriptions")}>
               My Subscriptions
             </Button>
           </div>
@@ -467,19 +467,19 @@ export default function TeachingPlatformPage() {
       {/* Tabs */}
       <div className="flex-1 overflow-y-auto">
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
-          <div className="w-full bg-white/80 backdrop-blur-sm shadow-md border-b border-blue-200">
-            <div className="w-full py-2 px-2 sm:px-3">
-              <TabsList className="w-full flex items-center justify-start bg-transparent p-0 gap-1 overflow-x-auto">
+          <div className="w-full border-b border-gray-100 bg-white">
+            <div className="mx-auto w-full max-w-6xl px-4 py-3 sm:px-6">
+              <TabsList className="flex w-full items-center justify-start gap-2 overflow-x-auto bg-transparent p-0">
                 <TabsTrigger
                   value="channels"
-                  className="flex items-center justify-center px-2 py-1 text-xs font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0E8F3D] data-[state=active]:to-[#35B24A] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-md whitespace-nowrap flex-shrink-0"
+                  className="h-11 whitespace-nowrap rounded-xl border border-transparent px-4 text-sm font-medium text-gray-700 data-[state=active]:border-green-200 data-[state=active]:bg-green-500 data-[state=active]:text-white"
                 >
                   <BookOpen className="h-3 w-3 mr-1" />
                   View Channels
                 </TabsTrigger>
                 <TabsTrigger
                   value="my-channels"
-                  className="flex items-center justify-center px-2 py-1 text-xs font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#0E8F3D] data-[state=active]:to-[#35B24A] data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-200 rounded-md whitespace-nowrap flex-shrink-0"
+                  className="h-11 whitespace-nowrap rounded-xl border border-transparent px-4 text-sm font-medium text-gray-700 data-[state=active]:border-green-200 data-[state=active]:bg-green-500 data-[state=active]:text-white"
                 >
                   <Users className="h-3 w-3 mr-1" />
                   My Channels
@@ -489,20 +489,20 @@ export default function TeachingPlatformPage() {
           </div>
 
           {/* Search */}
-          <div className="w-full py-2 px-2 sm:px-3">
+          <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6">
             <div className="relative w-full max-w-xl">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-blue-400 h-3 w-3" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 placeholder="Search channels..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-7 border-blue-200 focus:border-blue-500 bg-white/80 backdrop-blur-sm w-full rounded-lg text-xs h-7"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 text-sm text-gray-900"
               />
             </div>
           </div>
 
           {/* Channels Tab */}
-          <TabsContent value="channels" className="pb-4 space-y-2 w-full px-2 sm:px-3">
+          <TabsContent value="channels" className="mx-auto w-full max-w-6xl space-y-4 px-4 pb-8 sm:px-6">
             <div className="w-full">
               {loading ? (
                 <div className="space-y-2 w-full">
@@ -511,8 +511,8 @@ export default function TeachingPlatformPage() {
                   ))}
                 </div>
               ) : filteredChannels.length === 0 ? (
-                <Card className="bg-blue-50 border-blue-200 w-full">
-                  <CardContent className="pt-3 text-center text-blue-600 text-sm">
+                <Card className="w-full rounded-2xl border border-gray-100 bg-white shadow-sm">
+                  <CardContent className="pt-6 text-center text-gray-700 text-sm">
                     <BookOpen className="h-8 w-8 mx-auto mb-1 opacity-50" />
                     <p>No channels available</p>
                   </CardContent>
@@ -522,10 +522,10 @@ export default function TeachingPlatformPage() {
                   {filteredChannels.map((channel) => (
                     <Card
                       key={channel.id}
-                      className="border-blue-200 bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer group w-full overflow-hidden"
+                      className="group w-full cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                     >
                       <CardContent className="p-3">
-                        <div className="flex items-start gap-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
                           <div className="flex-shrink-0">
                             <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border-2 border-white shadow-sm">
                               <img
@@ -536,8 +536,8 @@ export default function TeachingPlatformPage() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-blue-800 text-sm break-words">{channel.name}</h3>
-                            <p className="text-xs text-gray-600 mt-0.5 truncate">{channel.description}</p>
+                            <h3 className="text-base font-semibold text-gray-900 break-words">{channel.name}</h3>
+                            <p className="mt-1 line-clamp-2 text-sm text-gray-600">{channel.description}</p>
                             <div className="flex items-center gap-3 text-xs text-gray-600 mt-1.5">
                               <span className="flex items-center gap-0.5">
                                 <Users className="h-3 w-3" />
@@ -549,11 +549,11 @@ export default function TeachingPlatformPage() {
                               </span>
                             </div>
                           </div>
-                          <div className="flex flex-col gap-1.5 ml-2">
+                          <div className="ml-0 grid grid-cols-2 gap-2 sm:ml-2 sm:flex sm:flex-col">
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-7 text-xs text-blue-600 border-blue-200 bg-transparent hover:bg-blue-50"
+                              className="h-11 text-sm border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
                               onClick={() => {
                                 setSelectedChannel(channel)
                                 setShowChannelDialog(true)
@@ -571,7 +571,7 @@ export default function TeachingPlatformPage() {
                                 <DialogTrigger asChild>
                                   <Button
                                     size="sm"
-                                    className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                                    className="h-11 text-sm bg-green-500 text-white hover:bg-green-600"
                                     onClick={() => {
                                       setSelectedChannelForJoin(channel)
                                       setShowJoinDialog(true)
@@ -581,7 +581,7 @@ export default function TeachingPlatformPage() {
                                     Join
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="sm:max-w-[90vw] max-w-xs w-full">
+                                <DialogContent className="w-full max-w-sm rounded-2xl border border-gray-100 sm:max-w-[90vw]">
                                   <DialogHeader>
                                     <DialogTitle className="text-sm">Join Channel</DialogTitle>
                                     <DialogDescription className="text-xs">
@@ -595,7 +595,7 @@ export default function TeachingPlatformPage() {
                                         value={joinMessage}
                                         onChange={(e) => setJoinMessage(e.target.value)}
                                         placeholder="Tell us why you want to join..."
-                                        className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+                                        className="w-full rounded-xl border border-gray-200 px-3 py-3 text-sm text-gray-900"
                                         rows={3}
                                       />
                                     </div>
@@ -609,14 +609,14 @@ export default function TeachingPlatformPage() {
                                         setJoinMessage("")
                                         setSelectedChannelForJoin(null)
                                       }}
-                                      className="text-xs h-7"
+                                      className="h-11 text-sm text-gray-900"
                                     >
                                       Cancel
                                     </Button>
                                     <Button
                                       type="button"
                                       onClick={handleJoinChannel}
-                                      className="bg-blue-600 hover:bg-blue-700 text-xs h-7"
+                                      className="h-11 bg-green-500 text-sm text-white hover:bg-green-600"
                                     >
                                       Send
                                     </Button>
@@ -625,7 +625,7 @@ export default function TeachingPlatformPage() {
                               </Dialog>
                             ) : (
                               <Badge className="bg-green-100 text-green-800 border-green-200 text-xs h-7 px-2 flex items-center justify-center">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                <CheckCircle2 className="mr-1 h-3 w-3" />
                                 Member
                               </Badge>
                             )}
@@ -652,7 +652,7 @@ export default function TeachingPlatformPage() {
           </TabsContent>
 
           {/* My Channels Tab */}
-          <TabsContent value="my-channels" className="pb-4 space-y-2 w-full px-2 sm:px-3">
+          <TabsContent value="my-channels" className="mx-auto w-full max-w-6xl space-y-4 px-4 pb-8 sm:px-6">
             <div className="w-full">
               {loading ? (
                 <div className="space-y-2 w-full">
@@ -683,7 +683,7 @@ export default function TeachingPlatformPage() {
                         .map((channel) => (
                           <Card
                             key={channel.id}
-                            className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-lg transition-all duration-300 cursor-pointer w-full"
+                        className="w-full cursor-pointer rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                           >
                             <CardContent className="p-3">
                               <div className="flex items-start gap-3">
@@ -697,7 +697,7 @@ export default function TeachingPlatformPage() {
                                   </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-blue-800 text-sm break-words">{channel.name}</h3>
+                                  <h3 className="text-base font-semibold text-gray-900 break-words">{channel.name}</h3>
                                   <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{channel.description}</p>
                                   <div className="flex items-center gap-2 text-xs text-gray-600 mt-1.5 flex-wrap">
                                     <span className="flex items-center gap-0.5">
@@ -717,7 +717,7 @@ export default function TeachingPlatformPage() {
                                 <div className="flex flex-col gap-1.5 ml-2">
                                   <Button
                                     size="sm"
-                                    className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                                    className="h-11 text-sm bg-green-500 text-white hover:bg-green-600"
                                     onClick={() => handleOpenChannel(channel)}
                                   >
                                     <MessageCircle className="h-3 w-3 mr-1" />
@@ -742,7 +742,7 @@ export default function TeachingPlatformPage() {
                         .map((channel) => (
                           <Card
                             key={channel.id}
-                            className="border-gray-200 bg-white/90 hover:shadow-lg transition-all duration-300 cursor-pointer w-full"
+                            className="w-full cursor-pointer rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                           >
                             <CardContent className="p-3">
                               <div className="flex items-start gap-3">
@@ -756,7 +756,7 @@ export default function TeachingPlatformPage() {
                                   </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-gray-800 text-sm break-words">{channel.name}</h3>
+                                  <h3 className="text-base font-semibold text-gray-900 break-words">{channel.name}</h3>
                                   <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{channel.description}</p>
                                   <div className="flex items-center gap-2 text-xs text-gray-600 mt-1.5 flex-wrap">
                                     <span className="flex items-center gap-0.5">
@@ -774,7 +774,7 @@ export default function TeachingPlatformPage() {
                                 <div className="flex flex-col gap-1.5 ml-2">
                                   <Button
                                     size="sm"
-                                    className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                                    className="h-11 text-sm bg-green-500 text-white hover:bg-green-600"
                                     onClick={() => handleOpenChannel(channel)}
                                   >
                                     <Eye className="h-3 w-3 mr-1" />
@@ -797,7 +797,7 @@ export default function TeachingPlatformPage() {
       {/* Channel Details Dialog */}
       {selectedChannel && (
         <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
-          <DialogContent className="max-w-sm max-h-[70vh] overflow-y-auto w-[95vw]">
+          <DialogContent className="max-h-[80vh] w-[95vw] max-w-sm overflow-y-auto rounded-2xl border border-gray-100">
             <DialogHeader>
               <DialogTitle className="text-sm">{selectedChannel.name}</DialogTitle>
               <DialogDescription className="text-xs">{selectedChannel.description}</DialogDescription>
@@ -853,10 +853,7 @@ export default function TeachingPlatformPage() {
                   ))
                 )}
               </div>
-              <Button
-                onClick={() => handleOpenChannel(selectedChannel)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 mt-2"
-              >
+              <Button onClick={() => handleOpenChannel(selectedChannel)} className="mt-2 h-11 w-full bg-green-500 text-sm text-white hover:bg-green-600">
                 View Full Channel
               </Button>
             </div>

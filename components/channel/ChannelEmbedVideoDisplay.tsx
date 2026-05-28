@@ -24,16 +24,16 @@ export function ChannelEmbedVideoDisplay({
 
   if (!preparedEmbed) {
     return (
-      <div className="p-4 text-center text-sm text-red-600 bg-red-50 rounded-lg">
+      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center text-sm text-red-700">
         Invalid embed code. Only Vimeo and YouTube iframes are supported.
       </div>
     )
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full rounded-2xl border border-gray-100 bg-white shadow-sm">
       <div className="px-3 pt-3 pb-2">
-        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2">{title}</h3>
+        <h3 className="line-clamp-2 text-base font-semibold text-gray-900">{title}</h3>
         <div className="flex items-center gap-2 mt-1">
           <Badge variant="secondary" className="text-xs bg-[#0E8F3D]/10 text-[#0E8F3D] capitalize">
             {detectedPlatform} embed
@@ -44,7 +44,7 @@ export function ChannelEmbedVideoDisplay({
         </div>
       </div>
       <div
-        className="relative w-full max-w-xs mx-auto aspect-[9/16] bg-black rounded-lg overflow-hidden [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:h-full [&_iframe]:w-full"
+        className="relative mx-auto mb-3 aspect-[9/16] w-full max-w-xs overflow-hidden rounded-xl bg-black [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:h-full [&_iframe]:w-full"
         dangerouslySetInnerHTML={{ __html: preparedEmbed }}
       />
     </div>

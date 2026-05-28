@@ -102,6 +102,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
   const [submissionId, setSubmissionId] = useState<string | null>(null)
   const [showCostPopup, setShowCostPopup] = useState(true)
   const [showPaymentReminder, setShowPaymentReminder] = useState(false)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
 
   const [formData, setFormData] = useState({
     // Section 1: Business Information
@@ -535,7 +536,7 @@ return (
         serviceName="Sole Proprietorship Registration"
       />
 
-      <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
+      <Card className="rounded-2xl border-emerald-200 bg-white/90 backdrop-blur-sm shadow-sm">
         <CardHeader>
           <CardTitle className="text-emerald-800 flex items-center gap-2">
             <Building2 className="h-5 w-5" />
@@ -545,7 +546,22 @@ return (
             Step {currentStep} of {totalSteps}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 [&_input]:min-h-11 [&_input]:border-gray-200 [&_input]:focus-visible:ring-green-500 [&_input]:focus-visible:ring-offset-0 [&_textarea]:border-gray-200 [&_textarea]:focus-visible:ring-green-500 [&_textarea]:focus-visible:ring-offset-0 [&_button]:min-h-11 [&_label]:text-gray-800">
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-3">
+            <p className="text-sm text-amber-900">
+              📌 <strong>Payment Required</strong> - Please send the exact fee via MoMo to the admin before
+              submitting this form. Once payment is confirmed, your submission will be processed.
+            </p>
+            <label className="flex items-start gap-2 text-sm text-amber-900">
+              <input
+                type="checkbox"
+                checked={paymentConfirmed}
+                onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-amber-300 text-green-600 focus:ring-green-500"
+              />
+              I have completed the MoMo payment and will send proof to the admin if requested.
+            </label>
+          </div>
           <div data-form-section>
             {/* Step 1: Business Information */}
             {currentStep === 1 && (
@@ -1398,7 +1414,7 @@ return (
               ) : (
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !paymentConfirmed}
                   className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
                 >
                   {isSubmitting ? "Submitting..." : "Submit Application"}

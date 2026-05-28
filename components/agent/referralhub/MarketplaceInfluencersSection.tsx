@@ -376,8 +376,8 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
             <CardHeader>
               <CardTitle className="text-base">Apply as influencer</CardTitle>
               <CardDescription>
-                Minimum audience: {MIN_INFLUENCER_AUDIENCE.toLocaleString()} followers. 8% platform fee applies on
-                payouts.
+                Minimum audience: {MIN_INFLUENCER_AUDIENCE.toLocaleString()} followers. Platform fee is 10% for buyer
+                and 10% for influencer.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -490,7 +490,7 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
                   <Link href="/influencer-terms" className="font-semibold underline" style={{ color: BRAND }}>
                     Influencer Terms
                   </Link>{" "}
-                  and understand the 8% platform fee.
+                  and understand the 10% platform fee (10% buyer fee + 10% influencer fee).
                 </label>
               </div>
               <Button
@@ -512,6 +512,9 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
               <CardTitle className="text-base flex items-center gap-2">
                 <Package className="h-4 w-4" /> Create package
               </CardTitle>
+              <CardDescription>
+                You keep 90% of each order after the 10% influencer platform fee.
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
@@ -657,6 +660,9 @@ export function MarketplaceInfluencersSection({ agentId }: Props) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-sm space-y-1">
+                  <p className="text-xs rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-800">
+                    Fee split: buyer pays 10% platform fee, influencer contributes 10% from package payout.
+                  </p>
                   <p>
                     <span className="text-muted-foreground">Requirements:</span> {o.requirements}
                   </p>

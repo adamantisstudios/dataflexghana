@@ -87,55 +87,57 @@ export function VideoCommentPanel({ videoId, source = "upload", isOpen, onClose 
 
   return (
     <div
-      className={`flex flex-col h-full bg-zinc-900/95 backdrop-blur-md transition-transform duration-300 ease-out ${
+      className={`flex h-full flex-col bg-white transition-transform duration-300 ease-out ${
         isOpen ? "translate-y-0" : "translate-y-full"
       }`}
     >
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 shrink-0">
+      <div className="shrink-0 border-b border-gray-100 px-4 py-3">
+        <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onClose}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-900 hover:bg-gray-200"
           aria-label="Close comments"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <span className="flex items-center gap-2 text-sm font-semibold text-white">
+        <span className="flex items-center gap-2 text-sm font-semibold text-gray-900">
           <MessageCircle className="h-4 w-4" />
           Comments {comments.length > 0 ? `(${comments.length})` : ""}
         </span>
+        </div>
       </div>
 
       <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
         {loading ? (
-          <p className="text-center text-sm text-white/60 py-8">Loading comments...</p>
+          <p className="py-8 text-center text-sm text-gray-500">Loading comments...</p>
         ) : comments.length === 0 ? (
-          <p className="text-center text-sm text-white/60 py-8">No comments yet. Be the first!</p>
+          <p className="py-8 text-center text-sm text-gray-500">No comments yet. Be the first!</p>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="rounded-lg bg-white/5 px-3 py-2">
-              <p className="text-xs font-semibold text-[#35B24A] select-none">{comment.agent_name}</p>
-              <p className="text-sm text-white/90 mt-0.5 break-words">{comment.content}</p>
-              <p className="text-[10px] text-white/40 mt-1">{formatTimestamp(comment.created_at)}</p>
+            <div key={comment.id} className="rounded-2xl border border-gray-100 bg-gray-50 px-3 py-3">
+              <p className="select-none text-xs font-semibold text-green-700">{comment.agent_name}</p>
+              <p className="mt-1 break-words text-sm text-gray-900">{comment.content}</p>
+              <p className="mt-1 text-[10px] text-gray-500">{formatTimestamp(comment.created_at)}</p>
             </div>
           ))
         )}
       </div>
 
-      <div className="flex items-center gap-2 px-4 py-3 border-t border-white/10 shrink-0">
+      <div className="sticky bottom-0 flex shrink-0 items-center gap-2 border-t border-gray-100 bg-white px-4 py-3">
         <Input
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           placeholder="Add a comment..."
-          className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50 text-sm h-9"
+          className="h-11 flex-1 border-gray-200 bg-white text-sm text-gray-900 placeholder:text-gray-400"
           disabled={submitting}
         />
         <Button
           size="sm"
           onClick={handleSubmit}
           disabled={submitting || !content.trim()}
-          className="bg-[#0E8F3D] hover:bg-[#35B24A] text-white h-9 px-3"
+          className="h-11 bg-green-500 px-4 text-white hover:bg-green-600"
         >
           <Send className="h-4 w-4" />
         </Button>

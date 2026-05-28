@@ -59,19 +59,19 @@ export function ChannelChatWidget() {
   return (
     <>
       {/* Chat Widget Button */}
-      <div className="fixed bottom-6 left-6 z-40">
+      <div className="fixed bottom-6 left-4 z-40 sm:left-6">
         {!isOpen ? (
           <Button
             onClick={() => setIsOpen(true)}
-            className="rounded-full w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
+            className="h-12 w-12 rounded-full bg-green-500 text-white shadow-md transition-all hover:bg-green-600 hover:shadow-lg"
             title="Chat with admin about educational content"
           >
             <MessageCircle className="h-5 w-5" />
           </Button>
         ) : (
-          <div className="bg-white rounded-lg shadow-2xl border border-gray-200 w-64 max-w-[calc(100vw-32px)]">
+          <div className="w-72 max-w-[calc(100vw-24px)] rounded-2xl border border-gray-100 bg-white shadow-md">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-t-lg flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-t-2xl bg-gradient-to-r from-green-600 to-green-500 p-4 text-white">
               <div>
                 <h3 className="font-semibold text-sm">Educational Content</h3>
                 <p className="text-xs text-blue-100">Buy formatted notes & books</p>
@@ -80,7 +80,7 @@ export function ChannelChatWidget() {
                 size="sm"
                 variant="ghost"
                 onClick={() => setIsOpen(false)}
-                className="text-white hover:bg-white/20 h-6 w-6 p-0"
+                className="h-9 w-9 p-0 text-white hover:bg-white/20"
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -96,10 +96,7 @@ export function ChannelChatWidget() {
                   <p className="text-xs text-gray-600">
                     We can connect you with quality educational resources. Click below to request more information.
                   </p>
-                  <Button
-                    onClick={() => setIsExpanded(true)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
-                  >
+                  <Button onClick={() => setIsExpanded(true)} className="h-11 w-full bg-green-500 text-sm text-white hover:bg-green-600">
                     Request Now
                   </Button>
                 </>
@@ -110,7 +107,7 @@ export function ChannelChatWidget() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="e.g., Past questions for WAEC Math..."
-                    className="text-xs h-7"
+                    className="h-11 text-sm text-gray-900"
                     onKeyPress={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault()
@@ -119,13 +116,13 @@ export function ChannelChatWidget() {
                     }}
                   />
                   <div className="flex gap-1">
-                    <Button onClick={() => setIsExpanded(false)} variant="outline" className="flex-1 text-xs h-7">
+                    <Button onClick={() => setIsExpanded(false)} variant="outline" className="h-11 flex-1 text-sm text-gray-900">
                       Back
                     </Button>
                     <Button
                       onClick={handleSendMessage}
                       disabled={isSending || !message.trim()}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs h-7"
+                      className="h-11 flex-1 bg-green-500 text-sm text-white hover:bg-green-600"
                     >
                       <Send className="h-3 w-3 mr-1" />
                       {isSending ? "Sending..." : "Send"}

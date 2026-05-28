@@ -140,6 +140,7 @@ export default function AgentCompliancePage() {
   const [showFormDialog, setShowFormDialog] = useState(false)
   const [selectedFormForInfo, setSelectedFormForInfo] = useState<(typeof AVAILABLE_FORMS)[0] | null>(null)
   const [showFormInfoPopup, setShowFormInfoPopup] = useState(false)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -188,14 +189,26 @@ export default function AgentCompliancePage() {
     if (agent) {
       fetchStats(agent.id)
       setSelectedFormId(null)
+      setPaymentConfirmed(false)
     }
   }
 
   const handleFormSelect = (formId: string) => {
     console.log("[v0] Form selected:", formId)
     setSelectedFormId(formId)
+    setPaymentConfirmed(false)
     setShowFormDialog(false)
   }
+
+  const paymentRequiredForms = new Set([
+    "birth-certificate",
+    "passport",
+    "sole-proprietorship",
+    "tin-registration",
+    "partnership-registration",
+    "company-shares",
+    "association-registration",
+  ])
 
   const handleShowFormInfo = (form: (typeof AVAILABLE_FORMS)[0]) => {
     setSelectedFormForInfo(form)
@@ -221,9 +234,9 @@ export default function AgentCompliancePage() {
     const selectedForm = AVAILABLE_FORMS.find((f) => f.id === selectedFormId)
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-xl border-b-4 border-blue-700">
+        <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
           <div className="container mx-auto px-4 py-4 sm:py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 sm:gap-4">
@@ -235,13 +248,13 @@ export default function AgentCompliancePage() {
                 </button>
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-lg flex items-center justify-center p-2">
-                    <FileText className="w-full h-full text-blue-600" />
+                    <FileText className="w-full h-full text-green-600" />
                   </div>
                   <div>
                     <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
                       {selectedForm?.name || "Form"}
                     </h1>
-                    <p className="text-blue-100 font-medium text-sm sm:text-base mt-1">Fill out the form below</p>
+                    <p className="text-green-50 font-medium text-sm sm:text-base mt-1">Fill out the form below</p>
                   </div>
                 </div>
               </div>
@@ -251,6 +264,30 @@ export default function AgentCompliancePage() {
 
         {/* Form Content */}
         <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+          {paymentRequiredForms.has(selectedFormId) && (
+            <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+              <p className="text-sm font-semibold text-amber-900">
+                📌 Payment Required - Please send the exact fee via MoMo to the admin before submitting this form.
+                Once payment is confirmed, your submission will be processed.
+              </p>
+              <label className="mt-3 flex items-start gap-2 text-sm text-amber-900">
+                <input
+                  type="checkbox"
+                  checked={paymentConfirmed}
+                  onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-amber-300 text-green-600 focus:ring-green-500"
+                />
+                I have completed the MoMo payment and will send proof to the admin if requested.
+              </label>
+            </div>
+          )}
+          <div
+            className={
+              paymentRequiredForms.has(selectedFormId) && !paymentConfirmed
+                ? "pointer-events-none opacity-60"
+                : ""
+            }
+          >
           {selectedFormId === "birth-certificate" && (
             <BirthCertificateForm
               agentId={agent.id}
@@ -307,6 +344,7 @@ export default function AgentCompliancePage() {
               onCancel={() => setSelectedFormId(null)}
             />
           )}
+          </div>
         </main>
 
         <BackToTop />
@@ -315,9 +353,9 @@ export default function AgentCompliancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-xl border-b-4 border-blue-700">
+      <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
         <div className="container mx-auto px-4 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
@@ -326,13 +364,13 @@ export default function AgentCompliancePage() {
               </Link>
               <div className="flex items-center gap-3 sm:gap-4">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl shadow-lg flex items-center justify-center p-2">
-                  <FileText className="w-full h-full text-blue-600" />
+                  <FileText className="w-full h-full text-green-600" />
                 </div>
                 <div>
                   <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">
                     Compliance Center
                   </h1>
-                  <p className="text-blue-100 font-medium text-sm sm:text-base mt-1">Business Registration & Forms</p>
+                  <p className="text-green-50 font-medium text-sm sm:text-base mt-1">Business Registration & Forms</p>
                 </div>
               </div>
             </div>
@@ -344,19 +382,19 @@ export default function AgentCompliancePage() {
       <main className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 max-w-7xl">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 lg:gap-4 mb-6 sm:mb-8">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs sm:text-sm font-medium text-blue-700">Total</p>
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-900">{stats.total}</p>
+                  <p className="text-xs sm:text-sm font-medium text-gray-600">Total</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{stats.total}</p>
                 </div>
-                <FileText className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-blue-600" />
+                <FileText className="h-5 w-5 sm:h-6 sm:w-6 lg:h-8 lg:w-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -368,7 +406,7 @@ export default function AgentCompliancePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -380,7 +418,7 @@ export default function AgentCompliancePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -392,7 +430,7 @@ export default function AgentCompliancePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
+          <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -405,7 +443,7 @@ export default function AgentCompliancePage() {
           </Card>
         </div>
 
-        <Card className="mb-6 sm:mb-8">
+        <Card className="mb-6 rounded-2xl border border-gray-100 bg-white shadow-sm sm:mb-8">
           <CardHeader className="p-4 sm:p-6">
             <div className="flex flex-col gap-3 sm:gap-4">
               <div className="space-y-1 sm:space-y-2">
@@ -414,7 +452,7 @@ export default function AgentCompliancePage() {
               </div>
               <Button
                 onClick={() => setShowFormDialog(true)}
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 self-start text-sm sm:text-base"
+                className="w-full sm:w-auto self-start bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-sm sm:text-base min-h-11"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Submission

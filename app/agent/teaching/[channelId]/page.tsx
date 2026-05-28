@@ -69,10 +69,10 @@ export default function ChannelPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-2">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-gray-600 text-xs">Loading channel...</p>
+          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-b-2 border-green-500"></div>
+          <p className="text-sm text-gray-600">Loading channel...</p>
         </div>
       </div>
     )
@@ -81,29 +81,29 @@ export default function ChannelPage() {
   if (subscriptionBlocked) {
     const isExpired = subscriptionBlocked.reason === "subscription_expired"
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50">
-        <div className="w-full bg-gradient-to-r from-[#0E8F3D] to-[#35B24A] shadow-lg border-b-2 border-[#0E8F3D]">
-          <div className="w-full px-2 py-2 sm:px-3">
-            <h1 className="text-sm font-bold text-white drop-shadow-lg">Channel Access</h1>
+      <div className="min-h-screen bg-gray-50">
+        <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
+          <div className="mx-auto w-full max-w-5xl px-4 py-4 sm:px-6">
+            <h1 className="text-lg font-semibold text-white">Channel Access</h1>
           </div>
         </div>
-        <div className="w-full px-2 py-4 sm:px-3">
+        <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
           <div className="max-w-2xl">
-            <Card className="border-amber-200 bg-amber-50">
-              <CardContent className="pt-3">
+            <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-sm">
+              <CardContent className="pt-6">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h2 className="text-sm font-semibold text-amber-900 mb-1">
+                    <h2 className="mb-2 text-lg font-semibold text-amber-900">
                       {isExpired ? "Subscription Expired" : "Subscription Required"}
                     </h2>
-                    <p className="text-amber-800 mb-3 text-xs">
+                    <p className="mb-4 text-sm text-amber-800">
                       {isExpired
                         ? "Your subscription has expired. Renew to regain access to this channel."
                         : "This channel requires an active subscription. Complete payment to access channel content."}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <Button asChild className="bg-[#0E8F3D] hover:bg-[#35B24A] text-white text-xs h-7">
+                      <Button asChild className="h-11 bg-green-500 text-sm text-white hover:bg-green-600">
                         <Link href={`/agent/teaching/channels/${channelId}/join`}>
                           {isExpired ? "Renew Subscription" : "Subscribe Now"}
                         </Link>
@@ -111,7 +111,7 @@ export default function ChannelPage() {
                       <Button
                         variant="outline"
                         onClick={() => router.push("/agent/teaching")}
-                        className="text-xs h-7"
+                        className="h-11 text-sm text-gray-900"
                       >
                         Back to Channels
                       </Button>
@@ -128,26 +128,26 @@ export default function ChannelPage() {
 
   if (accessDenied) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg border-b-2 border-blue-700">
-          <div className="w-full px-2 py-2 sm:px-3">
-            <h1 className="text-sm font-bold text-white drop-shadow-lg">Channel Access</h1>
+      <div className="min-h-screen bg-gray-50">
+        <div className="w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
+          <div className="mx-auto w-full max-w-5xl px-4 py-4 sm:px-6">
+            <h1 className="text-lg font-semibold text-white">Channel Access</h1>
           </div>
         </div>
-        <div className="w-full px-2 py-4 sm:px-3">
+        <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
           <div className="max-w-2xl">
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="pt-3">
+            <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-sm">
+              <CardContent className="pt-6">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h2 className="text-sm font-semibold text-red-800 mb-1">Access Denied</h2>
-                    <p className="text-red-700 mb-2 text-xs">
+                    <h2 className="mb-2 text-lg font-semibold text-red-800">Access Denied</h2>
+                    <p className="mb-4 text-sm text-red-700">
                       You are not a member of this channel. Please request to join or contact the channel admin.
                     </p>
                     <Button
                       onClick={() => router.push("/agent/teaching")}
-                      className="bg-red-600 hover:bg-red-700 text-white text-xs h-7"
+                      className="h-11 bg-red-600 text-sm text-white hover:bg-red-700"
                     >
                       Back to Teaching Platform
                     </Button>
@@ -164,26 +164,26 @@ export default function ChannelPage() {
   const isTeacherOrAdmin = userRole === "admin" || userRole === "teacher"
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="sticky top-0 z-50 w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg border-b-2 border-blue-700">
-        <div className="w-full px-2 py-2 sm:px-3">
+    <div className="min-h-screen bg-gray-50">
+      <div className="sticky top-0 z-50 w-full border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
+        <div className="mx-auto w-full max-w-6xl px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.push("/agent/teaching")}
-              className="text-white hover:bg-white/20 h-7 px-2 text-xs"
+              className="h-11 px-3 text-sm text-white hover:bg-white/20"
             >
               ← Back
             </Button>
-            <h1 className="text-sm font-bold text-white drop-shadow-lg truncate">
+            <h1 className="truncate text-base font-semibold text-white sm:text-lg">
               {isTeacherOrAdmin ? "Channel Management" : "Channel"}
             </h1>
           </div>
         </div>
       </div>
 
-      <div className="w-full px-2 py-4 sm:px-3">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
         {isTeacherOrAdmin ? (
           <TeacherChannelDashboard
             channelId={channelId}

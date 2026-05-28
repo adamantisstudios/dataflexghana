@@ -1023,20 +1023,20 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen w-full bg-gray-50 text-gray-900">
       <FontSizeControl onFontSizeChange={setFontSize} initialSize={16} />
       <ChannelMenuBar activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="w-full py-2 space-y-3">
+      <div className="w-full space-y-4 py-3">
         {/* Channel Header */}
-        <div className="border-b-2 border-blue-200 pb-2 w-full px-2 sm:px-3">
+        <div className="w-full border-b border-gray-100 bg-white px-3 pb-4 pt-2 shadow-sm sm:px-4">
           <div className="space-y-1">
-            <h2 className="text-base font-semibold text-blue-800">{channel.name}</h2>
-            <p className="text-xs text-gray-600">{channel.description}</p>
+            <h2 className="text-xl font-semibold text-gray-900">{channel.name}</h2>
+            <p className="text-sm leading-6 text-gray-600">{channel.description}</p>
             <div className="flex flex-wrap gap-1 pt-1">
               <Badge variant="secondary" className="text-xs">
                 {channel.category}
               </Badge>
-              <Badge variant={channel.is_active ? "default" : "destructive"} className="text-xs">
+              <Badge variant={channel.is_active ? "default" : "destructive"} className={`text-xs ${channel.is_active ? "bg-green-500 text-white" : "text-white"}`}>
                 {channel.is_active ? "Active" : "Inactive"}
               </Badge>
               <Badge variant="outline" className="text-xs">
@@ -1055,16 +1055,16 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
         </div>
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-2 w-full">
           {/* Feeds Tab */}
-          <TabsContent value="feeds" className="space-y-2 w-full px-2 sm:px-3">
-            <div className="flex gap-1 w-full">
+          <TabsContent value="feeds" className="w-full space-y-3 px-3 sm:px-4">
+            <div className="flex w-full flex-col gap-2 sm:flex-row">
               <Dialog open={showPostDialog} onOpenChange={setShowPostDialog}>
                 <DialogTrigger asChild>
-                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs h-8">
+                  <Button className="h-11 flex-1 bg-green-500 text-sm text-white hover:bg-green-600">
                     <Plus className="h-3 w-3 mr-1" />
                     Create Lesson
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[400px] max-h-[80vh] overflow-y-auto w-full">
+                <DialogContent className="w-full max-h-[80vh] overflow-y-auto rounded-2xl border border-gray-100 sm:max-w-[400px]">
                   <DialogHeader>
                     <DialogTitle className="text-base">Create Lesson Post</DialogTitle>
                     <DialogDescription className="text-xs">Share a lesson with your channel members</DialogDescription>
@@ -1078,7 +1078,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                         value={postForm.post_type}
                         onValueChange={(val) => setPostForm({ ...postForm, post_type: val as any })}
                       >
-                        <SelectTrigger className="h-8 text-xs">
+                        <SelectTrigger className="h-11 text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1098,7 +1098,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                         value={postForm.title}
                         onChange={(e) => setPostForm({ ...postForm, title: e.target.value })}
                         placeholder="Lesson title"
-                        className="h-8 text-xs"
+                        className="h-11 text-sm"
                       />
                     </div>
                     <div className="grid gap-1">
@@ -1111,18 +1111,18 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                         onChange={(e) => setPostForm({ ...postForm, content: e.target.value })}
                         placeholder="Lesson content"
                         rows={4}
-                        className="text-xs"
+                        className="text-sm"
                       />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button onClick={handleCreatePost} className="bg-blue-600 hover:bg-blue-700 w-full text-xs h-8">
+                    <Button onClick={handleCreatePost} className="h-11 w-full bg-green-500 text-sm text-white hover:bg-green-600">
                       Create Post
                     </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <Button onClick={handleClearChat} variant="destructive" className="flex-1 text-xs h-8">
+              <Button onClick={handleClearChat} variant="destructive" className="h-11 flex-1 text-sm text-white">
                 <Trash2 className="h-3 w-3 mr-1" />
                 Clear Chat
               </Button>
@@ -1141,12 +1141,12 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
               ) : (
                 <div className="space-y-2 w-full">
                   {sortedContent.map((item) => (
-                    <div key={`${item.type}-${item.id}`} className="border-b-2 border-blue-200 pb-2 w-full">
+                    <div key={`${item.type}-${item.id}`} className="w-full rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                       {item.type === "post" ? (
                         <>
                           <div className="flex items-start justify-between gap-1">
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-semibold text-blue-800 break-words">{item.title}</h4>
+                              <h4 className="text-base font-semibold text-gray-900 break-words">{item.title}</h4>
                               <p className="text-xs text-gray-500 mt-0.5">
                                 {item.post_type} • {formatDateTime(item.created_at)}
                               </p>
@@ -1160,7 +1160,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                                 variant="destructive"
                                 onClick={() => handleDeletePost(item.id)}
                                 disabled={deletingPostId === item.id}
-                                className="h-6 w-6 p-0"
+                                className="h-9 w-9 p-0 text-white"
                               >
                                 <Trash2 className="h-2.5 w-2.5" />
                               </Button>
@@ -1169,7 +1169,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                                 variant="destructive"
                                 onClick={() => handlePermanentlyDeletePost(item.id)}
                                 disabled={permanentlyDeletingId === item.id}
-                                className="h-6 w-6 p-0"
+                                className="h-9 w-9 p-0 text-white"
                               >
                                 <Trash2 className="h-2.5 w-2.5" />
                               </Button>
@@ -1201,7 +1201,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                               </p>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                              <Badge variant="secondary" className="bg-green-100 text-xs text-green-800">
                                 {item.message_type}
                               </Badge>
                               {item.message_type !== "deleted" && (
@@ -1216,7 +1216,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                                 variant="destructive"
                                 onClick={() => handlePermanentlyDeleteMessage(item.id)}
                                 disabled={permanentlyDeletingId === item.id}
-                                className="h-6 w-6 p-0"
+                                className="h-9 w-9 p-0 text-white"
                               >
                                 <Trash2 className="h-2.5 w-2.5" />
                               </Button>
@@ -1542,16 +1542,16 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             </div>
           </TabsContent>
           {/* Members Tab */}
-          <TabsContent value="members" className="space-y-2 w-full px-2 sm:px-3">
+          <TabsContent value="members" className="w-full space-y-3 px-3 sm:px-4">
             <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
               <DialogTrigger asChild>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white mb-2 text-xs h-8">
+                <Button className="mb-2 h-11 w-full bg-green-500 text-sm text-white hover:bg-green-600">
                   <Plus className="h-3 w-3 mr-1" />
                   Add Member Directly
                 </Button>
               </DialogTrigger>
 
-              <DialogContent className="sm:max-w-[400px]">
+              <DialogContent className="sm:max-w-[400px] rounded-2xl border border-gray-100">
                 <DialogHeader>
                   <DialogTitle className="text-base">Add Member to Channel</DialogTitle>
                   <DialogDescription className="text-xs">Add an agent directly to this channel</DialogDescription>
@@ -1569,7 +1569,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                       onChange={(e) => setAddMemberForm({ ...addMemberForm, agentId: e.target.value })}
                       placeholder="Enter agent name or phone"
                       autoComplete="off"
-                      className="h-8 text-xs"
+                      className="h-11 text-sm"
                     />
                     <p className="text-xs text-gray-500">Search by name or phone number</p>
                   </div>
@@ -1583,7 +1583,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                       value={addMemberForm.role}
                       onValueChange={(val) => setAddMemberForm({ ...addMemberForm, role: val as any })}
                     >
-                      <SelectTrigger className="h-8 text-xs">
+                      <SelectTrigger className="h-11 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1603,7 +1603,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                       setShowAddMemberDialog(false)
                       setAddMemberForm({ agentId: "", role: "member" })
                     }}
-                    className="text-xs h-8"
+                    className="h-11 text-sm text-gray-900"
                   >
                     Cancel
                   </Button>
@@ -1611,7 +1611,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                   <Button
                     type="button"
                     onClick={handleAddMemberDirectly}
-                    className="bg-blue-600 hover:bg-blue-700 text-xs h-8"
+                    className="h-11 bg-green-500 text-sm text-white hover:bg-green-600"
                   >
                     Add Member
                   </Button>

@@ -138,9 +138,9 @@ export function ChannelLiveSection({ channelId, agentId, agentName, isHost }: Pr
 
   if (memberJoin && session) {
     return (
-      <div className="fixed inset-0 z-50">
+      <div className="fixed inset-0 z-50 bg-black/20">
         <div className="absolute top-3 right-3 z-[60]">
-          <Button variant="secondary" size="sm" onClick={() => setMemberJoin(null)}>
+          <Button variant="secondary" size="sm" className="h-11 border-gray-200 bg-white text-gray-900" onClick={() => setMemberJoin(null)}>
             <X className="h-4 w-4 mr-1" /> Leave live
           </Button>
         </div>
@@ -161,11 +161,11 @@ export function ChannelLiveSection({ channelId, agentId, agentName, isHost }: Pr
   }
 
   return (
-    <div className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 p-4 mb-4">
+    <div className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Radio className="h-5 w-5 text-indigo-600" />
-          <span className="font-semibold text-sm">Channel Live</span>
+          <Radio className="h-5 w-5 text-green-600" />
+          <span className="text-sm font-semibold text-gray-900">Channel Live</span>
           {session && (
             <Badge className="bg-red-500 animate-pulse text-white text-[10px]">
               LIVE · {session.session_type}
@@ -178,7 +178,7 @@ export function ChannelLiveSection({ channelId, agentId, agentName, isHost }: Pr
               <Button
                 size="sm"
                 disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="h-11 bg-green-500 text-white hover:bg-green-600"
                 onClick={() => void startLive("audio")}
               >
                 <Mic className="h-4 w-4 mr-1" />
@@ -187,7 +187,7 @@ export function ChannelLiveSection({ channelId, agentId, agentName, isHost }: Pr
               <Button
                 size="sm"
                 disabled={loading}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="h-11 bg-gray-900 text-white hover:bg-black"
                 onClick={() => void startLive("video")}
               >
                 <Video className="h-4 w-4 mr-1" />
@@ -199,6 +199,7 @@ export function ChannelLiveSection({ channelId, agentId, agentName, isHost }: Pr
             <Button
               size="sm"
               variant="outline"
+              className="h-11 border-gray-200 text-gray-900"
               onClick={async () => {
                 const res = await fetch(`/api/agent/channels/${channelId}/live/join`, {
                   headers: getAgentAuthHeaders(),
@@ -217,7 +218,7 @@ export function ChannelLiveSection({ channelId, agentId, agentName, isHost }: Pr
             </Button>
           )}
           {!isHost && session && (
-            <Button size="sm" disabled={loading} onClick={() => void joinLive()}>
+            <Button size="sm" className="h-11 bg-green-500 text-white hover:bg-green-600" disabled={loading} onClick={() => void joinLive()}>
               Join live
             </Button>
           )}

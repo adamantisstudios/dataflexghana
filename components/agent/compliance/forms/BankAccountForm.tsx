@@ -400,7 +400,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
       </div>
     )}
 
-      <Card className="border-blue-200 bg-white/90 backdrop-blur-sm w-full mx-0 px-0 sm:px-2">
+      <Card className="rounded-2xl border-gray-100 bg-white w-full mx-0 px-0 sm:px-2 shadow-sm">
         <CardHeader className="px-2 sm:px-6">
           <CardTitle className="text-blue-800 flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
@@ -410,7 +410,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
             Step {currentStep} of {totalSteps}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 px-2 sm:px-4" ref={formRef}>
+        <CardContent className="space-y-6 px-2 sm:px-4 [&_input]:min-h-11 [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-green-500 [&_input]:focus-visible:ring-offset-0 [&_textarea]:focus-visible:ring-2 [&_textarea]:focus-visible:ring-green-500 [&_textarea]:focus-visible:ring-offset-0 [&_button]:min-h-11" ref={formRef}>
           {/* Step 1: Account Information */}
           {currentStep === 1 && (
             <div className="space-y-4 w-full">
@@ -1537,7 +1537,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
             <Button
               variant="outline"
               onClick={prevStep}
-              className="w-full sm:w-auto border-blue-300 text-blue-600 hover:bg-blue-50 text-xs bg-transparent"
+              className="w-full sm:w-auto border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs bg-transparent"
             >
               <ChevronLeft className="h-4 w-4 mr-2" />
               {currentStep === 1 ? "Cancel" : "Previous"}
@@ -1548,7 +1548,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
                   variant="outline"
                   onClick={saveProgress}
                   disabled={isSaving}
-                  className="w-full sm:w-auto border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent text-xs"
+                  className="w-full sm:w-auto border border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent text-xs"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {isSaving ? "Saving..." : "Save Progress"}
@@ -1557,7 +1557,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
               {currentStep < totalSteps ? (
                 <Button
                   onClick={nextStep}
-                  className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-xs"
+                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-xs"
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-2" />
@@ -1566,7 +1566,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
                 <Button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-xs"
+                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white text-xs"
                 >
                   {isSubmitting ? "Submitting..." : "Submit Application"}
                 </Button>

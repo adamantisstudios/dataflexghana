@@ -121,7 +121,7 @@ export default function MemberChannelPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading channel...</p>
@@ -132,16 +132,16 @@ export default function MemberChannelPage() {
 
   if (accessDenied || !channel) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-xl border-b-4 border-blue-700">
-          <div className="container mx-auto px-4 py-6">
+      <div className="min-h-screen bg-gray-50">
+        <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
+          <div className="container mx-auto px-4 py-5">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">Channel Access</h1>
+                <h1 className="text-2xl font-semibold text-white lg:text-3xl">Channel Access</h1>
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={handleLogout}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                className="h-11 border-white/30 bg-white/20 text-sm text-white hover:bg-white/30"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -151,7 +151,7 @@ export default function MemberChannelPage() {
         </div>
 
         <div className="container mx-auto px-4 py-8">
-          <Card className="border-red-200 bg-red-50">
+          <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-sm">
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
                 <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-1" />
@@ -160,7 +160,7 @@ export default function MemberChannelPage() {
                   <p className="text-red-700 mb-4">You do not have permission to access this channel.</p>
                   <Button
                     onClick={() => router.push("/agent/teaching")}
-                    className="bg-red-600 hover:bg-red-700 text-white"
+                    className="h-11 bg-red-600 text-white hover:bg-red-700"
                   >
                     Back to Teaching Platform
                   </Button>
@@ -174,11 +174,11 @@ export default function MemberChannelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gray-50 text-gray-900">
       {!loading && agent && <WhatsAppPromoNotification memberId={agent.id} userType="member" />}
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-xl border-b-4 border-blue-700">
+      <div className="border-b border-green-100 bg-gradient-to-r from-green-600 to-green-500 shadow-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -186,20 +186,20 @@ export default function MemberChannelPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => router.push("/agent/teaching")}
-                className="text-white hover:bg-white/20"
+                className="h-11 text-sm text-white hover:bg-white/20"
               >
                 ← Back
               </Button>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-white drop-shadow-lg">{channel.name}</h1>
-                <p className="text-blue-100 text-sm">Channel • Member</p>
+                <h1 className="text-2xl font-semibold text-white lg:text-3xl">{channel.name}</h1>
+                <p className="text-sm text-green-50">Channel • Member</p>
               </div>
             </div>
             <Button
               variant="secondary"
               size="sm"
               onClick={handleLogout}
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+              className="h-11 border-white/30 bg-white/20 text-sm text-white hover:bg-white/30"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
@@ -211,11 +211,11 @@ export default function MemberChannelPage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         {/* Channel Info */}
-        <Card className="mb-8 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <Card className="mb-8 rounded-2xl border border-gray-100 bg-white shadow-sm">
           <CardContent className="pt-6">
             <div className="space-y-2">
-              <p className="text-gray-700">{channel.description}</p>
-              <div className="flex items-center gap-6 text-sm text-gray-600 pt-2">
+              <p className="text-gray-700 leading-7">{channel.description}</p>
+              <div className="flex flex-wrap items-center gap-6 pt-2 text-sm text-gray-600">
                 <span className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   {channel.member_count || 0} members
@@ -231,10 +231,10 @@ export default function MemberChannelPage() {
 
         {/* Posts */}
         <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-blue-800">Channel Posts</h2>
+          <h2 className="text-2xl font-semibold text-gray-900">Channel Posts</h2>
 
           {posts.length === 0 ? (
-            <Card className="border-gray-200 bg-white/50">
+            <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
               <CardContent className="pt-6 text-center">
                 <MessageSquare className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                 <p className="text-gray-600">No posts yet in this channel</p>
@@ -242,11 +242,11 @@ export default function MemberChannelPage() {
             </Card>
           ) : (
             posts.map((post) => (
-              <Card key={post.id} className="border-blue-200 bg-white hover:shadow-lg transition-shadow">
+              <Card key={post.id} className="rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-blue-800">{post.title}</CardTitle>
+                      <CardTitle className="text-gray-900">{post.title}</CardTitle>
                       <p className="text-xs text-gray-500 mt-1">
                         By {post.author_name || "Unknown"} • {new Date(post.created_at).toLocaleDateString()}
                       </p>
@@ -261,7 +261,7 @@ export default function MemberChannelPage() {
 
                   {/* Media if exists */}
                   {post.media_url && post.post_type === "audio" && (
-                    <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                       <audio controls className="w-full">
                         <source src={post.media_url} type="audio/mpeg" />
                         Your browser does not support the audio element.

@@ -295,6 +295,9 @@ export default function InfluencersAdminTab() {
             Micro-Influencer Marketplace
           </h2>
           <p className="text-sm text-muted-foreground">Profiles, packages, orders &amp; escrow</p>
+          <p className="text-xs font-semibold text-emerald-700 mt-1">
+            Platform fee policy: 10% buyer fee + 10% influencer fee on every order.
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={loadAll}>
@@ -726,11 +729,11 @@ export default function InfluencersAdminTab() {
                 </div>
                 <p className="col-span-2 text-muted-foreground">{selectedOrder.package?.title}</p>
                 <div>
-                  <span className="text-muted-foreground block">Client fee (8%)</span>
+                  <span className="text-muted-foreground block">Client fee (10%)</span>
                   <strong>₵{selectedOrder.platform_fee_client.toFixed(2)}</strong>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">Influencer fee (8%)</span>
+                  <span className="text-muted-foreground block">Influencer fee (10%)</span>
                   <strong>₵{selectedOrder.platform_fee_influencer.toFixed(2)}</strong>
                 </div>
                 <div>

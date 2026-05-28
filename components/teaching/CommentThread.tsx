@@ -335,7 +335,7 @@ export function CommentThread({
         </Card>
       )}
 
-      <Card className="border-blue-200 bg-white/90">
+      <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
         <CardContent className="pt-4">
           <div className="space-y-2">
             <div className="flex gap-2">
@@ -344,12 +344,12 @@ export function CommentThread({
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder={isMember ? "Add a comment..." : "You must be a member to comment"}
                 disabled={channelId && !isMember}
-                className="border-blue-200 focus:border-blue-500"
+                className="h-11 border-gray-200 text-gray-900"
               />
               <Button
                 onClick={handleAddComment}
                 disabled={!newComment.trim() || (channelId && !isMember)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="h-11 bg-green-500 text-white hover:bg-green-600"
               >
                 Post
               </Button>
@@ -364,12 +364,12 @@ export function CommentThread({
         ) : (
           comments.map((comment) => (
             <div key={comment.id} className="space-y-2">
-              <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
+              <Card className="rounded-2xl border border-gray-100 bg-white shadow-sm">
                 <CardContent className="pt-4 pb-3">
                   <div className="space-y-3">
                     <div className="flex items-start gap-3 justify-between">
                       <div className="flex gap-3 min-w-0 flex-1">
-                        <div className="h-9 w-9 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs font-bold shrink-0">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-800">
                           {authorInitials(comment.author_name)}
                         </div>
                         <div className="min-w-0">
@@ -412,10 +412,10 @@ export function CommentThread({
                         <Input
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
-                          className="border-blue-200"
+                          className="h-11 border-gray-200 text-gray-900"
                         />
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleEditComment(comment.id)} className="bg-blue-600">
+                          <Button size="sm" onClick={() => handleEditComment(comment.id)} className="h-10 bg-green-500 text-white hover:bg-green-600">
                             Save
                           </Button>
                           <Button
@@ -434,7 +434,7 @@ export function CommentThread({
                       <p className="text-gray-700">{comment.content}</p>
                     )}
 
-                    <div className="flex gap-2 pt-2 border-t border-gray-200">
+                    <div className="flex flex-wrap gap-2 border-t border-gray-200 pt-3">
                       <Button
                         size="sm"
                         variant="ghost"
@@ -461,7 +461,7 @@ export function CommentThread({
               </Card>
 
               {replyingTo === comment.id && (
-                <Card className="border-blue-200 bg-blue-50 ml-4">
+              <Card className="ml-4 rounded-2xl border border-gray-100 bg-gray-50">
                   <CardContent className="pt-4">
                     <div className="flex gap-2">
                       <Input
@@ -469,12 +469,12 @@ export function CommentThread({
                         onChange={(e) => setReplyText(e.target.value)}
                         placeholder="Write a reply..."
                         disabled={channelId && !isMember}
-                        className="border-blue-200"
+                        className="h-11 border-gray-200 text-gray-900"
                       />
                       <Button
                         onClick={() => handleAddReply(comment.id)}
                         disabled={!replyText.trim() || (channelId && !isMember)}
-                        className="bg-blue-600"
+                        className="h-11 bg-green-500 text-white hover:bg-green-600"
                       >
                         Reply
                       </Button>
@@ -511,7 +511,7 @@ export function CommentThread({
 
                   {expandedReplies.has(comment.id) &&
                     comment.replies.map((reply) => (
-                      <Card key={reply.id} className="border-gray-200 bg-white/60">
+                      <Card key={reply.id} className="rounded-xl border border-gray-100 bg-white">
                         <CardContent className="pt-3">
                           <div className="space-y-2">
                             <div className="flex items-start justify-between">

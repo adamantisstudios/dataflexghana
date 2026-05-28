@@ -20,6 +20,7 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCostPopup, setShowCostPopup] = useState(true)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
 
   const [formData, setFormData] = useState({
     // Personal Information
@@ -247,7 +248,7 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
       </div>
     )}
 
-      <Card className="border-emerald-200 bg-white/90 backdrop-blur-sm">
+      <Card className="rounded-2xl border-emerald-200 bg-white/90 backdrop-blur-sm shadow-sm">
         <CardHeader>
           <CardTitle className="text-emerald-800 flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
@@ -257,7 +258,22 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
             Step {currentStep} of {totalSteps}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 [&_input]:min-h-11 [&_input]:focus-visible:ring-2 [&_input]:focus-visible:ring-green-500 [&_input]:focus-visible:ring-offset-0 [&_textarea]:focus-visible:ring-2 [&_textarea]:focus-visible:ring-green-500 [&_textarea]:focus-visible:ring-offset-0 [&_button]:min-h-11">
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-3">
+            <p className="text-sm text-amber-900">
+              📌 <strong>Payment Required</strong> - Please send the exact fee via MoMo to the admin before
+              submitting this form. Once payment is confirmed, your submission will be processed.
+            </p>
+            <label className="flex items-start gap-2 text-sm text-amber-900">
+              <input
+                type="checkbox"
+                checked={paymentConfirmed}
+                onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-amber-300 text-green-600 focus:ring-green-500"
+              />
+              I have completed the MoMo payment and will send proof to the admin if requested.
+            </label>
+          </div>
           <div data-form-section>
             {/* Step 1: Personal Information */}
             {currentStep === 1 && (
@@ -624,11 +640,11 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
             )}
           </div>
 
-          <div className="flex justify-between pt-4 border-t border-emerald-200">
+          <div className="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t border-emerald-200">
             <Button
               variant="outline"
               onClick={() => (currentStep === 1 ? onCancel() : setCurrentStep((prev) => prev - 1))}
-              className="border-emerald-300 text-emerald-600"
+              className="w-full sm:w-auto border border-gray-300 text-gray-700 bg-transparent"
             >
               <ChevronLeft className="h-4 w-4 mr-2" />
               {currentStep === 1 ? "Cancel" : "Previous"}
@@ -637,7 +653,7 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
             {currentStep < totalSteps ? (
               <Button
                 onClick={() => setCurrentStep((prev) => prev + 1)}
-                className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-2" />
@@ -645,8 +661,8 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
             ) : (
               <Button
                 onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                disabled={isSubmitting || !paymentConfirmed}
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white"
               >
                 {isSubmitting ? "Submitting..." : "Submit Application"}
               </Button>

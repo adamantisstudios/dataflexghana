@@ -20,7 +20,7 @@ export default function InfluencerTermsPage() {
             Platform terms for influencers &amp; clients
           </h2>
           <p className="mt-2 text-white/90 text-sm">
-            By using the Micro-Influencer Marketplace you agree to these terms. Both influencers and clients pay an 8%
+            By using the Micro-Influencer Marketplace you agree to these terms. Both influencers and clients pay a 10%
             platform service fee.
           </p>
           <p className="mt-3 text-white/90 text-sm">
@@ -51,19 +51,19 @@ export default function InfluencerTermsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Percent className="h-5 w-5" style={{ color: BRAND }} />
-              Dual platform fees (8% each side)
+              Dual platform fees (10% each side)
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-slate-600 space-y-2">
             <p>
-              <strong>Influencers:</strong> 8% of the package price is deducted from your payout when an order is
+              <strong>Influencers:</strong> 10% of the package price is deducted from your payout when an order is
               completed.
             </p>
             <p>
-              <strong>Clients:</strong> 8% of the package price is added as a platform service fee at checkout.
+              <strong>Clients:</strong> 10% of the package price is added as a platform service fee at checkout.
             </p>
             <p className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-emerald-900">
-              Example: GHS 1,000 package → client pays GHS 1,080; influencer receives GHS 920 after completion.
+              Example: GHS 1,000 package → client pays GHS 1,100; influencer receives GHS 900 after completion.
             </p>
           </CardContent>
         </Card>

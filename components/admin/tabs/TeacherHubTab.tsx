@@ -608,14 +608,14 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   }
 
   return (
-    <div className="flex flex-col min-h-0 h-full bg-gray-50">
+    <div className="flex h-full min-h-0 flex-col bg-gray-50 text-gray-900">
       {/* Top Navigation */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 bg-white shadow-sm">
-        <h1 className="text-lg sm:text-xl font-bold text-[#0E8F3D]">Teacher Hub</h1>
+      <div className="flex flex-col items-start justify-between gap-3 border-b border-gray-100 bg-white p-4 sm:flex-row sm:items-center sm:p-5">
+        <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">Teacher Hub</h1>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <Input
             placeholder="Search..."
-            className="w-full sm:w-auto flex-1 min-w-[140px]"
+            className="h-11 min-w-[180px] flex-1 border-gray-200 text-gray-900 sm:w-auto"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -624,7 +624,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             variant="outline"
             onClick={handleRunExpiryCheck}
             disabled={expiryRunning}
-            className="whitespace-nowrap"
+            className="h-11 whitespace-nowrap border-gray-200 bg-white text-gray-900 hover:bg-gray-50"
           >
             <RefreshCw className={`h-4 w-4 mr-1 ${expiryRunning ? "animate-spin" : ""}`} />
             Run Expiry Check
@@ -632,11 +632,11 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
           {activeSubTab === "channels" && (
             <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
               <DialogTrigger asChild>
-                <Button size="icon" className="bg-blue-600 hover:bg-blue-700">
+                <Button size="icon" className="h-11 w-11 bg-green-500 text-white hover:bg-green-600">
                   <Plus className="h-5 w-5 text-white" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md rounded-2xl border border-gray-100">
                 <DialogHeader>
                   <DialogTitle>Create New Channel</DialogTitle>
                 </DialogHeader>
@@ -667,6 +667,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       variant="outline"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
+                      className="h-11 border-gray-200 text-gray-900"
                     >
                       {uploading ? "Uploading..." : "Upload Image"}
                     </Button>
@@ -733,7 +734,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleCreateChannel} className="bg-blue-600 hover:bg-blue-700">
+                  <Button onClick={handleCreateChannel} className="h-11 bg-green-500 text-white hover:bg-green-600">
                     Create Channel
                   </Button>
                 </DialogFooter>
@@ -744,7 +745,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       </div>
 
       {/* Sub-Tabs */}
-      <div className="flex border-b bg-white overflow-x-auto">
+      <div className="flex overflow-x-auto border-b border-gray-100 bg-white">
         {[
           { id: "channels" as const, icon: BookOpen, label: "Channels" },
           { id: "join-requests" as const, icon: UserPlus, label: "Join Requests" },
@@ -758,7 +759,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               setActiveSubTab(id)
               setCurrentPage(1)
             }}
-            className={`flex-1 min-w-[88px] p-3 text-center shrink-0 ${activeSubTab === id ? "text-[#0E8F3D] border-b-2 border-[#0E8F3D]" : "text-gray-500"}`}
+            className={`h-12 min-w-[110px] shrink-0 border-b-2 px-3 text-center text-sm ${activeSubTab === id ? "border-green-500 text-green-600" : "border-transparent text-gray-500"}`}
           >
             <Icon className="h-5 w-5 mx-auto" />
             <span className="text-xs">{label}</span>
@@ -767,12 +768,12 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5">
         {/* Channels View */}
         {activeSubTab === "channels" && (
           <div className="space-y-3">
             {paginatedData.length === 0 ? (
-              <Card className="text-center py-12">
+              <Card className="rounded-2xl border border-gray-100 py-12 text-center shadow-sm">
                 <CardContent>
                   <BookOpen className="h-12 w-12 mx-auto text-gray-300" />
                   <p className="mt-2 text-gray-500">No channels found</p>
@@ -780,9 +781,9 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               </Card>
             ) : (
               paginatedData.map((channel: TeachingChannel) => (
-                <Card key={channel.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <Card key={channel.id} className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
                   <CardContent className="p-0">
-                    <div className="flex items-center gap-3 p-3">
+                    <div className="flex items-start gap-3 p-4">
                       <div className="relative">
                         <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100">
                           <img
@@ -808,12 +809,12 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                         </div>
                       </div>
                       <Dialog>
-                        <DialogTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8">
+                          <DialogTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-11 w-11 text-gray-900">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-xs">
+                        <DialogContent className="sm:max-w-xs rounded-2xl border border-gray-100">
                           <DialogHeader>
                             <DialogTitle>Channel Actions</DialogTitle>
                           </DialogHeader>
@@ -849,7 +850,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                               <Edit2 className="h-4 w-4 mr-2" />
                               Edit Channel
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteChannel(channel.id)}>
+                            <Button size="sm" variant="destructive" className="text-white" onClick={() => handleDeleteChannel(channel.id)}>
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete Channel
                             </Button>
@@ -868,7 +869,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         {activeSubTab === "join-requests" && (
           <div className="space-y-3">
             {paginatedData.length === 0 ? (
-              <Card className="text-center py-12">
+              <Card className="rounded-2xl border border-gray-100 py-12 text-center shadow-sm">
                 <CardContent>
                   <UserPlus className="h-12 w-12 mx-auto text-gray-300" />
                   <p className="mt-2 text-gray-500">No pending join requests</p>
@@ -876,7 +877,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               </Card>
             ) : (
               paginatedData.map((request: any) => (
-                <Card key={request.id} className="overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <Card key={request.id} className="overflow-hidden rounded-2xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
                   <CardContent className="p-3">
                     <div className="flex items-start gap-3">
                       <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
@@ -896,7 +897,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2 mt-3">
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                       {paidChannelIds.has(request.channel_id) ? (
                         <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 flex-1">
                           Paid channel — verify payment in <strong>Pending Verifications</strong> after the agent pays.
@@ -904,7 +905,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       ) : (
                         <Button
                           size="sm"
-                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          className="h-11 flex-1 bg-green-500 text-white hover:bg-green-600"
                           onClick={() => handleApproveJoinRequest(request.id, request.agent_id, request.channel_id)}
                         >
                           <CheckCircle2 className="h-4 w-4 mr-1" />
@@ -914,7 +915,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       <Button
                         size="sm"
                         variant="destructive"
-                        className={paidChannelIds.has(request.channel_id) ? "shrink-0" : "flex-1"}
+                        className={`${paidChannelIds.has(request.channel_id) ? "shrink-0" : "flex-1"} h-11 text-white`}
                         onClick={() => handleRejectJoinRequest(request.id)}
                       >
                         <X className="h-4 w-4 mr-1" />
@@ -939,7 +940,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               </Card>
             ) : (
               (paginatedData as Agent[]).map((agent) => (
-                <Card key={agent.id} className="shadow-sm hover:shadow-md transition-shadow">
+                <Card key={agent.id} className="rounded-2xl border border-gray-100 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
                   <CardContent className="p-4 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium text-gray-900 truncate">{agent.full_name}</p>
@@ -961,7 +962,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
 
         {activeSubTab === "embed-videos" && (
           <div className="space-y-4">
-            <Card>
+            <Card className="rounded-2xl border border-gray-100 shadow-sm">
               <CardContent className="p-4 space-y-4">
                 <div className="grid gap-2">
                   <Label>Channel</Label>
@@ -1003,7 +1004,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                   />
                 </div>
                 <Button
-                  className="w-full bg-[#0E8F3D] hover:bg-[#35B24A]"
+                  className="h-11 w-full bg-green-500 text-white hover:bg-green-600"
                   onClick={handleCreateEmbedVideo}
                   disabled={!embedChannelId}
                 >
@@ -1016,7 +1017,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             {embedLoading ? (
               <p className="text-center text-gray-500 py-8">Loading embed videos...</p>
             ) : embedVideos.length === 0 ? (
-              <Card className="text-center py-12">
+              <Card className="rounded-2xl border border-gray-100 py-12 text-center shadow-sm">
                 <CardContent>
                   <Video className="h-12 w-12 mx-auto text-gray-300" />
                   <p className="mt-2 text-gray-500">No embed videos for this channel</p>
@@ -1025,7 +1026,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {embedVideos.map((video: any) => (
-                  <Card key={video.id}>
+                  <Card key={video.id} className="rounded-2xl border border-gray-100 shadow-sm">
                     <CardContent className="p-4 space-y-2">
                       <p className="font-medium">{video.title}</p>
                       <Badge variant="outline" className="capitalize">{video.platform}</Badge>
@@ -1035,7 +1036,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       <Button
                         size="sm"
                         variant="destructive"
-                        className="w-full"
+                        className="h-11 w-full text-white"
                         onClick={() => handleDeleteEmbedVideo(video.id)}
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
@@ -1052,7 +1053,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         {activeSubTab === "verifications" && (
           <div className="space-y-3">
             {paginatedData.length === 0 ? (
-              <Card className="text-center py-12">
+              <Card className="rounded-2xl border border-gray-100 py-12 text-center shadow-sm">
                 <CardContent>
                   <CreditCard className="h-12 w-12 mx-auto text-gray-300" />
                   <p className="mt-2 text-gray-500">No pending payment verifications</p>
@@ -1060,7 +1061,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               </Card>
             ) : (
               paginatedData.map((item: any) => (
-                <Card key={`${item.type}-${item.id}`} className="shadow-sm">
+                <Card key={`${item.type}-${item.id}`} className="rounded-2xl border border-gray-100 shadow-sm">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
@@ -1087,7 +1088,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="flex-1 bg-[#0E8F3D] hover:bg-[#35B24A]"
+                        className="h-11 flex-1 bg-green-500 text-white hover:bg-green-600"
                         onClick={() =>
                           item.type === "join"
                             ? handleVerifyJoinPayment(item)
@@ -1136,7 +1137,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
 
       {/* Channel Details Dialog */}
       <Dialog open={showChannelDetailsDialog} onOpenChange={setShowChannelDetailsDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-2xl border border-gray-100">
           <DialogHeader>
             <DialogTitle>{selectedChannel?.name}</DialogTitle>
           </DialogHeader>
@@ -1201,7 +1202,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                           size="icon"
                           variant="ghost"
                           onClick={() => handleDeleteMemberFromChannel(member.id, member.agent_name)}
-                          className="h-8 w-8 text-red-500 hover:text-red-600"
+                          className="h-10 w-10 text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1224,12 +1225,12 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             </Button>
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button className="h-11 bg-green-500 text-white hover:bg-green-600">
                   <UserPlus className="h-4 w-4 mr-2" />
                   Add Member
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md rounded-2xl border border-gray-100">
                 <DialogHeader>
                   <DialogTitle>Add Member to {selectedChannel?.name}</DialogTitle>
                 </DialogHeader>
@@ -1282,7 +1283,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                   <Button variant="outline" onClick={() => setShowAddMemberDialog(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddMemberToChannel} className="bg-blue-600 hover:bg-blue-700">
+                  <Button onClick={handleAddMemberToChannel} className="h-11 bg-green-500 text-white hover:bg-green-600">
                     Add Member
                   </Button>
                 </DialogFooter>
@@ -1294,7 +1295,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
 
       {/* Edit Channel Dialog */}
       <Dialog open={showEditChannelDialog} onOpenChange={setShowEditChannelDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-2xl border border-gray-100">
           <DialogHeader>
             <DialogTitle>Edit Channel</DialogTitle>
           </DialogHeader>
@@ -1400,7 +1401,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                   handleEditChannelName(selectedChannel.id)
                 }
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="h-11 bg-green-500 text-white hover:bg-green-600"
             >
               Save Changes
             </Button>

@@ -97,7 +97,7 @@ export function TutorialVideoSlide({
 
   const togglePlayPause = async () => {
     const player = playerRef.current
-    if (!player) return
+    if (!player || !soundEnabled) return
     try {
       const isPaused = await player.getPaused()
       if (isPaused) await player.play()
@@ -143,6 +143,16 @@ export function TutorialVideoSlide({
           className={`tutorial-embed absolute inset-0 [&_iframe]:absolute [&_iframe]:inset-0 [&_iframe]:h-full [&_iframe]:w-full ${isVimeo ? "" : "tutorial-embed--youtube"}`}
         />
       ) : null}
+
+      {isVimeo && shouldMount && (
+        <button
+          type="button"
+          onClick={togglePlayPause}
+          disabled={!soundEnabled}
+          aria-label="Toggle play/pause"
+          className="absolute inset-0 z-10 bg-transparent disabled:cursor-default"
+        />
+      )}
 
       {isVimeo && shouldMount && (
         <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pb-6 pt-20">

@@ -89,7 +89,7 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
   const agentCommission = complianceFormAgentCommission()
 
   return (
-    <Card id="compliance-forms-section">
+    <Card id="compliance-forms-section" className="rounded-2xl border border-gray-100 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
@@ -101,7 +101,11 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="rounded-lg border border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-emerald-50/50 p-4 space-y-3">
+        <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-emerald-50/50 p-5 space-y-4">
+          <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            📌 <strong>Payment Required</strong> - Please send the exact fee via MoMo to the admin before submitting
+            this form. Once payment is confirmed, your submission will be processed.
+          </div>
           <EarningsBadge amount={agentCommission} variant="amber" className="text-sm px-3 py-1" />
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -129,11 +133,11 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
           ) : (
             <ul className="space-y-2">
               {submissions.map((row) => (
-                <li key={row.id} className="flex items-center justify-between gap-2 border rounded-lg px-3 py-2 text-sm">
+                <li key={row.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-gray-100 px-4 py-3 text-sm bg-gray-50">
                   <span className="text-muted-foreground">
                     {new Date(row.created_at).toLocaleDateString()} · {row.form_type.replace(/_/g, " ")}
                   </span>
-                  <Badge variant="outline" className="capitalize">
+                  <Badge variant="outline" className="capitalize w-fit">
                     {row.status}
                   </Badge>
                 </li>
