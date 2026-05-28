@@ -39,7 +39,14 @@ export function Footer() {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <div className="bg-white rounded-full p-2 w-12 h-12 flex items-center justify-center border-2 border-green-500 shadow-lg">
-                <img src="/images/logo-footer.png" alt="DataFlex Logo" className="w-8 h-8 object-contain" />
+                <img
+                  src="/images/logo-footer.png"
+                  alt="DataFlex Logo"
+                  className="w-8 h-8 object-contain"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
               </div>
               <span className="text-xl lg:text-2xl font-bold">Dataflexghana.com</span>
             </div>

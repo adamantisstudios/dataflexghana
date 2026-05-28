@@ -91,7 +91,7 @@ export function AgentHeader({
           </Button>
 
           <Button variant="secondary" size="sm" asChild className={iconBtnClass} title="Blog">
-            <Link href="/blogs">
+            <Link href="/blogs" prefetch={false}>
               <BookOpen className="h-4 w-4 shrink-0" />
               <span className="sr-only sm:not-sr-only sm:ml-1.5">Blog</span>
             </Link>

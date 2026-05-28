@@ -137,6 +137,20 @@ const authStub = {
 
 type SupabaseError = { message: string; status?: number; code?: string } | null;
 
+type QueryResult = { data: unknown; error: SupabaseError; count?: number | null };
+
+/** Ensures builder chains support `.then().catch()` like native Promises. */
+function chainPromise<T extends QueryResult>(
+  run: () => Promise<T>,
+  fallback: (err: unknown) => T,
+): Promise<T> {
+  const promise = run()
+  if (promise && typeof (promise as Promise<T>).then === "function") {
+    return promise.catch((err) => fallback(err))
+  }
+  return Promise.resolve(fallback(new Error("Query did not return a promise")))
+}
+
 function parseMutationResponse(
   data: unknown,
   opts: { single: boolean; maybeSingle: boolean }
@@ -171,16 +185,33 @@ class DeleteBuilder {
     mixinFilters(this);
   }
 
-  then(
-    resolve: (value: { data: unknown; error: SupabaseError }) => void,
-    reject?: (reason: unknown) => void
-  ) {
-    this._execute()
-      .then(resolve)
-      .catch((err) => (reject ? reject(err) : resolve({ data: null, error: { message: String(err) } })));
+  then<TResult1 = QueryResult, TResult2 = never>(
+    resolve?: ((value: QueryResult) => TResult1 | PromiseLike<TResult1>) | null,
+    reject?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+  ): Promise<TResult1 | TResult2> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) } }),
+    ).then(resolve, reject)
   }
 
-  private async _execute(): Promise<{ data: unknown; error: SupabaseError }> {
+  catch<TResult = never>(
+    reject?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null,
+  ): Promise<QueryResult | TResult> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) } }),
+    ).catch(reject)
+  }
+
+  finally(onFinally?: (() => void) | null): Promise<QueryResult> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) } }),
+    ).finally(onFinally ?? undefined)
+  }
+
+  private async _execute(): Promise<QueryResult> {
     const body: Record<string, unknown> = { filters: this.filters };
     if (this.orFilter) body.or = this.orFilter;
 
@@ -229,16 +260,33 @@ class UpdateBuilder {
     return this;
   }
 
-  then(
-    resolve: (value: { data: unknown; error: SupabaseError }) => void,
-    reject?: (reason: unknown) => void
-  ) {
-    this._execute()
-      .then(resolve)
-      .catch((err) => (reject ? reject(err) : resolve({ data: null, error: { message: String(err) } })));
+  then<TResult1 = QueryResult, TResult2 = never>(
+    resolve?: ((value: QueryResult) => TResult1 | PromiseLike<TResult1>) | null,
+    reject?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+  ): Promise<TResult1 | TResult2> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) } }),
+    ).then(resolve, reject)
   }
 
-  private async _execute(): Promise<{ data: unknown; error: SupabaseError }> {
+  catch<TResult = never>(
+    reject?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null,
+  ): Promise<QueryResult | TResult> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) } }),
+    ).catch(reject)
+  }
+
+  finally(onFinally?: (() => void) | null): Promise<QueryResult> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) } }),
+    ).finally(onFinally ?? undefined)
+  }
+
+  private async _execute(): Promise<QueryResult> {
     const body: Record<string, unknown> = {
       filters: this.filters,
       data: this.updateData,
@@ -287,16 +335,33 @@ class InsertBuilder {
     return this;
   }
 
-  then(
-    resolve: (value: { data: unknown; error: SupabaseError }) => void,
-    reject?: (reason: unknown) => void
-  ) {
-    this._execute()
-      .then(resolve)
-      .catch((err) => (reject ? reject(err) : resolve({ data: null, error: { message: String(err) } })));
+  then<TResult1 = QueryResult, TResult2 = never>(
+    resolve?: ((value: QueryResult) => TResult1 | PromiseLike<TResult1>) | null,
+    reject?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+  ): Promise<TResult1 | TResult2> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) } }),
+    ).then(resolve, reject)
   }
 
-  private async _execute(): Promise<{ data: unknown; error: SupabaseError }> {
+  catch<TResult = never>(
+    reject?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null,
+  ): Promise<QueryResult | TResult> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) } }),
+    ).catch(reject)
+  }
+
+  finally(onFinally?: (() => void) | null): Promise<QueryResult> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) } }),
+    ).finally(onFinally ?? undefined)
+  }
+
+  private async _execute(): Promise<QueryResult> {
     const body =
       this.payload && typeof this.payload === "object" && !Array.isArray(this.payload)
         ? { ...(this.payload as Record<string, unknown>) }
@@ -451,20 +516,33 @@ class QueryBuilder {
     return new DeleteBuilder(this.table);
   }
 
-  then(
-    resolve: (value: { data: unknown; error: SupabaseError; count?: number | null }) => void,
-    reject?: (reason: unknown) => void
-  ) {
-    this._execute()
-      .then(resolve)
-      .catch((err) => (reject ? reject(err) : resolve({ data: null, error: { message: String(err) }, count: null })));
+  then<TResult1 = QueryResult, TResult2 = never>(
+    resolve?: ((value: QueryResult) => TResult1 | PromiseLike<TResult1>) | null,
+    reject?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+  ): Promise<TResult1 | TResult2> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) }, count: null }),
+    ).then(resolve, reject)
   }
 
-  private async _execute(): Promise<{
-    data: unknown;
-    error: SupabaseError;
-    count?: number | null;
-  }> {
+  catch<TResult = never>(
+    reject?: ((reason: unknown) => TResult | PromiseLike<TResult>) | null,
+  ): Promise<QueryResult | TResult> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) }, count: null }),
+    ).catch(reject)
+  }
+
+  finally(onFinally?: (() => void) | null): Promise<QueryResult> {
+    return chainPromise(
+      () => this._execute(),
+      (err) => ({ data: null, error: { message: String(err) }, count: null }),
+    ).finally(onFinally ?? undefined)
+  }
+
+  private async _execute(): Promise<QueryResult> {
     const params = new URLSearchParams();
 
     appendFiltersToParams(params, this.filters, this.orFilter);

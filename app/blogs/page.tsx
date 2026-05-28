@@ -91,15 +91,17 @@ async function getCategories() {
 
 export default async function BlogsPage() {
   const [blogs, categories] = await Promise.all([getBlogs(), getCategories()])
+  const latestTitle =
+    blogs.length > 0 && typeof blogs[0]?.title === "string" ? (blogs[0].title as string) : null
 
   // Generate structured data
   const blogListStructuredData = generateBlogListStructuredData(
     blogs.map((blog) => ({
-      title: blog.title,
-      description: blog.excerpt,
-      slug: blog.slug,
-      published_at: blog.published_at,
-      featured_image_url: blog.featured_image_url,
+      title: String(blog.title ?? ""),
+      description: String(blog.excerpt ?? blog.title ?? ""),
+      slug: String(blog.slug ?? ""),
+      published_at: String(blog.published_at ?? new Date().toISOString()),
+      featured_image_url: blog.featured_image_url ?? undefined,
     })),
   )
 
@@ -111,7 +113,7 @@ export default async function BlogsPage() {
       <StructuredData data={websiteStructuredData} />
 
       <div className="min-h-screen bg-white">
-        <BlogHero />
+        <BlogHero latestTitle={latestTitle} />
         <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:py-14 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-8">
@@ -161,7 +163,14 @@ export default async function BlogsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
                     <div className="bg-white rounded-full p-2 w-10 h-10 flex items-center justify-center">
-                      <img src="/images/logo-footer.png" alt="DataFlex Logo" className="w-6 h-6 object-contain" />
+                      <img
+                        src="/images/logo-footer.png"
+                        alt="DataFlex Logo"
+                        className="w-6 h-6 object-contain"
+                        loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
+                      />
                     </div>
                     <span className="text-lg font-bold">Dataflexghana.com</span>
                   </div>

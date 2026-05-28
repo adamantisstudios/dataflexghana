@@ -218,6 +218,11 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     [role, effectiveUserId, applySessionUpdate, loadAdminIncoming],
   )
 
+  const handleCallSessionsPayloadRef = useRef(handleCallSessionsPayload)
+  useEffect(() => {
+    handleCallSessionsPayloadRef.current = handleCallSessionsPayload
+  }, [handleCallSessionsPayload])
+
   const initiateCall = useCallback(async () => {
     if (role !== "agent") return
     intentionalEndRef.current = false
@@ -303,35 +308,36 @@ export function useCallWidget({ role, userId }: UseCallWidgetOptions) {
     }
   }, [phase, busyCountdown, refreshAvailability])
 
-  // Admin: initial ringing check + realtime (no polling)
+  // Admin: initial ringing check + realtime (stable subscription — payload via ref)
   useEffect(() => {
     if (role !== "admin" || !effectiveUserId) return
 
     void loadAdminIncoming()
 
     const unsubscribe = subscribeCallSessions<CallSession>({
-      channelKey: `admin_${effectiveUserId}`,
+      channelKey: effectiveUserId,
       role: "admin",
       userId: effectiveUserId,
-      onPayload: handleCallSessionsPayload,
+      onPayload: (payload) => handleCallSessionsPayloadRef.current(payload),
     })
 
     return unsubscribe
-  }, [role, effectiveUserId, loadAdminIncoming, handleCallSessionsPayload])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadAdminIncoming only for initial fetch
+  }, [role, effectiveUserId])
 
-  // Agent: session status via realtime (no poll interval)
+  // Agent: session status via realtime (stable subscription)
   useEffect(() => {
     if (role !== "agent" || !effectiveUserId) return
 
     const unsubscribe = subscribeCallSessions<CallSession>({
-      channelKey: `agent_${effectiveUserId}`,
+      channelKey: effectiveUserId,
       role: "agent",
       userId: effectiveUserId,
-      onPayload: handleCallSessionsPayload,
+      onPayload: (payload) => handleCallSessionsPayloadRef.current(payload),
     })
 
     return unsubscribe
-  }, [role, effectiveUserId, handleCallSessionsPayload])
+  }, [role, effectiveUserId])
 
   // Tab close: end active call (keepalive fetch includes auth headers)
   useEffect(() => {

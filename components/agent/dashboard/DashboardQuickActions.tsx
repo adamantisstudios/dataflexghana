@@ -58,7 +58,9 @@ export function DashboardQuickActions({ onInviteFriends }: Props) {
           </div>
         </div>
         <Button asChild size="sm" variant="outline" className="w-full min-h-[44px] font-medium border-gray-200">
-          <Link href="/blogs">Open Blog</Link>
+          <Link href="/blogs" prefetch={false}>
+            Open Blog
+          </Link>
         </Button>
       </div>
     </div>

@@ -6,7 +6,8 @@ import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 
 const INIT_DELAY_MS = 500
 
-let subscribeCounter = 0
+/** One active subscription per stable channel key (prevents duplicate subscribe loops). */
+const activeSubscriptions = new Map<string, () => void>()
 
 type SubscribeRole = "admin" | "agent"
 
@@ -29,9 +30,27 @@ export function subscribeCallSessions<T extends Record<string, unknown>>({
   userId,
   onPayload,
 }: SubscribeCallSessionsOptions<T>): () => void {
-  const channelName = `call_sessions_${channelKey}_${++subscribeCounter}_${Date.now()}`
+  const stableKey = `${role}_${channelKey}_${userId.trim()}`
+  const channelName = `call_sessions_${stableKey}`
+
+  const existing = activeSubscriptions.get(stableKey)
+  if (existing) {
+    return existing
+  }
+
   let channel: RealtimeChannel | null = null
   let cancelled = false
+  let subscribed = false
+
+  const cleanup = () => {
+    cancelled = true
+    subscribed = false
+    if (channel) {
+      void supabase.removeChannel(channel)
+      channel = null
+    }
+    activeSubscriptions.delete(stableKey)
+  }
 
   const timer = setTimeout(() => {
     if (cancelled) return
@@ -74,14 +93,16 @@ export function subscribeCallSessions<T extends Record<string, unknown>>({
         )
         .subscribe((status, err) => {
           if (status === "SUBSCRIBED") {
+            subscribed = true
             return
           }
+          if (cancelled) return
           if (status === "CHANNEL_ERROR") {
             console.warn("[call-realtime] channel error:", channelName, err ?? "unknown")
           } else if (status === "TIMED_OUT") {
             console.warn("[call-realtime] channel timed out:", channelName)
-          } else if (status === "CLOSED") {
-            console.warn("[call-realtime] channel closed:", channelName)
+          } else if (status === "CLOSED" && subscribed) {
+            console.warn("[call-realtime] channel closed unexpectedly:", channelName)
           }
         })
     } catch (error) {
@@ -93,12 +114,11 @@ export function subscribeCallSessions<T extends Record<string, unknown>>({
     }
   }, INIT_DELAY_MS)
 
-  return () => {
-    cancelled = true
+  const unsubscribe = () => {
     clearTimeout(timer)
-    if (channel) {
-      void supabase.removeChannel(channel)
-      channel = null
-    }
+    cleanup()
   }
+
+  activeSubscriptions.set(stableKey, unsubscribe)
+  return unsubscribe
 }
