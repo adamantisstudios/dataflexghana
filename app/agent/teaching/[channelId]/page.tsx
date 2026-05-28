@@ -9,7 +9,11 @@ import { checkChannelMembership } from "@/lib/channel-membership-utils"
 import { TeacherChannelDashboard } from "@/components/teaching/TeacherChannelDashboard"
 import { MemberChannelView } from "@/components/teaching/MemberChannelView"
 import { BackToTop } from "@/components/back-to-top"
-import { teachingHubMainClass, teachingHubPageClass } from "@/components/teaching/teaching-hub-ui"
+import {
+  teachingHubFullBleedClass,
+  teachingHubMainClass,
+  teachingHubPageClass,
+} from "@/components/teaching/teaching-hub-ui"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
@@ -100,8 +104,7 @@ export default function ChannelPage() {
           </div>
         </div>
         <div className={teachingHubMainClass}>
-          <div className="w-full">
-            <Card className="rounded-2xl border border-amber-200 bg-amber-50 shadow-sm">
+          <Card className="w-full max-w-none rounded-2xl border border-amber-200 bg-amber-50 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -132,7 +135,6 @@ export default function ChannelPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
       </div>
     )
@@ -147,8 +149,7 @@ export default function ChannelPage() {
           </div>
         </div>
         <div className={teachingHubMainClass}>
-          <div className="w-full">
-            <Card className="rounded-2xl border border-red-200 bg-red-50 shadow-sm">
+            <Card className="w-full max-w-none rounded-2xl border border-red-200 bg-red-50 shadow-sm">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -173,7 +174,6 @@ export default function ChannelPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
       </div>
     )
@@ -201,7 +201,7 @@ export default function ChannelPage() {
         </div>
       </div>
 
-      <div className={teachingHubMainClass}>
+      <div className={teachingHubFullBleedClass}>
         {isTeacherOrAdmin ? (
           <TeacherChannelDashboard
             channelId={channelId}

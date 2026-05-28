@@ -109,8 +109,28 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, Props>(function AudioPl
           setPlaying(true)
         }}
         onPause={() => setPlaying(false)}
-        onError={() => {
-          setLoadError("Audio file could not be loaded.")
+        onError={(e) => {
+          const el = e.currentTarget
+          const code = el.error?.code
+          const codeLabel =
+            code === MediaError.MEDIA_ERR_ABORTED
+              ? "aborted"
+              : code === MediaError.MEDIA_ERR_NETWORK
+                ? "network"
+                : code === MediaError.MEDIA_ERR_DECODE
+                  ? "decode"
+                  : code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED
+                    ? "unsupported"
+                    : "unknown"
+          console.error("[AudioPlayer] load failed", {
+            code: codeLabel,
+            src: resolvedSrc,
+            networkState: el.networkState,
+            readyState: el.readyState,
+          })
+          setLoadError(
+            "Audio file could not be loaded. If this continues, ask the channel admin to verify storage settings.",
+          )
           setPlaying(false)
         }}
         onTimeUpdate={() => {

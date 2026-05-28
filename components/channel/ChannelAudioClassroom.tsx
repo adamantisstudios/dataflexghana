@@ -8,7 +8,11 @@ import { AudioPlayer, type AudioPlayerHandle } from "@/components/channel/AudioP
 import { AudioLectureComments } from "@/components/channel/AudioLectureComments"
 import type { AudioLecture } from "@/lib/channel-audio-types"
 import { formatTimestamp, parseAttachments } from "@/lib/channel-audio-types"
-import { normalizeMediaUrl, teachingHubContentCardClass } from "@/components/teaching/teaching-hub-ui"
+import {
+  resolveAudioPlaybackSrc,
+  teachingHubContentCardClass,
+  teachingHubFullBleedClass,
+} from "@/components/teaching/teaching-hub-ui"
 import { TeachingSectionErrorBoundary } from "@/components/teaching/TeachingSectionErrorBoundary"
 import { Headphones, ChevronLeft, Paperclip, Play } from "lucide-react"
 
@@ -37,7 +41,6 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
         }
         const list = (data.lectures || []).map((lecture: AudioLecture) => ({
           ...lecture,
-          audio_url: normalizeMediaUrl(lecture.audio_url),
           attachments: parseAttachments(lecture.attachments),
         }))
         setLectures(list)
@@ -56,7 +59,7 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
 
   if (!selected) {
     return (
-      <div className="space-y-4 w-full">
+      <div className={`space-y-4 ${teachingHubFullBleedClass}`}>
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Headphones className="h-5 w-5 text-green-600" />
           Audio Classroom
@@ -76,7 +79,6 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
                 onClick={() =>
                   setSelected({
                     ...lecture,
-                    audio_url: normalizeMediaUrl(lecture.audio_url),
                     attachments: parseAttachments(lecture.attachments),
                   })
                 }
@@ -153,7 +155,7 @@ export function ChannelAudioClassroom({ channelId, memberId, memberName }: Props
 
       <AudioPlayer
         ref={playerRef}
-        src={selected.audio_url}
+        src={resolveAudioPlaybackSrc(selected)}
         title={selected.title}
         sticky
         className="sm:!relative sm:!static sm:rounded-2xl"

@@ -10,6 +10,8 @@ export type AudioLecture = {
   title: string
   description: string | null
   audio_url: string
+  /** Same-origin stream URL with signed token (preferred for <audio>). */
+  playback_url?: string
   duration: number | null
   attachments: AudioAttachment[]
   created_at: string

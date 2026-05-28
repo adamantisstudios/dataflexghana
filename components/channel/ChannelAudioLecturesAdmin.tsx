@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import type { AudioAttachment, AudioLecture } from "@/lib/channel-audio-types"
 import { formatTimestamp, parseAttachments } from "@/lib/channel-audio-types"
-import { normalizeMediaUrl } from "@/components/teaching/teaching-hub-ui"
+import { resolveAudioPlaybackSrc, teachingHubFullBleedClass } from "@/components/teaching/teaching-hub-ui"
 import { TeachingSectionErrorBoundary } from "@/components/teaching/TeachingSectionErrorBoundary"
 import { AudioPlayer } from "@/components/channel/AudioPlayer"
 import { toast } from "sonner"
@@ -44,7 +44,6 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
       if (res.ok) {
         const list = (data.lectures || []).map((lecture: AudioLecture) => ({
           ...lecture,
-          audio_url: normalizeMediaUrl(lecture.audio_url),
           attachments: parseAttachments(lecture.attachments),
         }))
         setLectures(list)
@@ -178,7 +177,7 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
             <p className="text-sm text-gray-600">{previewLecture.description}</p>
           )}
           <AudioPlayer
-            src={previewLecture.audio_url}
+            src={resolveAudioPlaybackSrc(previewLecture)}
             title={previewLecture.title}
             className="!relative !static rounded-2xl"
           />
@@ -204,7 +203,7 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
   }
 
   return (
-    <div className="space-y-4 w-full">
+    <div className={`space-y-4 ${teachingHubFullBleedClass}`}>
       <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
         <Headphones className="h-4 w-4 text-green-600" />
         Audio Lectures

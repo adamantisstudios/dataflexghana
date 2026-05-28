@@ -2,9 +2,12 @@ import { cn } from "@/lib/utils"
 
 /** Full-page shell aligned with Referral Hub */
 export const teachingHubPageClass =
-  "min-h-screen w-full bg-gradient-to-b from-slate-100 via-slate-50 to-white text-gray-900"
+  "min-h-screen w-full max-w-none bg-gradient-to-b from-slate-100 via-slate-50 to-white text-gray-900"
 
-export const teachingHubMainClass = "w-full px-4 py-6 sm:px-6 lg:px-8"
+export const teachingHubMainClass = "w-full max-w-none px-4 py-6 sm:px-6 lg:px-8"
+
+/** Use on page sections that must span the viewport (no centering). */
+export const teachingHubFullBleedClass = "w-full max-w-none"
 
 export const teachingHubContentCardClass =
   "w-full rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6"
@@ -36,13 +39,27 @@ export function isChannelManager(
   return false
 }
 
-/** Ensure audio URLs work in the browser (absolute https). */
+/** Ensure media URLs work in the browser (absolute https or same-origin path). */
 export function normalizeMediaUrl(url: string | null | undefined): string {
   if (!url?.trim()) return ""
   const trimmed = url.trim()
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed
-  if (typeof window !== "undefined" && trimmed.startsWith("/")) {
-    return `${window.location.origin}${trimmed}`
+  if (trimmed.startsWith("/")) {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}${trimmed}`
+    }
+    return trimmed
   }
   return trimmed
+}
+
+/** Prefer API stream URL, then repaired public R2 URL. */
+export function resolveAudioPlaybackSrc(lecture: {
+  playback_url?: string | null
+  audio_url?: string | null
+}): string {
+  if (lecture.playback_url?.trim()) {
+    return normalizeMediaUrl(lecture.playback_url)
+  }
+  return normalizeMediaUrl(lecture.audio_url)
 }

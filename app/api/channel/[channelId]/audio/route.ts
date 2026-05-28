@@ -3,7 +3,11 @@ import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
 import { assertChannelAdmin, assertChannelMember } from "@/lib/channel-audio-auth"
 import { compressAudioBuffer } from "@/lib/compress-audio"
-import { uploadBufferToR2 } from "@/lib/r2-client"
+import { getChannelAudioBucketName, uploadBufferToR2 } from "@/lib/r2-client"
+import {
+  getAudioStreamPath,
+  repairChannelAudioPublicUrl,
+} from "@/lib/channel-audio-playback"
 import { parseAttachments, type AudioLecture } from "@/lib/channel-audio-types"
 import { randomUUID } from "crypto"
 
@@ -12,13 +16,19 @@ export const maxDuration = 300
 
 type RouteContext = { params: Promise<{ channelId: string }> }
 
-function mapLecture(row: Record<string, unknown>): AudioLecture {
+function mapLecture(
+  row: Record<string, unknown>,
+  agentId?: string,
+): AudioLecture {
+  const id = String(row.id)
+  const audio_url = repairChannelAudioPublicUrl(String(row.audio_url))
   return {
-    id: String(row.id),
+    id,
     channel_id: String(row.channel_id),
     title: String(row.title),
     description: row.description != null ? String(row.description) : null,
-    audio_url: String(row.audio_url),
+    audio_url,
+    playback_url: agentId ? getAudioStreamPath(id, agentId) : undefined,
     duration: row.duration != null ? Number(row.duration) : null,
     attachments: parseAttachments(row.attachments),
     created_at: String(row.created_at),
@@ -50,7 +60,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   return NextResponse.json({
     success: true,
-    lectures: (data || []).map((row) => mapLecture(row as Record<string, unknown>)),
+    lectures: (data || []).map((row) =>
+      mapLecture(row as Record<string, unknown>, authResult.user.id),
+    ),
   })
 }
 
@@ -99,7 +111,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { buffer, duration, contentType } = await compressAudioBuffer(inputBuffer, ext)
 
     const objectKey = `channels/${channelId}/audio/${randomUUID()}.mp3`
-    const audioUrl = await uploadBufferToR2(buffer, objectKey, contentType)
+    const bucket = getChannelAudioBucketName()
+    const audioUrl = await uploadBufferToR2(buffer, objectKey, contentType, bucket)
 
     const { data: lecture, error: insertError } = await db
       .from("channel_audio_lectures")
@@ -120,7 +133,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({
       success: true,
-      lecture: mapLecture(lecture as Record<string, unknown>),
+      lecture: mapLecture(lecture as Record<string, unknown>, authResult.user.id),
     })
   } catch (error) {
     console.error("channel audio POST:", error)

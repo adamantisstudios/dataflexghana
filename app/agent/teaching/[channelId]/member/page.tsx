@@ -188,7 +188,7 @@ export default function MemberChannelPage() {
         </div>
       </div>
 
-      <div className="w-full">
+      <div className="w-full max-w-none">
         <MemberChannelView
           channelId={channelId}
           memberId={agent.id}

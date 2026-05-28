@@ -630,7 +630,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full max-w-full flex-col bg-gray-50 text-gray-900">
+    <div className="flex h-full min-h-0 w-full max-w-none flex-col bg-gray-50 text-gray-900 overflow-x-hidden">
       {/* Top Navigation */}
       <div className="flex flex-col items-start justify-between gap-3 border-b border-gray-100 bg-white p-4 sm:flex-row sm:items-center sm:p-5">
         <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl">Teacher Hub</h1>

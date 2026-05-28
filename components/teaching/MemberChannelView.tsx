@@ -20,6 +20,8 @@ import { ChannelLiveSection } from "@/components/channel/ChannelLiveSection"
 import { ChannelAudioClassroom } from "@/components/channel/ChannelAudioClassroom"
 import {
   teachingHubContentCardClass,
+  teachingHubFullBleedClass,
+  teachingHubMainClass,
   teachingHubTabBarStickyClass,
   teachingHubTabListClass,
   teachingHubTabTriggerClass,
@@ -302,12 +304,15 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
   }
 
   return (
-    <div className="w-full text-gray-900 overflow-x-hidden" style={{ fontSize: `${fontSize}px` }}>
+    <div
+      className={`${teachingHubFullBleedClass} text-gray-900 overflow-x-hidden`}
+      style={{ fontSize: `${fontSize}px` }}
+    >
       <FontSizeControl onFontSizeChange={setFontSize} initialSize={16} />
 
       <div className="w-full py-4 sm:py-6">
         {channel?.image_url && (
-          <div className="w-full mb-4 px-4 sm:px-6 lg:px-8">
+          <div className={`${teachingHubMainClass} mb-4`}>
             <div className="relative w-32 h-32 mx-auto rounded-full overflow-hidden bg-gray-100 shadow-md border-4 border-white">
               <img
                 src={channel.image_url || "/placeholder.svg"}
@@ -319,8 +324,8 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         )}
 
         {/* Channel Header */}
-        <div className="mb-6 w-full border-b border-gray-100 bg-white px-4 pb-5 pt-2 shadow-sm sm:px-6 lg:px-8">
-          <div className="space-y-2">
+        <div className="mb-6 w-full max-w-none border-b border-gray-100 bg-white pb-5 pt-2 shadow-sm">
+          <div className={`${teachingHubMainClass} space-y-2`}>
             <h2 className="text-xl font-semibold text-gray-900 sm:text-2xl">{channel.name}</h2>
             <p className="text-sm leading-6 text-gray-600">{channel.description}</p>
             <div className="flex flex-wrap gap-2 pt-2">
@@ -332,7 +337,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
           </div>
         </div>
 
-        <div className="px-4 sm:px-6 lg:px-8 mb-4">
+        <div className={`${teachingHubMainClass} mb-4`}>
           <ChannelLiveSection
             channelId={channelId}
             agentId={memberId}
@@ -341,9 +346,9 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
           />
         </div>
 
-        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4 w-full">
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-4 w-full max-w-none">
           <div className={teachingHubTabBarStickyClass}>
-            <div className="w-full px-4 py-3 sm:px-6 lg:px-8">
+            <div className={`${teachingHubMainClass} py-3`}>
               <TabsList className={cn(teachingHubTabListClass, "inline-flex h-auto bg-slate-50")}>
                 <TabsTrigger value="feeds" className={cn(teachingHubTabTriggerClass, "shrink-0 min-w-[88px]")}>
                   Feeds
@@ -364,7 +369,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
             </div>
           </div>
 
-          <TabsContent value="feeds" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="feeds" className={`${teachingHubMainClass} space-y-4 w-full max-w-none`}>
             {posts.length === 0 && qaPosts.length === 0 && youtubeVideos.length === 0 ? (
               <div className="bg-blue-50 border-b-2 border-blue-200 rounded p-6 text-center text-blue-600">
                 <p>No posts yet. Check back soon!</p>
@@ -563,7 +568,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
             )}
           </TabsContent>
 
-          <TabsContent value="audio" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="audio" className={`${teachingHubMainClass} space-y-4 w-full max-w-none`}>
             <ChannelAudioClassroom
               channelId={channelId}
               memberId={memberId}
@@ -571,7 +576,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
             />
           </TabsContent>
 
-          <TabsContent value="videos" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="videos" className={`${teachingHubMainClass} space-y-4 w-full max-w-none`}>
             <h3 className="text-xl font-semibold text-gray-900">Channel Videos</h3>
             {uploadedVideos.length === 0 && embedVideos.length === 0 ? (
               <div className="bg-green-50 border border-green-200 rounded p-6 text-center text-green-700">
@@ -613,13 +618,13 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
             )}
           </TabsContent>
 
-          <TabsContent value="notes" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="notes" className={`${teachingHubMainClass} space-y-4 w-full max-w-none`}>
             <h3 className="text-xl font-semibold text-gray-900">Lesson Notes</h3>
             <LessonNotesViewer channelId={channelId} />
           </TabsContent>
 
           {/* Saved Posts Tab */}
-          <TabsContent value="saved" className="space-y-4 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="saved" className={`${teachingHubMainClass} space-y-4 w-full max-w-none`}>
             {savedPosts.size === 0 ? (
               <div className="bg-amber-50 border-b-2 border-amber-200 rounded p-6 text-center text-amber-600">
                 <Bookmark className="h-12 w-12 mx-auto mb-2 opacity-50" />

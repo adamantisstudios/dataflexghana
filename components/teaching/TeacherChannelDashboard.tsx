@@ -61,6 +61,7 @@ import { YouTubeVideoDisplay } from "./youtube/YouTubeVideoDisplay"
 import { ChannelSubscriptionManager } from "./channel-subscription-manager"
 import { ChannelLiveSection } from "@/components/channel/ChannelLiveSection"
 import { ChannelAudioLecturesAdmin } from "@/components/channel/ChannelAudioLecturesAdmin"
+import { teachingHubMainClass, teachingHubFullBleedClass } from "@/components/teaching/teaching-hub-ui"
 
 interface Channel {
   id: string
@@ -1034,12 +1035,13 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
   }
 
   return (
-    <div className="w-full bg-transparent text-gray-900 overflow-x-hidden">
+    <div className={`${teachingHubFullBleedClass} bg-transparent text-gray-900 overflow-x-hidden`}>
       <FontSizeControl onFontSizeChange={setFontSize} initialSize={16} />
       <ChannelMenuBar activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="w-full space-y-4 py-3">
+      <div className="w-full max-w-none space-y-4 py-3">
         {/* Channel Header */}
-        <div className="w-full border-b border-gray-100 bg-white px-4 pb-4 pt-2 shadow-sm sm:px-6 lg:px-8">
+        <div className="w-full max-w-none border-b border-gray-100 bg-white pb-4 pt-2 shadow-sm">
+          <div className={teachingHubMainClass}>
           <div className="space-y-1">
             <h2 className="text-xl font-semibold text-gray-900">{channel.name}</h2>
             <p className="text-sm leading-6 text-gray-600">{channel.description}</p>
@@ -1055,8 +1057,9 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
               </Badge>
             </div>
           </div>
+          </div>
         </div>
-        <div className="px-4 sm:px-6 lg:px-8">
+        <div className={teachingHubMainClass}>
           <ChannelLiveSection
             channelId={channelId}
             agentId={teacherId}
@@ -1064,9 +1067,9 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             isHost
           />
         </div>
-        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-2 w-full">
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="space-y-2 w-full max-w-none">
           {/* Feeds Tab */}
-          <TabsContent value="feeds" className="w-full space-y-3 px-4 sm:px-6 lg:px-8">
+          <TabsContent value="feeds" className={`${teachingHubMainClass} w-full max-w-none space-y-3`}>
             <div className="flex w-full flex-col gap-2 sm:flex-row">
               <Dialog open={showPostDialog} onOpenChange={setShowPostDialog}>
                 <DialogTrigger asChild>
@@ -1365,7 +1368,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             </div>
           </TabsContent>
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-3 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="overview" className={`${teachingHubMainClass} space-y-3 w-full max-w-none`}>
             <div className="grid grid-cols-3 gap-2 w-full">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded p-2">
                 <p className="text-xs font-medium text-blue-800">Members</p>
@@ -1553,7 +1556,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             </div>
           </TabsContent>
           {/* Members Tab */}
-          <TabsContent value="members" className="w-full space-y-3 px-4 sm:px-6 lg:px-8">
+          <TabsContent value="members" className={`${teachingHubMainClass} w-full max-w-none space-y-3`}>
             <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
               <DialogTrigger asChild>
                 <Button className="mb-2 h-11 w-full bg-green-500 text-sm text-white hover:bg-green-600">
@@ -1672,7 +1675,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           </TabsContent>
 
           {/* Requests Tab */}
-          <TabsContent value="requests" className="space-y-3 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="requests" className={`${teachingHubMainClass} space-y-3 w-full max-w-none`}>
             {joinRequests.length === 0 ? (
               <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center text-green-700 text-sm">
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8 opacity-60" />
@@ -1726,7 +1729,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             )}
           </TabsContent>
           {/* Lesson Notes Tab */}
-          <TabsContent value="lesson-notes" className="space-y-2 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="lesson-notes" className={`${teachingHubMainClass} space-y-2 w-full max-w-none`}>
             <LessonNotesManager
               channelId={channelId}
               teacherId={teacherId}
@@ -1735,7 +1738,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             />
           </TabsContent>
           {/* Videos Tab */}
-          <TabsContent value="videos" className="space-y-2 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="videos" className={`${teachingHubMainClass} space-y-2 w-full max-w-none`}>
             <VideoPostCreator
               channelId={channelId}
               teacherId={teacherId}
@@ -1789,7 +1792,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             </div>
           </TabsContent>
           {/* Quiz Tab */}
-          <TabsContent value="qa" className="space-y-2 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="qa" className={`${teachingHubMainClass} space-y-2 w-full max-w-none`}>
             <QAPostCreator
               channelId={channelId}
               teacherId={teacherId}
@@ -1840,7 +1843,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
             </div>
           </TabsContent>
           {/* YouTube Videos Tab */}
-          <TabsContent value="youtube-videos" className="space-y-2 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="youtube-videos" className={`${teachingHubMainClass} space-y-2 w-full max-w-none`}>
             <YouTubeVideoCreator
               channelId={channelId}
               teacherId={teacherId}
@@ -1876,11 +1879,11 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
               )}
             </div>
           </TabsContent>
-          <TabsContent value="audio-lectures" className="space-y-2 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="audio-lectures" className={`${teachingHubMainClass} space-y-2 w-full max-w-none`}>
             <ChannelAudioLecturesAdmin channelId={channelId} />
           </TabsContent>
           {/* Subscriptions Tab */}
-          <TabsContent value="subscriptions" className="space-y-2 w-full px-4 sm:px-6 lg:px-8">
+          <TabsContent value="subscriptions" className={`${teachingHubMainClass} space-y-2 w-full max-w-none`}>
             <ChannelSubscriptionManager channelId={channelId} />
           </TabsContent>
         </Tabs>

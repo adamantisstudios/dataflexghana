@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 
 function requireEnv(name: string): string {
   const v = process.env[name]
@@ -18,11 +18,54 @@ export function getR2Client(): S3Client {
   })
 }
 
+/** Channel audio lectures bucket (public read via R2_PUBLIC_URL_BASE or stream API). */
+export function getChannelAudioBucketName(): string {
+  return (
+    process.env.R2_CHANNEL_AUDIO_BUCKET_NAME ||
+    process.env.R2_BUCKET_NAME ||
+    "dataflex-channel-audio"
+  )
+}
+
+export function getAttachmentsBucketName(): string {
+  return process.env.R2_ATTACHMENTS_BUCKET_NAME || "dataflex-channel-attachments"
+}
+
+function encodeObjectKey(objectKey: string): string {
+  return objectKey
+    .replace(/^\/+/, "")
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")
+}
+
+/**
+ * Public URL for an R2 object.
+ *
+ * Configure `R2_PUBLIC_URL_BASE` to the bucket's public r2.dev URL from Cloudflare
+ * (e.g. https://pub-xxxxxxxx.r2.dev) — do NOT include the bucket name in the path.
+ *
+ * Optional: `R2_CHANNEL_AUDIO_PUBLIC_URL_BASE` for the audio bucket only.
+ */
 export function getR2PublicUrl(objectKey: string, bucketName?: string): string {
   const bucket = bucketName || requireEnv("R2_BUCKET_NAME")
+  const keyPath = encodeObjectKey(objectKey)
+
+  const channelBase = process.env.R2_CHANNEL_AUDIO_PUBLIC_URL_BASE?.replace(/\/$/, "")
+  if (bucket === getChannelAudioBucketName() && channelBase) {
+    return `${channelBase}/${keyPath}`
+  }
+
+  const publicBase = process.env.R2_PUBLIC_URL_BASE?.replace(/\/$/, "")
+  if (publicBase) {
+    return `${publicBase}/${keyPath}`
+  }
+
   const accountId = requireEnv("R2_ACCOUNT_ID")
-  const encodedKey = objectKey.split("/").map(encodeURIComponent).join("/")
-  return `https://pub-${accountId}.r2.dev/${bucket}/${encodedKey}`
+  console.warn(
+    "[R2] R2_PUBLIC_URL_BASE is not set. Public audio URLs may return 403 until you enable public access and set R2_PUBLIC_URL_BASE in .env.local",
+  )
+  return `https://pub-${accountId}.r2.dev/${keyPath}`
 }
 
 export async function uploadBufferToR2(
@@ -37,7 +80,7 @@ export async function uploadBufferToR2(
   await client.send(
     new PutObjectCommand({
       Bucket: bucket,
-      Key: objectKey,
+      Key: objectKey.replace(/^\/+/, ""),
       Body: buffer,
       ContentType: contentType,
     }),
@@ -46,13 +89,25 @@ export async function uploadBufferToR2(
   return getR2PublicUrl(objectKey, bucket)
 }
 
-export function getAttachmentsBucketName(): string {
-  return process.env.R2_ATTACHMENTS_BUCKET_NAME || "dataflex-channel-attachments"
+/** Stream object bytes from R2 (for authenticated playback proxy). */
+export async function getR2ObjectStream(
+  objectKey: string,
+  options?: { bucketName?: string; range?: string },
+) {
+  const bucket = options?.bucketName || requireEnv("R2_BUCKET_NAME")
+  const client = getR2Client()
+  return client.send(
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: objectKey.replace(/^\/+/, ""),
+      Range: options?.range,
+    }),
+  )
 }
 
 /** Remove an object from R2 (e.g. rollback after failed DB insert). */
 export async function deleteFromR2(objectKey: string, bucketName?: string): Promise<void> {
   const bucket = bucketName || requireEnv("R2_BUCKET_NAME")
   const client = getR2Client()
-  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }))
+  await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey.replace(/^\/+/, "") }))
 }
