@@ -34,6 +34,7 @@ import {
 } from "lucide-react"
 import { supabase } from "@/lib/supabase-client"
 import { useAdminTabCache } from "@/lib/admin-tabs-cache"
+import { getAdminAuthHeaders } from "@/lib/api-client"
 import { toast } from "sonner"
 
 interface Blog {
@@ -375,14 +376,18 @@ export default function BlogsTab() {
     if (!confirm("Are you sure you want to delete this blog post?")) return
 
     try {
-      const { error } = await supabase.from("blogs").delete().eq("id", id)
+      const res = await fetch(`/api/admin/blogs/${id}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || "Failed to delete blog")
 
-      if (error) throw error
       toast.success("Blog deleted successfully")
       loadBlogs()
     } catch (error) {
       console.error("Error deleting blog:", error)
-      toast.error("Failed to delete blog")
+      toast.error(error instanceof Error ? error.message : "Failed to delete blog")
     }
   }
 

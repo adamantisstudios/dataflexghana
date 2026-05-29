@@ -12,6 +12,8 @@ import { ProtectedLink } from "@/components/protected-link"
 
 const siteUrl = "https://dataflexghana.com"
 
+export const dynamic = "force-dynamic"
+
 export const metadata: Metadata = {
   title: "Blog | DataFlex - Latest Insights & Updates",
   description:

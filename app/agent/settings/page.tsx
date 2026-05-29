@@ -28,6 +28,8 @@ import { AgentAvatar } from "@/components/agent/AgentAvatar"
 import { LazyProfileImage } from "@/components/ui/lazy-profile-image"
 import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
 import { confirmAgentProfilePhotoVerified } from "@/lib/agent-profile-photo-client"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
 
 export default function AgentSettingsPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -86,17 +88,18 @@ export default function AgentSettingsPage() {
   }, [router])
 
   const uploadProfilePhoto = async (file: File) => {
-    if (!agent) return
+    const currentAgent = getStoredAgent()
+    if (!currentAgent?.id) {
+      toast.error("Session expired. Please log in again.")
+      return
+    }
     setPhotoUploading(true)
     try {
       const fd = new FormData()
       fd.append("file", file)
       const res = await fetch("/api/upload/image", {
         method: "POST",
-        headers: {
-          "x-agent-id": agent.id,
-          "x-agent-phone": agent.phone_number,
-        },
+        headers: getAgentAuthHeaders(),
         body: fd,
       })
       const data = await res.json()
@@ -227,7 +230,7 @@ export default function AgentSettingsPage() {
 
       if (error) throw error
 
-      localStorage.removeItem("agent")
+      logoutAgent()
       alert("Account deleted successfully")
       router.push("/")
     } catch (error) {

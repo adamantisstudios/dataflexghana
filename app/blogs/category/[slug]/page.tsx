@@ -6,6 +6,8 @@ import { BlogCategories } from "@/components/public/blog/BlogCategories"
 import { StructuredData } from "@/components/seo/StructuredData"
 import { generateSEOMetadata, generateBlogListStructuredData } from "@/lib/seo"
 
+export const dynamic = "force-dynamic"
+
 interface CategoryPageProps {
   params: Promise<{
     slug: string

@@ -99,17 +99,6 @@ export function updateStoredAgent(updates: Partial<Agent>): void {
 }
 
 /**
- * Logout agent and clear session
+ * Logout agent and clear session (delegates to unified auth for full cleanup)
  */
-export function logoutAgent(): void {
-  clearStoredAgent()
-
-  // Trigger storage event for other tabs
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: AGENT_STORAGE_KEY,
-      newValue: null,
-      oldValue: localStorage.getItem(AGENT_STORAGE_KEY)
-    }))
-  }
-}
+export { logoutAgent } from "@/lib/unified-auth-system"

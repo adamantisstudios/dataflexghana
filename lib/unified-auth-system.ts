@@ -119,6 +119,33 @@ export function setStoredAgent(agent: Agent): void {
 }
 
 /**
+ * Replace any prior agent session with a fresh one (call after successful login).
+ */
+export function establishAgentSession(agent: Agent): void {
+  clearAgentSessionArtifacts()
+  setStoredAgent(agent)
+}
+
+/**
+ * Clear agent auth artifacts without triggering cross-tab logout side effects.
+ */
+export function clearAgentSessionArtifacts(): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    localStorage.removeItem(AGENT_STORAGE_KEY)
+    localStorage.removeItem('agent_auth')
+    localStorage.removeItem('agentToken')
+    removeCookieSafe('agent_id')
+    removeCookieSafe('agent')
+    document.cookie = 'special_agent=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'agent_phone=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  } catch (error) {
+    console.error('Error clearing agent session artifacts:', error)
+  }
+}
+
+/**
  * Clear agent data from localStorage (logout)
  */
 export function clearStoredAgent(): void {
@@ -162,11 +189,20 @@ export function updateStoredAgent(updates: Partial<Agent>): void {
  * Logout agent and clear session + cache
  */
 export function logoutAgent(): void {
+  const previousAgent = localStorage.getItem(AGENT_STORAGE_KEY)
+
+  // Clear Supabase Auth session so a new agent login does not reuse the old session
+  signOutSupabaseAuth().catch((error) => {
+    console.error('[v0] Error clearing Supabase Auth session on agent logout:', error)
+  })
+
   clearStoredAgent()
 
   // Clear all caches and storage
   if (typeof window !== 'undefined') {
     try {
+      clearAgentSessionArtifacts()
+
       // Clear sessionStorage
       sessionStorage.clear()
       
@@ -195,7 +231,7 @@ export function logoutAgent(): void {
     window.dispatchEvent(new StorageEvent('storage', {
       key: AGENT_STORAGE_KEY,
       newValue: null,
-      oldValue: localStorage.getItem(AGENT_STORAGE_KEY)
+      oldValue: previousAgent
     }))
   }
 }
@@ -232,8 +268,8 @@ export async function loginAgent(phoneNumber: string, password: string): Promise
       return { success: false, error: 'Invalid phone number or password' }
     }
 
-    // Store agent session
-    setStoredAgent(agent)
+    // Replace any stale session from a prior agent on this device
+    establishAgentSession(agent)
 
     console.log('✅ Agent login successful!')
     return { success: true, agent }

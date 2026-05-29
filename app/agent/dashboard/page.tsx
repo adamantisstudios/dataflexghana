@@ -55,6 +55,7 @@ import DashboardLoginNotification from "@/components/agent/DashboardLoginNotific
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
 import { supabase } from "@/lib/supabase-client";
+import { logoutAgent } from "@/lib/unified-auth-system"
 import type { Job  } from "@/lib/supabase"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
@@ -769,7 +770,7 @@ export default function AgentDashboard() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("agent")
+    logoutAgent()
     router.push("/")
   }
 

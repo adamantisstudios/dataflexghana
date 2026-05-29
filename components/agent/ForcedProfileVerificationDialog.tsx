@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { ShieldAlert } from "lucide-react"
 import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
-import { getStoredAgent } from "@/lib/unified-auth-system"
+import { getStoredAgent, setStoredAgent } from "@/lib/unified-auth-system"
 import { isPlatformAdminAgent } from "@/lib/platform-admin"
 import { getPhotoVerificationStatus } from "@/lib/photo-verification-status"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
@@ -29,6 +29,7 @@ export function ForcedProfileVerificationDialog() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [agent, setAgent] = useState<{
     id: string
+    phone_number?: string
     email?: string | null
     profile_image_url?: string | null
     profile_verified?: boolean | null
@@ -55,7 +56,7 @@ export function ForcedProfileVerificationDialog() {
 
     const { data } = await supabase
       .from("agents")
-      .select("id, email, profile_image_url, profile_verified, isapproved")
+      .select("id, phone_number, email, profile_image_url, profile_verified, isapproved")
       .eq("id", stored.id)
       .maybeSingle()
 
@@ -75,21 +76,33 @@ export function ForcedProfileVerificationDialog() {
   useEffect(() => {
     void refreshAgent()
     const id = window.setInterval(() => void refreshAgent(), POLL_MS)
-    return () => window.clearInterval(id)
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "agent") {
+        void refreshAgent()
+      }
+    }
+    window.addEventListener("storage", handleStorageChange)
+
+    return () => {
+      window.clearInterval(id)
+      window.removeEventListener("storage", handleStorageChange)
+    }
   }, [refreshAgent])
 
   const uploadProfilePhoto = async (file: File) => {
-    if (!agent?.id) return
+    const currentAgent = getStoredAgent()
+    if (!currentAgent?.id) {
+      toast.error("Session expired. Please log in again.")
+      return
+    }
     setPhotoUploading(true)
     try {
       const fd = new FormData()
       fd.append("file", file)
       const res = await fetch("/api/upload/image", {
         method: "POST",
-        headers: {
-          "x-agent-id": agent.id,
-          "x-agent-phone": (agent as { phone_number?: string }).phone_number || "",
-        },
+        headers: getAgentAuthHeaders(),
         body: fd,
       })
       const data = await res.json()

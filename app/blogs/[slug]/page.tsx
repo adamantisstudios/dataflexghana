@@ -7,6 +7,8 @@ import { BlogCategories } from "@/components/public/blog/BlogCategories"
 import { StructuredData } from "@/components/seo/StructuredData"
 import { generateBlogStructuredData } from "@/lib/seo"
 
+export const dynamic = "force-dynamic"
+
 interface BlogPageProps {
   params: Promise<{
     slug: string

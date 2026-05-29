@@ -1,27 +1,18 @@
-/** Agent auth headers for API routes (Bearer + x-agent-id + optional phone). */
+import { getStoredAgent } from "@/lib/unified-auth-system"
+
+/** Agent auth headers for API routes (Bearer + x-agent-id + phone). Always reads fresh from storage. */
 export function getAgentAuthHeaders(): Record<string, string> {
   if (typeof window === "undefined") {
     return { "Content-Type": "application/json" }
   }
 
   try {
-    const raw = localStorage.getItem("agent")
-    if (!raw) {
-      return { "Content-Type": "application/json" }
-    }
-
-    const agent = JSON.parse(raw) as {
-      id?: string
-      phone_number?: string
-      full_name?: string
-    }
-
+    const agent = getStoredAgent()
     if (!agent?.id) {
       return { "Content-Type": "application/json" }
     }
 
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${btoa(JSON.stringify(agent))}`,
       "x-agent-id": String(agent.id),
     }
@@ -39,12 +30,5 @@ export function getAgentAuthHeaders(): Record<string, string> {
 /** Read stored agent id for request body fallbacks (mobile-safe). */
 export function getStoredAgentId(): string | null {
   if (typeof window === "undefined") return null
-  try {
-    const raw = localStorage.getItem("agent")
-    if (!raw) return null
-    const agent = JSON.parse(raw) as { id?: string }
-    return agent?.id ? String(agent.id) : null
-  } catch {
-    return null
-  }
+  return getStoredAgent()?.id ?? null
 }

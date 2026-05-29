@@ -1,15 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-client";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate custom authentication from request headers
-    const authToken = request.headers.get("x-agent-id")
-    const agentPhone = request.headers.get("x-agent-phone")
-
-    if (!authToken || !agentPhone) {
-      return NextResponse.json({ error: "Unauthorized: Missing authentication headers" }, { status: 401 })
+    const auth = await authenticateAgent(request)
+    if (!auth.success) {
+      return createAuthErrorResponse(auth.error || "Unauthorized: Missing authentication headers")
     }
 
     const formData = await request.formData()

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { setStoredAgent } from "@/lib/agent-auth"
+import { establishAgentSession, logoutAgent } from "@/lib/unified-auth-system"
 import { getPlatformName } from "@/lib/config"
 import { ArrowLeft, LogIn, Eye, EyeOff, Phone, Lock, AlertTriangle, UserCheck } from "lucide-react"
 import Link from "next/link"
@@ -70,7 +70,9 @@ export default function AgentLoginPage() {
         return
       }
 
-      setStoredAgent(data)
+      // Clear any prior agent session before storing the new one
+      logoutAgent()
+      establishAgentSession(data)
 
       // Set cookie for special agent to bypass maintenance mode
       if (data.phone_number === '+233546460945') {
