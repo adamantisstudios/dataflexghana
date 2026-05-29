@@ -38,24 +38,22 @@ export function AnnouncementsFloatingButton() {
 
   const fab = (
     <div
-      className="fixed z-[100] pointer-events-none
-        bottom-[max(1rem,env(safe-area-inset-bottom))]
-        right-[max(1rem,env(safe-area-inset-right))]
-        max-sm:bottom-[max(5.25rem,env(safe-area-inset-bottom))]
-        max-sm:right-4"
+      className="fixed z-[52] pointer-events-none
+        bottom-[max(6rem,calc(6rem+env(safe-area-inset-bottom)))]
+        right-[max(1.5rem,calc(1.5rem+env(safe-area-inset-right)))]
+        max-sm:bottom-[max(7rem,calc(7rem+env(safe-area-inset-bottom)))]
+        max-sm:right-[max(1rem,calc(1rem+env(safe-area-inset-right)))]"
       role="presentation"
     >
       <Button
         type="button"
         onClick={handleClick}
-        className="pointer-events-auto flex h-14 items-center gap-2 rounded-full border-2 border-white bg-[#0E8F3D] px-4 text-white shadow-[0_8px_30px_rgba(0,0,0,0.25)] ring-2 ring-emerald-400/40 hover:bg-[#0a7a34] hover:shadow-xl sm:px-5"
+        size="icon"
+        className="pointer-events-auto h-11 w-11 rounded-full border border-white/80 bg-[#0E8F3D] text-white shadow-md transition-transform duration-150 hover:bg-[#0a7a34] hover:scale-105 active:scale-95"
         aria-label="Official announcements"
         title="Official announcements"
       >
-        <Megaphone className="h-6 w-6 shrink-0" />
-        <span className="text-sm font-semibold whitespace-nowrap max-[380px]:sr-only sm:not-sr-only">
-          Announcements
-        </span>
+        <Megaphone className="h-5 w-5" />
       </Button>
     </div>
   )

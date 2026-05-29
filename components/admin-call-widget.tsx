@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { getStoredAdmin } from "@/lib/unified-auth-system"
 import { useCallWidget } from "@/hooks/use-call-widget"
+import { useRingtone } from "@/hooks/use-ringtone"
 import { CallAudioSession, useCallAudioControls } from "@/components/calls/CallAudioSession"
 import { CallMuteButton } from "@/components/calls/CallLiveKitAudio"
 import {
@@ -140,6 +141,8 @@ export function AdminCallWidget() {
   if (pathname?.includes("/voice-rooms")) return null
 
   const showWiggle = hasIncoming && phase === "idle"
+  const isRinging = hasIncoming && phase === "idle"
+  const { activateAudio } = useRingtone(isRinging)
 
   useEffect(() => {
     if (hasIncoming && phase === "idle" && !dialogOpen) {
@@ -160,7 +163,10 @@ export function AdminCallWidget() {
     <>
       <button
         type="button"
-        onClick={() => setDialogOpen(true)}
+        onClick={() => {
+          void activateAudio()
+          setDialogOpen(true)
+        }}
         className={cn(
           "fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-xl",
           "bg-gradient-to-br from-green-400 to-emerald-500 text-white",
@@ -205,6 +211,7 @@ export function AdminCallWidget() {
               setResponding(true)
               void (async () => {
                 try {
+                  await activateAudio()
                   await acceptCall()
                 } catch (e) {
                   toast.error(e instanceof Error ? e.message : "Could not accept")
@@ -213,7 +220,9 @@ export function AdminCallWidget() {
                 }
               })()
             }}
-            onDecline={() => void declineCall()}
+            onDecline={() => {
+              void declineCall()
+            }}
             onEndCall={() => void endCall()}
             formatCallDuration={formatCallDuration}
           />
