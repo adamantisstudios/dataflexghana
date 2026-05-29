@@ -17,6 +17,7 @@ interface YouTubeVideoPreviewModalProps {
   userId: string
   userName: string
   onCommentAdded?: () => void
+  disableComments?: boolean
 }
 
 export function YouTubeVideoPreviewModal({
@@ -266,32 +267,32 @@ export function YouTubeVideoPreviewModal({
             </Button>
           </div>
 
-          {/* Comments Section */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Comments
-            </h3>
+          {!disableComments && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Comments
+              </h3>
 
-            {/* Add Comment */}
-            <div className="space-y-2">
-              <Textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Add a comment..."
-                rows={2}
-                className="text-xs"
-              />
-              <Button
-                size="sm"
-                onClick={handleAddComment}
-                disabled={isSubmittingComment}
-                className="bg-blue-600 hover:bg-blue-700 text-xs h-8"
-              >
-                {isSubmittingComment ? "Posting..." : "Post Comment"}
-              </Button>
+              <div className="space-y-2">
+                <Textarea
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Add a comment..."
+                  rows={2}
+                  className="text-xs"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleAddComment}
+                  disabled={isSubmittingComment}
+                  className="bg-blue-600 hover:bg-blue-700 text-xs h-8"
+                >
+                  {isSubmittingComment ? "Posting..." : "Post Comment"}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

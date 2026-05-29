@@ -5,7 +5,6 @@ import { VideoTrack } from "@livekit/components-react"
 import { Track, type Participant, type TrackPublication } from "livekit-client"
 import { Headphones, Maximize, Minimize, Monitor, Shield, User, Video } from "lucide-react"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
-import { useVideoPinchZoom } from "@/hooks/use-video-pinch-zoom"
 import { cn } from "@/lib/utils"
 import {
   Tooltip,
@@ -79,20 +78,13 @@ export function VoiceVideoFrame({
   const [subscriptionFailed, setSubscriptionFailed] = useState(false)
   const failTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const { scale: pinchScale, touchHandlers, resetZoom } = useVideoPinchZoom(
-    enablePinchZoom && portraitLayout,
-    innerRef,
-  )
-
   useEffect(() => {
     const onFsChange = () => {
-      const active = document.fullscreenElement === frameRef.current
-      setIsFullscreen(active)
-      if (!active) resetZoom()
+      setIsFullscreen(document.fullscreenElement === frameRef.current)
     }
     document.addEventListener("fullscreenchange", onFsChange)
     return () => document.removeEventListener("fullscreenchange", onFsChange)
-  }, [resetZoom])
+  }, [])
 
   useEffect(() => {
     setSubscriptionFailed(false)
@@ -148,19 +140,7 @@ export function VoiceVideoFrame({
         className,
       )}
     >
-      <div
-        ref={innerRef}
-        className={cn(
-          "voice-video-inner absolute inset-0 overflow-hidden",
-          enablePinchZoom && portraitLayout && "touch-none",
-        )}
-        style={
-          enablePinchZoom && pinchScale !== 1
-            ? { transform: `scale(${pinchScale})`, transformOrigin: "center center" }
-            : undefined
-        }
-        {...(enablePinchZoom ? touchHandlers : {})}
-      >
+      <div ref={innerRef} className="voice-video-inner absolute inset-0 overflow-hidden">
         <VideoTrack
           trackRef={{
             participant,
@@ -207,12 +187,6 @@ export function VoiceVideoFrame({
         >
           {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
         </button>
-      )}
-
-      {enablePinchZoom && portraitLayout && !isFullscreen && (
-        <p className="absolute bottom-2 left-2 z-10 text-[9px] text-white/50 pointer-events-none max-w-[40%]">
-          Double-tap to zoom · pinch to adjust
-        </p>
       )}
 
       {subscriptionFailed && (

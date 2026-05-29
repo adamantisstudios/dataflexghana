@@ -1,5 +1,7 @@
 /** Admin WhatsApp for no-registration data bundle orders */
-export const NO_REGISTRATION_ADMIN_WHATSAPP = "233246827049"
+import { getBusinessWhatsAppDigits } from "@/lib/business-whatsapp"
+
+export const NO_REGISTRATION_ADMIN_WHATSAPP = getBusinessWhatsAppDigits()
 
 export type NoRegistrationOrderDetails = {
   phone: string

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { requireAdminSession } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
+import { getPhotoVerificationStatus } from "@/lib/photo-verification-status"
 
 export const dynamic = "force-dynamic"
 
@@ -24,12 +25,17 @@ export async function GET(request: NextRequest) {
 
     const agents = (data || []).filter((a) => String(a.profile_image_url ?? "").trim())
 
+    const verified_count = agents.filter((a) => getPhotoVerificationStatus(a) === "verified").length
+    const pending_count = agents.filter((a) => getPhotoVerificationStatus(a) === "pending").length
+    const unverified_count = agents.filter((a) => getPhotoVerificationStatus(a) === "unverified").length
+
     return NextResponse.json({
       success: true,
       agents,
       total: agents.length,
-      verified_count: agents.filter((a) => a.profile_verified === true).length,
-      unverified_count: agents.filter((a) => a.profile_verified !== true).length,
+      verified_count,
+      pending_count,
+      unverified_count,
     })
   } catch (e) {
     console.error("[admin/photo-verification GET]", e)

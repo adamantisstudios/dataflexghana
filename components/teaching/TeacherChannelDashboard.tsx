@@ -46,6 +46,8 @@ import { VideoPostDisplay } from "./VideoPostDisplay"
 import { ChannelVideoWithComments } from "@/components/channel/ChannelVideoWithComments"
 import { ChannelEmbedVideoDisplay } from "@/components/channel/ChannelEmbedVideoDisplay"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { getStoredAgent } from "@/lib/unified-auth-system"
+import { isPlatformAdminAgent } from "@/lib/platform-admin"
 import { DetailedMathExampleModal } from "./media/DetailedMathExampleModal"
 import { YouTubeVideoCreator } from "./youtube/YouTubeVideoCreator"
 import { YouTubeVideoDisplay } from "./youtube/YouTubeVideoDisplay"
@@ -75,6 +77,7 @@ interface Channel {
   is_active: boolean
   max_members: number
   created_at: string
+  is_official?: boolean
 }
 
 interface ChannelMember {
@@ -375,22 +378,47 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
         toast.error("Only admins and teachers can create posts")
         return
       }
-      const { error } = await supabase.from("channel_posts").insert([
-        {
-          channel_id: channelId,
-          author_id: teacherId,
-          author_name: teacherName,
-          title: postForm.title,
-          content: postForm.content,
-          post_type: postForm.post_type,
-          is_pinned: false,
-          is_archived: false,
-        },
-      ])
+      const { data: createdPost, error } = await supabase
+        .from("channel_posts")
+        .insert([
+          {
+            channel_id: channelId,
+            author_id: teacherId,
+            author_name: teacherName,
+            title: postForm.title,
+            content: postForm.content,
+            post_type: postForm.post_type,
+            is_pinned: false,
+            is_archived: false,
+          },
+        ])
+        .select("id")
+        .single()
       if (error) {
         console.error("[v0] Error creating post:", error)
         throw error
       }
+
+      if (channel?.is_official && createdPost?.id) {
+        try {
+          await fetch("/api/teaching/log-official-announcement", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAgentAuthHeaders(),
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({
+              channel_id: channelId,
+              post_id: createdPost.id,
+              title: postForm.title,
+            }),
+          })
+        } catch (logErr) {
+          console.warn("[v0] official announcement audit:", logErr)
+        }
+      }
+
       toast.success("Post created successfully!")
       setShowPostDialog(false)
       setPostForm({ title: "", content: "", post_type: "lesson" })
@@ -1076,6 +1104,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           {/* Feeds Tab */}
           <TabsContent value="feeds" className={`${teachingHubMainClass} w-full max-w-none space-y-3`}>
             <div className="flex w-full flex-col gap-2 sm:flex-row">
+              {(!channel?.is_official || isPlatformAdminAgent(getStoredAgent())) && (
               <Dialog open={showPostDialog} onOpenChange={setShowPostDialog}>
                 <DialogTrigger asChild>
                   <Button className="h-11 flex-1 bg-green-500 text-sm text-white hover:bg-green-600">
@@ -1141,6 +1170,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              )}
               <Button onClick={handleClearChat} variant="destructive" className="h-11 flex-1 text-sm text-white">
                 <Trash2 className="h-3 w-3 mr-1" />
                 Clear Chat

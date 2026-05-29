@@ -113,7 +113,7 @@ export default function AgentSettingsPage() {
           JSON.stringify({ ...parsed, profile_image_url: data.url, profile_verified: true }),
         )
       }
-      toast.success("Photo verified — save profile to apply other fields")
+      toast.success("Photo submitted for admin review — save profile to apply other fields")
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed")
     } finally {

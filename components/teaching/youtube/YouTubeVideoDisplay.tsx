@@ -18,6 +18,7 @@ interface YouTubeVideoDisplayProps {
   userId: string
   userName: string
   onDelete?: (id: string) => void
+  disableComments?: boolean
 }
 
 export function YouTubeVideoDisplay({
@@ -33,6 +34,7 @@ export function YouTubeVideoDisplay({
   userId,
   userName,
   onDelete,
+  disableComments = false,
 }: YouTubeVideoDisplayProps) {
   const [showPreview, setShowPreview] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
@@ -155,11 +157,11 @@ export function YouTubeVideoDisplay({
         description={description}
         viewCount={viewCount}
         likeCount={currentLikeCount}
-        commentCount={currentCommentCount}
+        commentCount={disableComments ? undefined : currentCommentCount}
         authorName={authorName}
         onFullScreen={() => setShowPreview(true)}
         onLike={handleLike}
-        onComment={() => setShowPreview(true)}
+        onComment={disableComments ? undefined : () => setShowPreview(true)}
         onShare={() => setShowPreview(true)}
         onSave={handleSave}
         isLiked={isLiked}
@@ -175,6 +177,7 @@ export function YouTubeVideoDisplay({
         videoId_db={id}
         userId={userId}
         userName={userName}
+        disableComments={disableComments}
         onCommentAdded={() => {
           setCurrentCommentCount(currentCommentCount + 1)
         }}

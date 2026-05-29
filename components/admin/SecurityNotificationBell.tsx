@@ -37,6 +37,7 @@ function summarizeAction(action: string, data?: Record<string, unknown> | null):
     withdrawal_requested: "Withdrawal requested",
     storefront_webhook_capture_failed: "Storefront payment capture failed",
     new_order: "New pending order",
+    official_announcement: "New official announcement",
   }
   if (labels[action]) return labels[action]
   if (data?.error && typeof data.error === "string") {
@@ -67,7 +68,14 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
 
   const ingestEvent = useCallback((row: SecurityEvent) => {
     const sev = row.severity || "info"
-    if (sev !== "warning" && sev !== "critical" && row.action !== "new_order") return
+    if (
+      sev !== "warning" &&
+      sev !== "critical" &&
+      row.action !== "new_order" &&
+      row.action !== "official_announcement"
+    ) {
+      return
+    }
 
     setRecent((prev) => {
       if (prev.some((e) => e.id === row.id)) return prev
@@ -76,7 +84,8 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
 
     if (!readIdsRef.current.has(row.id)) {
       setUnreadCount((c) => c + 1)
-      toast.warning(summarizeAction(row.action, row.new_data ?? null), {
+      const toastFn = row.action === "official_announcement" ? toast.info : toast.warning
+      toastFn(summarizeAction(row.action, row.new_data ?? null), {
         description: `${sev.toUpperCase()} · ${formatEventTime(row.created_at)}`,
         duration: 6000,
       })
@@ -96,7 +105,7 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
       const { data } = await supabase
         .from("audit_log")
         .select("id, action, severity, created_at, actor_type, new_data")
-        .in("severity", ["warning", "critical"])
+        .or("severity.in.(warning,critical),action.eq.official_announcement")
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(5)

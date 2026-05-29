@@ -1,9 +1,9 @@
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 
-/** After face-api validation + upload, mark profile photo verified on the server. */
+/** After face-api validation + upload, submit photo for admin review (pending). */
 export async function confirmAgentProfilePhotoVerified(
   profileImageUrl: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; pending?: boolean }> {
   const res = await fetch("/api/agent/profile-photo/verify", {
     method: "POST",
     headers: {

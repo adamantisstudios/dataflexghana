@@ -9,6 +9,8 @@ interface ChannelVideoWithCommentsProps {
   source?: "upload" | "embed"
   children: React.ReactNode
   className?: string
+  /** Official read-only channel — hide comment UI */
+  hideComments?: boolean
 }
 
 export function ChannelVideoWithComments({
@@ -16,8 +18,19 @@ export function ChannelVideoWithComments({
   source = "upload",
   children,
   className = "",
+  hideComments = false,
 }: ChannelVideoWithCommentsProps) {
   const [commentsOpen, setCommentsOpen] = useState(false)
+
+  if (hideComments) {
+    return (
+      <div
+        className={`flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}
+      >
+        {children}
+      </div>
+    )
+  }
 
   return (
     <div className={`flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${className}`}>

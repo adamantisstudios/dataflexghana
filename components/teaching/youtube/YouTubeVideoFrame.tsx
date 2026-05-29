@@ -84,7 +84,9 @@ export function YouTubeVideoFrame({
         <div className="flex items-center gap-3 text-xs text-gray-600 pt-1 border-t border-gray-200">
           <span>{viewCount.toLocaleString()} views</span>
           <span>{likeCount.toLocaleString()} likes</span>
-          <span>{commentCount.toLocaleString()} comments</span>
+          {onComment != null && (
+            <span>{(commentCount ?? 0).toLocaleString()} comments</span>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-1 pt-2 border-t border-gray-200 w-full">
@@ -97,15 +99,17 @@ export function YouTubeVideoFrame({
             <Heart className={`h-3.5 w-3.5 flex-shrink-0 ${isLiked ? "fill-current" : ""}`} />
             <span className="truncate">Like</span>
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onComment}
-            className="flex-1 min-w-[70px] h-8 text-xs gap-1 flex items-center justify-center text-gray-600"
-          >
-            <MessageCircle className="h-3.5 w-3.5 flex-shrink-0" />
-            <span className="truncate">Comment</span>
-          </Button>
+          {onComment && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onComment}
+              className="flex-1 min-w-[70px] h-8 text-xs gap-1 flex items-center justify-center text-gray-600"
+            >
+              <MessageCircle className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">Comment</span>
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"

@@ -3,7 +3,8 @@
 import Link from "next/link"
 import { useState, useCallback } from "react"
 import { Separator } from "@/components/ui/separator"
-import { Shield, Mail, Phone, MapPin, Facebook, Twitter, Instagram, HelpCircle } from "lucide-react"
+import { Shield, Mail, Phone, MapPin, Facebook, Twitter, Instagram, HelpCircle, MessageCircle } from "lucide-react"
+import { getBusinessWhatsAppE164, getBusinessWhatsAppUrl } from "@/lib/business-whatsapp"
 import { SecurityNoticeFooter } from "@/components/legal/SecurityNotice"
 import { FOOTER_SECURITY_LINE } from "@/lib/security-notice"
 import { useRouter } from "next/navigation"
@@ -120,7 +121,18 @@ export function Footer() {
             <ul className="space-y-2 text-sm lg:text-base">
               <li className="flex items-center space-x-2 text-gray-400">
                 <Phone className="h-4 w-4 flex-shrink-0" />
-                <span>0246827049</span>
+                <span>{getBusinessWhatsAppE164().replace("+233", "0")}</span>
+              </li>
+              <li>
+                <a
+                  href={getBusinessWhatsAppUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>Business WhatsApp</span>
+                </a>
               </li>
               <li className="flex items-center space-x-2 text-gray-400">
                 <Mail className="h-4 w-4 flex-shrink-0" />

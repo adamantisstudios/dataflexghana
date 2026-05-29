@@ -4,6 +4,7 @@ import { BookOpen, CheckCircle2, Trash2, Plus, Eye, UserPlus, Edit2, ImageIcon, 
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabase-client";
 import { ensureChannelMemberActive } from "@/lib/ensure-channel-member-active"
+import { isAnnouncementsChannelName } from "@/lib/announcements-channel"
 import {
   teachingHubContentCardClass,
   teachingHubTabListClass,
@@ -47,6 +48,7 @@ type TeachingChannel = {
   image_url?: string
   created_at: string
   member_count?: number
+  is_official?: boolean
 }
 type TeacherApproval = {
   id: string
@@ -94,6 +96,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   const [pendingVerifications, setPendingVerifications] = useState<any[]>([])
   const [paidChannelIds, setPaidChannelIds] = useState<Set<string>>(new Set())
   const [expiryRunning, setExpiryRunning] = useState(false)
+  const [ensuringAnnouncements, setEnsuringAnnouncements] = useState(false)
   const [embedVideos, setEmbedVideos] = useState<any[]>([])
   const [embedChannelId, setEmbedChannelId] = useState("")
   const [embedForm, setEmbedForm] = useState({ title: "", embedCode: "" })
@@ -225,25 +228,48 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
     }
   }
 
+  const handleEnsureAnnouncementsChannel = async () => {
+    setEnsuringAnnouncements(true)
+    try {
+      const res = await fetch("/api/admin/ensure-announcements-channel", {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await parseJsonResponse(res)
+      if (!res.ok) throw new Error(data.error || "Failed to create announcements channel")
+      toast.success("Announcements channel is ready — all approved agents are members.")
+      loadData()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to set up announcements channel")
+    } finally {
+      setEnsuringAnnouncements(false)
+    }
+  }
+
   // Create Channel
   const handleCreateChannel = async () => {
     if (!channelForm.name.trim()) {
       toast.error("Channel name is required.")
       return
     }
+    const isOfficial = isAnnouncementsChannelName(channelForm.name)
     try {
       const { data: channel, error } = await supabase
         .from("teaching_channels")
         .insert([
           {
             name: channelForm.name,
-            description: channelForm.description,
-            category: channelForm.category,
+            description: isOfficial
+              ? channelForm.description ||
+                "Official platform updates from Dataflex Ghana. Read-only for agents. Visit /blogs for articles."
+              : channelForm.description,
+            category: isOfficial ? "Official" : channelForm.category,
             is_public: channelForm.is_public,
-            max_members: channelForm.max_members,
+            max_members: isOfficial ? 999999 : channelForm.max_members,
             image_url: channelForm.image_url || null,
             created_by: "admin",
             is_active: true,
+            is_official: isOfficial,
           },
         ])
         .select("id")
@@ -681,6 +707,18 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
             Run Expiry Check
           </Button>
           {activeSubTab === "channels" && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleEnsureAnnouncementsChannel()}
+              disabled={ensuringAnnouncements}
+              className="h-11 whitespace-nowrap border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${ensuringAnnouncements ? "animate-spin" : ""}`} />
+              Setup Announcements
+            </Button>
+          )}
+          {activeSubTab === "channels" && (
             <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
               <DialogTrigger asChild>
                 <Button size="icon" className="h-11 w-11 bg-green-500 text-white hover:bg-green-600">
@@ -904,7 +942,10 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-gray-800 break-words">{channel.name}</h3>
                         <p className="text-xs text-gray-500 truncate">{channel.description}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {channel.is_official && (
+                            <Badge className="text-xs bg-emerald-600 text-white">Official</Badge>
+                          )}
                           <Badge variant="outline" className="text-xs">
                             {channel.category}
                           </Badge>

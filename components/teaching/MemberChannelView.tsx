@@ -1,5 +1,6 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -27,6 +28,8 @@ import {
   teachingHubTabTriggerClass,
 } from "@/components/teaching/teaching-hub-ui"
 import { cn } from "@/lib/utils"
+import { getStoredAgent } from "@/lib/unified-auth-system"
+import { isPlatformAdminAgent } from "@/lib/platform-admin"
 
 interface Channel {
   id: string
@@ -34,8 +37,17 @@ interface Channel {
   description: string
   category: string
   is_active: boolean
-  image_url?: string // Added image_url field
+  image_url?: string
   created_at: string
+  is_official?: boolean
+}
+
+type RecentBlog = {
+  id: string
+  title: string
+  slug: string
+  excerpt: string | null
+  published_at: string | null
 }
 
 interface ChannelPost {
@@ -72,6 +84,13 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
   const [fontSize, setFontSize] = useState(16)
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set())
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set())
+  const [recentBlogs, setRecentBlogs] = useState<RecentBlog[]>([])
+
+  const isReadOnlyOfficial = useMemo(() => {
+    if (!channel?.is_official) return false
+    const stored = getStoredAgent()
+    return !isPlatformAdminAgent(stored)
+  }, [channel?.is_official])
 
   useEffect(() => {
     loadChannelData()
@@ -97,6 +116,18 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
       }
 
       setChannel(channelData)
+
+      if (channelData?.is_official) {
+        const { data: blogRows } = await supabase
+          .from("blogs")
+          .select("id, title, slug, excerpt, published_at")
+          .eq("status", "published")
+          .order("published_at", { ascending: false })
+          .limit(3)
+        setRecentBlogs((blogRows as RecentBlog[]) || [])
+      } else {
+        setRecentBlogs([])
+      }
 
       const { data: postsData, error: postsError } = await supabase
         .from("channel_posts")
@@ -328,7 +359,17 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
           <div className={`${teachingHubMainClass} space-y-2`}>
             <h2 className="text-xl font-semibold text-gray-900 sm:text-2xl">{channel.name}</h2>
             <p className="text-sm leading-6 text-gray-600">{channel.description}</p>
+            {channel.is_official && (
+              <p className="text-sm">
+                <Link href="/blogs" className="text-[#0E8F3D] font-medium hover:underline">
+                  Read articles on the Dataflex blog →
+                </Link>
+              </p>
+            )}
             <div className="flex flex-wrap gap-2 pt-2">
+              {channel.is_official && (
+                <Badge className="bg-emerald-600 text-white">Official updates</Badge>
+              )}
               <Badge variant="secondary">{channel.category}</Badge>
               <Badge variant={channel.is_active ? "default" : "destructive"}>
                 {channel.is_active ? "Active" : "Inactive"}
@@ -370,6 +411,28 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
           </div>
 
           <TabsContent value="feeds" className={`${teachingHubMainClass} space-y-4 w-full max-w-none`}>
+            {channel.is_official && recentBlogs.length > 0 && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-emerald-900">Latest from the blog</h3>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {recentBlogs.map((blog) => (
+                    <Link
+                      key={blog.id}
+                      href={`/blogs/${blog.slug}`}
+                      className="block rounded-lg border border-emerald-100 bg-white p-3 shadow-sm hover:border-emerald-300 transition-colors"
+                    >
+                      <p className="text-sm font-medium text-gray-900 line-clamp-2">{blog.title}</p>
+                      {blog.excerpt && (
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">{blog.excerpt}</p>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+                <Link href="/blogs" className="text-xs font-medium text-[#0E8F3D] hover:underline">
+                  View all blog posts
+                </Link>
+              </div>
+            )}
             {posts.length === 0 && qaPosts.length === 0 && youtubeVideos.length === 0 ? (
               <div className="bg-blue-50 border-b-2 border-blue-200 rounded p-6 text-center text-blue-600">
                 <p>No posts yet. Check back soon!</p>
@@ -415,6 +478,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                             authorName={item.author_name}
                             userId={memberId}
                             userName={memberName}
+                            disableComments={isReadOnlyOfficial}
                           />
                         </div>
                       )}
@@ -441,10 +505,12 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                               <Eye className="h-3 w-3" />
                               {item.view_count || 0} views
                             </span>
-                            <span className="flex items-center gap-1">
-                              <MessageSquare className="h-3 w-3" />
-                              {item.comment_count || 0} comments
-                            </span>
+                            {!isReadOnlyOfficial && (
+                              <span className="flex items-center gap-1">
+                                <MessageSquare className="h-3 w-3" />
+                                {item.comment_count || 0} comments
+                              </span>
+                            )}
                           </div>
 
                           <div className="mt-3 flex flex-wrap gap-2 border-t border-gray-200 pt-3">
@@ -466,23 +532,25 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                               <Bookmark className={`h-4 w-4 ${savedPosts.has(item.id) ? "fill-current" : ""}`} />
                               Save
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const newExpanded = new Set(expandedComments)
-                                if (newExpanded.has(item.id)) {
-                                  newExpanded.delete(item.id)
-                                } else {
-                                  newExpanded.add(item.id)
-                                }
-                                setExpandedComments(newExpanded)
-                              }}
-                              className="h-11 min-w-[100px] flex-1 gap-2 text-gray-900"
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                              Comment
-                            </Button>
+                            {!isReadOnlyOfficial && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  const newExpanded = new Set(expandedComments)
+                                  if (newExpanded.has(item.id)) {
+                                    newExpanded.delete(item.id)
+                                  } else {
+                                    newExpanded.add(item.id)
+                                  }
+                                  setExpandedComments(newExpanded)
+                                }}
+                                className="h-11 min-w-[100px] flex-1 gap-2 text-gray-900"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                                Comment
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"
@@ -494,7 +562,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                             </Button>
                           </div>
 
-                          {expandedComments.has(item.id) && (
+                          {!isReadOnlyOfficial && expandedComments.has(item.id) && (
                             <div className="mt-4 pt-4 border-t border-gray-200">
                               <CommentThread
                                 postId={item.id}
@@ -585,7 +653,12 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
             ) : (
               <div className="space-y-4">
                 {embedVideos.map((video) => (
-                  <ChannelVideoWithComments key={`embed-${video.id}`} videoId={video.id} source="embed">
+                  <ChannelVideoWithComments
+                    key={`embed-${video.id}`}
+                    videoId={video.id}
+                    source="embed"
+                    hideComments={isReadOnlyOfficial}
+                  >
                     <ChannelEmbedVideoDisplay
                       id={video.id}
                       title={video.title}
@@ -596,7 +669,12 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                   </ChannelVideoWithComments>
                 ))}
                 {uploadedVideos.map((video) => (
-                  <ChannelVideoWithComments key={video.id} videoId={video.id} source="upload">
+                  <ChannelVideoWithComments
+                    key={video.id}
+                    videoId={video.id}
+                    source="upload"
+                    hideComments={isReadOnlyOfficial}
+                  >
                     <VideoPostDisplay
                       id={video.id}
                       title={video.title}

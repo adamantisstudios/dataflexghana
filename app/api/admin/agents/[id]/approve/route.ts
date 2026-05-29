@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { authenticateAdmin } from "@/lib/api-auth"
 import { ensureReferralCreditOnAgentApproval } from "@/lib/referral-agent-program"
+import { addAgentToAnnouncementsChannel } from "@/lib/announcements-channel"
 
 export const dynamic = "force-dynamic"
 
@@ -133,6 +134,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       await ensureReferralCreditOnAgentApproval(agentId)
     } catch (referralErr) {
       console.error("Referral credit setup on approval:", referralErr)
+    }
+
+    try {
+      const announcements = await addAgentToAnnouncementsChannel(db, agentId)
+      if (!announcements.ok) {
+        console.warn("[approve] Announcements channel join:", announcements.error)
+      }
+    } catch (announcementsErr) {
+      console.error("[approve] Announcements channel:", announcementsErr)
     }
 
     return NextResponse.json({

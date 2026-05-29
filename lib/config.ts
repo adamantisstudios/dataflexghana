@@ -1,3 +1,5 @@
+import { getBusinessWhatsAppE164 } from "@/lib/business-whatsapp"
+
 // Global Configuration for DataFlex Agents Platform
 export const PLATFORM_CONFIG = {
   // Pricing Configuration
@@ -11,7 +13,7 @@ export const PLATFORM_CONFIG = {
   platform: {
     name: "DataFlex Agents",
     tagline: "Ghana's Biggest Multi-Service Agent Platform",
-    supportPhone: "+233246827049",
+    supportPhone: getBusinessWhatsAppE164(),
     supportEmail: "sales.dataflex@gmail.com",
   },
 

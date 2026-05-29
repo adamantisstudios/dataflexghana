@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { X, MessageCircle, Send } from "lucide-react"
+import { getBusinessWhatsAppUrl } from "@/lib/business-whatsapp"
 
 export function WhatsAppWidget() {
   const [isOpen, setIsOpen] = useState(false)
@@ -12,11 +13,8 @@ export function WhatsAppWidget() {
     "Hi! I'm interested in learning more about DataFlexAgent and how I can start earning as a data agent. Can you help me get started?",
   )
 
-  const phoneNumber = "+233246827049"
-
   const sendWhatsAppMessage = () => {
-    const encodedMessage = encodeURIComponent(message)
-    const whatsappUrl = `https://wa.me/${phoneNumber.replace("+", "")}?text=${encodedMessage}`
+    const whatsappUrl = getBusinessWhatsAppUrl(message)
     window.open(whatsappUrl, "_blank")
     setIsOpen(false)
   }
