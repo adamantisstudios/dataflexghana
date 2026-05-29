@@ -231,7 +231,6 @@ function MainStage({
   localParticipant: Participant
   filmstrip: Participant[]
 }) {
-  const { isMobile } = useVoiceDeviceLayout()
   const focus = stageParticipant
   const level = useParticipantAudioLevel(focus ?? localParticipant)
   const ring = voiceAvatarRingColor(focus?.identity ?? "stage")
@@ -245,26 +244,22 @@ function MainStage({
         : "agent"
 
     return (
-      <div className="flex flex-col items-center w-full min-h-0 flex-1 gap-3">
-        <div
-          className={`w-full flex flex-1 justify-center items-center min-h-0 ${
-            isMobile ? "px-1" : "px-2"
-          }`}
-        >
-          <VoiceVideoFrame
-            participant={focus}
-            publication={camPub}
-            badge={badge}
-            mirror={isLocal}
-            enableFullscreen={isMobile}
-            className="w-full h-auto"
-          />
+      <>
+        <VoiceVideoFrame
+          participant={focus}
+          publication={camPub}
+          badge={badge}
+          variant="main"
+        />
+        <div className="relative z-10 flex flex-col items-center w-full min-h-0 flex-1 gap-3 pointer-events-none">
+          <p className="text-sm font-medium text-[#e8eaed] truncate max-w-full px-4 shrink-0 mt-auto mb-2 drop-shadow-md">
+            {isLocal ? "You (host)" : focus.name || focus.identity}
+          </p>
+          <div className="pointer-events-auto w-full">
+            <VoiceStageFilmstrip participants={filmstrip} localIdentity={localParticipant.identity} />
+          </div>
         </div>
-        <p className="text-sm font-medium text-[#e8eaed] truncate max-w-full px-4 shrink-0">
-          {isLocal ? "You (host)" : focus.name || focus.identity}
-        </p>
-        <VoiceStageFilmstrip participants={filmstrip} localIdentity={localParticipant.identity} />
-      </div>
+      </>
     )
   }
 
@@ -869,7 +864,7 @@ function ControlPanelInner({
   const listenerAvatars = useMemo(() => listeners.slice(0, 16), [listeners])
 
   return (
-    <div className="flex flex-col h-full min-h-0 relative" style={{ color: MEET_TEXT }}>
+    <div className="flex flex-col h-full min-h-0 relative z-10" style={{ color: MEET_TEXT }}>
       <VoiceReactionsLayer />
       {showLocalPip && <AdminLocalVideoPreview />}
 
@@ -1185,7 +1180,7 @@ export function VoiceRoomAdminControl({
   const { roomOptions } = useVoiceDeviceLayout()
   const publishVideoOnConnect = enableVideo
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: MEET_BG, color: MEET_TEXT }}>
+    <div className="fixed inset-0 z-50 flex flex-col overflow-hidden" style={{ background: MEET_BG, color: MEET_TEXT }}>
       <div className="shrink-0 px-4 py-3 border-b border-[#3c4043] flex items-center justify-between">
         <div className="min-w-0">
           <h2 className="font-medium text-sm">Agent Conference — Host</h2>

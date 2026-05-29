@@ -122,6 +122,15 @@ export default function TeachingPlatformPage() {
   const [selectedChannelForJoin, setSelectedChannelForJoin] = useState<TeachingChannel | null>(null)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [showChannelDialog, setShowChannelDialog] = useState(false)
+
+  useEffect(() => {
+    if (!showChannelDialog) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [showChannelDialog])
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -837,11 +846,14 @@ export default function TeachingPlatformPage() {
       {/* Channel Details Dialog */}
       {selectedChannel && (
         <Dialog open={showChannelDialog} onOpenChange={setShowChannelDialog}>
-          <DialogContent className="max-h-[80vh] w-[95vw] max-w-sm overflow-y-auto rounded-2xl border border-gray-100">
-            <DialogHeader>
-              <DialogTitle className="text-sm">{selectedChannel.name}</DialogTitle>
-              <DialogDescription className="text-xs">{selectedChannel.description}</DialogDescription>
+          <DialogContent className="flex max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-md flex-col gap-0 overflow-hidden rounded-2xl border border-gray-100 p-0">
+            <DialogHeader className="shrink-0 border-b border-gray-100 px-4 py-3 pr-12 text-left">
+              <DialogTitle className="text-sm sm:text-base">{selectedChannel.name}</DialogTitle>
+              <DialogDescription className="text-xs leading-relaxed text-gray-600">
+                {selectedChannel.description}
+              </DialogDescription>
             </DialogHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
             {selectedChannel.image_url && (
               <div className="flex justify-center my-2">
                 <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-blue-200">
@@ -893,9 +905,13 @@ export default function TeachingPlatformPage() {
                   ))
                 )}
               </div>
-              <Button onClick={() => handleOpenChannel(selectedChannel)} className="mt-2 h-11 w-full bg-green-500 text-sm text-white hover:bg-green-600">
+              <Button
+                onClick={() => handleOpenChannel(selectedChannel)}
+                className="mt-2 h-11 min-h-[44px] w-full bg-green-500 text-sm text-white hover:bg-green-600"
+              >
                 View Full Channel
               </Button>
+            </div>
             </div>
           </DialogContent>
         </Dialog>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { AlertCircle, Play, Square, Upload } from "lucide-react"
 import { toast } from "sonner"
+import { requestLiveCameraStream } from "@/lib/live-camera-constraints"
 
 interface RecordVerticalVideoProps {
   channelId: string
@@ -28,14 +29,7 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
   const startRecording = async () => {
     try {
       setError(null)
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 576 },
-          height: { ideal: 1024 },
-          facingMode: "user",
-        },
-        audio: true,
-      })
+      const stream = await requestLiveCameraStream()
 
       streamRef.current = stream
       if (videoRef.current) {

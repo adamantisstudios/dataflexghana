@@ -1399,14 +1399,15 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                         Share Content
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] max-h-[85vh] overflow-y-auto w-full">
-                      <DialogHeader>
+                    <DialogContent className="flex max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-[500px] flex-col gap-0 overflow-hidden p-0 sm:w-full">
+                      <DialogHeader className="shrink-0 border-b border-gray-100 px-4 py-3 pr-12">
                         <DialogTitle className="text-base">Share Content with Channel</DialogTitle>
                         <DialogDescription className="text-xs">
                           Share text, images, audio, documents, or links
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="grid gap-3 py-3 w-full">
+                      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+                      <div className="grid w-full gap-3">
                         <div className="grid gap-1">
                           <Label htmlFor="content-type" className="text-xs">
                             Content Type
@@ -1523,11 +1524,12 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
                           />
                         )}
                       </div>
-                      <DialogFooter>
+                      </div>
+                      <DialogFooter className="shrink-0 border-t border-gray-100 px-4 py-3">
                         <Button
                           onClick={handleCreateMediaMessage}
                           disabled={isUploadingMedia}
-                          className="bg-blue-600 hover:bg-blue-700 w-full text-xs h-8"
+                          className="h-11 min-h-[44px] w-full bg-blue-600 text-sm text-white hover:bg-blue-700"
                         >
                           {isUploadingMedia ? "Uploading..." : "Share Content"}
                         </Button>

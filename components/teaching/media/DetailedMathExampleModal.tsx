@@ -1,7 +1,8 @@
 "use client"
-import { useState } from "react"
+
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-  import {
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -13,6 +14,15 @@ import { BookOpen } from "lucide-react"
 
 export function DetailedMathExampleModal() {
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
 
   const mathExample = `\\[ \\textbf{Problem:} \\quad \\text{Evaluate the derivative of } f(x) = \\sqrt[3]{(2x^3 - 3x^2 + 5x - 7)} + \\sqrt{(x^2 + 4x + 4)} \\]
 \\bigskip
@@ -98,24 +108,23 @@ Substituting these values:
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-red-600 hover:bg-red-700 text-white text-xs h-8 px-2">
-          <BookOpen className="h-3 w-3 mr-1" />
+        <Button className="h-8 min-h-[44px] bg-red-600 px-2 text-xs text-white hover:bg-red-700">
+          <BookOpen className="mr-1 h-3 w-3" />
           Detailed Example
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95%] sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-[700px] flex-col gap-0 overflow-hidden p-0 sm:w-full">
+        <DialogHeader className="shrink-0 border-b border-gray-100 px-4 py-3 pr-12 text-left">
           <DialogTitle className="text-base sm:text-lg">Detailed Math Formatting Guide</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          {/* Formatting Guide Section */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-4">
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-gray-800">Basic Formatting Examples</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {formattingGuides.map((guide, idx) => (
-                <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-1">
-                  <p className="font-medium text-xs sm:text-sm text-gray-800">{guide.title}</p>
-                  <div className="bg-white border border-gray-300 rounded p-1.5 text-xs font-mono text-gray-700 overflow-x-auto">
+                <div key={idx} className="space-y-1 rounded-lg border border-gray-200 bg-gray-50 p-2">
+                  <p className="text-xs font-medium text-gray-800 sm:text-sm">{guide.title}</p>
+                  <div className="overflow-x-auto rounded border border-gray-300 bg-white p-1.5 font-mono text-xs text-gray-700">
                     {guide.example}
                   </div>
                   <p className="text-xs text-gray-600">{guide.description}</p>
@@ -124,33 +133,30 @@ Substituting these values:
             </div>
           </div>
 
-          {/* Detailed Example Section */}
-          <div className="space-y-3 border-t pt-3">
+          <div className="space-y-3 border-t border-gray-100 pt-3">
             <h3 className="text-sm font-semibold text-gray-800">Complete Example: Calculus Problem</h3>
             <p className="text-xs text-gray-600">
               Below is a complete example showing how to format a complex mathematical problem with multiple steps:
             </p>
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-2 sm:p-3 space-y-2 overflow-x-auto">
+            <div className="space-y-2 overflow-x-auto rounded-lg border-2 border-blue-200 bg-blue-50 p-2 sm:p-3">
               <MathRenderer content={mathExample} />
             </div>
           </div>
 
-          {/* Tips Section */}
-          <div className="space-y-2 bg-amber-50 border-l-4 border-amber-500 p-2 sm:p-3 rounded">
-            <p className="font-semibold text-xs sm:text-sm text-amber-900">💡 Tips for Best Results:</p>
-            <ul className="text-xs text-amber-800 space-y-1 list-disc list-inside pl-3">
+          <div className="space-y-2 rounded border-l-4 border-amber-500 bg-amber-50 p-2 sm:p-3">
+            <p className="text-xs font-semibold text-amber-900 sm:text-sm">Tips for Best Results:</p>
+            <ul className="list-inside list-disc space-y-1 pl-3 text-xs text-amber-800">
               <li>Use \\bigskip and \\medskip for spacing between sections</li>
               <li>Use \\textbf{} for bold text and \\text{} for regular text in math mode</li>
               <li>Use cases for piecewise functions</li>
-              <li>Always wrap math content in either \$$ \$$ or \\[ \\]</li>
+              <li>Always wrap math content in either $$ or \\[ \\]</li>
               <li>Test your formatting before publishing to ensure it renders correctly</li>
             </ul>
           </div>
 
-          {/* Common Symbols Section */}
-          <div className="space-y-2 bg-green-50 border-l-4 border-green-500 p-2 sm:p-3 rounded">
-            <p className="font-semibold text-xs sm:text-sm text-green-900">📐 Common Mathematical Symbols:</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 text-xs text-green-800">
+          <div className="space-y-2 rounded border-l-4 border-green-500 bg-green-50 p-2 sm:p-3">
+            <p className="text-xs font-semibold text-green-900 sm:text-sm">Common Mathematical Symbols:</p>
+            <div className="grid grid-cols-2 gap-1 text-xs text-green-800 sm:grid-cols-3">
               {[
                 { symbol: "\\pm", display: "±" },
                 { symbol: "\\times", display: "×" },

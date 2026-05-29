@@ -396,46 +396,87 @@ body {
   }
 }
 
-/* LiveKit forced vertical 9:16 — portrait container, cover fit, one-time landscape rotate. */
-.voice-video-portrait {
-  aspect-ratio: 9 / 16;
-  max-width: 420px;
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-.voice-video-portrait-compact {
-  max-width: none;
-}
-
-.voice-video-portrait .voice-video-inner {
-  position: absolute;
+/* Live conference / channel stream video (spec — no rotation on main video). */
+.main-video-container {
+  position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
+  background: black;
+  z-index: 0;
 }
 
-/* Portrait source: fill frame (transforms applied inline in VoiceVideoFrame for zoom + rotate) */
-.voice-video-portrait .voice-video-inner video,
-.voice-video-portrait [data-lk-source="camera"] video {
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
+.main-video,
+.main-video-container video,
+.main-video-container [data-lk-source="camera"] video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transform-origin: center center;
 }
 
-.voice-video-zoom-slider {
+.preview-video-container {
+  position: absolute;
+  right: 12px;
+  bottom: 100px;
+  width: 110px;
+  height: 180px;
+  border-radius: 18px;
+  overflow: hidden;
+  z-index: 1000;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: black;
+}
+
+.preview-video-container--tile {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  z-index: 1;
+}
+
+.preview-video,
+.preview-video-container video,
+.preview-video-container [data-lk-source="camera"] video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: center center;
+}
+
+.live-video-zoom-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.72);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.live-video-zoom-range {
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
+  min-height: 44px;
+  height: 8px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.3);
+  accent-color: #0e8f3d;
+  cursor: pointer;
 }
 
-.voice-video-zoom-slider::-webkit-slider-thumb {
+.live-video-zoom-range::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -444,13 +485,41 @@ body {
   cursor: pointer;
 }
 
-.voice-video-zoom-slider::-moz-range-thumb {
+.live-video-zoom-range::-moz-range-thumb {
   width: 22px;
   height: 22px;
   border-radius: 50%;
   background: #0e8f3d;
   border: 2px solid #fff;
   cursor: pointer;
+}
+
+.live-video-zoom-reset {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.live-video-zoom-reset:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.preview-video-container .live-video-zoom-bar {
+  padding: 4px 6px;
+  gap: 4px;
+}
+
+.preview-video-container .live-video-zoom-reset {
+  min-width: 44px;
+  padding: 0 8px;
+  font-size: 10px;
 }
 
 /* Public blog article body (markdown / HTML) — WordPress-like rhythm */

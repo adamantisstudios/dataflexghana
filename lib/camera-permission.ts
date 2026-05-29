@@ -1,21 +1,10 @@
 "use client"
 
+import { requestLiveCameraStream } from "@/lib/live-camera-constraints"
+
 export type CameraPermissionResult =
   | { ok: true }
   | { ok: false; message: string; denied: boolean }
-
-/** Portrait-only camera constraints — no landscape fallback. */
-function captureConstraints(): MediaStreamConstraints {
-  return {
-    video: {
-      width: { ideal: 1080 },
-      height: { ideal: 1920 },
-      aspectRatio: { ideal: 9 / 16 },
-      facingMode: "user",
-    },
-    audio: false,
-  }
-}
 
 /** Prompt for camera permission before LiveKit publishes video. */
 export async function requestCameraAccess(
@@ -30,7 +19,7 @@ export async function requestCameraAccess(
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia(captureConstraints())
+    const stream = await requestLiveCameraStream()
     stream.getTracks().forEach((t) => t.stop())
     return { ok: true }
   } catch (err) {

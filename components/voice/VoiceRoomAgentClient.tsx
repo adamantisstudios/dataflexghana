@@ -513,10 +513,10 @@ function AgentRoomUI({
     roomAllowsVideo && canSpeak && (canPublishVideo || videoAllowedByHost)
 
   return (
-    <div className="flex flex-col min-h-[100dvh] text-[#e8eaed]" style={{ background: MEET_BG, color: MEET_TEXT }}>
+    <div className="relative flex flex-col min-h-[100dvh] text-[#e8eaed]" style={{ background: MEET_BG, color: MEET_TEXT }}>
       <VoiceReactionsLayer />
 
-      <header className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-[#3c4043]">
+      <header className="relative z-10 shrink-0 px-4 py-3 flex items-center justify-between border-b border-[#3c4043] bg-[#202124]/80 backdrop-blur-sm">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-wider" style={{ color: MEET_GREEN }}>
             Agent Conference
@@ -547,16 +547,14 @@ function AgentRoomUI({
           {mainStageParticipant ? (
             <div className="flex flex-col items-center gap-3 w-full flex-1 min-h-0 mx-auto">
               {hostShowVideo && hostCamPub ? (
-                <div className="w-full flex flex-1 justify-center items-center min-h-0 px-1">
+                <>
                   <VoiceVideoFrame
                     participant={mainStageParticipant}
                     publication={hostCamPub}
                     badge={hostVideoBadge}
-                    mirror={mainStageParticipant.identity === localParticipant.identity}
-                    enableFullscreen
-                    className="w-full"
+                    variant="main"
                   />
-                </div>
+                </>
               ) : (
                 <MeetAvatar
                   name={displayName}
@@ -589,7 +587,7 @@ function AgentRoomUI({
       </main>
 
       <footer
-        className="shrink-0 h-14 px-3 flex items-center justify-center gap-2 border-t border-[#3c4043] safe-area-inset-bottom"
+        className="relative z-10 shrink-0 h-14 px-3 flex items-center justify-center gap-2 border-t border-[#3c4043] safe-area-inset-bottom"
         style={{ background: "#292a2d" }}
       >
         <button
