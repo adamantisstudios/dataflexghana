@@ -33,15 +33,15 @@ export function VoiceStageFilmstrip({ participants, localIdentity }: Props) {
           return (
             <div
               key={p.identity}
-              className="relative shrink-0 h-[140px] w-[88px] sm:h-[160px] sm:w-[100px]"
+              className="shrink-0 w-[88px] sm:w-[100px] rounded-lg overflow-hidden border border-[#3c4043] bg-black"
             >
               <VoiceVideoFrame
                 participant={p}
                 publication={pub}
                 badge={badgeFor(p, localIdentity)}
-                variant="tile"
                 mirror={p.identity === localIdentity}
-                className="h-full w-full"
+                compact
+                className="w-full rounded-lg"
               />
             </div>
           )

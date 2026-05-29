@@ -25,13 +25,13 @@ export function HostVideoPanel() {
   if (!hostTrack) return null
 
   return (
-    <div className="relative z-10 mx-4 mb-3 h-[200px] w-full max-w-[120px]">
+    <div className="mx-4 mb-3 rounded-xl overflow-hidden border border-[#3c4043] bg-black/60 shadow-lg">
       <VoiceVideoFrame
         participant={hostTrack.participant}
         publication={hostTrack.publication}
         badge="host"
-        variant="tile"
-        className="h-full w-full"
+        maxWidthClass="max-w-none w-full"
+        className="rounded-none max-w-none"
       />
     </div>
   )
