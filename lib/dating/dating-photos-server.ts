@@ -1,0 +1,373 @@
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import { getAdminClient } from "@/lib/supabase-base"
+import { deleteFromR2, getR2ObjectStream } from "@/lib/r2-client"
+
+export const DATING_PHOTOS_BUCKET =
+  process.env.R2_DATING_PHOTOS_BUCKET_NAME || "dataflex-dating-photos"
+
+export const MAX_PHOTOS_PER_PROFILE = 5
+
+export type DatingProfilePhoto = {
+  id: string
+  profile_id: string
+  storage_path: string
+  public_url: string
+  order_index: number
+  created_at: string
+}
+
+export type DatingR2Config = {
+  accountId: string
+  accessKeyId: string
+  secretAccessKey: string
+  bucketName: string
+  endpoint: string
+}
+
+export function getDatingPhotosBucket(): string {
+  return process.env.R2_DATING_PHOTOS_BUCKET_NAME || "dataflex-dating-photos"
+}
+
+/** Resolve and validate R2 env for the dating photos bucket. */
+export function getDatingR2Config(): DatingR2Config {
+  const accountId = process.env.R2_ACCOUNT_ID?.trim()
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim()
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim()
+  const bucketName = getDatingPhotosBucket()
+
+  if (!accountId) throw new Error("Missing environment variable: R2_ACCOUNT_ID")
+  if (!accessKeyId) throw new Error("Missing environment variable: R2_ACCESS_KEY_ID")
+  if (!secretAccessKey) throw new Error("Missing environment variable: R2_SECRET_ACCESS_KEY")
+
+  return {
+    accountId,
+    accessKeyId,
+    secretAccessKey,
+    bucketName,
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+  }
+}
+
+function encodeObjectKey(objectKey: string): string {
+  return objectKey
+    .replace(/^\/+/, "")
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")
+}
+
+export function getDatingPhotoPublicUrl(objectKey: string, photoId?: string): string {
+  const datingBase = process.env.R2_DATING_PHOTOS_PUBLIC_URL_BASE?.replace(/\/$/, "")
+  if (datingBase) {
+    return `${datingBase}/${encodeObjectKey(objectKey)}`
+  }
+
+  const publicBase = process.env.R2_PUBLIC_URL_BASE?.replace(/\/$/, "")
+  if (publicBase) {
+    return `${publicBase}/${encodeObjectKey(objectKey)}`
+  }
+
+  if (photoId) {
+    return `/api/agent/dating/photos/${photoId}/serve`
+  }
+
+  const accountId = process.env.R2_ACCOUNT_ID?.trim()
+  if (accountId) {
+    return `https://pub-${accountId}.r2.dev/${encodeObjectKey(objectKey)}`
+  }
+
+  return `/api/agent/dating/photos/serve?key=${encodeURIComponent(objectKey)}`
+}
+
+let datingR2Client: S3Client | null = null
+
+function getDatingR2Client(config: DatingR2Config): S3Client {
+  if (!datingR2Client) {
+    datingR2Client = new S3Client({
+      region: "auto",
+      endpoint: config.endpoint,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    })
+  }
+  return datingR2Client
+}
+
+export async function uploadDatingPhotoBufferToR2(
+  buffer: Buffer,
+  objectKey: string,
+  contentType: string,
+  photoId?: string,
+): Promise<string> {
+  const config = getDatingR2Config()
+  const key = objectKey.replace(/^\/+/, "")
+
+  if (!buffer?.length) {
+    throw new Error("Empty image buffer — file may not have been read correctly")
+  }
+
+  try {
+    const client = getDatingR2Client(config)
+    await client.send(
+      new PutObjectCommand({
+        Bucket: config.bucketName,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType || "image/jpeg",
+      }),
+    )
+    return getDatingPhotoPublicUrl(key, photoId)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    const name = err instanceof Error ? err.name : "UnknownError"
+    console.error("[dating-photos] R2 upload failed:", {
+      name,
+      message,
+      bucket: config.bucketName,
+      endpoint: config.endpoint,
+      key,
+      contentType,
+      bytes: buffer.length,
+      stack: err instanceof Error ? err.stack : undefined,
+    })
+    throw new Error(`R2 upload failed (${name}): ${message}`)
+  }
+}
+
+export function buildDatingPhotoKey(agentId: string, photoId: string, ext: string): string {
+  const safeExt = ext.replace(/^\./, "").toLowerCase() || "jpg"
+  return `agents/${agentId}/${photoId}.${safeExt}`
+}
+
+export async function countProfilePhotos(profileId: string): Promise<number> {
+  const { count, error } = await getAdminClient()
+    .from("dating_profile_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", profileId)
+
+  if (error) {
+    console.error("[dating-photos] count error:", error.message, error.code, error.details)
+    if (error.code === "42P01" || error.message?.includes("does not exist")) {
+      throw new Error(
+        "dating_profile_photos table not found — run scripts/086_dating_profile_enhancements.sql",
+      )
+    }
+    throw new Error(`Could not count photos: ${error.message}`)
+  }
+  return count ?? 0
+}
+
+export async function getPhotosForProfile(profileId: string): Promise<DatingProfilePhoto[]> {
+  const { data, error } = await getAdminClient()
+    .from("dating_profile_photos")
+    .select("*")
+    .eq("profile_id", profileId)
+    .order("order_index", { ascending: true })
+  if (error) {
+    console.error("[dating-photos] list error:", error.message)
+    return []
+  }
+  return (data ?? []) as DatingProfilePhoto[]
+}
+
+export async function getPhotosForProfiles(
+  profileIds: string[],
+): Promise<Map<string, DatingProfilePhoto[]>> {
+  const map = new Map<string, DatingProfilePhoto[]>()
+  if (profileIds.length === 0) return map
+
+  const { data, error } = await getAdminClient()
+    .from("dating_profile_photos")
+    .select("*")
+    .in("profile_id", profileIds)
+    .order("order_index", { ascending: true })
+
+  if (error) return map
+
+  for (const row of (data ?? []) as DatingProfilePhoto[]) {
+    const list = map.get(row.profile_id) ?? []
+    list.push(row)
+    map.set(row.profile_id, list)
+  }
+  return map
+}
+
+export async function getPhotoById(photoId: string): Promise<DatingProfilePhoto | null> {
+  const { data, error } = await getAdminClient()
+    .from("dating_profile_photos")
+    .select("*")
+    .eq("id", photoId)
+    .maybeSingle()
+  if (error || !data) return null
+  return data as DatingProfilePhoto
+}
+
+export async function uploadProfilePhoto(
+  profileId: string,
+  agentId: string,
+  buffer: Buffer,
+  contentType: string,
+  ext: string,
+): Promise<DatingProfilePhoto> {
+  const db = getAdminClient()
+  const current = await countProfilePhotos(profileId)
+  if (current >= MAX_PHOTOS_PER_PROFILE) {
+    throw new Error(`Maximum ${MAX_PHOTOS_PER_PROFILE} photos allowed`)
+  }
+
+  const photoId = crypto.randomUUID()
+  const storage_path = buildDatingPhotoKey(agentId, photoId, ext)
+
+  let public_url: string
+  try {
+    public_url = await uploadDatingPhotoBufferToR2(
+      buffer,
+      storage_path,
+      contentType,
+      photoId,
+    )
+  } catch (err) {
+    console.error("[dating-photos] uploadProfilePhoto R2 step failed:", err)
+    throw err
+  }
+
+  const { data, error } = await db
+    .from("dating_profile_photos")
+    .insert({
+      id: photoId,
+      profile_id: profileId,
+      storage_path,
+      public_url,
+      order_index: current,
+    })
+    .select("*")
+    .single()
+
+  if (error) {
+    console.error("[dating-photos] DB insert failed:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    })
+    await deleteFromR2(storage_path, getDatingPhotosBucket()).catch((e) => {
+      console.error("[dating-photos] R2 rollback delete failed:", e)
+    })
+    if (error.code === "42P01" || error.message?.includes("does not exist")) {
+      throw new Error(
+        "dating_profile_photos table not found — run scripts/086_dating_profile_enhancements.sql",
+      )
+    }
+    throw new Error(`Database error: ${error.message}`)
+  }
+
+  return data as DatingProfilePhoto
+}
+
+export async function deleteProfilePhoto(photoId: string, agentId: string): Promise<void> {
+  const db = getAdminClient()
+  const photo = await getPhotoById(photoId)
+  if (!photo) throw new Error("Photo not found")
+
+  const { data: profile } = await db
+    .from("dating_profiles")
+    .select("agent_id")
+    .eq("id", photo.profile_id)
+    .maybeSingle()
+
+  if (!profile || profile.agent_id !== agentId) {
+    throw new Error("Not authorized to delete this photo")
+  }
+
+  await deleteFromR2(photo.storage_path, getDatingPhotosBucket()).catch((e) => {
+    console.error("[dating-photos] R2 delete:", e)
+  })
+
+  const { error } = await db.from("dating_profile_photos").delete().eq("id", photoId)
+  if (error) throw new Error(error.message)
+
+  const remaining = await getPhotosForProfile(photo.profile_id)
+  for (let i = 0; i < remaining.length; i++) {
+    await db.from("dating_profile_photos").update({ order_index: i }).eq("id", remaining[i].id)
+  }
+}
+
+export async function reorderProfilePhotos(
+  profileId: string,
+  agentId: string,
+  orderedPhotoIds: string[],
+): Promise<DatingProfilePhoto[]> {
+  const db = getAdminClient()
+  const { data: profile } = await db
+    .from("dating_profiles")
+    .select("agent_id")
+    .eq("id", profileId)
+    .maybeSingle()
+
+  if (!profile || profile.agent_id !== agentId) {
+    throw new Error("Not authorized")
+  }
+
+  const existing = await getPhotosForProfile(profileId)
+  const idSet = new Set(existing.map((p) => p.id))
+  if (orderedPhotoIds.length !== existing.length || !orderedPhotoIds.every((id) => idSet.has(id))) {
+    throw new Error("Invalid photo order")
+  }
+
+  for (let i = 0; i < orderedPhotoIds.length; i++) {
+    await db.from("dating_profile_photos").update({ order_index: i }).eq("id", orderedPhotoIds[i])
+  }
+
+  return getPhotosForProfile(profileId)
+}
+
+export async function canViewDatingPhotoById(
+  viewerAgentId: string,
+  photo: DatingProfilePhoto,
+  options?: { isAdmin?: boolean },
+): Promise<boolean> {
+  if (options?.isAdmin) return true
+
+  const db = getAdminClient()
+  const { data: profile } = await db
+    .from("dating_profiles")
+    .select("agent_id, is_approved")
+    .eq("id", photo.profile_id)
+    .maybeSingle()
+
+  if (!profile) return false
+  if (profile.agent_id === viewerAgentId) return true
+
+  const { getDatingProfile, getBlockedAgentIds, getOrCreateSubscription } = await import(
+    "@/lib/dating/dating-server"
+  )
+  const viewerProfile = await getDatingProfile(viewerAgentId)
+  if (!viewerProfile?.is_approved && !options?.isAdmin) return false
+
+  const blocked = await getBlockedAgentIds(viewerAgentId)
+  if (blocked.has(profile.agent_id)) return false
+
+  const [a, b] =
+    viewerAgentId < profile.agent_id
+      ? [viewerAgentId, profile.agent_id]
+      : [profile.agent_id, viewerAgentId]
+
+  const { data: match } = await db
+    .from("dating_matches")
+    .select("id")
+    .eq("agent_a_id", a)
+    .eq("agent_b_id", b)
+    .eq("is_active", true)
+    .maybeSingle()
+
+  if (match) return true
+
+  const sub = await getOrCreateSubscription(viewerAgentId)
+  return sub.plan === "gold" || sub.plan === "silver"
+}
+
+export async function streamDatingPhoto(photo: DatingProfilePhoto) {
+  return getR2ObjectStream(photo.storage_path, { bucketName: getDatingPhotosBucket() })
+}

@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
   Ticket,
   Play,
   Phone,
+  Heart,
 } from "lucide-react";
 
 interface MenuCard {
@@ -238,6 +239,16 @@ export function AgentMenuCards({ activeTab, onTabChange }: AgentMenuCardsProps) 
       onClick: () => {
         window.location.href = "/fashion-avenue";
       },
+    },
+    {
+      id: "find-a-date",
+      title: "Find a Date",
+      description: "Meaningful connections for approved agents",
+      icon: <Heart className="h-12 w-12" />,
+      image: "/images/find_a_date.png",
+      gradient: "linear-gradient(135deg, #E11D48, #BE123C)",
+      buttonText: "OPEN",
+      onClick: () => router.push("/agent/dating"),
     },
     {
       id: "profile",

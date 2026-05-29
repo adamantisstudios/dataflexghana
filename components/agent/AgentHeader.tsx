@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { BookOpen, LogOut, Megaphone, Settings, Wallet } from "lucide-react"
+import { BookOpen, Heart, LogOut, Megaphone, Settings, Wallet } from "lucide-react"
 import { getAnnouncementsMemberPath } from "@/lib/announcements-channel"
 import { Button } from "@/components/ui/button"
 import { AgentAvatar } from "@/components/agent/AgentAvatar"
@@ -81,6 +81,13 @@ export function AgentHeader({
               <span className="sr-only sm:not-sr-only sm:ml-1.5">
                 GH₵ {Number(walletBalance || 0).toFixed(2)}
               </span>
+            </Link>
+          </Button>
+
+          <Button variant="secondary" size="sm" asChild className={iconBtnClass} title="Find a Date">
+            <Link href="/agent/dating">
+              <Heart className="h-4 w-4 shrink-0" />
+              <span className="sr-only sm:not-sr-only sm:ml-1.5">Find a Date</span>
             </Link>
           </Button>
 

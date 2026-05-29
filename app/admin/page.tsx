@@ -54,6 +54,7 @@ import { Label } from "@/components/ui/label"
   ListChecks,
   ScanFace,
   Radio,
+  Heart,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -112,6 +113,7 @@ const PhotoVerificationAdminTab = lazy(() => import("@/components/admin/tabs/Pho
 const VoiceRoomsAdminTab = lazy(() => import("@/components/admin/tabs/VoiceRoomsAdminTab"))
 const TutorialsAdminTab = lazy(() => import("@/components/admin/tabs/TutorialsAdminTab"))
 const SecurityLogsTab = lazy(() => import("@/components/admin/tabs/SecurityLogsTab"))
+const DatingAdminTab = lazy(() => import("@/components/admin/tabs/DatingAdminTab"))
 const AnalyticsDashboard = lazy(() => import("@/components/admin/AnalyticsDashboard"))
 
 // Type definition for tab configuration
@@ -162,6 +164,7 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "storefront-manager", label: "Storefront Management", icon: ShoppingBag, component: StorefrontManagerTab },
   { id: "agents", label: "Agents", icon: Users, component: AgentsTab },
   { id: "photo-verification", label: "Photo Verification", icon: ScanFace, component: PhotoVerificationAdminTab },
+  { id: "dating", label: "Find a Date", icon: Heart, component: DatingAdminTab },
   { id: "voice-rooms", label: "Agent Conference", icon: Radio, component: VoiceRoomsAdminTab },
   { id: "agent-calls", label: "Agent Calls", icon: Phone, component: AgentCallsAdminTab },
   { id: "agent-management", label: "Agent Management", icon: Shield, component: AgentManagementTab },
