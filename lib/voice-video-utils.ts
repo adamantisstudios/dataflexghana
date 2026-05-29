@@ -20,14 +20,12 @@ export function voiceVideoObjectFitClass(isMobile: boolean): string {
   return isMobile ? "object-cover object-center" : "object-contain object-center"
 }
 
-export function voiceVideoCaptureDefaults(isMobile: boolean) {
+/** Always request portrait 9:16 capture for live conferences and channel streams. */
+export function voiceVideoCaptureDefaults(_isMobile?: boolean) {
   return {
-    resolution: isMobile
-      ? { width: 1080, height: 1920, frameRate: 24 }
-      : { width: 1280, height: 720, frameRate: 24 },
+    resolution: { width: 1080, height: 1920, frameRate: 24 },
     facingMode: "user" as const,
-    /** Prefer portrait capture on phones so 9:16 frames need less CSS cropping. */
-    aspectRatio: isMobile ? 9 / 16 : 16 / 9,
+    aspectRatio: 9 / 16,
   }
 }
 

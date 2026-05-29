@@ -257,8 +257,7 @@ function MainStage({
             badge={badge}
             mirror={isLocal}
             enableFullscreen={isMobile}
-            maxWidthClass="max-w-none"
-            className="w-full max-w-[min(100%,420px)] md:max-w-[min(55vw,480px)] h-auto"
+            className="w-full h-auto"
           />
         </div>
         <p className="text-sm font-medium text-[#e8eaed] truncate max-w-full px-4 shrink-0">

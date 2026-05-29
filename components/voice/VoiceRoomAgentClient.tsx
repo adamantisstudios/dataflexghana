@@ -554,8 +554,7 @@ function AgentRoomUI({
                     badge={hostVideoBadge}
                     mirror={mainStageParticipant.identity === localParticipant.identity}
                     enableFullscreen
-                    maxWidthClass="max-w-none"
-                    className="w-full max-w-[min(100%,420px)] md:max-w-[min(55vw,480px)]"
+                    className="w-full"
                   />
                 </div>
               ) : (

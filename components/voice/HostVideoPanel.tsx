@@ -30,8 +30,7 @@ export function HostVideoPanel() {
         participant={hostTrack.participant}
         publication={hostTrack.publication}
         badge="host"
-        maxWidthClass="max-w-none w-full"
-        className="rounded-none max-w-none"
+        className="rounded-none w-full h-full"
       />
     </div>
   )

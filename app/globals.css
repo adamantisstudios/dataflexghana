@@ -396,16 +396,17 @@ body {
   }
 }
 
-/* LiveKit portrait video framing (clean permanent layout). */
+/* LiveKit forced vertical 9:16 — portrait container, cover fit, one-time landscape rotate. */
 .voice-video-portrait {
   aspect-ratio: 9 / 16;
+  max-width: 420px;
   width: 100%;
   position: relative;
   overflow: hidden;
 }
 
-.voice-video-portrait:not(.max-w-none) {
-  max-width: 420px;
+.voice-video-portrait-compact {
+  max-width: none;
 }
 
 .voice-video-portrait .voice-video-inner {
@@ -414,31 +415,42 @@ body {
   overflow: hidden;
 }
 
+/* Portrait source: fill frame (transforms applied inline in VoiceVideoFrame for zoom + rotate) */
 .voice-video-portrait .voice-video-inner video,
 .voice-video-portrait [data-lk-source="camera"] video {
   display: block !important;
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
-  transform: none !important;
+  transform-origin: center center;
 }
 
-.voice-video-portrait.voice-video-landscape-feed .voice-video-inner video {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  width: 177.8% !important;
-  height: 56.25% !important;
-  object-fit: cover !important;
-  transform: translate(-50%, -50%) rotate(90deg) !important;
+.voice-video-zoom-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.voice-video-portrait.voice-video-mirror .voice-video-inner video {
-  transform: scaleX(-1) !important;
+.voice-video-zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0e8f3d;
+  border: 2px solid #fff;
+  cursor: pointer;
 }
 
-.voice-video-portrait.voice-video-landscape-feed.voice-video-mirror .voice-video-inner video {
-  transform: translate(-50%, -50%) rotate(90deg) scaleX(-1) !important;
+.voice-video-zoom-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0e8f3d;
+  border: 2px solid #fff;
+  cursor: pointer;
 }
 
 /* Public blog article body (markdown / HTML) — WordPress-like rhythm */

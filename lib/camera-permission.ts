@@ -1,28 +1,26 @@
 "use client"
 
-import { voiceVideoCaptureDefaults } from "@/lib/voice-video-utils"
-
 export type CameraPermissionResult =
   | { ok: true }
   | { ok: false; message: string; denied: boolean }
 
-function captureConstraints(isMobile: boolean): MediaStreamConstraints {
-  const { facingMode } = voiceVideoCaptureDefaults(isMobile)
-  const portraitWidth = 1080
-  const portraitHeight = 1920
+/** Portrait-only camera constraints — no landscape fallback. */
+function captureConstraints(): MediaStreamConstraints {
   return {
     video: {
-      width: { ideal: portraitWidth, min: isMobile ? 720 : 640 },
-      height: { ideal: portraitHeight, min: isMobile ? 1280 : 480 },
+      width: { ideal: 1080 },
+      height: { ideal: 1920 },
       aspectRatio: { ideal: 9 / 16 },
-      facingMode,
+      facingMode: "user",
     },
     audio: false,
   }
 }
 
 /** Prompt for camera permission before LiveKit publishes video. */
-export async function requestCameraAccess(isMobile: boolean): Promise<CameraPermissionResult> {
+export async function requestCameraAccess(
+  _isMobile?: boolean,
+): Promise<CameraPermissionResult> {
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
     return {
       ok: false,
@@ -32,7 +30,7 @@ export async function requestCameraAccess(isMobile: boolean): Promise<CameraPerm
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia(captureConstraints(isMobile))
+    const stream = await navigator.mediaDevices.getUserMedia(captureConstraints())
     stream.getTracks().forEach((t) => t.stop())
     return { ok: true }
   } catch (err) {

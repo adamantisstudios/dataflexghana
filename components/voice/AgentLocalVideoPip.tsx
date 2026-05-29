@@ -29,7 +29,6 @@ export function AgentLocalVideoPip() {
         badge="agent"
         mirror
         compact
-        maxWidthClass="max-w-none"
         className="h-full w-full rounded-xl"
       />
     </div>
