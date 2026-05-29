@@ -34,7 +34,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
   const isAuthor = String(comment.author_id) === String(agent.id)
   if (!isAuthor) {
-    const adminCheck = await assertChannelAdmin(db, channelId, agent.id)
+    const adminCheck = await assertChannelAdmin(db, channelId, agent.id, agent)
     if (!adminCheck.ok) {
       const memberCheck = await assertChannelMember(db, channelId, agent.id)
       if (!memberCheck.ok) {

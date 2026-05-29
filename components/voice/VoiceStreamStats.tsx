@@ -3,24 +3,26 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParticipants } from "@livekit/components-react"
 import { TrendingUp, Users } from "lucide-react"
+import {
+  getParticipantRole,
+  isHostParticipant,
+  isSpeakerRole,
+} from "@/components/voice/voice-participant-utils"
 
 export function VoiceStreamStats({ sessionStart }: { sessionStart: number }) {
   const participants = useParticipants()
   const listenerCount = participants.filter((p) => {
-    try {
-      const meta = p.metadata ? JSON.parse(p.metadata) : {}
-      const role = meta.role || p.attributes?.role || "listener"
-      return role === "listener"
-    } catch {
-      return true
-    }
+    if (p.isLocal) return false
+    const role = getParticipantRole(p)
+    if (isSpeakerRole(role) || isHostParticipant(p.identity, role)) return false
+    return true
   }).length
 
   const [samples, setSamples] = useState<number[]>([])
   const [peak, setPeak] = useState(0)
 
   useEffect(() => {
-    const n = Math.max(listenerCount, participants.length - 1)
+    const n = Math.max(listenerCount, participants.filter((p) => !p.isLocal).length)
     setSamples((prev) => [...prev.slice(-24), n])
     setPeak((p) => Math.max(p, n))
   }, [listenerCount, participants.length])

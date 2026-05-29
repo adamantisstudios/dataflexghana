@@ -7,6 +7,7 @@ import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { requireEnv } from "@/lib/r2-env"
 import { buildVideoObjectKey, createR2PresignedPutUrl } from "@/lib/r2-presigned-upload"
 import { formatUploadErrorMessage } from "@/lib/upload-error-messages"
+import { canManageChannelContent } from "@/lib/channel-content-permission"
 
 const MAX_SIZE_MB = 100
 
@@ -25,21 +26,13 @@ export async function POST(request: NextRequest) {
     }
     const agent = authResult.user
 
-    const { data: agentRow } = await supabaseAdmin
-      .from("agents")
-      .select("can_teach")
-      .eq("id", agent.id)
-      .single()
-
-    if (!agentRow?.can_teach) {
-      return NextResponse.json(
-        { success: false, error: "Only approved teachers can upload videos" },
-        { status: 403 },
-      )
-    }
-
     const body = await request.json()
     const channelId = String(body.channelId || "").trim()
+
+    const contentAccess = await canManageChannelContent(supabaseAdmin, channelId, agent)
+    if (!contentAccess.allowed) {
+      return NextResponse.json({ success: false, error: contentAccess.error }, { status: 403 })
+    }
     const fileName = String(body.fileName || "video.mp4")
     const contentType = String(body.contentType || "video/mp4")
     const fileSize = Number(body.fileSize || 0)

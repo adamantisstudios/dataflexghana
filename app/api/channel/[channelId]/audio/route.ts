@@ -75,7 +75,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   const { channelId } = await context.params
   const db = getAdminClient()
-  const access = await assertChannelAdmin(db, channelId, authResult.user.id)
+  const access = await assertChannelAdmin(db, channelId, authResult.user.id, authResult.user)
   if (!access.ok) {
     return NextResponse.json({ error: access.error }, { status: access.status })
   }
@@ -158,7 +158,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   const db = getAdminClient()
-  const access = await assertChannelAdmin(db, channelId, authResult.user.id)
+  const access = await assertChannelAdmin(db, channelId, authResult.user.id, authResult.user)
   if (!access.ok) {
     return NextResponse.json({ error: access.error }, { status: access.status })
   }

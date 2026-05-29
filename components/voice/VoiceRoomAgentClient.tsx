@@ -87,6 +87,8 @@ type Props = {
   roomName: string
   /** Channel live: fetch tokens from channel join API */
   channelId?: string
+  /** When false (audio-only live), camera controls are hidden. */
+  roomAllowsVideo?: boolean
 }
 
 function PreJoinScreen({
@@ -172,6 +174,7 @@ function AgentRoomUI({
   onSpeakActivated,
   onVideoActivated,
   channelId,
+  roomAllowsVideo = true,
 }: {
   roomName: string
   channelId?: string
@@ -181,6 +184,7 @@ function AgentRoomUI({
   onTokenUpgrade: (token: string, opts?: { video?: boolean }) => void
   onSpeakActivated: () => void
   onVideoActivated: () => void
+  roomAllowsVideo?: boolean
 }) {
   const router = useRouter()
   const { isMobile } = useVoiceDeviceLayout()
@@ -200,6 +204,25 @@ function AgentRoomUI({
   const [elapsed, setElapsed] = useState(0)
   const [reactionsOpen, setReactionsOpen] = useState(false)
   const [filesOpen, setFilesOpen] = useState(false)
+  const [stageTick, setStageTick] = useState(0)
+
+  useEffect(() => {
+    const bump = () => setStageTick((n) => n + 1)
+    room.on(RoomEvent.TrackPublished, bump)
+    room.on(RoomEvent.TrackUnpublished, bump)
+    room.on(RoomEvent.TrackMuted, bump)
+    room.on(RoomEvent.TrackUnmuted, bump)
+    room.on(RoomEvent.ParticipantConnected, bump)
+    room.on(RoomEvent.ParticipantDisconnected, bump)
+    return () => {
+      room.off(RoomEvent.TrackPublished, bump)
+      room.off(RoomEvent.TrackUnpublished, bump)
+      room.off(RoomEvent.TrackMuted, bump)
+      room.off(RoomEvent.TrackUnmuted, bump)
+      room.off(RoomEvent.ParticipantConnected, bump)
+      room.off(RoomEvent.ParticipantDisconnected, bump)
+    }
+  }, [room])
 
   const fetchAgentToken = useCallback(
     async (opts: { speak?: boolean; video?: boolean }) => {
@@ -463,7 +486,7 @@ function AgentRoomUI({
         participants,
         allowLocalFallback: false,
       }),
-    [localParticipant, participants],
+    [localParticipant, participants, stageTick],
   )
 
   const filmstripParticipants = useMemo(
@@ -486,7 +509,8 @@ function AgentRoomUI({
         : "speaker"
     : undefined
 
-  const mayUseCamera = canSpeak && (canPublishVideo || videoAllowedByHost)
+  const mayUseCamera =
+    roomAllowsVideo && canSpeak && (canPublishVideo || videoAllowedByHost)
 
   return (
     <div className="flex flex-col min-h-[100dvh] text-[#e8eaed]" style={{ background: MEET_BG, color: MEET_TEXT }}>
@@ -530,7 +554,6 @@ function AgentRoomUI({
                     badge={hostVideoBadge}
                     mirror={mainStageParticipant.identity === localParticipant.identity}
                     enableFullscreen
-                    enablePinchZoom
                     maxWidthClass="max-w-none"
                     className="w-full max-w-[min(100%,420px)] md:max-w-[min(55vw,480px)]"
                   />
@@ -607,7 +630,7 @@ function AgentRoomUI({
           </button>
         )}
 
-        {canSpeak && (
+        {canSpeak && roomAllowsVideo && (
           <button
             type="button"
             disabled={!mayUseCamera || enablingCamera || connectingMic}
@@ -741,6 +764,7 @@ export function VoiceRoomAgentClient({
   serverUrl,
   roomName,
   channelId,
+  roomAllowsVideo = true,
 }: Props) {
   const [joined, setJoined] = useState(false)
   const [lkToken, setLkToken] = useState(initialToken)
@@ -783,6 +807,7 @@ export function VoiceRoomAgentClient({
       <AgentRoomUI
         roomName={roomName}
         channelId={channelId}
+        roomAllowsVideo={roomAllowsVideo}
         pendingSpeak={pendingSpeak}
         pendingVideo={pendingVideo}
         canPublishVideo={canPublishVideo}

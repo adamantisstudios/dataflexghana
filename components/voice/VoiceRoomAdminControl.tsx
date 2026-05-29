@@ -174,13 +174,18 @@ function SpeakerChipBar({
   speakers,
   busy,
   onMute,
+  stageHasVideo,
 }: {
   speakers: Participant[]
   busy: string | null
   onMute: (identity: string) => void
+  stageHasVideo?: boolean
 }) {
-  if (speakers.length === 0) {
+  if (speakers.length === 0 && !stageHasVideo) {
     return <span className="text-xs text-[#9aa0a6] px-2">No speakers on stage</span>
+  }
+  if (speakers.length === 0) {
+    return null
   }
   return (
     <>
@@ -252,7 +257,6 @@ function MainStage({
             badge={badge}
             mirror={isLocal}
             enableFullscreen={isMobile}
-            enablePinchZoom={isMobile}
             maxWidthClass="max-w-none"
             className="w-full max-w-[min(100%,420px)] md:max-w-[min(55vw,480px)] h-auto"
           />
@@ -311,6 +315,8 @@ function HostControlButtons({
   speakers,
   busy,
   onMute,
+  enableVideo = true,
+  stageHasVideo = false,
 }: {
   isMicrophoneEnabled: boolean
   isCameraEnabled: boolean
@@ -320,6 +326,8 @@ function HostControlButtons({
   speakers: Participant[]
   busy: string | null
   onMute: (id: string) => void
+  enableVideo?: boolean
+  stageHasVideo?: boolean
 }) {
   return (
     <>
@@ -355,17 +363,24 @@ function HostControlButtons({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <button
-        type="button"
-        onClick={() => void onToggleCamera()}
-        className={ICON_BTN}
-        style={isCameraEnabled ? { background: MEET_GREEN } : undefined}
-        title={isCameraEnabled ? "Stop camera" : "Start camera"}
-      >
-        {isCameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-      </button>
+      {enableVideo && (
+        <button
+          type="button"
+          onClick={() => void onToggleCamera()}
+          className={ICON_BTN}
+          style={isCameraEnabled ? { background: MEET_GREEN } : undefined}
+          title={isCameraEnabled ? "Stop camera" : "Start camera"}
+        >
+          {isCameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+        </button>
+      )}
       <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto px-1">
-        <SpeakerChipBar speakers={speakers} busy={busy} onMute={onMute} />
+        <SpeakerChipBar
+          speakers={speakers}
+          busy={busy}
+          onMute={onMute}
+          stageHasVideo={stageHasVideo}
+        />
       </div>
     </>
   )
@@ -384,6 +399,7 @@ function AdminDesktopSidebar({
   onInviteOpen,
   roomName,
   localParticipant,
+  enableVideo = true,
 }: {
   raisedHands: RaisedHand[]
   busy: string | null
@@ -397,6 +413,7 @@ function AdminDesktopSidebar({
   onInviteOpen: () => void
   roomName: string
   localParticipant: Participant
+  enableVideo?: boolean
 }) {
   return (
     <div className="flex flex-col h-full min-h-0 gap-2 p-2 overflow-y-auto">
@@ -471,7 +488,7 @@ function AdminDesktopSidebar({
               /* ignore */
             }
             videoAllowed = videoAllowed || p.attributes?.videoAllowed === "true"
-            const showVideoToggle = !p.isLocal && isSpeakerRole(role)
+            const showVideoToggle = enableVideo && !p.isLocal && isSpeakerRole(role)
             return (
               <li
                 key={p.identity}
@@ -551,6 +568,7 @@ function ControlPanelInner({
   const sessionStart = useRef(Date.now())
 
   const toggleHostCamera = useCallback(async () => {
+    if (!enableVideo) return
     const result = await setParticipantCameraEnabled(
       localParticipant,
       !isCameraEnabled,
@@ -559,7 +577,7 @@ function ControlPanelInner({
     if (!result.ok) {
       toast.error(result.message, { duration: result.denied ? 8000 : 5000 })
     }
-  }, [localParticipant, isCameraEnabled, isMobile])
+  }, [enableVideo, localParticipant, isCameraEnabled, isMobile])
 
   useEffect(() => {
     if (!enableVideo || room.state === ConnectionState.Disconnected) return
@@ -841,8 +859,13 @@ function ControlPanelInner({
   )
 
   const showLocalPip =
+    enableVideo &&
     mainStageParticipant?.identity !== localParticipant.identity &&
     participantHasCamera(localParticipant)
+
+  const stageHasVideo = Boolean(
+    mainStageParticipant && participantHasCamera(mainStageParticipant),
+  )
 
   const listenerAvatars = useMemo(() => listeners.slice(0, 16), [listeners])
 
@@ -886,7 +909,8 @@ function ControlPanelInner({
         <span className="flex items-center gap-2 shrink-0">
           <Users className="h-4 w-4" style={{ color: MEET_GREEN }} />
           <span className="truncate">
-            {listeners.length} listening · {participants.length} total
+            {remoteParticipants.length} in room · {participants.length} connected
+            {stageHasVideo ? " · live video" : ""}
           </span>
         </span>
         <div className="flex items-center gap-2 min-w-0 max-w-full overflow-hidden">
@@ -958,6 +982,8 @@ function ControlPanelInner({
               speakers={speakers}
               busy={busy}
               onMute={(id) => void muteParticipant(id)}
+              enableVideo={enableVideo}
+              stageHasVideo={stageHasVideo}
             />
           </footer>
         </div>
@@ -976,6 +1002,7 @@ function ControlPanelInner({
             onInviteOpen={() => setInviteOpen(true)}
             roomName={roomName}
             localParticipant={localParticipant}
+            enableVideo={enableVideo}
           />
         </aside>
       </div>
@@ -994,6 +1021,8 @@ function ControlPanelInner({
             speakers={speakers}
             busy={busy}
             onMute={(id) => void muteParticipant(id)}
+            enableVideo={enableVideo}
+            stageHasVideo={stageHasVideo}
           />
         </div>
         <div className="flex items-center justify-center gap-2 flex-wrap">

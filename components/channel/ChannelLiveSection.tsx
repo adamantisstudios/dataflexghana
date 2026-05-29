@@ -149,6 +149,7 @@ export function ChannelLiveSection({ channelId, agentId, agentName, isHost }: Pr
           serverUrl={memberJoin.serverUrl}
           roomName={memberJoin.roomName}
           channelId={channelId}
+          roomAllowsVideo={session.session_type === "video"}
         />
         <ChannelLiveChat
           sessionId={session.id}

@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { getStoredAgent } from "@/lib/unified-auth-system"
+import { isPlatformAdminAgent } from "@/lib/platform-admin"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { supabase } from "@/lib/supabase-client"
 import { RefreshCw, AlertCircle, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useRouter } from "next/navigation"
+import { SubscriptionRenewalDialog } from "@/components/teaching/SubscriptionRenewalDialog"
 
 interface Subscription {
   id: string
@@ -27,222 +27,197 @@ interface Subscription {
 export default function MySubscriptionsPage() {
   const router = useRouter()
   const agent = getStoredAgent()
+  const agentId = agent?.id
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [loading, setLoading] = useState(true)
-  const [renewingId, setRenewingId] = useState<string | null>(null)
-  const [renewalData, setRenewalData] = useState({
-    amount: 0,
-    notes: "",
-  })
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [renewTarget, setRenewTarget] = useState<Subscription | null>(null)
 
-  useEffect(() => {
-    if (!agent) {
-      router.push("/agent/login")
-      return
-    }
-    loadSubscriptions()
-  }, [agent, router])
+  const loadSubscriptions = useCallback(async () => {
+    if (!agentId) return
 
-  const loadSubscriptions = async () => {
-    if (!agent?.id) return
-
+    setLoadError(null)
+    setLoading(true)
     try {
-      setLoading(true)
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => controller.abort(), 20000)
+
       const res = await fetch("/api/agent/subscriptions", {
         headers: getAgentAuthHeaders(),
         cache: "no-store",
+        signal: controller.signal,
       })
+      window.clearTimeout(timeoutId)
+
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to load")
 
       setSubscriptions(data.subscriptions || [])
     } catch (error) {
-      console.error("[my-subscriptions] load error:", error)
-      toast.error("Failed to load subscriptions")
+      const message =
+        error instanceof Error && error.name === "AbortError"
+          ? "Request timed out. Check your connection and try again."
+          : error instanceof Error
+            ? error.message
+            : "Failed to load subscriptions"
+      setLoadError(message)
+      setSubscriptions([])
+      toast.error(message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [agentId])
 
-  const handleRequestRenewal = async (subscriptionId: string, channelId: string) => {
-    if (!renewalData.amount || renewalData.amount <= 0) {
-      toast.error("Please enter a valid renewal amount")
+  useEffect(() => {
+    if (!agentId) {
+      router.push("/agent/login")
       return
     }
 
-    try {
-      setRenewingId(subscriptionId)
-
-      const res = await fetch("/api/agent/subscriptions", {
-        method: "POST",
-        headers: { ...getAgentAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subscriptionId,
-          channelId,
-          amount: renewalData.amount,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to request renewal")
-
-      toast.success("Renewal request sent! Awaiting admin approval.")
-      setRenewingId(null)
-      setRenewalData({ amount: 0, notes: "" })
-      loadSubscriptions()
-    } catch (error: any) {
-      console.error("[v0] Error requesting renewal:", error)
-      toast.error("Failed to request renewal")
-    } finally {
-      setRenewingId(null)
+    if (isPlatformAdminAgent(agent)) {
+      router.replace("/agent/teaching")
+      return
     }
-  }
 
-  if (!agent) return null
+    void (async () => {
+      const { data } = await supabase
+        .from("channel_members")
+        .select("role")
+        .eq("agent_id", agentId)
+        .eq("status", "active")
+        .in("role", ["admin", "teacher"])
+
+      if (data?.length) {
+        router.replace("/agent/teaching")
+        return
+      }
+
+      void loadSubscriptions()
+    })()
+  }, [agentId, agent, router, loadSubscriptions])
+
+  if (!agentId) return null
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-500">Loading your subscriptions...</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <p className="text-sm text-slate-600">Loading your subscriptions…</p>
       </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-4 sm:py-8">
-      <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 sm:mb-8">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/agent/teaching")} className="self-start">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
+    <main className="min-h-screen w-full bg-slate-50 py-4 sm:py-8">
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="h-11" onClick={() => router.push("/agent/teaching")}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">My Channel Subscriptions</h1>
+          </div>
+          <Button variant="outline" className="h-11" onClick={() => void loadSubscriptions()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
           </Button>
-          <h1 className="text-xl sm:text-3xl font-bold text-gray-800">My Channel Subscriptions</h1>
         </div>
 
-        {subscriptions.length === 0 ? (
-          <Card className="bg-blue-50 border-blue-200 text-center py-12">
+        {loadError && (
+          <Card className="mb-4 border-amber-200 bg-amber-50">
+            <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-amber-900">{loadError}</p>
+              <Button className="h-11 bg-emerald-600 hover:bg-emerald-700" onClick={() => void loadSubscriptions()}>
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {subscriptions.length === 0 && !loadError ? (
+          <Card className="rounded-2xl border border-slate-200 bg-white py-12 text-center shadow-sm">
             <CardContent>
-              <p className="text-gray-600">You don't have any active subscriptions</p>
+              <p className="text-slate-600">You do not have any channel subscriptions yet.</p>
+              <Button className="mt-4 h-11" variant="outline" onClick={() => router.push("/agent/teaching")}>
+                Browse channels
+              </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
             {subscriptions.map((sub) => (
-              <Card key={sub.id} className="overflow-hidden">
-                <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-cyan-50">
-                  <div className="flex items-start justify-between gap-4">
+              <Card key={sub.id} className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+                <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-white pb-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <CardTitle className="text-lg text-blue-900">{sub.channel_name}</CardTitle>
-                      <p className="text-xs text-blue-700 mt-1">
+                      <CardTitle className="text-lg text-slate-900">{sub.channel_name}</CardTitle>
+                      <p className="mt-1 text-xs text-slate-500">
                         Joined {new Date(sub.subscription_starts_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        className={
-                          sub.is_active
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }
-                      >
-                        {sub.is_active ? "ACTIVE" : "EXPIRED"}
-                      </Badge>
-                      {sub.is_active && sub.days_remaining <= 3 && (
-                        <Badge className="bg-amber-100 text-amber-800">RENEW SOON</Badge>
-                      )}
-                    </div>
+                    <Badge
+                      className={
+                        sub.is_active ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                      }
+                    >
+                      {sub.is_active ? "Active" : "Expired"}
+                    </Badge>
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4 pt-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                    <div className="bg-gray-50 rounded p-3">
-                      <p className="text-xs text-gray-600 mb-1">Monthly Fee</p>
-                      <p className="text-lg font-bold text-gray-800">GHS {sub.payment_amount.toFixed(2)}</p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs text-slate-500">Monthly fee</p>
+                      <p className="text-lg font-bold text-slate-900">GHS {sub.payment_amount.toFixed(2)}</p>
                     </div>
-                    <div className="bg-gray-50 rounded p-3">
-                      <p className="text-xs text-gray-600 mb-1">Days Remaining</p>
-                      <p className="text-lg font-bold text-gray-800">{Math.max(0, sub.days_remaining)} days</p>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs text-slate-500">Days left</p>
+                      <p className="text-lg font-bold text-slate-900">{Math.max(0, sub.days_remaining)}</p>
                     </div>
-                    <div className="bg-gray-50 rounded p-3">
-                      <p className="text-xs text-gray-600 mb-1">Expires</p>
-                      <p className="text-lg font-bold text-gray-800">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <p className="text-xs text-slate-500">Expires</p>
+                      <p className="text-lg font-bold text-slate-900">
                         {new Date(sub.subscription_expires_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
 
                   {sub.is_active && sub.days_remaining <= 3 && (
-                    <div className="bg-amber-50 border border-amber-200 rounded p-3 flex gap-2">
-                      <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-                      <p className="text-sm text-amber-800">
-                        Your subscription expires soon. Renew now to avoid losing access.
-                      </p>
+                    <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
+                      <p className="text-sm text-amber-800">Your subscription expires soon. Renew to keep access.</p>
                     </div>
                   )}
 
-                  {!sub.is_active && (
-                    <div className="bg-red-50 border border-red-200 rounded p-3 flex gap-2">
-                      <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-                      <p className="text-sm text-red-800">
-                        Your subscription has expired and you no longer have access to this channel.
-                      </p>
-                    </div>
-                  )}
-
-                  {(sub.is_active || sub.days_remaining <= 0) && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button className="w-full bg-[#0E8F3D] hover:bg-[#35B24A] text-white">
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Renew Subscription
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-sm">
-                        <DialogHeader>
-                          <DialogTitle>Renew Subscription - {sub.channel_name}</DialogTitle>
-                        </DialogHeader>
-
-                        <div className="space-y-4 py-4">
-                          <div className="bg-gray-50 rounded p-3">
-                            <p className="text-xs text-gray-600">Monthly Fee</p>
-                            <p className="text-2xl font-bold text-gray-800 mt-1">GHS {sub.payment_amount.toFixed(2)}</p>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label className="text-xs font-medium">Payment Amount (GHS)</Label>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={renewalData.amount || ""}
-                              onChange={(e) =>
-                                setRenewalData({
-                                  ...renewalData,
-                                  amount: e.target.value ? Number.parseFloat(e.target.value) : 0,
-                                })
-                              }
-                              placeholder="Enter renewal amount"
-                              className="h-9 text-xs"
-                            />
-                          </div>
-
-                          <Button
-                            onClick={() => handleRequestRenewal(sub.id, sub.channel_id)}
-                            disabled={renewingId === sub.id}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white text-sm"
-                          >
-                            {renewingId === sub.id ? "Processing..." : "Request Renewal"}
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                  <Button
+                    className="h-11 w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => setRenewTarget(sub)}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Renew subscription
+                  </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      {renewTarget && (
+        <SubscriptionRenewalDialog
+          open={Boolean(renewTarget)}
+          onOpenChange={(open) => !open && setRenewTarget(null)}
+          channelName={renewTarget.channel_name}
+          channelId={renewTarget.channel_id}
+          monthlyFee={renewTarget.payment_amount}
+          subscriptionId={renewTarget.id}
+          onSuccess={() => {
+            setRenewTarget(null)
+            void loadSubscriptions()
+          }}
+        />
+      )}
     </main>
   )
 }

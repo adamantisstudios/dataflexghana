@@ -7,6 +7,7 @@ import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { deleteFromR2, getR2PublicUrl } from "@/lib/r2-client"
 import { requireEnv } from "@/lib/r2-env"
 import { formatUploadErrorMessage } from "@/lib/upload-error-messages"
+import { canManageChannelContent } from "@/lib/channel-content-permission"
 
 export async function POST(request: NextRequest) {
   let videoObjectKey: string | null = null
@@ -18,21 +19,13 @@ export async function POST(request: NextRequest) {
     }
     const agent = authResult.user
 
-    const { data: agentRow } = await supabaseAdmin
-      .from("agents")
-      .select("can_teach")
-      .eq("id", agent.id)
-      .single()
-
-    if (!agentRow?.can_teach) {
-      return NextResponse.json(
-        { success: false, error: "Only approved teachers can upload videos" },
-        { status: 403 },
-      )
-    }
-
     const body = await request.json()
     const channelId = String(body.channelId || "").trim()
+
+    const contentAccess = await canManageChannelContent(supabaseAdmin, channelId, agent)
+    if (!contentAccess.allowed) {
+      return NextResponse.json({ success: false, error: contentAccess.error }, { status: 403 })
+    }
     const objectKey = String(body.objectKey || "").trim()
     const title = String(body.title || "").trim()
     const description = String(body.description || "")

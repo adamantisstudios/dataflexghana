@@ -4,9 +4,8 @@ import { useEffect, useRef, useState } from "react"
 import { VideoTrack } from "@livekit/components-react"
 import { Track, type Participant, type TrackPublication } from "livekit-client"
 import { Headphones, Maximize, Minimize, Monitor, Shield, User, Video } from "lucide-react"
-import { usePortraitVideoLayout } from "@/hooks/use-portrait-video-layout"
-import { useVideoPinchZoom } from "@/hooks/use-video-pinch-zoom"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
+import { useVideoPinchZoom } from "@/hooks/use-video-pinch-zoom"
 import { cn } from "@/lib/utils"
 import {
   Tooltip,
@@ -42,7 +41,21 @@ const BADGE_CONFIG: Record<
   user: { icon: User, tooltip: "Participant camera" },
 }
 
-/** Unified 9:16 live video — host preview and agent remote view use the same CSS. */
+function readDimensions(
+  publication: TrackPublication,
+): { width: number; height: number } | null {
+  const pubDims = (publication as { dimensions?: { width?: number; height?: number } }).dimensions
+  const trackDims = (publication.track as { dimensions?: { width?: number; height?: number } } | null)
+    ?.dimensions
+  const raw = pubDims ?? trackDims
+  if (!raw) return null
+  const width = Number(raw.width ?? 0)
+  const height = Number(raw.height ?? 0)
+  if (width <= 0 || height <= 0) return null
+  return { width, height }
+}
+
+/** Unified 9:16 live video — portrait container, cover fit; landscape feeds use fixed CSS rotate. */
 export function VoiceVideoFrame({
   participant,
   publication,
@@ -56,15 +69,10 @@ export function VoiceVideoFrame({
   enablePinchZoom = false,
 }: Props) {
   const { objectFitClass, isMobile } = useVoiceDeviceLayout()
-  /** Camera feeds use 9:16 portrait framing on all devices; screen share stays 16:9. */
   const portraitLayout = badge !== "screen"
-  const pubDims = (publication as { dimensions?: { width?: number; height?: number } }).dimensions
-  const trackDims = (publication.track as { dimensions?: { width?: number; height?: number } } | null)?.dimensions
-  const rawDimensions = pubDims ?? trackDims
-  const trackDimensions = rawDimensions
-    ? { width: Number(rawDimensions.width ?? 0), height: Number(rawDimensions.height ?? 0) }
-    : null
-  const { containerRef, landscapeFeed } = usePortraitVideoLayout(portraitLayout, trackDimensions)
+  const dims = readDimensions(publication)
+  const isLandscapeFeed = Boolean(portraitLayout && dims && dims.width > dims.height)
+
   const frameRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -75,11 +83,6 @@ export function VoiceVideoFrame({
     enablePinchZoom && portraitLayout,
     innerRef,
   )
-
-  const mergeFrameRef = (el: HTMLDivElement | null) => {
-    frameRef.current = el
-    ;(containerRef as React.MutableRefObject<HTMLDivElement | null>).current = el
-  }
 
   useEffect(() => {
     const onFsChange = () => {
@@ -128,11 +131,11 @@ export function VoiceVideoFrame({
 
   return (
     <div
-      ref={mergeFrameRef}
+      ref={frameRef}
       className={cn(
         "relative w-full mx-auto rounded-xl overflow-hidden bg-black voice-video-frame",
         portraitLayout && "voice-video-portrait",
-        portraitLayout && landscapeFeed && "voice-video-landscape-feed",
+        portraitLayout && isLandscapeFeed && "voice-video-landscape-feed",
         portraitLayout && mirror && "voice-video-mirror",
         portraitLayout
           ? compact

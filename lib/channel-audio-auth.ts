@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { isPlatformAdminAgent } from "@/lib/platform-admin"
 
 const ADMIN_ROLES = new Set(["teacher", "admin"])
 
@@ -39,12 +40,28 @@ export async function assertChannelAdmin(
   db: SupabaseClient,
   channelId: string,
   agentId: string,
+  agent?: { email?: string | null },
 ): Promise<{ ok: true; role: string } | { ok: false; status: number; error: string }> {
-  const membership = await getChannelMembership(db, channelId, agentId)
-  if (!membership || !ADMIN_ROLES.has(membership.role)) {
-    return { ok: false, status: 403, error: "Only channel teachers or admins can manage audio lectures" }
+  if (agent && isPlatformAdminAgent(agent)) {
+    return { ok: true, role: "platform_admin" }
   }
-  return { ok: true, role: membership.role }
+
+  const membership = await getChannelMembership(db, channelId, agentId)
+  if (membership && ADMIN_ROLES.has(membership.role)) {
+    return { ok: true, role: membership.role }
+  }
+
+  const { data: channel } = await db
+    .from("teaching_channels")
+    .select("created_by")
+    .eq("id", channelId)
+    .maybeSingle()
+
+  if (channel?.created_by && String(channel.created_by) === String(agentId)) {
+    return { ok: true, role: "owner" }
+  }
+
+  return { ok: false, status: 403, error: "Only channel teachers or admins can manage audio lectures" }
 }
 
 export async function getLectureChannelId(

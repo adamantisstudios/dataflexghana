@@ -131,6 +131,7 @@ export default function TeachingPlatformPage() {
   })
 
   const isPlatformAdmin = agent ? isPlatformAdminAgent(agent) : false
+  const [showMySubscriptionsLink, setShowMySubscriptionsLink] = useState(true)
 
   // Load Data
   useEffect(() => {
@@ -143,6 +144,23 @@ export default function TeachingPlatformPage() {
       setHasLoaded(true)
     }
   }, [agent, router, hasLoaded])
+
+  useEffect(() => {
+    if (!agent?.id) return
+    if (isPlatformAdmin) {
+      setShowMySubscriptionsLink(false)
+      return
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from("channel_members")
+        .select("role")
+        .eq("agent_id", agent.id)
+        .eq("status", "active")
+        .in("role", ["admin", "teacher"])
+      setShowMySubscriptionsLink(!data?.length)
+    })()
+  }, [agent?.id, isPlatformAdmin])
 
   const loadChannels = async () => {
     setLoading(true)
@@ -461,9 +479,16 @@ export default function TeachingPlatformPage() {
                 </DialogContent>
               </Dialog>
             )}
-            <Button size="sm" variant="outline" className="h-11 border-gray-200 text-gray-900" onClick={() => router.push("/agent/my-subscriptions")}>
-              My Subscriptions
-            </Button>
+            {showMySubscriptionsLink && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-11 border-gray-200 text-gray-900"
+                onClick={() => router.push("/agent/my-subscriptions")}
+              >
+                My Subscriptions
+              </Button>
+            )}
           </div>
         </div>
       </div>

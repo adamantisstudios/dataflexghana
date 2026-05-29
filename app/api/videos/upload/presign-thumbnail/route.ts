@@ -8,6 +8,7 @@ import { deleteFromR2, getR2PublicUrl } from "@/lib/r2-client"
 import { requireEnv } from "@/lib/r2-env"
 import { createR2PresignedPutUrl } from "@/lib/r2-presigned-upload"
 import { formatUploadErrorMessage } from "@/lib/upload-error-messages"
+import { canManageChannelContent } from "@/lib/channel-content-permission"
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +24,11 @@ export async function POST(request: NextRequest) {
 
     if (!channelId) {
       return NextResponse.json({ success: false, error: "Channel ID is required" }, { status: 400 })
+    }
+
+    const contentAccess = await canManageChannelContent(supabaseAdmin, channelId, agent)
+    if (!contentAccess.allowed) {
+      return NextResponse.json({ success: false, error: contentAccess.error }, { status: 403 })
     }
 
     if (fileSize > 5 * 1024 * 1024) {

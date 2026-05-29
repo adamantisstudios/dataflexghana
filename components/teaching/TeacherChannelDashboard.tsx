@@ -62,6 +62,10 @@ import { ChannelSubscriptionManager } from "./channel-subscription-manager"
 import { ChannelLiveSection } from "@/components/channel/ChannelLiveSection"
 import { ChannelAudioLecturesAdmin } from "@/components/channel/ChannelAudioLecturesAdmin"
 import { teachingHubMainClass, teachingHubFullBleedClass } from "@/components/teaching/teaching-hub-ui"
+import {
+  JoinRequestsSearchInput,
+  filterJoinRequests,
+} from "@/components/teaching/JoinRequestsSearchInput"
 
 interface Channel {
   id: string
@@ -138,6 +142,7 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
   const [channel, setChannel] = useState<Channel | null>(null)
   const [members, setMembers] = useState<ChannelMember[]>([])
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([])
+  const [requestSearch, setRequestSearch] = useState("")
   const [posts, setPosts] = useState<any[]>([])
   const [messages, setMessages] = useState<ChannelMessage[]>([])
   const [loading, setLoading] = useState(true)
@@ -1676,14 +1681,19 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
 
           {/* Requests Tab */}
           <TabsContent value="requests" className={`${teachingHubMainClass} space-y-3 w-full max-w-none`}>
+            <JoinRequestsSearchInput value={requestSearch} onChange={setRequestSearch} />
             {joinRequests.length === 0 ? (
               <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center text-green-700 text-sm">
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8 opacity-60" />
                 <p>No pending join requests</p>
               </div>
+            ) : filterJoinRequests(joinRequests, requestSearch).length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-600 text-sm">
+                <p>No requests match your search.</p>
+              </div>
             ) : (
               <div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {joinRequests.map((request) => (
+                {filterJoinRequests(joinRequests, requestSearch).map((request) => (
                   <div key={request.id} className="w-full rounded-xl border border-amber-200 bg-white p-4 shadow-sm">
                     <div className="space-y-1">
                       <div>

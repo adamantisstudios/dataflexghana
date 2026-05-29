@@ -10,6 +10,10 @@ import {
   teachingHubTabTriggerClass,
 } from "@/components/teaching/teaching-hub-ui"
 import { cn } from "@/lib/utils"
+import {
+  JoinRequestsSearchInput,
+  filterJoinRequests,
+} from "@/components/teaching/JoinRequestsSearchInput"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { parseJsonResponse } from "@/lib/agent-auth-utils"
 import { Card, CardContent } from "@/components/ui/card"
@@ -630,6 +634,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         return (
           item.full_name?.toLowerCase().includes(searchLower) ||
           item.phone_number?.toLowerCase().includes(searchLower) ||
+          item.email?.toLowerCase().includes(searchLower) ||
+          item.request_message?.toLowerCase().includes(searchLower) ||
           (item.channel_name || item.teaching_channels?.name || "")
             .toLowerCase()
             .includes(searchLower)
@@ -967,6 +973,11 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
         {/* Join Requests View */}
         {activeSubTab === "join-requests" && (
           <div className="space-y-3">
+            <JoinRequestsSearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Search channel requests by name, phone, email, or channel…"
+            />
             {paginatedData.length === 0 ? (
               <Card className="rounded-2xl border border-gray-100 py-12 text-center shadow-sm">
                 <CardContent>

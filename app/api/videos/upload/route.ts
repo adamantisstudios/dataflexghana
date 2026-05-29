@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { deleteFromR2, uploadBufferToR2 } from "@/lib/r2-client"
 import { formatUploadErrorMessage } from "@/lib/upload-error-messages"
+import { canManageChannelContent } from "@/lib/channel-content-permission"
 
 const MAX_SIZE_MB = 100
 
@@ -31,24 +32,16 @@ export async function POST(request: NextRequest) {
     }
     const agent = authResult.user
 
-    const { data: agentRow } = await supabaseAdmin
-      .from("agents")
-      .select("can_teach")
-      .eq("id", agent.id)
-      .single()
+    const formData = await request.formData()
+    const file = formData.get("file") as File
+    const channelId = String(formData.get("channelId") || "").trim()
 
-    if (!agentRow?.can_teach) {
-      return NextResponse.json(
-        { success: false, error: "Only approved teachers can upload videos" },
-        { status: 403 },
-      )
+    const contentAccess = await canManageChannelContent(supabaseAdmin, channelId, agent)
+    if (!contentAccess.allowed) {
+      return NextResponse.json({ success: false, error: contentAccess.error }, { status: 403 })
     }
 
     const isMobileRequest = /mobile|android|iphone|ipad/i.test(request.headers.get("user-agent") || "")
-
-    const formData = await request.formData()
-    const file = formData.get("file") as File
-    const channelId = formData.get("channelId") as string
     const title = formData.get("title") as string
     const description = formData.get("description") as string
     const duration = Number(formData.get("duration") || 0)

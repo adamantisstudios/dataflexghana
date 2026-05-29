@@ -5,10 +5,12 @@ import {
   isSpeakerRole,
 } from "@/components/voice/voice-participant-utils"
 
-/** True when participant has an active, unmuted camera publication. */
+/** True when participant has camera on stage (track live or camera enabled while publishing). */
 export function participantHasCamera(participant: Participant): boolean {
   const pub = participant.getTrackPublication(Track.Source.Camera)
-  return Boolean(pub?.track && !pub.isMuted)
+  if (pub && !pub.isMuted && (pub.track || participant.isCameraEnabled)) return true
+  if (participant.isCameraEnabled) return true
+  return false
 }
 
 export type PickMainStageOptions = {
@@ -51,6 +53,21 @@ export function pickMainStageParticipant({
   if (allowLocalFallback && participantHasCamera(localParticipant)) {
     return localParticipant
   }
+
+  const hostParticipant = participants.find((p) =>
+    isHostParticipant(p.identity, getParticipantRole(p)),
+  )
+  if (hostParticipant) return hostParticipant
+
+  const speakingRemote = remotes.find((p) => p.isSpeaking)
+  if (speakingRemote) return speakingRemote
+
+  const speakerRemote = remotes.find((p) => isSpeakerRole(getParticipantRole(p)))
+  if (speakerRemote) return speakerRemote
+
+  if (remotes.length > 0) return remotes[0]
+
+  if (allowLocalFallback) return localParticipant
 
   return null
 }
