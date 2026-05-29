@@ -11,11 +11,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Loader2, ShieldAlert } from "lucide-react"
+import { ShieldAlert } from "lucide-react"
 import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
 import { getStoredAgent } from "@/lib/unified-auth-system"
 import { isPlatformAdminAgent } from "@/lib/platform-admin"
-import { isAgentProfileVerified } from "@/lib/agent-profile-completion"
 import { getPhotoVerificationStatus } from "@/lib/photo-verification-status"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { confirmAgentProfilePhotoVerified } from "@/lib/agent-profile-photo-client"
@@ -47,6 +46,13 @@ export function ForcedProfileVerificationDialog() {
       return
     }
 
+    // Photo gate only — not full profile completion (profession/location).
+    if (getPhotoVerificationStatus(stored) === "verified") {
+      setOpen(false)
+      setAgent(stored)
+      return
+    }
+
     const { data } = await supabase
       .from("agents")
       .select("id, email, profile_image_url, profile_verified, isapproved")
@@ -56,7 +62,7 @@ export function ForcedProfileVerificationDialog() {
     const row = data ?? stored
     setAgent(row)
 
-    if (isAgentProfileVerified(row)) {
+    if (getPhotoVerificationStatus(row) === "verified") {
       setOpen(false)
       const merged = { ...stored, ...row, profile_verified: true }
       localStorage.setItem("agent", JSON.stringify(merged))
