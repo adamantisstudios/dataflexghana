@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { getStoredAgent, type Agent, logoutAgent } from "@/lib/unified-auth-system"
 import { AgentSecurityProvider } from "@/components/agent/AgentSecurityProvider"
 import { AgentCallWidget } from "@/components/agent-call-widget"
+import { AnnouncementsFloatingButton } from "@/components/announcements/AnnouncementsFloatingButton"
 
 interface AgentLayoutProps {
   children: React.ReactNode
@@ -88,7 +89,12 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   }
 
   if (pathname === "/agent/login" || pathname === "/agent/register" || pathname === "/agent/registration-payment" || pathname === "/agent/registration-complete") {
-    return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">{children}</div>
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        {children}
+        <AnnouncementsFloatingButton />
+      </div>
+    )
   }
 
   if (!agent) {
@@ -105,6 +111,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
       showWarningMinutes={5}
     >
       {children}
+      <AnnouncementsFloatingButton />
       {!hideChannelDistractions && <AgentCallWidget />}
     </AgentSecurityProvider>
   )

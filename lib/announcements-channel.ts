@@ -14,6 +14,11 @@ export function getAnnouncementsChannelIdFromEnv(): string {
   return ANNOUNCEMENTS_CHANNEL_ID
 }
 
+/** Member feed path for the official Announcements channel. */
+export function getAnnouncementsMemberPath(): string {
+  return `/agent/teaching/${getAnnouncementsChannelIdFromEnv()}/member`
+}
+
 export function isAnnouncementsChannelName(name: string): boolean {
   const n = name.trim().toLowerCase()
   return ANNOUNCEMENTS_CHANNEL_NAMES.some((label) => label.toLowerCase() === n)

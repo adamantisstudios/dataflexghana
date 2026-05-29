@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { BookOpen, LogOut, Settings, Wallet } from "lucide-react"
+import { BookOpen, LogOut, Megaphone, Settings, Wallet } from "lucide-react"
+import { getAnnouncementsMemberPath } from "@/lib/announcements-channel"
 import { Button } from "@/components/ui/button"
 import { AgentAvatar } from "@/components/agent/AgentAvatar"
 import { AgentVerificationBadge } from "@/components/agent/AgentVerificationBadge"
@@ -87,6 +88,13 @@ export function AgentHeader({
             <Link href="/agent/settings">
               <Settings className="h-4 w-4 shrink-0" />
               <span className="sr-only sm:not-sr-only sm:ml-1.5">Settings</span>
+            </Link>
+          </Button>
+
+          <Button variant="secondary" size="sm" asChild className={iconBtnClass} title="Announcements">
+            <Link href={getAnnouncementsMemberPath()} prefetch={false}>
+              <Megaphone className="h-4 w-4 shrink-0" />
+              <span className="sr-only sm:not-sr-only sm:ml-1.5">News</span>
             </Link>
           </Button>
 
