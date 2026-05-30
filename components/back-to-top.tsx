@@ -1,10 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { ArrowUp, ArrowDown } from "lucide-react"
+import { isStreamingPagePath } from "@/lib/streaming-routes"
 
 export function BackToTop() {
+  const pathname = usePathname()
   const [isVisible, setIsVisible] = useState(false)
   const [scrollDirection, setScrollDirection] = useState<"up" | "down">("up")
 
@@ -41,6 +44,10 @@ export function BackToTop() {
         behavior: "smooth",
       })
     }
+  }
+
+  if (isStreamingPagePath(pathname)) {
+    return null
   }
 
   if (!isVisible) {

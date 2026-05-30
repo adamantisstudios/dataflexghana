@@ -7,6 +7,7 @@ import { getStoredAgent, type Agent, logoutAgent } from "@/lib/unified-auth-syst
 import { AgentSecurityProvider } from "@/components/agent/AgentSecurityProvider"
 import { AgentCallWidget } from "@/components/agent-call-widget"
 import { AnnouncementsFloatingButton } from "@/components/announcements/AnnouncementsFloatingButton"
+import { isStreamingPagePath } from "@/lib/streaming-routes"
 
 interface AgentLayoutProps {
   children: React.ReactNode
@@ -101,8 +102,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     return null
   }
 
-  const hideChannelDistractions =
-    pathname === "/agent/teaching" || pathname.startsWith("/agent/teaching/")
+  const hideStreamingDistractions = isStreamingPagePath(pathname)
 
   return (
     <AgentSecurityProvider
@@ -112,7 +112,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     >
       {children}
       <AnnouncementsFloatingButton />
-      {!hideChannelDistractions && <AgentCallWidget />}
+      {!hideStreamingDistractions && <AgentCallWidget />}
     </AgentSecurityProvider>
   )
 }

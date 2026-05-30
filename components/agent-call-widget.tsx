@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner"
 import { getStoredAgent } from "@/lib/unified-auth-system"
 import { useCallWidget } from "@/hooks/use-call-widget"
+import { isStreamingPagePath } from "@/lib/streaming-routes"
 import { CallAudioSession, useCallAudioControls } from "@/components/calls/CallAudioSession"
 import { CallMuteButton } from "@/components/calls/CallLiveKitAudio"
 import {
@@ -174,7 +175,7 @@ export function AgentCallWidget() {
   })
 
   if (!agent?.id) return null
-  if (pathname?.includes("/voice-room")) return null
+  if (isStreamingPagePath(pathname)) return null
 
   const onCallSupport = async () => {
     setStarting(true)

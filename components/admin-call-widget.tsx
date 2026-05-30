@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { getStoredAdmin } from "@/lib/unified-auth-system"
 import { useCallWidget } from "@/hooks/use-call-widget"
+import { isStreamingPagePath } from "@/lib/streaming-routes"
 import { useRingtone } from "@/hooks/use-ringtone"
 import { CallAudioSession, useCallAudioControls } from "@/components/calls/CallAudioSession"
 import { CallMuteButton } from "@/components/calls/CallLiveKitAudio"
@@ -138,7 +139,7 @@ export function AdminCallWidget() {
   })
 
   if (!admin?.id) return null
-  if (pathname?.includes("/voice-rooms")) return null
+  if (isStreamingPagePath(pathname)) return null
 
   const showWiggle = hasIncoming && phase === "idle"
   const isRinging = hasIncoming && phase === "idle"

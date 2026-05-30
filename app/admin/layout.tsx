@@ -8,6 +8,7 @@ import { getStoredAdmin, logoutAdmin, type AdminUser } from "@/lib/unified-auth-
 import { AdminCallWidget } from "@/components/admin-call-widget"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { AdminConnectionStatus } from "@/components/admin/AdminConnectionStatus"
+import { isStreamingPagePath } from "@/lib/streaming-routes"
 
 export { getStoredAdmin } from "@/lib/unified-auth-system"
 
@@ -115,12 +116,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return null
   }
 
+  const hideStreamingDistractions = isStreamingPagePath(pathname)
+
   // For the main admin dashboard, render without additional wrapper
   if (pathname === "/admin" || pathname === "/admin/") {
     return (
       <>
         {children}
-        <AdminCallWidget />
+        {!hideStreamingDistractions && <AdminCallWidget />}
       </>
     )
   }
@@ -140,7 +143,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         onLogout={handleLogout}
       />
       <main className="w-full px-4 py-4 sm:px-6 lg:px-8 sm:py-6">{children}</main>
-      <AdminCallWidget />
+      {!hideStreamingDistractions && <AdminCallWidget />}
     </div>
   )
 }

@@ -39,7 +39,7 @@ const BADGE_CONFIG: Record<
   user: { icon: User, tooltip: "Participant camera" },
 }
 
-/** LiveKit video surface — layout only via variant CSS (9:16 cover, no rotation). */
+/** LiveKit video surface — layout only via variant CSS (9:16 contain, no rotation). */
 export function VoiceVideoFrame({
   participant,
   publication,
@@ -117,7 +117,12 @@ export function VoiceVideoFrame({
           publication,
           source: isScreen ? Track.Source.ScreenShare : Track.Source.Camera,
         }}
-        className={cn(trackClass, "bg-black")}
+        className={cn(
+          trackClass,
+          "bg-black",
+          variant === "main" && "!object-contain",
+        )}
+        style={variant === "main" ? { objectFit: "contain" } : undefined}
       />
 
       {variant === "main" && badgeMeta && BadgeIcon && (

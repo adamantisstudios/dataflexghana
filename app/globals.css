@@ -459,11 +459,12 @@ body {
 
 .main-video-container video,
 .main-video-container [data-lk-source="camera"] video,
-.main-video-inner video {
+.main-video-inner video,
+.main-video video {
   display: block !important;
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
 }
 
 .preview-video-container {
