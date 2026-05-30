@@ -34,6 +34,10 @@ import {
   Smile,
   Video,
   VideoOff,
+  Volume2,
+  MoreVertical,
+  SwitchCamera,
+  MessageCircle,
 } from "lucide-react"
 import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
@@ -58,6 +62,13 @@ import { StableLiveKitRoom } from "@/components/voice/StableLiveKitRoom"
 import { AgentLocalVideoPip } from "@/components/voice/AgentLocalVideoPip"
 import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
 import {
+  VoipFloatingActions,
+  VoipFloatingButton,
+  VoipGlassPanel,
+  VoipStatusBar,
+} from "@/components/voice/VoiceVoipChrome"
+import { cn } from "@/lib/utils"
+import {
   formatVoiceDuration,
   voiceAvatarRingColor,
   voiceInitials,
@@ -70,9 +81,10 @@ import { decodeVoiceData } from "@/lib/voice-room-data"
 import { isTransientLiveKitError } from "@/lib/livekit-error-utils"
 import { useLiveKitRoomErrors } from "@/components/voice/useLiveKitRoomErrors"
 
-const MEET_BG = "#202124"
-const MEET_TEXT = "#e8eaed"
+const MEET_BG = "#0D1520"
+const MEET_TEXT = "#ffffff"
 const MEET_GREEN = "#0E8F3D"
+const VOIP_END = "#FF0048"
 
 type SharedFile = {
   id: string
@@ -204,6 +216,7 @@ function AgentRoomUI({
   const [elapsed, setElapsed] = useState(0)
   const [reactionsOpen, setReactionsOpen] = useState(false)
   const [filesOpen, setFilesOpen] = useState(false)
+  const [chatSheetOpen, setChatSheetOpen] = useState(false)
   const [stageTick, setStageTick] = useState(0)
 
   useEffect(() => {
@@ -512,133 +525,107 @@ function AgentRoomUI({
   const mayUseCamera =
     roomAllowsVideo && canSpeak && (canPublishVideo || videoAllowedByHost)
 
+  const voipVideoLayout = hostShowVideo && !!hostCamPub
+  const statusTitle = voipVideoLayout ? displayName : roomName
+  const statusSubtitle = connected
+    ? canSpeak
+      ? formatVoiceDuration(elapsed)
+      : "Calling"
+    : "Connecting…"
+
   return (
-    <div className="flex flex-col min-h-[100dvh] text-[#e8eaed]" style={{ background: MEET_BG, color: MEET_TEXT }}>
+    <div className="voip-call-ui fixed inset-0 flex flex-col bg-black text-white overflow-hidden">
       <VoiceReactionsLayer />
 
-      <header className="shrink-0 px-4 py-3 flex items-center justify-between border-b border-[#3c4043]">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-wider" style={{ color: MEET_GREEN }}>
-            Agent Conference
-          </p>
-          <h1 className="text-sm font-medium truncate">{roomName}</h1>
-        </div>
-        <div className="flex items-center gap-2 shrink-0 text-xs text-[#9aa0a6]">
-          <span
-            className={`h-2 w-2 rounded-full ${connected ? "bg-[#0E8F3D] animate-pulse" : "bg-amber-400"}`}
-          />
-          {connected ? formatVoiceDuration(elapsed) : "Connecting…"}
-        </div>
-      </header>
+      <div className="voip-call-stage-wrap">
+        {mainStageParticipant && hostShowVideo && hostCamPub ? (
+          <>
+            <VoiceVideoFrame
+              participant={mainStageParticipant}
+              publication={hostCamPub}
+              variant="main"
+              badge={hostVideoBadge}
+              mirror={mainStageParticipant.identity === localParticipant.identity}
+              enableFullscreen
+            />
+            {filmstripParticipants.length > 0 && (
+              <div className="voip-filmstrip-wrap">
+                <VoiceStageFilmstrip
+                  participants={filmstripParticipants}
+                  localIdentity={localParticipant.identity}
+                />
+              </div>
+            )}
+          </>
+        ) : mainStageParticipant ? (
+          <div className="flex flex-col items-center justify-center gap-4 px-6">
+            <MeetAvatar
+              name={displayName}
+              identity={mainStageParticipant.identity}
+              size="lg"
+              isSpeaking={mainStageParticipant.isSpeaking || hostLevel > 0.08}
+              showWave={!!hostHasAudio || mainStageParticipant.isSpeaking}
+            />
+            <p className="text-lg font-medium">{displayName.split(" ")[0]}</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-2 px-6 text-center text-white/70 text-sm">
+            <p className="text-base text-white/90">Waiting for host…</p>
+            <p className="text-xs">Video will appear when the host turns on their camera.</p>
+          </div>
+        )}
+      </div>
+
+      <AgentLocalVideoPip />
+
+      <VoipStatusBar title={statusTitle} subtitle={statusSubtitle} />
+
+      <VoipFloatingActions>
+        {!canSpeak && (
+          <VoipFloatingButton
+            title="Raise hand"
+            disabled={handRaised || !connected}
+            onClick={() => void raiseHand()}
+          >
+            <Hand className="h-6 w-6" />
+          </VoipFloatingButton>
+        )}
+        <VoipFloatingButton title="Switch camera" disabled>
+          <SwitchCamera className="h-6 w-6" />
+        </VoipFloatingButton>
+        <VoipFloatingButton title="Reactions" onClick={() => setReactionsOpen(true)}>
+          <Smile className="h-6 w-6" />
+        </VoipFloatingButton>
+      </VoipFloatingActions>
 
       {canSpeak && (
         <div
-          className="mx-4 mt-3 px-3 py-2 rounded-lg text-center text-sm font-medium text-white"
+          className="absolute top-[72px] left-1/2 -translate-x-1/2 z-[25] px-3 py-1 rounded-full text-xs font-medium text-white"
           style={{ background: MEET_GREEN }}
         >
           You are speaking
         </div>
       )}
 
-      <AgentLocalVideoPip />
-
-      <main className="flex-1 flex flex-col min-h-0 overflow-hidden pb-2">
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 gap-4 min-h-0">
-          {mainStageParticipant ? (
-            <div className="flex flex-col items-center gap-3 w-full flex-1 min-h-0 mx-auto">
-              {hostShowVideo && hostCamPub ? (
-                <div className="w-full flex flex-1 justify-center items-center min-h-0 px-1">
-                  <VoiceVideoFrame
-                    participant={mainStageParticipant}
-                    publication={hostCamPub}
-                    badge={hostVideoBadge}
-                    mirror={mainStageParticipant.identity === localParticipant.identity}
-                    enableFullscreen
-                    maxWidthClass="max-w-none"
-                    className="w-full max-w-[min(100%,420px)] md:max-w-[min(55vw,480px)]"
-                  />
-                </div>
-              ) : (
-                <MeetAvatar
-                  name={displayName}
-                  identity={mainStageParticipant.identity}
-                  size="lg"
-                  isSpeaking={mainStageParticipant.isSpeaking || hostLevel > 0.08}
-                  showWave={!!hostHasAudio || mainStageParticipant.isSpeaking}
-                />
-              )}
-              <p className="text-lg font-medium shrink-0">{displayName.split(" ")[0]}</p>
-              <p className="text-xs text-[#9aa0a6] shrink-0">
-                {mainStageParticipant.identity === localParticipant.identity
-                  ? "You"
-                  : isHostParticipant(mainStageParticipant.identity, getParticipantRole(mainStageParticipant))
-                    ? "Host"
-                    : "Speaker"}
-              </p>
-              <VoiceStageFilmstrip
-                participants={filmstripParticipants}
-                localIdentity={localParticipant.identity}
-              />
-            </div>
-          ) : (
-            <div className="text-center text-[#9aa0a6] text-sm px-4">
-              <p className="text-base mb-1">Waiting for host video…</p>
-              <p className="text-xs">The host will appear here when their camera is on.</p>
-            </div>
-          )}
-        </div>
-      </main>
-
-      <footer
-        className="shrink-0 h-14 px-3 flex items-center justify-center gap-2 border-t border-[#3c4043] safe-area-inset-bottom"
-        style={{ background: "#292a2d" }}
-      >
+      <VoipGlassPanel>
         <button
           type="button"
-          disabled={!canSpeak || connectingMic}
-          onClick={toggleSelfMute}
-          className={`h-11 w-11 rounded-full flex items-center justify-center transition-colors ${
-            canSpeak
-              ? isMicrophoneEnabled
-                ? "text-white"
-                : "bg-[#ea4335] text-white"
-              : "bg-[#3c4043] text-[#9aa0a6] opacity-60"
-          }`}
-          style={canSpeak && isMicrophoneEnabled ? { background: MEET_GREEN } : undefined}
-          title={canSpeak ? (isMicrophoneEnabled ? "Mute" : "Unmute") : "Listen only"}
+          className="voip-ctrl-btn voip-ctrl-btn--44"
+          title="More options"
+          onClick={() => setReactionsOpen(true)}
         >
-          {connectingMic ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : isMicrophoneEnabled && canSpeak ? (
-            <Mic className="h-5 w-5" />
-          ) : (
-            <MicOff className="h-5 w-5" />
-          )}
+          <MoreVertical className="h-5 w-5" />
         </button>
-
-        {!canSpeak && (
-          <button
-            type="button"
-            disabled={handRaised || !connected}
-            onClick={() => void raiseHand()}
-            className={`h-11 w-11 min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center ${
-              handRaised ? "bg-amber-700 text-white" : "bg-[#3c4043] text-[#e8eaed] hover:bg-[#4a4d51]"
-            }`}
-            title="Raise hand"
-          >
-            <Hand className="h-5 w-5" />
-          </button>
-        )}
-
         {canSpeak && roomAllowsVideo && (
           <button
             type="button"
             disabled={!mayUseCamera || enablingCamera || connectingMic}
             onClick={turnOnCamera}
-            className={`h-11 w-11 min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center ${
-              isCameraEnabled ? "text-white" : "bg-[#3c4043] text-[#9aa0a6]"
-            } ${!mayUseCamera ? "opacity-40" : ""}`}
-            style={isCameraEnabled ? { background: MEET_GREEN } : undefined}
+            className={cn(
+              "voip-ctrl-btn voip-ctrl-btn--44",
+              isCameraEnabled ? "voip-ctrl-active" : "voip-ctrl-muted",
+              !mayUseCamera && "opacity-40",
+            )}
             title={
               !mayUseCamera
                 ? "Video not allowed by host"
@@ -656,94 +643,126 @@ function AgentRoomUI({
             )}
           </button>
         )}
+        <button type="button" className="voip-ctrl-btn voip-ctrl-btn--56" title="Speaker" aria-pressed>
+          <Volume2 className="h-6 w-6" />
+        </button>
+        <button
+          type="button"
+          disabled={!canSpeak || connectingMic}
+          onClick={toggleSelfMute}
+          className={cn(
+            "voip-ctrl-btn voip-ctrl-btn--44",
+            canSpeak && isMicrophoneEnabled ? "voip-ctrl-active bg-[#15202B]" : "voip-ctrl-muted",
+          )}
+          title={canSpeak ? (isMicrophoneEnabled ? "Mute" : "Unmute") : "Listen only"}
+        >
+          {connectingMic ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : isMicrophoneEnabled && canSpeak ? (
+            <Mic className="h-5 w-5" />
+          ) : (
+            <MicOff className="h-5 w-5" />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => void leaveRoom()}
+          className="voip-ctrl-btn voip-ctrl-btn--52-end"
+          title="End call"
+        >
+          <PhoneOff className="h-5 w-5" />
+        </button>
+      </VoipGlassPanel>
 
-        <Sheet open={reactionsOpen} onOpenChange={setReactionsOpen}>
-          <SheetTrigger asChild>
-            <button
-              type="button"
-              disabled={!connected}
-              className="h-11 w-11 rounded-full bg-[#3c4043] text-[#e8eaed] flex items-center justify-center hover:bg-[#4a4d51] disabled:opacity-40"
-              title="Reactions"
-            >
-              <Smile className="h-5 w-5" />
-            </button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="rounded-t-2xl border-[#3c4043] bg-[#292a2d] text-[#e8eaed]">
-            <SheetHeader>
-              <SheetTitle className="text-[#e8eaed]">Reactions</SheetTitle>
-            </SheetHeader>
-            <div className="flex justify-center gap-4 py-6">
-              {VOICE_REACTION_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className="h-14 w-14 rounded-full bg-[#3c4043] text-2xl hover:bg-[#4a4d51]"
-                  onClick={() => void sendReaction(emoji)}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </SheetContent>
-        </Sheet>
-
+      <div className="fixed bottom-[108px] right-[90px] z-[35] flex flex-col gap-2 pointer-events-auto">
         <ChatPanel
           roomName={roomName}
           senderName={localParticipant.name || "Agent"}
           senderAgentId={localParticipant.identity}
           apiMode="agent"
           disabled={!connected}
-          triggerClassName="h-11 w-11 rounded-full p-0 border-0 bg-[#3c4043] hover:bg-[#4a4d51] text-[#e8eaed]"
+          open={chatSheetOpen}
+          onOpenChange={setChatSheetOpen}
+          hideTrigger
+          sheetSide="bottom"
         />
-
-        {sharedFiles.length > 0 && (
-          <Sheet open={filesOpen} onOpenChange={setFilesOpen}>
-            <SheetTrigger asChild>
-              <button
-                type="button"
-                className="h-11 w-11 rounded-full bg-[#3c4043] text-[#e8eaed] flex items-center justify-center text-xs font-medium"
-              >
-                {sharedFiles.length}
-              </button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl bg-[#292a2d] border-[#3c4043] text-[#e8eaed]">
-              <SheetHeader>
-                <SheetTitle>Shared files</SheetTitle>
-              </SheetHeader>
-              <div className="mt-4 space-y-3 overflow-y-auto max-h-[50vh]">
-                {sharedFiles.map((f) => (
-                  <div key={f.id} className="rounded-lg bg-[#3c4043] p-3">
-                    <p className="text-xs truncate mb-2">{f.name}</p>
-                    {f.mimeType.startsWith("image/") ? (
-                      <button type="button" className="w-full" onClick={() => setLightboxUrl(f.url)}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={f.url} alt={f.name} className="max-h-40 rounded w-full object-contain" />
-                      </button>
-                    ) : (
-                      <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-sm underline" style={{ color: MEET_GREEN }}>
-                        <FileDown className="h-4 w-4 inline mr-1" />
-                        Open
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
-
         <button
           type="button"
-          onClick={() => void leaveRoom()}
-          className="h-11 w-11 rounded-full bg-[#ea4335] flex items-center justify-center text-white hover:bg-[#d93025]"
-          title="Leave call"
+          disabled={!connected}
+          onClick={() => setChatSheetOpen(true)}
+          className="voip-floating-btn !w-12 !h-12"
+          title="Chat"
         >
-          <PhoneOff className="h-5 w-5" />
+          <MessageCircle className="h-5 w-5" />
         </button>
-      </footer>
+      </div>
+
+      <Sheet open={reactionsOpen} onOpenChange={setReactionsOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl border-[#15202B] bg-[#0D1520] text-white">
+          <SheetHeader>
+            <SheetTitle>Reactions</SheetTitle>
+          </SheetHeader>
+          <div className="flex justify-center gap-4 py-6">
+            {VOICE_REACTION_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className="h-14 w-14 rounded-full bg-[#15202B] text-2xl hover:bg-[#1a2835]"
+                onClick={() => void sendReaction(emoji)}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {sharedFiles.length > 0 && (
+        <Sheet open={filesOpen} onOpenChange={setFilesOpen}>
+          <SheetTrigger asChild>
+            <button
+              type="button"
+              className="absolute left-4 bottom-[108px] z-[35] h-12 w-12 rounded-full bg-[rgba(13,21,32,0.85)] text-white text-xs font-medium border border-white/12"
+            >
+              {sharedFiles.length}
+            </button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="rounded-t-2xl bg-[#0D1520] border-[#15202B] text-white">
+            <SheetHeader>
+              <SheetTitle>Shared files</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4 space-y-3 overflow-y-auto max-h-[50vh]">
+              {sharedFiles.map((f) => (
+                <div key={f.id} className="rounded-lg bg-[#15202B] p-3">
+                  <p className="text-xs truncate mb-2">{f.name}</p>
+                  {f.mimeType.startsWith("image/") ? (
+                    <button type="button" className="w-full" onClick={() => setLightboxUrl(f.url)}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.url} alt={f.name} className="max-h-40 rounded w-full object-contain" />
+                    </button>
+                  ) : (
+                    <a
+                      href={f.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm underline"
+                      style={{ color: MEET_GREEN }}
+                    >
+                      <FileDown className="h-4 w-4 inline mr-1" />
+                      Open
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {!canSpeak && wasDemoted && (
-        <p className="text-center text-xs text-[#9aa0a6] pb-2 px-4">Request to speak again with raise hand</p>
+        <p className="absolute bottom-[108px] left-0 right-0 text-center text-xs text-white/60 z-20 px-4 pointer-events-none">
+          Request to speak again with raise hand
+        </p>
       )}
 
       <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
@@ -801,8 +820,8 @@ export function VoiceRoomAgentClient({
       onError={(e) => {
         if (!isTransientLiveKitError(e.message)) toast.error(e.message)
       }}
-      className="min-h-[100dvh]"
-      style={{ background: MEET_BG }}
+      className="fixed inset-0 h-[100dvh] w-full"
+      style={{ background: "#000000" }}
     >
       <AgentRoomUI
         roomName={roomName}

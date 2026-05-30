@@ -67,6 +67,8 @@ import {
   PhoneOff,
   MessageCircle,
   BarChart3,
+  Volume2,
+  SwitchCamera,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -78,7 +80,8 @@ import {
 import { VoiceStreamStats } from "@/components/voice/VoiceStreamStats"
 import { VoicePollPanel } from "@/components/voice/VoicePollPanel"
 import { VoiceParticipantsSheet } from "@/components/voice/VoiceParticipantsSheet"
-import { voiceAvatarRingColor, voiceInitials } from "@/lib/voice-ui-utils"
+import { formatVoiceDuration, voiceAvatarRingColor, voiceInitials } from "@/lib/voice-ui-utils"
+import { cn } from "@/lib/utils"
 import { getParticipantRole, isHostParticipant, isSpeakerRole } from "@/components/voice/voice-participant-utils"
 import { isTransientLiveKitError } from "@/lib/livekit-error-utils"
 import { useLiveKitRoomErrors } from "@/components/voice/useLiveKitRoomErrors"
@@ -88,6 +91,12 @@ import { VoiceReactionsLayer } from "@/components/voice/VoiceReactionsLayer"
 import { ChatPanel } from "@/components/voice/ChatPanel"
 import { AdminLocalVideoPreview } from "@/components/voice/AdminLocalVideoPreview"
 import { VoiceVideoFrame } from "@/components/voice/VoiceVideoFrame"
+import {
+  VoipFloatingActions,
+  VoipFloatingButton,
+  VoipGlassPanel,
+  VoipStatusBar,
+} from "@/components/voice/VoiceVoipChrome"
 import { setParticipantCameraEnabled } from "@/lib/enable-participant-camera"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
 import {
@@ -104,9 +113,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 
-const MEET_BG = "#202124"
-const MEET_TEXT = "#e8eaed"
+const MEET_BG = "#0D1520"
+const MEET_TEXT = "#ffffff"
 const MEET_GREEN = "#0E8F3D"
+const VOIP_END = "#FF0048"
 
 type RaisedHand = {
   identity: string
@@ -226,10 +236,12 @@ function MainStage({
   stageParticipant,
   localParticipant,
   filmstrip,
+  voipMode,
 }: {
   stageParticipant: Participant | null
   localParticipant: Participant
   filmstrip: Participant[]
+  voipMode?: boolean
 }) {
   const { isMobile } = useVoiceDeviceLayout()
   const focus = stageParticipant
@@ -245,27 +257,29 @@ function MainStage({
         : "agent"
 
     return (
-      <div className="flex flex-col items-center w-full min-h-0 flex-1 gap-3">
-        <div
-          className={`w-full flex flex-1 justify-center items-center min-h-0 ${
-            isMobile ? "px-1" : "px-2"
-          }`}
-        >
-          <VoiceVideoFrame
-            participant={focus}
-            publication={camPub}
-            badge={badge}
-            mirror={isLocal}
-            enableFullscreen={isMobile}
-            maxWidthClass="max-w-none"
-            className="w-full max-w-[min(100%,420px)] md:max-w-[min(55vw,480px)] h-auto"
-          />
-        </div>
-        <p className="text-sm font-medium text-[#e8eaed] truncate max-w-full px-4 shrink-0">
-          {isLocal ? "You (host)" : focus.name || focus.identity}
-        </p>
-        <VoiceStageFilmstrip participants={filmstrip} localIdentity={localParticipant.identity} />
-      </div>
+      <>
+        <VoiceVideoFrame
+          participant={focus}
+          publication={camPub}
+          variant="main"
+          badge={badge}
+          mirror={isLocal}
+          enableFullscreen={isMobile}
+        />
+        {voipMode && filmstrip.length > 0 && (
+          <div className="voip-filmstrip-wrap">
+            <VoiceStageFilmstrip participants={filmstrip} localIdentity={localParticipant.identity} />
+          </div>
+        )}
+        {!voipMode && (
+          <div className="flex flex-col items-center w-full min-h-0 flex-1 gap-3 relative z-10">
+            <p className="text-sm font-medium text-white/90 truncate max-w-full px-4 shrink-0">
+              {isLocal ? "You (host)" : focus.name || focus.identity}
+            </p>
+            <VoiceStageFilmstrip participants={filmstrip} localIdentity={localParticipant.identity} />
+          </div>
+        )}
+      </>
     )
   }
 
@@ -306,6 +320,100 @@ function MainStage({
   )
 }
 
+function HostVoipGlassControls({
+  isMicrophoneEnabled,
+  isCameraEnabled,
+  localParticipant,
+  onEndRoom,
+  onToggleCamera,
+  enableVideo = true,
+  onMoreOpen,
+}: {
+  isMicrophoneEnabled: boolean
+  isCameraEnabled: boolean
+  localParticipant: Participant
+  onEndRoom: () => void
+  onToggleCamera: () => void | Promise<void>
+  enableVideo?: boolean
+  onMoreOpen?: () => void
+}) {
+  return (
+    <VoipGlassPanel>
+      <button
+        type="button"
+        className="voip-ctrl-btn voip-ctrl-btn--44"
+        title="More options"
+        onClick={onMoreOpen}
+      >
+        <MoreVertical className="h-5 w-5" />
+      </button>
+      {enableVideo && (
+        <button
+          type="button"
+          onClick={() => void onToggleCamera()}
+          className={cn(
+            "voip-ctrl-btn voip-ctrl-btn--44",
+            isCameraEnabled ? "voip-ctrl-active" : "voip-ctrl-muted",
+          )}
+          title={isCameraEnabled ? "Turn off camera" : "Turn on camera"}
+        >
+          {isCameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+        </button>
+      )}
+      <button
+        type="button"
+        className="voip-ctrl-btn voip-ctrl-btn--56"
+        title="Speaker"
+        aria-pressed
+      >
+        <Volume2 className="h-6 w-6" />
+      </button>
+      <button
+        type="button"
+        onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
+        className={cn(
+          "voip-ctrl-btn voip-ctrl-btn--44",
+          isMicrophoneEnabled ? "voip-ctrl-active bg-[#15202B]" : "voip-ctrl-muted",
+        )}
+        title={isMicrophoneEnabled ? "Mute microphone" : "Unmute microphone"}
+      >
+        {isMicrophoneEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+      </button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <button
+            type="button"
+            className="voip-ctrl-btn voip-ctrl-btn--52-end"
+            title="End call"
+          >
+            <PhoneOff className="h-5 w-5" />
+          </button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="bg-[#0D1520] border-[#15202B] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>End Agent Conference?</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70">
+              Everyone will be disconnected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-[#15202B] text-white border border-white/20 hover:bg-[#1a2835]">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="text-white"
+              style={{ background: VOIP_END }}
+              onClick={() => void onEndRoom()}
+            >
+              End call
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </VoipGlassPanel>
+  )
+}
+
 function HostControlButtons({
   isMicrophoneEnabled,
   isCameraEnabled,
@@ -342,22 +450,22 @@ function HostControlButtons({
       </button>
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <button type="button" className={`${ICON_BTN} bg-[#ea4335] hover:bg-[#d93025]`} title="End call">
+          <button type="button" className={`${ICON_BTN}`} style={{ background: VOIP_END }} title="End call">
             <PhoneOff className="h-5 w-5" />
           </button>
         </AlertDialogTrigger>
-        <AlertDialogContent className="bg-[#292a2d] border-[#3c4043] text-[#e8eaed]">
+        <AlertDialogContent className="bg-[#0D1520] border-[#15202B] text-white">
           <AlertDialogHeader>
             <AlertDialogTitle>End Agent Conference?</AlertDialogTitle>
-            <AlertDialogDescription className="text-[#9aa0a6]">
+            <AlertDialogDescription className="text-white/70">
               Everyone will be disconnected.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-[#3c4043] text-[#e8eaed] border border-[#5f6368] hover:bg-[#4a4d51] hover:text-white">
+            <AlertDialogCancel className="bg-[#15202B] text-white border border-white/20">
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction className="bg-[#ea4335]" onClick={() => void onEndRoom()}>
+            <AlertDialogAction style={{ background: VOIP_END }} onClick={() => void onEndRoom()}>
               End call
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -374,14 +482,11 @@ function HostControlButtons({
           {isCameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
         </button>
       )}
-      <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto px-1">
-        <SpeakerChipBar
-          speakers={speakers}
-          busy={busy}
-          onMute={onMute}
-          stageHasVideo={stageHasVideo}
-        />
-      </div>
+      {!stageHasVideo && (
+        <div className="flex-1 min-w-0 flex items-center gap-2 overflow-x-auto px-1">
+          <SpeakerChipBar speakers={speakers} busy={busy} onMute={onMute} stageHasVideo={stageHasVideo} />
+        </div>
+      )}
     </>
   )
 }
@@ -566,6 +671,13 @@ function ControlPanelInner({
   const [handsSheetOpen, setHandsSheetOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const sessionStart = useRef(Date.now())
+  const [elapsed, setElapsed] = useState(0)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+
+  useEffect(() => {
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - sessionStart.current) / 1000)), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   const toggleHostCamera = useCallback(async () => {
     if (!enableVideo) return
@@ -869,6 +981,190 @@ function ControlPanelInner({
 
   const listenerAvatars = useMemo(() => listeners.slice(0, 16), [listeners])
 
+  const voipVideoLayout = enableVideo && stageHasVideo
+  const statusSubtitle = voipVideoLayout ? formatVoiceDuration(elapsed) : `${remoteParticipants.length} in room`
+
+  if (voipVideoLayout) {
+    return (
+      <div className="voip-call-ui relative flex flex-col h-full min-h-0 bg-black overflow-hidden">
+        <VoiceReactionsLayer />
+        <div className="voip-call-stage-wrap">
+          <MainStage
+            stageParticipant={mainStageParticipant}
+            localParticipant={localParticipant}
+            filmstrip={filmstripParticipants}
+            voipMode
+          />
+        </div>
+        {showLocalPip && <AdminLocalVideoPreview />}
+
+        <VoipStatusBar title={roomName} subtitle={statusSubtitle} />
+
+        <VoipFloatingActions>
+          <VoipFloatingButton title="Invite participant" onClick={() => setInviteOpen(true)}>
+            <UserPlus className="h-6 w-6" />
+          </VoipFloatingButton>
+          <VoipFloatingButton title="Switch camera" disabled>
+            <SwitchCamera className="h-6 w-6" />
+          </VoipFloatingButton>
+          <VoipFloatingButton title="Chat" onClick={() => setChatOpen(true)}>
+            <MessageCircle className="h-6 w-6" />
+          </VoipFloatingButton>
+        </VoipFloatingActions>
+
+        {raisedHands.length > 0 && (
+          <div className="absolute top-[88px] left-4 right-4 z-[25] mx-auto max-w-md px-3 py-2 rounded-xl bg-amber-900/50 border border-amber-500/30 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 text-sm text-white">
+              <Hand className="h-4 w-4 text-amber-300 shrink-0" />
+              <span className="truncate">
+                {raisedHands[0].name} raised a hand
+                {raisedHands.length > 1 ? ` (+${raisedHands.length - 1})` : ""}
+              </span>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Button
+                size="sm"
+                className="h-8 text-xs text-white"
+                style={{ background: MEET_GREEN }}
+                disabled={busy === raisedHands[0].identity}
+                onClick={() => void allowHand(raisedHands[0])}
+              >
+                Allow
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs border-white/30 text-white"
+                onClick={() => declineHand(raisedHands[0].identity)}
+              >
+                Decline
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <HostVoipGlassControls
+          isMicrophoneEnabled={isMicrophoneEnabled}
+          isCameraEnabled={isCameraEnabled}
+          localParticipant={localParticipant}
+          onEndRoom={endRoom}
+          onToggleCamera={toggleHostCamera}
+          enableVideo={enableVideo}
+          onMoreOpen={() => setMoreMenuOpen(true)}
+        />
+
+        <DropdownMenu open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
+          <DropdownMenuTrigger className="sr-only">More</DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-[#0D1520] border-[#15202B] text-white">
+            <DropdownMenuItem onClick={() => setParticipantsOpen(true)}>
+              <Users className="h-4 w-4 mr-2" /> Participants
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setChatOpen(true)}>
+              <MessageCircle className="h-4 w-4 mr-2" /> Chat
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setHandsSheetOpen(true)}>
+              <Hand className="h-4 w-4 mr-2" /> Raised hands
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={busy === "mute-all"} onClick={() => void muteAllSpeakers()}>
+              <MicOff className="h-4 w-4 mr-2" /> Mute all
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => fileRef.current?.click()}>
+              <Upload className="h-4 w-4 mr-2" /> Share file
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <VoiceParticipantsSheet
+          isAdminHost
+          roomId={roomId}
+          onToggleVideo={toggleParticipantVideo}
+          videoBusy={videoBusy}
+          open={participantsOpen}
+          onOpenChange={setParticipantsOpen}
+          hideTrigger
+          side="bottom"
+        />
+        <ChatPanel
+          roomName={roomName}
+          senderName={localParticipant.name || "Host"}
+          senderAgentId={null}
+          apiMode="admin"
+          isAdmin
+          open={chatOpen}
+          onOpenChange={setChatOpen}
+          hideTrigger
+          sheetSide="bottom"
+        />
+        <Sheet open={handsSheetOpen} onOpenChange={setHandsSheetOpen}>
+          <SheetContent side="bottom" className="rounded-t-2xl max-h-[50dvh] bg-[#0D1520] border-[#15202B] text-white">
+            <SheetHeader>
+              <SheetTitle>Raised hands</SheetTitle>
+            </SheetHeader>
+            <ul className="mt-4 space-y-2 overflow-y-auto max-h-[38dvh]">
+              {raisedHands.map((h) => (
+                <li key={h.identity} className="flex gap-2 items-center rounded-lg border border-white/15 p-2">
+                  <span className="text-sm flex-1 truncate">{h.name}</span>
+                  <button
+                    type="button"
+                    className="h-11 min-h-[44px] px-3 rounded-lg text-sm text-white"
+                    style={{ background: MEET_GREEN }}
+                    disabled={busy === h.identity}
+                    onClick={() => void allowHand(h)}
+                  >
+                    Allow
+                  </button>
+                  <button
+                    type="button"
+                    className="h-11 min-h-[44px] px-3 rounded-lg border border-white/20 text-sm"
+                    onClick={() => declineHand(h.identity)}
+                  >
+                    No
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </SheetContent>
+        </Sheet>
+        <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+          <DialogContent className="bg-[#0D1520] border-[#15202B] text-white max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Invite speaker</DialogTitle>
+            </DialogHeader>
+            <Command>
+              <CommandInput placeholder="Select listener…" className="h-9 text-sm" />
+              <CommandList>
+                <CommandEmpty className="text-xs py-4 text-center text-white/60">No listeners</CommandEmpty>
+                <CommandGroup>
+                  {listeners.map((p) => (
+                    <CommandItem
+                      key={p.identity}
+                      value={p.name || p.identity}
+                      className="text-sm"
+                      onSelect={() => void inviteToSpeak(p.identity, p.name || p.identity)}
+                    >
+                      {p.name || p.identity}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </DialogContent>
+        </Dialog>
+        <input
+          ref={fileRef}
+          type="file"
+          accept={VOICE_ALLOWED_FILE_TYPES.join(",")}
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) void shareFile(f)
+            e.target.value = ""
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-full min-h-0 relative" style={{ color: MEET_TEXT }}>
       <VoiceReactionsLayer />
@@ -905,7 +1201,7 @@ function ControlPanelInner({
         </div>
       )}
 
-      <div className="shrink-0 px-2 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-[#9aa0a6] min-w-0 overflow-hidden">
+      <div className="shrink-0 px-2 sm:px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-white/60 min-w-0 overflow-hidden">
         <span className="flex items-center gap-2 shrink-0">
           <Users className="h-4 w-4" style={{ color: MEET_GREEN }} />
           <span className="truncate">
@@ -914,7 +1210,7 @@ function ControlPanelInner({
           </span>
         </span>
         <div className="flex items-center gap-2 min-w-0 max-w-full overflow-hidden">
-          <VoiceStreamStats sessionStart={sessionStart.current} />
+          {!stageHasVideo && <VoiceStreamStats sessionStart={sessionStart.current} />}
           {recordingActive && (
             <span className="inline-flex items-center gap-1 text-red-300">
               <Circle className="h-1.5 w-1.5 fill-red-500 animate-recording-pulse" />
@@ -1186,22 +1482,33 @@ export function VoiceRoomAdminControl({
   const { roomOptions } = useVoiceDeviceLayout()
   const publishVideoOnConnect = enableVideo
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: MEET_BG, color: MEET_TEXT }}>
-      <div className="shrink-0 px-4 py-3 border-b border-[#3c4043] flex items-center justify-between">
-        <div className="min-w-0">
-          <h2 className="font-medium text-sm">Agent Conference — Host</h2>
-          <p className="text-xs text-[#9aa0a6] truncate">{roomName}</p>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-[#e8eaed] hover:bg-[#3c4043] shrink-0 h-11 w-11"
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#0D1520] text-white">
+      {enableVideo ? (
+        <button
+          type="button"
           onClick={onClose}
+          className="absolute top-[max(12px,env(safe-area-inset-top))] left-3 z-40 h-10 w-10 rounded-full bg-black/40 text-white flex items-center justify-center border border-white/15"
+          aria-label="Close"
         >
           <X className="h-5 w-5" />
-        </Button>
-      </div>
-      <div className="flex-1 min-h-0 overflow-hidden pb-0 lg:pb-0">
+        </button>
+      ) : (
+        <div className="shrink-0 px-4 py-3 border-b border-[#15202B] flex items-center justify-between">
+          <div className="min-w-0">
+            <h2 className="font-medium text-sm">Agent Conference — Host</h2>
+            <p className="text-xs text-white/60 truncate">{roomName}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-[#15202B] shrink-0 h-11 w-11"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
+      <div className="flex-1 min-h-0 overflow-hidden">
         <StableLiveKitRoom
           token={token}
           serverUrl={serverUrl}

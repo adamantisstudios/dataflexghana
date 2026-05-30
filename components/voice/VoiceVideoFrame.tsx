@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react"
 import { VideoTrack } from "@livekit/components-react"
 import { Track, type Participant, type TrackPublication } from "livekit-client"
 import { Headphones, Maximize, Minimize, Monitor, Shield, User, Video } from "lucide-react"
-import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
 import { cn } from "@/lib/utils"
 import {
   Tooltip,
@@ -15,17 +14,17 @@ import {
 
 export type VoiceVideoBadge = "admin" | "agent" | "host" | "speaker" | "screen" | "user"
 
+export type VoiceVideoVariant = "main" | "preview" | "chip"
+
 type Props = {
   participant: Participant
   publication: TrackPublication
+  variant?: VoiceVideoVariant
   className?: string
   label?: string
   badge?: VoiceVideoBadge
   mirror?: boolean
-  maxWidthClass?: string
-  compact?: boolean
   enableFullscreen?: boolean
-  enablePinchZoom?: boolean
 }
 
 const BADGE_CONFIG: Record<
@@ -40,40 +39,19 @@ const BADGE_CONFIG: Record<
   user: { icon: User, tooltip: "Participant camera" },
 }
 
-function readDimensions(
-  publication: TrackPublication,
-): { width: number; height: number } | null {
-  const pubDims = (publication as { dimensions?: { width?: number; height?: number } }).dimensions
-  const trackDims = (publication.track as { dimensions?: { width?: number; height?: number } } | null)
-    ?.dimensions
-  const raw = pubDims ?? trackDims
-  if (!raw) return null
-  const width = Number(raw.width ?? 0)
-  const height = Number(raw.height ?? 0)
-  if (width <= 0 || height <= 0) return null
-  return { width, height }
-}
-
-/** Unified 9:16 live video — portrait container, cover fit; landscape feeds use fixed CSS rotate. */
+/** LiveKit video surface — layout only via variant CSS (9:16 cover, no rotation). */
 export function VoiceVideoFrame({
   participant,
   publication,
+  variant = "main",
   className,
   label,
   badge,
   mirror = false,
-  maxWidthClass = "max-w-3xl",
-  compact = false,
   enableFullscreen = false,
-  enablePinchZoom = false,
 }: Props) {
-  const { objectFitClass, isMobile } = useVoiceDeviceLayout()
-  const portraitLayout = badge !== "screen"
-  const dims = readDimensions(publication)
-  const isLandscapeFeed = Boolean(portraitLayout && dims && dims.width > dims.height)
-
+  const isScreen = badge === "screen"
   const frameRef = useRef<HTMLDivElement>(null)
-  const innerRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [subscriptionFailed, setSubscriptionFailed] = useState(false)
   const failTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -121,48 +99,36 @@ export function VoiceVideoFrame({
   const badgeMeta = badgeKey ? BADGE_CONFIG[badgeKey] : null
   const BadgeIcon = badgeMeta?.icon
 
-  return (
-    <div
-      ref={frameRef}
-      className={cn(
-        "relative w-full mx-auto rounded-xl overflow-hidden bg-black voice-video-frame",
-        portraitLayout && "voice-video-portrait",
-        portraitLayout && isLandscapeFeed && "voice-video-landscape-feed",
-        portraitLayout && mirror && "voice-video-mirror",
-        portraitLayout
-          ? compact
-            ? "aspect-[9/16] max-w-none"
-            : "aspect-[9/16] max-h-[min(85dvh,720px)] max-w-[min(100%,420px)]"
-          : isMobile
-            ? "aspect-[9/16] max-h-[min(85dvh,720px)]"
-            : `aspect-video max-h-[min(70vh,720px)] ${maxWidthClass}`,
-        compact && "max-w-none",
-        className,
-      )}
-    >
-      <div ref={innerRef} className="voice-video-inner absolute inset-0 overflow-hidden">
-        <VideoTrack
-          trackRef={{
-            participant,
-            publication,
-            source: Track.Source.Camera,
-          }}
-          className={cn(
-            "voice-video-track w-full h-full bg-black",
-            portraitLayout ? "voice-video-track-portrait" : objectFitClass,
-          )}
-        />
-      </div>
+  const containerClass =
+    variant === "preview"
+      ? cn("preview-video-container", mirror && "preview-video-container--mirror")
+      : variant === "chip"
+        ? "voip-chip-video w-full h-full"
+        : cn("main-video-container main-video-container--fullscreen", className)
 
-      {badgeMeta && BadgeIcon && (
+  const trackClass =
+    variant === "preview" ? "preview-video" : variant === "chip" ? "w-full h-full" : "main-video main-video-inner"
+
+  return (
+    <div ref={frameRef} className={cn(containerClass, variant !== "main" && className)}>
+      <VideoTrack
+        trackRef={{
+          participant,
+          publication,
+          source: isScreen ? Track.Source.ScreenShare : Track.Source.Camera,
+        }}
+        className={cn(trackClass, "bg-black")}
+      />
+
+      {variant === "main" && badgeMeta && BadgeIcon && (
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>
               <div
-                className="absolute top-2 left-2 z-10 flex items-center justify-center h-7 w-7 rounded-full bg-black/70 border border-white/20 shrink-0"
+                className="absolute top-3 left-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 border border-white/15 shrink-0"
                 aria-label={badgeMeta.tooltip}
               >
-                <BadgeIcon className="h-3.5 w-3.5 text-white" />
+                <BadgeIcon className="h-4 w-4 text-white" />
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="text-xs">
@@ -172,17 +138,17 @@ export function VoiceVideoFrame({
         </TooltipProvider>
       )}
 
-      {!badgeMeta && label && (
-        <div className="absolute top-2 left-2 z-10 max-w-[calc(100%-1rem)] px-2 py-0.5 rounded bg-black/60 text-[10px] text-white truncate">
+      {variant === "main" && !badgeMeta && label && (
+        <div className="absolute top-3 left-3 z-10 max-w-[calc(100%-1rem)] px-2 py-0.5 rounded bg-black/50 text-[10px] text-white truncate">
           {label}
         </div>
       )}
 
-      {enableFullscreen && portraitLayout && (
+      {enableFullscreen && variant === "main" && (
         <button
           type="button"
           onClick={() => void toggleFullscreen()}
-          className="absolute bottom-2 right-2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/65 text-white border border-white/20 hover:bg-black/80"
+          className="absolute bottom-20 right-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(10,15,25,0.75)] text-white border border-white/15 hover:bg-[rgba(21,32,43,0.9)]"
           aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
         >
           {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
@@ -190,7 +156,7 @@ export function VoiceVideoFrame({
       )}
 
       {subscriptionFailed && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-[#9aa0a6] text-xs px-4 text-center z-30">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/85 text-white/60 text-xs px-4 text-center z-30">
           Video unavailable
         </div>
       )}

@@ -29,9 +29,8 @@ export function HostVideoPanel() {
       <VoiceVideoFrame
         participant={hostTrack.participant}
         publication={hostTrack.publication}
+        variant="main"
         badge="host"
-        maxWidthClass="max-w-none w-full"
-        className="rounded-none max-w-none"
       />
     </div>
   )

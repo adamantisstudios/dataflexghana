@@ -23,7 +23,7 @@ export function VoiceStageFilmstrip({ participants, localIdentity }: Props) {
 
   return (
     <div className="w-full shrink-0 pb-2">
-      <p className="text-[10px] uppercase tracking-wider text-[#9aa0a6] text-center mb-2">
+      <p className="text-[10px] uppercase tracking-wider text-white/60 text-center mb-2">
         In call
       </p>
       <div className="flex gap-2 overflow-x-auto justify-center px-2 pb-1">
@@ -33,15 +33,15 @@ export function VoiceStageFilmstrip({ participants, localIdentity }: Props) {
           return (
             <div
               key={p.identity}
-              className="shrink-0 w-[88px] sm:w-[100px] rounded-lg overflow-hidden border border-[#3c4043] bg-black"
+              className="shrink-0 w-[88px] sm:w-[100px] rounded-lg overflow-hidden border border-white/20 bg-black"
             >
               <VoiceVideoFrame
                 participant={p}
                 publication={pub}
+                variant="chip"
                 badge={badgeFor(p, localIdentity)}
                 mirror={p.identity === localIdentity}
-                compact
-                className="w-full rounded-lg"
+                className="w-full"
               />
             </div>
           )
