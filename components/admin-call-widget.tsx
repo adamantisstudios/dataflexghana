@@ -1,6 +1,5 @@
 "use client"
 
-import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import {
@@ -12,7 +11,7 @@ import {
 } from "lucide-react"
 import { getStoredAdmin } from "@/lib/unified-auth-system"
 import { useCallWidget } from "@/hooks/use-call-widget"
-import { isStreamingPagePath } from "@/lib/streaming-routes"
+import { useShouldHideStreamingChrome } from "@/lib/streaming-session"
 import { useRingtone } from "@/hooks/use-ringtone"
 import { CallAudioSession, useCallAudioControls } from "@/components/calls/CallAudioSession"
 import { CallMuteButton } from "@/components/calls/CallLiveKitAudio"
@@ -115,7 +114,7 @@ function AdminCallDialogUI({
 
 /** Floating admin widget for incoming agent voice support calls. */
 export function AdminCallWidget() {
-  const pathname = usePathname()
+  const hideChrome = useShouldHideStreamingChrome()
   const admin = getStoredAdmin()
   const [responding, setResponding] = useState(false)
 
@@ -138,19 +137,19 @@ export function AdminCallWidget() {
     userId: admin?.id ?? "",
   })
 
-  if (!admin?.id) return null
-  if (isStreamingPagePath(pathname)) return null
-
   const showWiggle = hasIncoming && phase === "idle"
   const isRinging = hasIncoming && phase === "idle"
   const { activateAudio } = useRingtone(isRinging)
 
   useEffect(() => {
+    if (hideChrome) return
     if (hasIncoming && phase === "idle" && !dialogOpen) {
       setDialogOpen(true)
       toast.info(`Incoming call from ${callerName}`, { duration: 5000 })
     }
-  }, [hasIncoming, phase, dialogOpen, callerName, setDialogOpen])
+  }, [hideChrome, hasIncoming, phase, dialogOpen, callerName, setDialogOpen])
+
+  if (!admin?.id || hideChrome) return null
 
   const handleDialogChange = (open: boolean) => {
     if (!open && phase === "in_call") {

@@ -546,7 +546,13 @@ export default function FindADatePage() {
 
   const completeness = Number(profile?.profile_completeness ?? 0)
   const needsSetup = !profile || editingProfile
-  const pendingApproval = profile && !profile.is_approved && !editingProfile
+  const rejectionReason =
+    profile && typeof profile.rejection_reason === "string" && profile.rejection_reason.trim()
+      ? profile.rejection_reason.trim()
+      : null
+  const isRejected = Boolean(rejectionReason)
+  const pendingApproval =
+    profile && !profile.is_approved && !isRejected && !editingProfile
   const setupProgress = ((setupStep + 1) / SETUP_STEPS) * 100
 
   return (
@@ -625,10 +631,33 @@ export default function FindADatePage() {
           </Card>
         )}
 
-        {needsSetup || pendingApproval ? (
+        {isRejected && (
+          <Card className="mb-4 border-red-200 bg-red-50">
+            <CardContent className="p-4 space-y-2">
+              <p className="text-sm font-semibold text-red-900">Profile rejected</p>
+              <p className="text-sm text-red-800">{rejectionReason}</p>
+              <p className="text-xs text-red-700">
+                Update your photos and profile details, then save again. An admin will review your resubmission.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-red-300"
+                onClick={() => {
+                  setEditingProfile(true)
+                  setSetupStep(0)
+                }}
+              >
+                Edit and resubmit profile
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {needsSetup || pendingApproval || (isRejected && editingProfile) ? (
           <Card className="border-rose-100">
             <CardContent className="p-4 space-y-4">
-              {needsSetup && !pendingApproval && (
+              {needsSetup && !pendingApproval && !isRejected && (
                 <div className="rounded-lg bg-rose-50 border border-rose-100 px-4 py-3 text-sm text-rose-900">
                   <p className="font-medium">Create your dating profile</p>
                   <p className="mt-1 text-rose-800/90">

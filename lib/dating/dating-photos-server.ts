@@ -1,6 +1,6 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
+import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getAdminClient } from "@/lib/supabase-base"
-import { deleteFromR2, getR2ObjectStream } from "@/lib/r2-client"
+import { deleteFromR2, getR2Client, getR2ObjectStream } from "@/lib/r2-client"
 
 export const DATING_PHOTOS_BUCKET =
   process.env.R2_DATING_PHOTOS_BUCKET_NAME || "dataflex-dating-photos"
@@ -28,7 +28,7 @@ export function getDatingPhotosBucket(): string {
   return process.env.R2_DATING_PHOTOS_BUCKET_NAME || "dataflex-dating-photos"
 }
 
-/** Resolve and validate R2 env for the dating photos bucket. */
+/** Resolve and validate shared R2 env (same credentials as channel audio / attachments). */
 export function getDatingR2Config(): DatingR2Config {
   const accountId = process.env.R2_ACCOUNT_ID?.trim()
   const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim()
@@ -79,29 +79,13 @@ export function getDatingPhotoPublicUrl(objectKey: string, photoId?: string): st
   return `/api/agent/dating/photos/serve?key=${encodeURIComponent(objectKey)}`
 }
 
-let datingR2Client: S3Client | null = null
-
-function getDatingR2Client(config: DatingR2Config): S3Client {
-  if (!datingR2Client) {
-    datingR2Client = new S3Client({
-      region: "auto",
-      endpoint: config.endpoint,
-      credentials: {
-        accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey,
-      },
-    })
-  }
-  return datingR2Client
-}
-
 export async function uploadDatingPhotoBufferToR2(
   buffer: Buffer,
   objectKey: string,
   contentType: string,
   photoId?: string,
 ): Promise<string> {
-  const config = getDatingR2Config()
+  const bucketName = getDatingPhotosBucket()
   const key = objectKey.replace(/^\/+/, "")
 
   if (!buffer?.length) {
@@ -109,10 +93,10 @@ export async function uploadDatingPhotoBufferToR2(
   }
 
   try {
-    const client = getDatingR2Client(config)
+    const client = getR2Client()
     await client.send(
       new PutObjectCommand({
-        Bucket: config.bucketName,
+        Bucket: bucketName,
         Key: key,
         Body: buffer,
         ContentType: contentType || "image/jpeg",
@@ -122,11 +106,12 @@ export async function uploadDatingPhotoBufferToR2(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     const name = err instanceof Error ? err.name : "UnknownError"
+    const accountId = process.env.R2_ACCOUNT_ID?.trim()
     console.error("[dating-photos] R2 upload failed:", {
       name,
       message,
-      bucket: config.bucketName,
-      endpoint: config.endpoint,
+      bucket: bucketName,
+      endpoint: accountId ? `https://${accountId}.r2.cloudflarestorage.com` : "(missing R2_ACCOUNT_ID)",
       key,
       contentType,
       bytes: buffer.length,

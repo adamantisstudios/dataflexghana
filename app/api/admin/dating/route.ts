@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
 
   if (status === "pending") {
-    profileQuery = profileQuery.eq("is_approved", false).eq("is_suspended", false)
+    profileQuery = profileQuery
+      .eq("is_approved", false)
+      .eq("is_suspended", false)
+      .is("rejection_reason", null)
   } else if (status === "suspended") {
     profileQuery = profileQuery.eq("is_suspended", true)
   }

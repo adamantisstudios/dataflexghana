@@ -9,7 +9,7 @@ import { AgentVerificationBadge } from "@/components/agent/AgentVerificationBadg
 import { cn } from "@/lib/utils"
 
 const iconBtnClass =
-  "h-9 w-9 shrink-0 border border-white/25 bg-white/15 p-0 text-white shadow-none hover:bg-white/25 hover:text-white sm:w-auto sm:px-2.5"
+  "h-8 w-8 shrink-0 border border-white/25 bg-white/15 p-0 text-white shadow-none hover:bg-white/25 hover:text-white sm:h-9 sm:w-auto sm:px-2.5"
 
 function shortMobileName(name?: string | null): string {
   if (!name?.trim()) return "Agent"
@@ -68,7 +68,7 @@ export function AgentHeader({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
           <Button
             variant="secondary"
             size="sm"
@@ -98,14 +98,26 @@ export function AgentHeader({
             </Link>
           </Button>
 
-          <Button variant="secondary" size="sm" asChild className={iconBtnClass} title="Announcements">
+          <Button
+            variant="secondary"
+            size="sm"
+            asChild
+            className={cn(iconBtnClass, "hidden sm:inline-flex")}
+            title="Announcements"
+          >
             <Link href={getAnnouncementsMemberPath()} prefetch={false}>
               <Megaphone className="h-4 w-4 shrink-0" />
               <span className="sr-only sm:not-sr-only sm:ml-1.5">News</span>
             </Link>
           </Button>
 
-          <Button variant="secondary" size="sm" asChild className={iconBtnClass} title="Blog">
+          <Button
+            variant="secondary"
+            size="sm"
+            asChild
+            className={cn(iconBtnClass, "hidden sm:inline-flex")}
+            title="Blog"
+          >
             <Link href="/blogs" prefetch={false}>
               <BookOpen className="h-4 w-4 shrink-0" />
               <span className="sr-only sm:not-sr-only sm:ml-1.5">Blog</span>

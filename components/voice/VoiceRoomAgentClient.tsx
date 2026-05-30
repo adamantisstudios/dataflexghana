@@ -52,6 +52,7 @@ import {
 } from "@/lib/voice-room-topics"
 import { setParticipantCameraEnabled } from "@/lib/enable-participant-camera"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
+import { useRegisterStreamingSession } from "@/lib/streaming-session"
 import {
   pickFilmstripParticipants,
   pickMainStageParticipant,
@@ -792,6 +793,7 @@ export function VoiceRoomAgentClient({
   const [pendingVideo, setPendingVideo] = useState(false)
   const [canPublishVideo, setCanPublishVideo] = useState(false)
   const { roomOptions } = useVoiceDeviceLayout()
+  useRegisterStreamingSession(joined)
 
   const handleTokenUpgrade = useCallback(
     (newToken: string, opts?: { video?: boolean; activateVideo?: boolean }) => {

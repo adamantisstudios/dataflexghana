@@ -2,15 +2,32 @@
 export function isStreamingPagePath(pathname: string | null | undefined): boolean {
   if (!pathname) return false
 
-  // Agent conference room (not the room list at /agent/voice-rooms)
-  if (pathname.startsWith("/agent/voice-room/")) return true
+  const path = pathname.split("?")[0].replace(/\/$/, "") || "/"
 
-  // Channel live: member view and teacher/host channel dashboard (live overlay)
-  if (/^\/agent\/teaching\/[^/]+\/member\/?$/.test(pathname)) return true
-  if (/^\/agent\/teaching\/[^/]+\/?$/.test(pathname) && pathname !== "/agent/teaching") return true
+  // Agent conference room (not the list at /agent/voice-rooms)
+  if (path.includes("/agent/voice-room") && !path.includes("/agent/voice-rooms")) {
+    return true
+  }
+
+  // Channel live member view (e.g. /agent/teaching/[channelId]/member)
+  if (path.includes("/agent/teaching/") && path.includes("/member")) {
+    return true
+  }
+
+  // Teacher/host channel dashboard (live session overlay)
+  if (/^\/agent\/teaching\/[^/]+$/.test(path) && path !== "/agent/teaching") {
+    return true
+  }
 
   // Admin conference management / live moderation
-  if (pathname.startsWith("/admin/voice-rooms")) return true
+  if (path.includes("/admin/voice-rooms")) {
+    return true
+  }
 
   return false
+}
+
+/** Server/layout use when pathname is known (no overlay context). */
+export function shouldHideStreamingChrome(pathname: string | null | undefined): boolean {
+  return isStreamingPagePath(pathname)
 }

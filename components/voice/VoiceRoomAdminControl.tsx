@@ -99,6 +99,7 @@ import {
 } from "@/components/voice/VoiceVoipChrome"
 import { setParticipantCameraEnabled } from "@/lib/enable-participant-camera"
 import { useVoiceDeviceLayout } from "@/lib/voice-video-utils"
+import { useRegisterStreamingSession } from "@/lib/streaming-session"
 import {
   pickFilmstripParticipants,
   pickMainStageParticipant,
@@ -1480,7 +1481,9 @@ export function VoiceRoomAdminControl({
   onEnded,
 }: Props) {
   const { roomOptions } = useVoiceDeviceLayout()
+  useRegisterStreamingSession(true)
   const publishVideoOnConnect = enableVideo
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#0D1520] text-white">
       {enableVideo ? (

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
+import { useShouldHideStreamingChrome } from "@/lib/streaming-session"
 import { Megaphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getAnnouncementsMemberPath } from "@/lib/announcements-channel"
@@ -11,10 +12,15 @@ import { getAnnouncementsMemberPath } from "@/lib/announcements-channel"
 export function AnnouncementsFloatingButton() {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const hideOnStreaming = useShouldHideStreamingChrome()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  if (hideOnStreaming) {
+    return null
+  }
 
   const handleClick = () => {
     const memberPath = getAnnouncementsMemberPath()

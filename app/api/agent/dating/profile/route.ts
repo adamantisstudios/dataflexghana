@@ -128,9 +128,20 @@ export async function POST(request: NextRequest) {
 
     let profile
     if (existing) {
+      const resubmitAfterReject = Boolean(existing.rejection_reason)
       const { data, error } = await db
         .from("dating_profiles")
-        .update({ ...payload, profile_completeness: completeness })
+        .update({
+          ...payload,
+          profile_completeness: completeness,
+          ...(resubmitAfterReject
+            ? {
+                rejection_reason: null,
+                rejected_at: null,
+                is_approved: false,
+              }
+            : {}),
+        })
         .eq("agent_id", agentId)
         .select("*")
         .single()

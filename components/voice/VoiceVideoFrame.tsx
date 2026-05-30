@@ -39,7 +39,7 @@ const BADGE_CONFIG: Record<
   user: { icon: User, tooltip: "Participant camera" },
 }
 
-/** LiveKit video surface — layout only via variant CSS (9:16 contain, no rotation). */
+/** LiveKit video — square 720×720 in 9:16 wrapper; styling in app/globals.css only. */
 export function VoiceVideoFrame({
   participant,
   publication,
@@ -106,24 +106,18 @@ export function VoiceVideoFrame({
         ? "voip-chip-video w-full h-full"
         : cn("main-video-container main-video-container--fullscreen", className)
 
-  const trackClass =
-    variant === "preview" ? "preview-video" : variant === "chip" ? "w-full h-full" : "main-video main-video-inner"
-
   return (
     <div ref={frameRef} className={cn(containerClass, variant !== "main" && className)}>
-      <VideoTrack
-        trackRef={{
-          participant,
-          publication,
-          source: isScreen ? Track.Source.ScreenShare : Track.Source.Camera,
-        }}
-        className={cn(
-          trackClass,
-          "bg-black",
-          variant === "main" && "!object-contain",
-        )}
-        style={variant === "main" ? { objectFit: "contain" } : undefined}
-      />
+      <div className="video-wrapper">
+        <VideoTrack
+          trackRef={{
+            participant,
+            publication,
+            source: isScreen ? Track.Source.ScreenShare : Track.Source.Camera,
+          }}
+          className="voip-camera-video"
+        />
+      </div>
 
       {variant === "main" && badgeMeta && BadgeIcon && (
         <TooltipProvider delayDuration={200}>

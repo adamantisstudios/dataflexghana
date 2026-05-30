@@ -1,6 +1,5 @@
 "use client"
 
-import { usePathname } from "next/navigation"
 import { useState } from "react"
 import {
   Clock,
@@ -13,7 +12,7 @@ import {
 import { toast } from "sonner"
 import { getStoredAgent } from "@/lib/unified-auth-system"
 import { useCallWidget } from "@/hooks/use-call-widget"
-import { isStreamingPagePath } from "@/lib/streaming-routes"
+import { useShouldHideStreamingChrome } from "@/lib/streaming-session"
 import { CallAudioSession, useCallAudioControls } from "@/components/calls/CallAudioSession"
 import { CallMuteButton } from "@/components/calls/CallLiveKitAudio"
 import {
@@ -150,7 +149,7 @@ function AgentCallDialogUI({
 
 /** Floating agent → admin voice support widget (LiveKit audio). */
 export function AgentCallWidget() {
-  const pathname = usePathname()
+  const hideChrome = useShouldHideStreamingChrome()
   const agent = getStoredAgent()
   const [starting, setStarting] = useState(false)
 
@@ -174,8 +173,7 @@ export function AgentCallWidget() {
     userId: agent?.id ?? "",
   })
 
-  if (!agent?.id) return null
-  if (isStreamingPagePath(pathname)) return null
+  if (!agent?.id || hideChrome) return null
 
   const onCallSupport = async () => {
     setStarting(true)

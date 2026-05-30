@@ -5,9 +5,9 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from 'next/navigation'
 import { getStoredAgent, type Agent, logoutAgent } from "@/lib/unified-auth-system"
 import { AgentSecurityProvider } from "@/components/agent/AgentSecurityProvider"
-import { AgentCallWidget } from "@/components/agent-call-widget"
 import { AnnouncementsFloatingButton } from "@/components/announcements/AnnouncementsFloatingButton"
-import { isStreamingPagePath } from "@/lib/streaming-routes"
+import { AgentFloatingChrome } from "@/components/agent/AgentFloatingChrome"
+import { StreamingSessionProvider } from "@/lib/streaming-session"
 
 interface AgentLayoutProps {
   children: React.ReactNode
@@ -102,17 +102,16 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     return null
   }
 
-  const hideStreamingDistractions = isStreamingPagePath(pathname)
-
   return (
-    <AgentSecurityProvider
-      enabled={true}
-      inactivityTimeoutMinutes={90}
-      showWarningMinutes={5}
-    >
-      {children}
-      <AnnouncementsFloatingButton />
-      {!hideStreamingDistractions && <AgentCallWidget />}
-    </AgentSecurityProvider>
+    <StreamingSessionProvider>
+      <AgentSecurityProvider
+        enabled={true}
+        inactivityTimeoutMinutes={90}
+        showWarningMinutes={5}
+      >
+        {children}
+        <AgentFloatingChrome />
+      </AgentSecurityProvider>
+    </StreamingSessionProvider>
   )
 }

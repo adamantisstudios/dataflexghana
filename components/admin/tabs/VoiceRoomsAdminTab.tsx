@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Copy, Loader2, Phone, RefreshCw, Settings2, Download, Radio, Users } from "lucide-react"
+import { Copy, Loader2, Phone, RefreshCw, Settings2, Download, Radio, Users, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { VoiceRoomAdminControl } from "@/components/voice/VoiceRoomAdminControl"
 
@@ -31,6 +31,8 @@ type VoiceRoom = {
   participant_count?: number
 }
 
+const RECORDINGS_PAGE_SIZE = 12
+
 function SkeletonBlock({ className }: { className?: string }) {
   return <div className={`rounded-lg bg-slate-200 animate-pulse ${className ?? "h-16"}`} />
 }
@@ -44,6 +46,8 @@ export default function VoiceRoomsAdminTab() {
   const [controlRoom, setControlRoom] = useState<VoiceRoom | null>(null)
   const [controlToken, setControlToken] = useState<{ token: string; serverUrl: string } | null>(null)
   const [recordingEnabled, setRecordingEnabled] = useState(false)
+  const [pastPage, setPastPage] = useState(1)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -101,6 +105,32 @@ export default function VoiceRoomsAdminTab() {
     }
   }
 
+  const deleteRecording = async (room: VoiceRoom) => {
+    if (
+      !window.confirm(
+        `Delete this conference recording for ${room.region}? This removes the database entry and LiveKit egress files.`,
+      )
+    ) {
+      return
+    }
+    setDeletingId(room.id)
+    try {
+      const res = await fetch(`/api/admin/voice-rooms/${room.id}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Delete failed")
+      toast.success("Recording deleted")
+      setPastPage(1)
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Delete failed")
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   const downloadRecording = async (room: VoiceRoom) => {
     try {
       const res = await fetch(`/api/admin/voice-rooms/${room.id}/recording`, {
@@ -120,7 +150,20 @@ export default function VoiceRoomsAdminTab() {
   }
 
   const active = rooms.filter((r) => r.is_active)
-  const past = rooms.filter((r) => !r.is_active)
+  const past = rooms
+    .filter((r) => !r.is_active)
+    .sort((a, b) => {
+      const ta = new Date(a.ended_at || a.created_at).getTime()
+      const tb = new Date(b.ended_at || b.created_at).getTime()
+      return tb - ta
+    })
+
+  const pastTotalPages = Math.max(1, Math.ceil(past.length / RECORDINGS_PAGE_SIZE))
+  const safePastPage = Math.min(pastPage, pastTotalPages)
+  const pastPageRooms = past.slice(
+    (safePastPage - 1) * RECORDINGS_PAGE_SIZE,
+    safePastPage * RECORDINGS_PAGE_SIZE,
+  )
 
   const cardClass = "border-blue-200 bg-white/95 text-slate-900 shadow-md"
 
@@ -265,7 +308,10 @@ export default function VoiceRoomsAdminTab() {
 
       <Card className={cardClass}>
         <CardHeader>
-          <CardTitle className="text-base text-blue-900">Past rooms</CardTitle>
+          <CardTitle className="text-base text-blue-900">Download recordings</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            {past.length} ended conference{past.length === 1 ? "" : "s"} · {RECORDINGS_PAGE_SIZE} per page
+          </p>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -273,32 +319,93 @@ export default function VoiceRoomsAdminTab() {
           ) : past.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No ended rooms yet</p>
           ) : (
-            <ul className="space-y-2">
-              {past.slice(0, 20).map((room) => (
-                <li
-                  key={room.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50 text-sm"
-                >
-                  <div>
-                    <p className="font-medium text-slate-900">{room.region}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {room.ended_at
-                        ? new Date(room.ended_at).toLocaleString()
-                        : new Date(room.created_at).toLocaleString()}
-                    </p>
-                  </div>
+            <>
+              <ul className="space-y-2">
+                {pastPageRooms.map((room) => (
+                  <li
+                    key={room.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900">{room.region}</p>
+                      <p className="text-xs text-muted-foreground truncate">{room.room_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {room.ended_at
+                          ? new Date(room.ended_at).toLocaleString()
+                          : new Date(room.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-gray-900 border-gray-300 bg-white h-10"
+                        onClick={() => downloadRecording(room)}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-700 border-red-200 bg-white h-10 hover:bg-red-50"
+                        disabled={deletingId === room.id}
+                        onClick={() => void deleteRecording(room)}
+                      >
+                        {deletingId === room.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 mr-1" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {pastTotalPages > 1 && (
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                   <Button
+                    type="button"
                     size="sm"
                     variant="outline"
-                    className="text-gray-900 border-gray-300 bg-white h-10"
-                    onClick={() => downloadRecording(room)}
+                    className="h-9 text-gray-900"
+                    disabled={safePastPage <= 1}
+                    onClick={() => setPastPage((p) => Math.max(1, p - 1))}
                   >
-                    <Download className="h-4 w-4 mr-1" />
-                    Download recording
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
                   </Button>
-                </li>
-              ))}
-            </ul>
+                  {Array.from({ length: pastTotalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <Button
+                      key={pageNum}
+                      type="button"
+                      size="sm"
+                      variant={pageNum === safePastPage ? "default" : "outline"}
+                      className={
+                        pageNum === safePastPage
+                          ? "h-9 min-w-9 bg-[#0E8F3D] hover:bg-[#0a7a34]"
+                          : "h-9 min-w-9 text-gray-900"
+                      }
+                      onClick={() => setPastPage(pageNum)}
+                    >
+                      {pageNum}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-9 text-gray-900"
+                    disabled={safePastPage >= pastTotalPages}
+                    onClick={() => setPastPage((p) => Math.min(pastTotalPages, p + 1))}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

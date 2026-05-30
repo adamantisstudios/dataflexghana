@@ -14,4 +14,5 @@ CREATE POLICY "Block anon/authenticated" ON tutorial_videos AS RESTRICTIVE FOR A
 
 INSERT INTO tutorial_videos (vimeo_video_id, title, order_index) VALUES
 ('1194247499', 'Platform Overview', 1),
-('1195030090', 'Storefront Quick Overview', 2);
+('1195030090', 'Storefront Quick Overview', 2)
+ON CONFLICT DO NOTHING;

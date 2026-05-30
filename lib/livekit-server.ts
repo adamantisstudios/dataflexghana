@@ -460,6 +460,27 @@ export async function stopVoiceRoomRecording(egressId: string): Promise<void> {
   await getLiveKitEgressClient().stopEgress(egressId)
 }
 
+/** Best-effort remove egress artifacts for a ended room. */
+export async function deleteVoiceRoomEgressArtifacts(roomName: string): Promise<void> {
+  try {
+    const recordings = await listRecordings(roomName)
+    const egressIds = [...new Set(recordings.map((r) => r.egressId).filter(Boolean))]
+    for (const egressId of egressIds) {
+      try {
+        await getLiveKitEgressClient().deleteEgress(egressId)
+      } catch {
+        try {
+          await stopVoiceRoomRecording(egressId)
+        } catch {
+          /* ignore per-egress failure */
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[livekit] deleteVoiceRoomEgressArtifacts:", err)
+  }
+}
+
 export function getLiveKitWsUrl(): string {
   return process.env.LIVEKIT_HOST || ""
 }

@@ -5,10 +5,10 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase-client";
 import { getStoredAdmin, logoutAdmin, type AdminUser } from "@/lib/unified-auth-system"
-import { AdminCallWidget } from "@/components/admin-call-widget"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { AdminConnectionStatus } from "@/components/admin/AdminConnectionStatus"
-import { isStreamingPagePath } from "@/lib/streaming-routes"
+import { AdminFloatingChrome } from "@/components/admin/AdminFloatingChrome"
+import { StreamingSessionProvider } from "@/lib/streaming-session"
 
 export { getStoredAdmin } from "@/lib/unified-auth-system"
 
@@ -116,34 +116,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return null
   }
 
-  const hideStreamingDistractions = isStreamingPagePath(pathname)
-
   // For the main admin dashboard, render without additional wrapper
   if (pathname === "/admin" || pathname === "/admin/") {
     return (
-      <>
+      <StreamingSessionProvider>
         {children}
-        {!hideStreamingDistractions && <AdminCallWidget />}
-      </>
+        <AdminFloatingChrome />
+      </StreamingSessionProvider>
     )
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <AdminHeader
-        displayName={adminUser.full_name}
-        adminEmail={adminUser.email}
-        connectionIndicator={
-          <AdminConnectionStatus
-            variant="db"
-            status={connectionStatus === "connected" ? "connected" : "disconnected"}
-          />
-        }
-        showMaintenanceLink
-        onLogout={handleLogout}
-      />
-      <main className="w-full px-4 py-4 sm:px-6 lg:px-8 sm:py-6">{children}</main>
-      {!hideStreamingDistractions && <AdminCallWidget />}
-    </div>
+    <StreamingSessionProvider>
+      <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <AdminHeader
+          displayName={adminUser.full_name}
+          adminEmail={adminUser.email}
+          connectionIndicator={
+            <AdminConnectionStatus
+              variant="db"
+              status={connectionStatus === "connected" ? "connected" : "disconnected"}
+            />
+          }
+          showMaintenanceLink
+          onLogout={handleLogout}
+        />
+        <main className="w-full px-4 py-4 sm:px-6 lg:px-8 sm:py-6">{children}</main>
+        <AdminFloatingChrome />
+      </div>
+    </StreamingSessionProvider>
   )
 }

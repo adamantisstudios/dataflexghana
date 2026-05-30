@@ -1,12 +1,14 @@
-/** Single source of truth for live conference / channel camera capture (portrait 9:16). */
+/** Live conference / channel camera — square 720×720 (matches typical front-camera output). */
+export const LIVE_CAMERA_VIDEO_CONSTRAINTS: MediaTrackConstraints = {
+  facingMode: "user",
+  width: { ideal: 720 },
+  height: { ideal: 720 },
+  aspectRatio: { ideal: 1 },
+  frameRate: { ideal: 30 },
+}
+
 export const LIVE_CAMERA_CONSTRAINTS: MediaStreamConstraints = {
-  video: {
-    facingMode: "user",
-    width: { ideal: 720 },
-    height: { ideal: 1280 },
-    aspectRatio: 9 / 16,
-    frameRate: { ideal: 30 },
-  },
+  video: LIVE_CAMERA_VIDEO_CONSTRAINTS,
   audio: true,
 }
 
