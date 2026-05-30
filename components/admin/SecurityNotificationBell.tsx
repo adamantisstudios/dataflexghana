@@ -88,6 +88,13 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
       toastFn(summarizeAction(row.action, row.new_data ?? null), {
         description: `${sev.toUpperCase()} · ${formatEventTime(row.created_at)}`,
         duration: 6000,
+        action:
+          row.action === "new_order"
+            ? {
+                label: "View",
+                onClick: () => router.push("/admin?tab=dashboard"),
+              }
+            : undefined,
       })
       if (bellRef.current && typeof navigator !== "undefined" && "vibrate" in navigator) {
         try {
@@ -97,7 +104,7 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
         }
       }
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     const loadInitial = async () => {
@@ -178,7 +185,21 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
           <p className="px-3 py-4 text-sm text-muted-foreground text-center">No recent warnings</p>
         ) : (
           recent.map((ev) => (
-            <DropdownMenuItem key={ev.id} className="flex flex-col items-start gap-0.5 py-2">
+            <DropdownMenuItem
+              key={ev.id}
+              className="flex flex-col items-start gap-0.5 py-2 cursor-pointer"
+              onClick={() => {
+                markAllRead()
+                setOpen(false)
+                if (ev.action === "new_order") {
+                  router.push("/admin?tab=dashboard")
+                } else if (ev.action === "official_announcement") {
+                  router.push("/admin?tab=security-log")
+                } else {
+                  router.push("/admin?tab=security-log")
+                }
+              }}
+            >
               <span className="text-sm font-medium leading-tight">
                 {summarizeAction(ev.action, ev.new_data ?? null)}
               </span>
@@ -189,6 +210,16 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
           ))
         )}
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="text-blue-600 font-medium justify-center"
+          onClick={() => {
+            markAllRead()
+            setOpen(false)
+            router.push("/admin?tab=dashboard")
+          }}
+        >
+          View pending orders
+        </DropdownMenuItem>
         <DropdownMenuItem
           className="text-blue-600 font-medium justify-center"
           onClick={() => {

@@ -146,3 +146,33 @@ export async function logAuditFromRequest(
   const { ipAddress, userAgent } = getRequestClientMeta(request)
   await logAudit({ ...params, ipAddress, userAgent })
 }
+
+/** Standard audit entry for a newly created order awaiting admin action. */
+export async function logNewOrderAudit(params: {
+  orderId: string
+  orderType: string
+  amount?: number | null
+  actorId?: string | null
+  actorType?: string
+  targetTable: string
+  details?: Record<string, unknown>
+  ipAddress?: string | null
+  userAgent?: string | null
+}): Promise<void> {
+  await logAudit({
+    actorId: params.actorId ?? null,
+    actorType: params.actorType ?? "system",
+    action: "new_order",
+    severity: "warning",
+    targetTable: params.targetTable,
+    targetId: params.orderId,
+    newData: {
+      order_id: params.orderId,
+      order_type: params.orderType,
+      amount: params.amount ?? null,
+      ...params.details,
+    },
+    ipAddress: params.ipAddress ?? null,
+    userAgent: params.userAgent ?? null,
+  })
+}

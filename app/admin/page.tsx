@@ -255,6 +255,7 @@ export default function AdminDashboard() {
     pendingOnlineCourses: 0,
     pendingStorefrontOrders: 0,
     newGroceryRequests: 0,
+    pendingOrdersTotal: 0,
   })
   // Settings dialog state
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -302,6 +303,7 @@ export default function AdminDashboard() {
           wholesaleStatsResponse,
           alertsResponse,
           storefrontOrdersResponse,
+          pendingOrdersResponse,
         ] = await Promise.all([
           supabase.from("agents").select("id, isapproved", { count: "exact" }),
           supabase.from("referrals").select("id, status", { count: "exact" }),
@@ -316,6 +318,7 @@ export default function AdminDashboard() {
           fetch("/api/admin/wholesale/stats", { headers: getAdminAuthHeaders() }).catch(() => ({ ok: false })),
           fetch("/api/admin/dashboard/pending-alerts", { headers: getAdminAuthHeaders() }).catch(() => ({ ok: false })),
           fetch("/api/admin/storefront-orders?page=1&limit=1", { headers: getAdminAuthHeaders() }).catch(() => ({ ok: false })),
+          fetch("/api/admin/dashboard/pending-orders", { headers: getAdminAuthHeaders(), cache: "no-store" }).catch(() => ({ ok: false })),
         ])
 
         let wholesaleStats = {
@@ -374,6 +377,16 @@ export default function AdminDashboard() {
           }
         }
 
+        let pendingOrdersTotal = 0
+        if (pendingOrdersResponse.ok && pendingOrdersResponse instanceof Response) {
+          try {
+            const pendingData = await pendingOrdersResponse.json()
+            pendingOrdersTotal = Number(pendingData.total_pending ?? 0)
+          } catch (error) {
+            console.error("Error parsing pending orders total:", error)
+          }
+        }
+
         if (isMounted) {
           setStats((prev) => ({
             ...prev,
@@ -411,6 +424,7 @@ export default function AdminDashboard() {
             totalPendingAlerts: alertsData.totalAlerts || 0,
             pendingOnlineCourses: alertsData.pendingOnlineCourses || 0,
             pendingStorefrontOrders,
+            pendingOrdersTotal,
           }))
         }
       } catch (error) {
@@ -468,9 +482,17 @@ export default function AdminDashboard() {
         })
         .catch(() => {})
     }
+    const onPendingOrdersTotal = (event: Event) => {
+      const detail = (event as CustomEvent<number>).detail
+      if (typeof detail === "number") {
+        setStats((prev) => ({ ...prev, pendingOrdersTotal: detail }))
+      }
+    }
+    window.addEventListener("admin-pending-orders-total", onPendingOrdersTotal)
     window.addEventListener("admin-storefront-pending", onStorefrontPending)
     window.addEventListener("grocery-requests-updated", onGroceryUpdated)
     return () => {
+      window.removeEventListener("admin-pending-orders-total", onPendingOrdersTotal)
       window.removeEventListener("admin-storefront-pending", onStorefrontPending)
       window.removeEventListener("grocery-requests-updated", onGroceryUpdated)
     }
@@ -531,7 +553,6 @@ export default function AdminDashboard() {
       
       // Update localStorage with the new admin data
       localStorage.setItem("admin", JSON.stringify(data.admin))
-      setAdmin(data.admin)
 
       toast.success("Password updated successfully")
       setSettingsOpen(false)
@@ -569,6 +590,8 @@ export default function AdminDashboard() {
 
   const getTabAlertCount = (tabId: string): number => {
     switch (tabId) {
+      case "dashboard":
+        return stats.pendingOrdersTotal
       case "agents":
         return stats.newAgents
       case "orders":

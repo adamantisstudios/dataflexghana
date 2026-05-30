@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { buildWalletTransactionInsertRow, generateSafeReferenceCode } from '@/lib/wallet-transaction-types'
+import { logNewOrderAudit } from '@/lib/audit-logger'
 import {
   createWholesaleOrder,
   updateProductStock,
@@ -418,6 +419,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+
+    if (orders.length > 0) {
+      await logNewOrderAudit({
+        orderId: String(orders[0]?.id ?? body.payment_reference),
+        orderType: "wholesale_order",
+        amount: body.total_amount,
+        actorId: body.agent_id,
+        actorType: "agent",
+        targetTable: "wholesale_orders",
+        details: { orders_created: orders.length, payment_method: body.payment_method },
+      })
+    }
 
     return createSuccessResponse(
       {

@@ -489,8 +489,31 @@ export default function DataOrderPage() {
         setWalletBalance(newBalance)
       }
 
-      const { error: orderError } = await supabase.from("data_orders").insert([orderDetails])
+      const { data: insertedOrder, error: orderError } = await supabase
+        .from("data_orders")
+        .insert([orderDetails])
+        .select("id")
+        .single()
       if (orderError) throw orderError
+
+      void fetch("/api/agent/data-orders/notify-new", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-agent-id": agent.id,
+        },
+        body: JSON.stringify({
+          order_id: insertedOrder?.id ?? generatedReference,
+          order_type: "data_order",
+          amount: selectedBundle.price,
+          agent_id: agent.id,
+          details: {
+            recipient_phone: orderDetails.recipient_phone,
+            payment_method: paymentMethod,
+            reference: generatedReference,
+          },
+        }),
+      }).catch(() => {})
 
       const cleanPhoneNumber = recipientPhone.replace(/\D/g, "").slice(0, 10)
       addToOrderHistory(selectedBundle.id, cleanPhoneNumber, paymentMethod)

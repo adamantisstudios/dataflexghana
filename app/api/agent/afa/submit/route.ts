@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generatePaymentPIN } from "@/lib/pin-generator"
+import { logNewOrderAudit } from "@/lib/audit-logger"
 
 export async function POST(request: NextRequest) {
   try {
@@ -94,6 +95,15 @@ export async function POST(request: NextRequest) {
     } catch (notificationError) {
       console.warn("[v0] Failed to create notification, but registration was successful:", notificationError)
     }
+
+    await logNewOrderAudit({
+      orderId: submission.id,
+      orderType: "mtnafa_registration",
+      actorId: agent_id || null,
+      actorType: "agent",
+      targetTable: "mtnafa_registrations",
+      details: { full_name, phone_number: normalizedPhone, payment_pin: paymentPin },
+    })
 
     return NextResponse.json({
       status: "success",

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { generatePaymentPIN } from "@/lib/pin-generator"
+import { logNewOrderAudit } from "@/lib/audit-logger"
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,6 +96,15 @@ export async function POST(request: NextRequest) {
       submission_id: orderId,
       preview: `Bulk Order with ${validatedRows.length} items from agent - PIN: ${paymentPin}`,
       created_at: new Date().toISOString(),
+    })
+
+    await logNewOrderAudit({
+      orderId,
+      orderType: "bulk_order",
+      actorId: agent_id,
+      actorType: "agent",
+      targetTable: "bulk_orders",
+      details: { accepted_count: validatedRows.length, payment_pin: paymentPin },
     })
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
-import { logAuditFromRequest } from "@/lib/audit-logger"
+import { logAuditFromRequest, logNewOrderAudit } from "@/lib/audit-logger"
 import { sendGroceryRequestNotificationEmail } from "@/lib/sendEmail"
 import type { GroceryRequestFormPayload } from "@/lib/grocery-types"
 import {
@@ -129,6 +129,17 @@ export async function POST(request: NextRequest) {
       targetTable: "grocery_requests",
       targetId: data.id,
       newData: { ...row, id: data.id },
+    })
+
+    await logNewOrderAudit({
+      orderId: data.id,
+      orderType: "grocery_request",
+      amount: verified.amountGhs ?? null,
+      actorType: "public",
+      targetTable: "grocery_requests",
+      details: { full_name, phone, paystack_reference },
+      ipAddress: null,
+      userAgent: null,
     })
 
     void sendGroceryRequestNotificationEmail({

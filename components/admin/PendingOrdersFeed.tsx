@@ -14,26 +14,18 @@ import {
   Shield,
   RefreshCw,
   ChevronRight,
+  Package,
+  Home,
+  MessageCircle,
+  Wallet,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import type { PendingOrdersCategoryKey, PendingOrdersPayload } from "@/lib/admin-pending-orders"
 
 const BRAND = "#0E8F3D"
 
-type PendingOrdersPayload = {
-  data_orders: unknown[]
-  storefront_orders: unknown[]
-  grocery_requests: unknown[]
-  ad_orders: unknown[]
-  influencer_orders: unknown[]
-  farm_orders: unknown[]
-  writing_orders: unknown[]
-  compliance_orders: unknown[]
-  withdrawals: unknown[]
-  total_pending: number
-}
-
 type CategoryCard = {
-  key: keyof PendingOrdersPayload
+  key: PendingOrdersCategoryKey
   label: string
   hrefTab: string
   icon: LucideIcon
@@ -47,12 +39,21 @@ const CATEGORIES: CategoryCard[] = [
   { key: "influencer_orders", label: "Influencers", hrefTab: "micro-influencers", icon: Award },
   { key: "farm_orders", label: "Farmers Friend", hrefTab: "farmers-friend", icon: Leaf },
   { key: "writing_orders", label: "Writing Orders", hrefTab: "professional-writing", icon: FileText },
-  { key: "compliance_orders", label: "Compliance", hrefTab: "compliance", icon: Shield },
+  { key: "compliance_orders", label: "Storefront Compliance", hrefTab: "compliance", icon: Shield },
+  { key: "form_submissions", label: "Compliance Forms", hrefTab: "compliance", icon: FileText },
+  { key: "bulk_orders", label: "Bulk Orders", hrefTab: "bulk-orders", icon: Package },
+  { key: "mtnafa_registrations", label: "AFA Registrations", hrefTab: "bulk-orders", icon: Package },
+  { key: "wholesale_orders", label: "Wholesale Orders", hrefTab: "wholesale", icon: ShoppingBag },
+  { key: "property_requests", label: "Property Requests", hrefTab: "properties", icon: Home },
+  { key: "referrals", label: "Referrals", hrefTab: "referrals", icon: MessageCircle },
+  { key: "wallet_topups", label: "Wallet Top-ups", hrefTab: "wallets", icon: Wallet },
+  { key: "professional_writing_submissions", label: "Writing (Legacy)", hrefTab: "professional-writing", icon: FileText },
   { key: "withdrawals", label: "Withdrawals", hrefTab: "payouts", icon: Banknote },
 ]
 
 type Props = {
   onNavigateTab?: (tabId: string) => void
+  onTotalChange?: (total: number) => void
 }
 
 function SkeletonCards() {
@@ -68,7 +69,16 @@ function SkeletonCards() {
   )
 }
 
-export function PendingOrdersFeed({ onNavigateTab }: Props) {
+function PendingBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold tabular-nums leading-none shrink-0">
+      {count > 99 ? "99+" : count}
+    </span>
+  )
+}
+
+export function PendingOrdersFeed({ onNavigateTab, onTotalChange }: Props) {
   const [data, setData] = useState<PendingOrdersPayload | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -79,15 +89,19 @@ export function PendingOrdersFeed({ onNavigateTab }: Props) {
         cache: "no-store",
       })
       if (res.ok) {
-        const json = await res.json()
+        const json = (await res.json()) as PendingOrdersPayload
         setData(json)
+        onTotalChange?.(json.total_pending ?? 0)
+        window.dispatchEvent(
+          new CustomEvent("admin-pending-orders-total", { detail: json.total_pending ?? 0 }),
+        )
       }
     } catch (e) {
       console.error("[PendingOrdersFeed]", e)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [onTotalChange])
 
   useEffect(() => {
     load()
@@ -102,11 +116,17 @@ export function PendingOrdersFeed({ onNavigateTab }: Props) {
 
   const total = data?.total_pending ?? 0
 
+  const getCategoryCount = (key: PendingOrdersCategoryKey) =>
+    data?.counts?.[key] ?? (data?.[key] as unknown[] | undefined)?.length ?? 0
+
   return (
     <section className="rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50/80">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900">Pending orders</h2>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-semibold text-slate-900">Pending orders</h2>
+            {!loading && total > 0 && <PendingBadge count={total} />}
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">
             {loading && !data ? "Loading…" : `${total} item${total === 1 ? "" : "s"} need attention`}
           </p>
@@ -115,7 +135,7 @@ export function PendingOrdersFeed({ onNavigateTab }: Props) {
           type="button"
           onClick={load}
           disabled={loading}
-          className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+          className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 shrink-0"
           aria-label="Refresh pending orders"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -130,7 +150,7 @@ export function PendingOrdersFeed({ onNavigateTab }: Props) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {CATEGORIES.map(({ key, label, hrefTab, icon: Icon }) => {
-              const count = (data[key] as unknown[])?.length ?? 0
+              const count = getCategoryCount(key)
               if (count === 0) return null
 
               return (

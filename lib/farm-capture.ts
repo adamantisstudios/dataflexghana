@@ -1,5 +1,5 @@
 import { getAdminClient } from "@/lib/supabase-base"
-import { logAudit } from "@/lib/audit-logger"
+import { logAudit, logNewOrderAudit } from "@/lib/audit-logger"
 import { computeAgentCommission, getFarmCommissionRate } from "@/lib/farm-server"
 
 export type FarmCartLineMeta = {
@@ -103,6 +103,18 @@ export async function captureFarmOrdersFromPaystack(params: {
     targetTable: "farm_orders",
     targetId: inserted?.[0]?.id ?? reference,
     newData: { paystack_reference: reference, line_count: rows.length },
+    ipAddress: params.ipAddress ?? null,
+    userAgent: params.userAgent ?? null,
+  })
+
+  const totalAmount = rows.reduce((sum, row) => sum + Number(row.total_price || 0), 0)
+  await logNewOrderAudit({
+    orderId: String(inserted?.[0]?.id ?? reference),
+    orderType: "farm_order",
+    amount: totalAmount,
+    actorType: params.actorType ?? "farm_buyer",
+    targetTable: "farm_orders",
+    details: { paystack_reference: reference, line_count: rows.length },
     ipAddress: params.ipAddress ?? null,
     userAgent: params.userAgent ?? null,
   })

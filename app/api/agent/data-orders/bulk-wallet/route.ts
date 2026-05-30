@@ -3,6 +3,7 @@ import { getAdminClient } from "@/lib/supabase-base"
 import { calculateWalletBalance } from "@/lib/earnings-calculator"
 import { buildWalletTransactionInsertRow } from "@/lib/wallet-transaction-types"
 import { getCalculatedCommission } from "@/lib/commission-calculation"
+import { logNewOrderAudit } from "@/lib/audit-logger"
 
 export const dynamic = "force-dynamic"
 
@@ -142,6 +143,16 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       )
     }
+
+    await logNewOrderAudit({
+      orderId: bulkReference,
+      orderType: "data_order_bulk",
+      amount: totalAmount,
+      actorId: agentId,
+      actorType: "agent",
+      targetTable: "data_orders",
+      details: { bulk_reference: bulkReference, orders_placed: orderRows.length },
+    })
 
     return NextResponse.json({
       success: true,
