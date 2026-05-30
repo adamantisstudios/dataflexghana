@@ -1,5 +1,6 @@
 "use client"
 import { getAdminAuthHeaders } from "@/lib/api-client"
+import { TwoFactorSetupPanel } from "@/components/security/TwoFactorSetupPanel"
 import React, { lazy, Suspense, useState, useCallback, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -631,12 +632,20 @@ export default function AdminDashboard() {
                 <span className="sr-only sm:not-sr-only sm:ml-1.5 sm:inline">Settings</span>
               </Button>
             </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Admin Settings</DialogTitle>
-                    <DialogDescription>Update your admin account settings and password.</DialogDescription>
+                    <DialogDescription>
+                      Manage two-factor authentication and change your admin password.
+                    </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
+                  <div className="py-2">
+                    <TwoFactorSetupPanel userType="admin" getAuthHeaders={getAdminAuthHeaders} compact />
+                  </div>
+                  <div className="border-t border-blue-100 pt-4">
+                    <p className="text-sm font-semibold text-blue-800 mb-3">Change password</p>
+                  </div>
+                  <div className="grid gap-4 pb-2">
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="current-password" className="text-right">
                         Current Password
@@ -958,6 +967,14 @@ export default function AdminDashboard() {
           </TabsContent>
           {/* Settings Tab Content */}
           <TabsContent value="settings" className="space-y-6">
+            <div className="rounded-xl border border-blue-200 bg-white/90 backdrop-blur-sm shadow-lg p-4 sm:p-5">
+              <h2 className="text-xl font-semibold text-blue-800 mb-1">Account security</h2>
+              <p className="text-sm text-blue-600 mb-4">
+                Protect your admin login with a free authenticator app. You can also open Settings from the header
+                gear icon.
+              </p>
+              <TwoFactorSetupPanel userType="admin" getAuthHeaders={getAdminAuthHeaders} />
+            </div>
             <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200 p-6">
               <h2 className="text-xl font-semibold text-blue-800 mb-4">System Settings</h2>
               <p className="text-blue-600 mb-4">Configure system settings and preferences.</p>

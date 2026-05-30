@@ -36,6 +36,7 @@ import { getAdminAuthHeaders } from "@/lib/api-client";
   MapPin,
   Calendar,
   Info,
+  ShieldOff,
 } from "lucide-react";
 import { AgentProfileDetailDialog } from "@/components/admin/AgentProfileDetailDialog";
 import { AdminEditAgentProfileDialog } from "@/components/admin/AdminEditAgentProfileDialog";
@@ -55,6 +56,7 @@ interface AgentWithWallet extends Agent {
   admin_notes?: string | null;
   auto_deactivated_at?: string | null;
   auto_deactivation_reason?: string | null;
+  two_factor_enabled?: boolean;
 }
 
 interface AgentsTabProps {
@@ -376,6 +378,41 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
       });
     }
   };
+
+  const disableAgent2FA = async (agent: AgentWithWallet) => {
+    if (processingAgentIds.has(agent.id)) return
+    if (
+      !confirm(
+        `Disable two-factor authentication for ${agent.full_name}? They will be able to sign in with password only.`,
+      )
+    ) {
+      return
+    }
+
+    setProcessingAgentIds((prev) => new Set(prev).add(agent.id))
+    try {
+      const res = await fetch(`/api/admin/agents/${agent.id}/disable-2fa`, {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to disable 2FA")
+      const updatedAgents = agents.map((a) =>
+        a.id === agent.id ? { ...a, two_factor_enabled: false } : a,
+      )
+      setAgents(updatedAgents)
+      setCachedData?.(updatedAgents)
+      toast.success("Two-factor authentication disabled for agent")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to disable 2FA")
+    } finally {
+      setProcessingAgentIds((prev) => {
+        const next = new Set(prev)
+        next.delete(agent.id)
+        return next
+      })
+    }
+  }
 
   const deleteAgent = async (agentId: string) => {
     if (processingAgentIds.has(agentId)) return;
@@ -759,6 +796,11 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                 <div className="flex-1 min-w-0">
                   <h3 className="text-base font-semibold text-gray-900 truncate">{agent.full_name}</h3>
                   <AdminAgentVerificationBadge agent={agent} className="mt-1" />
+                  {agent.two_factor_enabled && (
+                    <Badge className="mt-1 bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
+                      2FA on
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button
@@ -904,6 +946,22 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
                       <RotateCcw className="h-4 w-4 mr-1" />
                     )}
                     {processingAgentIds.has(agent.id) ? "Processing…" : "Unapprove"}
+                  </Button>
+                )}
+                {agent.two_factor_enabled && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void disableAgent2FA(agent)}
+                    disabled={processingAgentIds.has(agent.id)}
+                    className="w-full col-span-2 sm:col-span-4 border-amber-300 text-amber-800 hover:bg-amber-50 min-h-[44px]"
+                  >
+                    {processingAgentIds.has(agent.id) ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <ShieldOff className="h-4 w-4 mr-1" />
+                    )}
+                    Disable 2FA
                   </Button>
                 )}
                 <Button

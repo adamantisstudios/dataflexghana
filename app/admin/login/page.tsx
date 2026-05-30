@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Shield, ArrowLeft, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { loginAdmin } from "@/lib/unified-auth-system"
+import { setStoredAdmin } from "@/lib/unified-auth-system"
+import { TwoFactorLoginStep } from "@/components/security/TwoFactorLoginStep"
 
 export default function AdminLoginPage() {
   const [formData, setFormData] = useState({
@@ -20,10 +21,16 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [requires2FA, setRequires2FA] = useState(false)
+  const [pendingToken, setPendingToken] = useState<string | null>(null)
   const router = useRouter()
 
-  // The admin layout will handle all auth checks and redirects
-  // This eliminates the circular redirect loop
+  const finishAdminLogin = (admin: Record<string, unknown>) => {
+    setStoredAdmin(admin as Parameters<typeof setStoredAdmin>[0])
+    void new Promise((resolve) => setTimeout(resolve, 150)).then(() => {
+      router.push("/admin")
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,20 +38,31 @@ export default function AdminLoginPage() {
     setError("")
 
     try {
-      console.log("[v0] Attempting admin login with email:", formData.email)
-      const result = await loginAdmin(formData.email, formData.password)
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(formData),
+      })
+      const data = await res.json()
 
-      if (result.success) {
-        console.log("[v0] Admin login successful, redirecting to /admin")
-        // Give localStorage time to sync before redirect
-        await new Promise((resolve) => setTimeout(resolve, 150))
-        router.push("/admin")
-      } else {
-        setError(result.error || "Login failed. Please check your credentials.")
+      if (!res.ok) {
+        setError(data.error || "Login failed. Please check your credentials.")
+        return
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      console.error("[v0] Login error:", errorMessage)
+
+      if (data.requires2FA && data.pendingToken) {
+        setRequires2FA(true)
+        setPendingToken(data.pendingToken)
+        return
+      }
+
+      if (data.admin) {
+        finishAdminLogin(data.admin)
+      } else {
+        setError("Login failed. Please try again.")
+      }
+    } catch {
       setError("An error occurred during login. Please try again.")
     } finally {
       setLoading(false)
@@ -70,69 +88,85 @@ export default function AdminLoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            {requires2FA && pendingToken ? (
+              <TwoFactorLoginStep
+                userType="admin"
+                pendingToken={pendingToken}
+                onSuccess={(payload) => {
+                  if (payload.admin) finishAdminLogin(payload.admin as Record<string, unknown>)
+                }}
+                onError={setError}
+                onBack={() => {
+                  setRequires2FA(false)
+                  setPendingToken(null)
+                  setError("")
+                }}
+              />
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="sales.dataflex@gmail.com"
-                  className="h-11"
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
                   <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
+                    id="email"
+                    type="email"
                     required
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Enter your password"
-                    className="h-11 pr-10"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="sales.dataflex@gmail.com"
+                    className="h-11"
                     disabled={loading}
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
-                  </Button>
                 </div>
-              </div>
 
-              <Button type="submit" className="w-full h-11" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
-            </form>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder="Enter your password"
+                      className="h-11 pr-10"
+                      disabled={loading}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={loading}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full h-11" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
+              </form>
+            )}
 
             <div className="mt-6 text-center">
               <Button variant="ghost" size="sm" asChild>

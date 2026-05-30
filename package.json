@@ -73,6 +73,7 @@
     "next": "^16.1.2",
     "next-themes": "latest",
     "os": "0.1.2",
+    "otplib": "^13.4.0",
     "path": "latest",
     "pg": "^8.20.0",
     "prisma": "^7.8.0",

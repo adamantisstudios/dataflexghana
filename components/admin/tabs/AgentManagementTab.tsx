@@ -36,6 +36,7 @@ import { Switch } from "@/components/ui/switch"
   CheckCircle,
   Clock,
   ArrowRight,
+  ShieldOff,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase-client";
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances";
@@ -70,6 +71,7 @@ interface Agent {
   can_update_properties?: boolean
   can_teach?: boolean
   isbanned?: boolean
+  two_factor_enabled?: boolean
 }
 
 interface AgentTransactionSummary {
@@ -123,7 +125,7 @@ export default function AgentManagementTab() {
 
       let query = supabase
         .from("agents")
-        .select("id, full_name, phone_number, email, profession, exact_location, profile_image_url, profile_verified, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties, can_teach", { count: "exact" })
+        .select("id, full_name, phone_number, email, profession, exact_location, profile_image_url, profile_verified, wallet_balance, created_at, last_login, isapproved, isbanned, region, can_publish_products, can_update_products, can_publish_properties, can_update_properties, can_teach, two_factor_enabled", { count: "exact" })
         .or(`full_name.ilike.%${search}%,phone_number.ilike.%${search}%,email.ilike.%${search}%,profession.ilike.%${search}%,exact_location.ilike.%${search}%`)
         .order("created_at", { ascending: false })
 
@@ -359,6 +361,33 @@ export default function AgentManagementTab() {
   const handleClearRecords = (agent: Agent) => {
     setClearingAgent(agent)
     setShowClearDialog(true)
+  }
+
+  const disableAgent2FA = async (agent: Agent) => {
+    if (
+      !confirm(
+        `Disable two-factor authentication for ${agent.full_name}? They will sign in with password only until they re-enable 2FA.`,
+      )
+    ) {
+      return
+    }
+    setOperationLoading(true)
+    try {
+      const res = await fetch(`/api/admin/agents/${agent.id}/disable-2fa`, {
+        method: "POST",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to disable 2FA")
+      setAgents((prev) =>
+        prev.map((a) => (a.id === agent.id ? { ...a, two_factor_enabled: false } : a)),
+      )
+      toast.success("Two-factor authentication disabled")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to disable 2FA")
+    } finally {
+      setOperationLoading(false)
+    }
   }
 
   const togglePublishPermission = async (agent: Agent, newValue: boolean) => {
@@ -679,6 +708,18 @@ export default function AgentManagementTab() {
                       </div>
 
                       <div className="flex flex-wrap gap-2 pt-1">
+                        {agent.two_factor_enabled && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void disableAgent2FA(agent)}
+                            disabled={operationLoading}
+                            className="w-full border-amber-300 text-amber-800 hover:bg-amber-50 min-h-[44px]"
+                          >
+                            <ShieldOff className="h-3.5 w-3.5 mr-1.5" />
+                            Disable 2FA
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm" onClick={() => downloadAgentData(agent)} disabled={operationLoading} className="flex-1 border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors">
                           <Download className="h-3.5 w-3.5 mr-1.5" /> CSV Export
                         </Button>

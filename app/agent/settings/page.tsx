@@ -30,6 +30,7 @@ import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
 import { confirmAgentProfilePhotoVerified } from "@/lib/agent-profile-photo-client"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
+import { TwoFactorSetupPanel } from "@/components/security/TwoFactorSetupPanel"
 
 export default function AgentSettingsPage() {
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -377,6 +378,14 @@ export default function AgentSettingsPage() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Two-factor authentication — prominent security section */}
+          <section id="security-2fa" aria-labelledby="security-2fa-heading" className="scroll-mt-24">
+            <h2 id="security-2fa-heading" className="sr-only">
+              Two-Factor Authentication
+            </h2>
+            <TwoFactorSetupPanel userType="agent" getAuthHeaders={getAgentAuthHeaders} />
+          </section>
 
           {/* Account Info Card */}
           <Card className="overflow-hidden border border-gray-200 shadow-sm">

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { establishAgentSession, logoutAgent } from "@/lib/unified-auth-system"
+import { TwoFactorLoginStep } from "@/components/security/TwoFactorLoginStep"
 import { getPlatformName } from "@/lib/config"
 import { ArrowLeft, LogIn, Eye, EyeOff, Phone, Lock, AlertTriangle, UserCheck } from "lucide-react"
 import Link from "next/link"
@@ -24,7 +25,19 @@ export default function AgentLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [banReason, setBanReason] = useState<string | null>(null)
+  const [requires2FA, setRequires2FA] = useState(false)
+  const [pendingToken, setPendingToken] = useState<string | null>(null)
   const router = useRouter()
+
+  const finishAgentLogin = (data: Record<string, unknown>) => {
+    logoutAgent()
+    establishAgentSession(data as Parameters<typeof establishAgentSession>[0])
+    if (data.phone_number === "+233546460945") {
+      document.cookie = `special_agent=true; path=/; max-age=86400; SameSite=Lax`
+      document.cookie = `agent_phone=${encodeURIComponent(String(data.phone_number))}; path=/; max-age=86400; SameSite=Lax`
+    }
+    router.push("/agent/dashboard")
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +49,7 @@ export default function AgentLoginPage() {
       const loginRes = await fetch("/api/agent/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           phone_number: formData.phone_number,
           password: formData.password,
@@ -63,6 +77,13 @@ export default function AgentLoginPage() {
         return
       }
 
+      if (loginJson.requires2FA && loginJson.pendingToken) {
+        setRequires2FA(true)
+        setPendingToken(loginJson.pendingToken)
+        setLoading(false)
+        return
+      }
+
       const data = loginJson.agent
       if (!data) {
         setError("Login failed. Please try again.")
@@ -70,19 +91,7 @@ export default function AgentLoginPage() {
         return
       }
 
-      // Clear any prior agent session before storing the new one
-      logoutAgent()
-      establishAgentSession(data)
-
-      // Set cookie for special agent to bypass maintenance mode
-      if (data.phone_number === '+233546460945') {
-        // Set a cookie that the middleware can read
-        document.cookie = `special_agent=true; path=/; max-age=86400; SameSite=Lax`
-        document.cookie = `agent_phone=${encodeURIComponent(data.phone_number)}; path=/; max-age=86400; SameSite=Lax`
-      }
-
-      // Navigate to dashboard immediately
-      router.push("/agent/dashboard")
+      finishAgentLogin(data)
     } catch (error) {
       console.error("Login error:", error)
       setError("Login failed. Please try again.")
@@ -135,6 +144,21 @@ export default function AgentLoginPage() {
             <CardDescription>Enter your credentials to access your dashboard</CardDescription>
           </CardHeader>
           <CardContent>
+            {requires2FA && pendingToken ? (
+              <TwoFactorLoginStep
+                userType="agent"
+                pendingToken={pendingToken}
+                onSuccess={(payload) => {
+                  if (payload.agent) finishAgentLogin(payload.agent as Record<string, unknown>)
+                }}
+                onError={setError}
+                onBack={() => {
+                  setRequires2FA(false)
+                  setPendingToken(null)
+                  setError("")
+                }}
+              />
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Contact Information */}
               <div className="space-y-4">
@@ -234,6 +258,7 @@ export default function AgentLoginPage() {
                 )}
               </Button>
             </form>
+            )}
           </CardContent>
         </Card>
 
