@@ -55,14 +55,12 @@ export default function AFAStatusTracker() {
 
   const loadRegistrations = async (id: string) => {
     try {
-      console.log("[v0] Loading AFA registrations for agent:", id)
       const response = await fetch(`/api/agent/afa/status?agent_id=${id}`)
       if (!response.ok) {
         console.error("[v0] Failed to fetch registrations, status:", response.status)
         throw new Error("Failed to fetch registrations")
       }
       const data = await response.json()
-      console.log("[v0] AFA registrations loaded:", data?.length || 0, "items")
       setRegistrations(Array.isArray(data) ? data : [])
       setLastRefresh(new Date())
     } catch (error) {

@@ -30,7 +30,6 @@ export async function GET(request: Request) {
       },
     )
 
-    console.log("[v0] Fetching AFA registrations for agent:", agentId)
 
     const { data, error } = await supabase
       .from("mtnafa_registrations")
@@ -44,7 +43,6 @@ export async function GET(request: Request) {
       throw error
     }
 
-    console.log("[v0] Found AFA registrations:", data?.length || 0)
     return Response.json(data || [])
   } catch (error) {
     console.error("Error fetching AFA registration status:", error)

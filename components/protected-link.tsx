@@ -62,7 +62,6 @@ export function ProtectedLink({
             router.push(href)
           } else {
             // User hasn't paid yet
-            console.log("[v0] Payment required before accessing:", href)
             router.push("/agent/registration-payment")
           }
         } else {

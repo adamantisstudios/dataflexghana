@@ -63,11 +63,9 @@ export function handleProtectedNavigation(
           // User hasn't paid yet, special handling for /fashion-avenue
           if (href === "/fashion-avenue") {
             // Fashion avenue from no-registration needs payment first
-            console.log("[v0] Fashion avenue access requires payment, redirecting to payment")
             router.push("/agent/registration-payment")
           } else if (href === "/agent/register") {
             // Register always requires payment
-            console.log("[v0] Register requires payment, redirecting to payment")
             router.push("/agent/registration-payment")
           }
 

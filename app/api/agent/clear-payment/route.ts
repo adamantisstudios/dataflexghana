@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
     const cleared = await clearPaymentGate()
     
     if (cleared) {
-      console.log("[v0] Payment gate cleared via API endpoint")
       return NextResponse.json({
         success: true,
         message: "Payment verification cleared after successful registration",

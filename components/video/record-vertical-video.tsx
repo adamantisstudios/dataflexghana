@@ -152,7 +152,6 @@ export function RecordVerticalVideo({ channelId, onUploadComplete }: RecordVerti
           if (retryCount > maxRetries) {
             throw err
           }
-          console.log(`[v0] Upload attempt ${retryCount} failed, retrying...`)
           toast.info(`Retrying upload (attempt ${retryCount + 1}/${maxRetries + 1})...`)
           await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait 2 seconds before retry
         }

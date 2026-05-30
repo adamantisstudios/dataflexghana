@@ -228,7 +228,6 @@ ${agentName}`
 
     const whatsappUrl = `https://wa.me/233246827049?text=${encodeURIComponent(activationMessage)}`
     
-    console.log("[v0] Opening WhatsApp with activation request")
     window.open(whatsappUrl, "_blank")
     
     setContactAdminLoading(false)

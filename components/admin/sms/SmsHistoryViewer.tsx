@@ -37,15 +37,11 @@ export function SmsHistoryViewer({ onLoadingChange }: SmsHistoryViewerProps) {
       onLoadingChange?.(true)
 
       try {
-        console.log("[v0] Loading SMS history...")
         const logs = await getSmsHistoryWithAgents()
-        console.log("[v0] Loaded SMS logs:", logs.length, "records")
         setSmsLogs(logs)
         setFilteredLogs(logs)
 
-        console.log("[v0] Loading available campaigns...")
         const availableCampaigns = await getAvailableCampaigns()
-        console.log("[v0] Loaded campaigns:", availableCampaigns)
         setCampaigns(availableCampaigns)
       } catch (error) {
         console.error("[v0] Error loading SMS history:", error)

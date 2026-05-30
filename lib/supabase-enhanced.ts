@@ -14,7 +14,6 @@ class EnhancedSupabaseClient {
   private constructor() {
     // Use the singleton from supabase-base - NO new createClient() calls
     this._client = browserClient
-    console.log('[Supabase] Enhanced client using singleton instance')
   }
 
   public static getInstance(): EnhancedSupabaseClient {
@@ -55,7 +54,6 @@ class EnhancedSupabaseClient {
       const timeUntilExpiry = expiresAt - now
 
       if (timeUntilExpiry < 300) { // Less than 5 minutes
-        console.log('Session close to expiry, refreshing...')
         const { data: { session: refreshedSession }, error } = await this._client.auth.refreshSession()
         
         if (error) {

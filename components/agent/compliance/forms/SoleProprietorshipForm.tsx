@@ -342,7 +342,6 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
     setIsSubmitting(true)
 
     try {
-      console.log("[v0] Uploading images...")
       // Upload images
       const signatureUrl = await uploadImage(signatureDataUrl, "signature")
       const ghanaCardFrontUrl = ghanaCardFront ? await uploadImage(ghanaCardFront, "ghana_card_front") : null
@@ -353,13 +352,11 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
         throw new Error("Failed to upload images")
       }
 
-      console.log("[v0] Images uploaded successfully", { signatureUrl, ghanaCardFrontUrl, ghanaCardBackUrl })
 
       // Create or update submission
       let finalSubmissionId = submissionId
 
       if (submissionId) {
-        console.log("[v0] Updating existing submission", submissionId)
         // Update existing submission
         const { error } = await supabase
           .from("form_submissions")
@@ -380,9 +377,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
           })
           throw error
         }
-        console.log("[v0] Submission updated successfully")
       } else {
-        console.log("[v0] Creating new submission")
         // Create new submission
         const { data, error } = await supabase
           .from("form_submissions")
@@ -406,10 +401,8 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
           throw error
         }
         finalSubmissionId = data.id
-        console.log("[v0] Submission created with ID:", finalSubmissionId)
       }
 
-      console.log("[v0] Inserting form images...")
       const { error: imagesError } = await supabase.from("form_images").insert([
         {
           submission_id: finalSubmissionId,
@@ -439,7 +432,6 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
         throw imagesError
       }
 
-      console.log("[v0] Form submitted successfully!")
       toast.success(
         "Form submitted successfully! Your Sole Proprietorship application will be processed within 14 working days.",
         {

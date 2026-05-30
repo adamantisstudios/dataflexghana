@@ -5,7 +5,6 @@ import { ensureChannelMemberActive, hasActiveChannelSubscription } from "@/lib/e
  * Diagnostic logging for channel membership issues
  */
 export const logMembershipDiagnostic = (message: string, data?: unknown) => {
-  console.log(`[v0] MEMBERSHIP_DIAGNOSTIC: ${message}`, data || "")
 }
 
 async function tryActivateMembershipFromSubscription(

@@ -8,7 +8,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabase = getAdminClient()
-    console.log("[automation/run] Starting automation run...")
 
     const { error: connectionError } = await supabase.from("agents").select("count", { count: "exact", head: true })
 
@@ -17,7 +16,6 @@ export async function POST(request: NextRequest) {
       throw new Error(`Database connection failed: ${connectionError.message}`)
     }
 
-    console.log("[v0] Database connection verified, running automation...")
 
     // Try to run automation using RPC function
     const { data: automationResult, error: automationError } = await supabase.rpc(
@@ -57,7 +55,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("[v0] Automation result:", automationResult)
 
     // Handle successful or partial response
     let result = {
@@ -80,7 +77,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("[v0] Automation response:", result)
     return NextResponse.json(result)
   } catch (error) {
     console.error("[v0] Automation execution error:", error)

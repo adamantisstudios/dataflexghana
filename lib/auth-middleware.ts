@@ -114,7 +114,6 @@ export async function authenticateAgent(
         const encodedAgent = authHeader.replace("Bearer ", "")
         const decodedAgent = JSON.parse(atob(encodedAgent))
         agentId = decodedAgent.id
-        console.log("[v0] Decoded agent from Authorization header:", { agentId, fullName: decodedAgent.full_name })
       } catch (decodeError) {
         console.error("[v0] Failed to decode Authorization header:", decodeError)
         // Fallback to treating it as plain agent ID
@@ -133,11 +132,9 @@ export async function authenticateAgent(
     }
 
     if (!agentId) {
-      console.log("[v0] No agent ID found in request")
       return { success: false, error: "No agent ID provided" }
     }
 
-    console.log("[v0] Authenticating agent with ID:", agentId)
 
     const supabase = getAdminClient()
     const { data: agent, error: agentError } = await supabase
@@ -148,11 +145,9 @@ export async function authenticateAgent(
       .single()
 
     if (agentError || !agent) {
-      console.log("[v0] Agent authentication failed:", { agentError, agentFound: !!agent })
       return { success: false, error: "Agent not found or not approved" }
     }
 
-    console.log("[v0] Agent authentication successful:", { agentId: agent.id, fullName: agent.full_name })
 
     return {
       success: true,

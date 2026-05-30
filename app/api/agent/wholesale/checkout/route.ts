@@ -112,7 +112,6 @@ function createErrorResponse(message: string, status: number = 500, details?: an
 
 // CRITICAL FIX: Enhanced success response function
 function createSuccessResponse(data: any, message?: string) {
-  console.log('✅ API Success:', message || 'Operation completed successfully')
   
   return NextResponse.json(
     {
@@ -132,12 +131,10 @@ export async function POST(request: NextRequest) {
   let supabaseClient: any = null
   
   try {
-    console.log('🛒 Wholesale checkout API called')
     
     // CRITICAL FIX: Initialize Supabase client with proper error handling
     try {
       supabaseClient = createSupabaseClient()
-      console.log('✅ Supabase client initialized successfully')
     } catch (envError) {
       return createErrorResponse(
         'Server configuration error. Please contact support.',
@@ -150,12 +147,6 @@ export async function POST(request: NextRequest) {
     let body: CheckoutRequest
     try {
       body = await request.json()
-      console.log('📦 Request parsed:', {
-        agent_id: body.agent_id,
-        items_count: body.items?.length,
-        payment_method: body.payment_method,
-        total_amount: body.total_amount
-      })
     } catch (parseError) {
       return createErrorResponse(
         'Invalid request format. Please check your data and try again.',
@@ -222,7 +213,6 @@ export async function POST(request: NextRequest) {
     }
 
     // CRITICAL FIX: Get agent details with proper error handling
-    console.log('👤 Looking up agent:', body.agent_id)
     let agent
     try {
       const { data: agentData, error: agentError } = await supabaseClient
@@ -248,10 +238,6 @@ export async function POST(request: NextRequest) {
       }
 
       agent = agentData
-      console.log('✅ Agent found:', {
-        name: agent.full_name,
-        wallet_balance: agent.wallet_balance
-      })
     } catch (agentFetchError) {
       console.error('❌ Unexpected error fetching agent:', agentFetchError)
       return createErrorResponse(
@@ -280,10 +266,6 @@ export async function POST(request: NextRequest) {
     // CRITICAL FIX: Process each item with comprehensive error handling
     const orderPromises = body.items.map(async (item, index) => {
       try {
-        console.log(`📦 Processing item ${index + 1}:`, {
-          product_id: item.product_id,
-          quantity: item.quantity
-        })
 
         // Validate product and stock
         const { data: product, error: productError } = await supabaseClient
@@ -331,14 +313,7 @@ export async function POST(request: NextRequest) {
           variant_data: item.selectedVariants && Object.keys(item.selectedVariants).length > 0 ? item.selectedVariants : null,
         }
         
-        console.log(`📝 Order variant data:`, orderData.variant_data)
 
-        console.log(`📝 Creating order for item ${index + 1}:`, {
-          product_name: product.name,
-          quantity: orderData.quantity,
-          total_amount: orderData.total_amount,
-          commission_amount: orderData.commission_amount
-        })
 
         // Create order
         const { data: order, error: orderError } = await supabaseClient
@@ -361,7 +336,6 @@ export async function POST(request: NextRequest) {
           throw new Error(`No order data returned for "${product.name}"`)
         }
 
-        console.log(`✅ Order created for item ${index + 1}:`, order.id)
 
         // Update product stock
         const newQuantity = product.quantity - item.quantity
@@ -375,11 +349,6 @@ export async function POST(request: NextRequest) {
           throw new Error(`Failed to update stock for "${product.name}": ${stockError.message}`)
         }
 
-        console.log(`📦 Stock updated for item ${index + 1}:`, {
-          product_name: product.name,
-          old_quantity: product.quantity,
-          new_quantity: newQuantity
-        })
 
         return order
       } catch (itemError) {
@@ -392,7 +361,6 @@ export async function POST(request: NextRequest) {
     let orders
     try {
       orders = await Promise.all(orderPromises)
-      console.log(`✅ All ${orders.length} orders created successfully`)
     } catch (orderProcessingError) {
       console.error('❌ Error processing orders:', orderProcessingError)
       return createErrorResponse(
@@ -420,12 +388,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        console.log('💰 Wallet balance updated:', {
-          agent_id: body.agent_id,
-          old_balance: agent.wallet_balance,
-          new_balance: newBalance,
-          deducted: body.total_amount
-        })
 
         // Create wallet transaction record
         try {
@@ -442,7 +404,6 @@ export async function POST(request: NextRequest) {
               }),
             )
           
-          console.log('📝 Wallet transaction recorded')
         } catch (transactionError) {
           console.error('⚠️ Warning: Failed to create wallet transaction record:', transactionError)
           // Don't fail the entire request for transaction logging issues
@@ -457,11 +418,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('🎉 Checkout completed successfully:', {
-      orders_created: orders.length,
-      total_amount: body.total_amount,
-      payment_method: body.payment_method
-    })
 
     return createSuccessResponse(
       {

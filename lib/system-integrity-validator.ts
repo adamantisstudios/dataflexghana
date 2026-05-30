@@ -47,7 +47,6 @@ export interface IntegrityCategoryResult {
  * Run comprehensive system integrity validation
  */
 export async function validateSystemIntegrity(): Promise<SystemIntegrityReport> {
-  console.log('🔍 Starting comprehensive system integrity validation...')
 
   try {
     const [
@@ -101,13 +100,6 @@ export async function validateSystemIntegrity(): Promise<SystemIntegrityReport> 
       criticalActions
     }
 
-    console.log('✅ System integrity validation completed:', {
-      overallScore,
-      isValid,
-      criticalIssues,
-      warningIssues,
-      totalChecks
-    })
 
     return report
 

@@ -37,7 +37,6 @@ export interface BulkSyncResult {
  */
 export async function syncAgentWalletBalance(agentId: string): Promise<WalletSyncResult> {
   try {
-    console.log("🔄 Synchronizing wallet balance for agent:", agentId)
 
     // Get current stored balance
     const { data: agent, error: agentError } = await db()
@@ -87,15 +86,6 @@ export async function syncAgentWalletBalance(agentId: string): Promise<WalletSyn
         }
       }
 
-      console.log("✅ Wallet balance synchronized:", {
-        agentId,
-        agentName: agent.full_name,
-        oldBalance,
-        newBalance,
-        difference,
-        transactionCount,
-        breakdown,
-      })
 
       return {
         success: true,
@@ -136,7 +126,6 @@ export async function syncAgentWalletBalance(agentId: string): Promise<WalletSyn
  */
 export async function bulkSyncAllWalletBalances(): Promise<BulkSyncResult> {
   try {
-    console.log("🔄 Starting bulk wallet balance synchronization...")
 
     // Get all agents with wallet transactions
     const { data: agentsWithTransactions, error: agentsError } = await db()
@@ -152,7 +141,6 @@ export async function bulkSyncAllWalletBalances(): Promise<BulkSyncResult> {
     // Get unique agent IDs
     const uniqueAgentIds = [...new Set(agentsWithTransactions?.map((t) => t.agent_id) || [])]
 
-    console.log(`📊 Found ${uniqueAgentIds.length} agents with wallet transactions`)
 
     const results: WalletSyncResult[] = []
     const errors: string[] = []
@@ -203,13 +191,6 @@ export async function bulkSyncAllWalletBalances(): Promise<BulkSyncResult> {
       }
     }
 
-    console.log("✅ Bulk wallet synchronization completed:", {
-      totalAgents: uniqueAgentIds.length,
-      successfulSyncs,
-      failedSyncs,
-      totalDifference: totalDifference.toFixed(2),
-      errorsCount: errors.length,
-    })
 
     return {
       totalAgents: uniqueAgentIds.length,

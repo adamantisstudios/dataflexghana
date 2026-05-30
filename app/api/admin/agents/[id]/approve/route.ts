@@ -80,7 +80,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
 
       if (existingBonus?.id) {
-        console.log("[approve] Welcome bonus already credited")
         walletTransactionId = existingBonus.id
         welcomeBonusSkipped = true
       } else {
@@ -95,7 +94,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           created_at: new Date().toISOString(),
         }
 
-        console.log("[approve] wallet_transactions direct insert:", insertRow)
 
         const { data: inserted, error: insertError } = await db
           .from("wallet_transactions")

@@ -48,7 +48,6 @@ export async function getSmsHistoryWithAgents(
   }
 ): Promise<SmsLogWithAgent[]> {
   try {
-    console.log("[v0] Fetching SMS history from database...")
     let query = supabase
       .from("sms_logs")
       .select("*")
@@ -81,16 +80,13 @@ export async function getSmsHistoryWithAgents(
       return []
     }
 
-    console.log("[v0] SMS logs fetched:", data?.length || 0, "records")
 
     if (!data || data.length === 0) {
-      console.log("[v0] No SMS logs found in database")
       return []
     }
 
     // Fetch agent details for all agent IDs
     const agentIds = [...new Set(data.map((log: any) => log.agent_id))]
-    console.log("[v0] Fetching details for", agentIds.length, "unique agents")
     
     const { data: agents, error: agentError } = await supabase
       .from("agents")
@@ -105,7 +101,6 @@ export async function getSmsHistoryWithAgents(
       }))
     }
 
-    console.log("[v0] Agents fetched:", agents?.length || 0, "records")
     
     const agentMap = new Map((agents || []).map((a: any) => [a.id, a.full_name]))
 
@@ -115,7 +110,6 @@ export async function getSmsHistoryWithAgents(
       agent_name: agentMap.get(log.agent_id) || "Unknown Agent",
     })) as SmsLogWithAgent[]
     
-    console.log("[v0] SMS history with agent names returned:", result.length, "records")
     return result
   } catch (error) {
     console.error("[v0] Failed to fetch SMS history:", error)

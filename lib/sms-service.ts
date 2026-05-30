@@ -5,7 +5,6 @@ const ARKESEL_API_BASE = "https://sms.arkesel.com/sms/api"
 
 function logArkeselKeyDiagnostics(context: string): string {
   const apiKey = getArkeselApiKey()
-  console.log(`[sms-service] ${context} — ARKESEL_API_KEY length:`, apiKey.length)
   return apiKey
 }
 
@@ -284,7 +283,6 @@ export async function sendSMS(
     const response = await fetch(url, { method: "GET", cache: "no-store" })
     const responseText = await response.text()
 
-    console.log("[sms-service] sendSMS Arkesel raw response:", responseText.slice(0, 2000))
 
     let responseData: Record<string, unknown>
     try {
@@ -416,7 +414,6 @@ export async function checkSmsBalance(): Promise<SmsBalanceResult> {
   try {
     response = await fetch(url, { method: "GET", cache: "no-store" })
     responseText = await response.text()
-    console.log("[sms-service] checkSmsBalance Arkesel raw response:", responseText.slice(0, 2000))
   } catch (fetchError) {
     const msg = fetchError instanceof Error ? fetchError.message : String(fetchError)
     console.error("[sms-service] checkSmsBalance fetch failed:", msg)

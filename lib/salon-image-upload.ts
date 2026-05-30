@@ -25,7 +25,6 @@ export async function uploadSalonServiceImage(
       throw new Error("Image size must be less than 5MB")
     }
 
-    console.log(`[v0] Starting salon image upload: ${file.name}`)
 
     // Create a unique filename
     const timestamp = Date.now()
@@ -51,7 +50,6 @@ export async function uploadSalonServiceImage(
       .from("salon-images")
       .getPublicUrl(data.path)
 
-    console.log(`[v0] Salon image upload successful: ${publicUrlData.publicUrl}`)
 
     // Call progress callback if provided
     if (typeof onProgress === "function") {
@@ -87,7 +85,6 @@ export async function deleteSalonServiceImage(imageUrl: string): Promise<void> {
       throw new Error(`Delete failed: ${error.message}`)
     }
 
-    console.log(`[v0] Salon image deleted successfully: ${filePath}`)
   } catch (error) {
     console.error(`[v0] Error deleting salon image:`, error)
     throw error

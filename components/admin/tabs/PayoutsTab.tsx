@@ -241,7 +241,6 @@ export default function PayoutsTab() {
 
   const updateWithdrawalStatus = async (withdrawalId: string, status: string) => {
     try {
-      console.log(`[v0] Updating withdrawal ${withdrawalId} to status: ${status}`)
 
       if (status === "requested") {
         // For "requested" status, we just update the local state without calling the API
@@ -272,12 +271,6 @@ export default function PayoutsTab() {
         return
       }
 
-      console.log(`[v0] Making API call to /api/admin/withdrawals/${withdrawalId}`)
-      console.log(`[v0] Request body:`, {
-        status,
-        admin_notes: `Status updated to ${status} by ${admin?.full_name || admin?.email}`,
-      })
-      console.log(`[v0] Admin data:`, admin)
 
       const response = await fetch(`/api/admin/withdrawals/${withdrawalId}`, {
         method: "PATCH",
@@ -291,8 +284,6 @@ export default function PayoutsTab() {
         }),
       })
 
-      console.log(`[v0] Response status: ${response.status}`)
-      console.log(`[v0] Response headers:`, Object.fromEntries(response.headers.entries()))
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`
@@ -300,16 +291,13 @@ export default function PayoutsTab() {
 
         // Try to get response text first
         const responseText = await response.text()
-        console.log(`[v0] Raw response text:`, responseText)
 
         if (responseText) {
           try {
             const errorData = JSON.parse(responseText)
             errorDetails = errorData
             errorMessage = errorData.error || errorData.message || errorMessage
-            console.log(`[v0] Parsed error data:`, errorData)
           } catch (parseError) {
-            console.log(`[v0] Failed to parse error response as JSON:`, parseError)
             errorMessage = `${errorMessage} - Response: ${responseText}`
           }
         }
@@ -319,12 +307,10 @@ export default function PayoutsTab() {
       }
 
       const responseText = await response.text()
-      console.log(`[v0] Success response text:`, responseText)
 
       let result
       try {
         result = JSON.parse(responseText)
-        console.log(`[v0] Parsed success response:`, result)
       } catch (parseError) {
         console.error(`[v0] Failed to parse success response as JSON:`, parseError)
         throw new Error(`Invalid JSON response: ${responseText}`)

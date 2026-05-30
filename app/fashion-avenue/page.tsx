@@ -108,7 +108,6 @@ export default function FashionAvenuePage() {
       try {
         const cached = getCache();
         if (cached && isCached) {
-          console.log('[v0] Using cached fashion data');
           setProducts(cached.products);
           setCategories(cached.categories);
           setLoading(false);

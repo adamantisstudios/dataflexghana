@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
     const timeframe = searchParams.get("timeframe") || "30d"
     const limit = Number.parseInt(searchParams.get("limit") || "10")
 
-    console.log("[v0] Starting ranking calculation", { timeframe, limit })
 
     // Validate timeframe
     if (!["7d", "30d"].includes(timeframe)) {
@@ -50,15 +49,9 @@ export async function GET(request: NextRequest) {
       startDate.setDate(endDate.getDate() - 30)
     }
 
-    console.log("[v0] Date range:", {
-      start: startDate.toISOString(),
-      end: endDate.toISOString(),
-      timeframe,
-    })
 
     const supabase = createSupabaseAdmin()
 
-    console.log("[v0] Fetching approved agents...")
     const { data: agents, error: agentsError } = await withTimeout(
       supabase.from("agents").select("id, full_name, phone_number").eq("isapproved", true).limit(500),
       5000,
@@ -78,7 +71,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (!agents || agents.length === 0) {
-      console.log("[v0] No approved agents found")
       return NextResponse.json({
         success: true,
         data: {
@@ -90,10 +82,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    console.log("[v0] Found agents:", agents.length)
     const agentIds = agents.map((a) => a.id)
 
-    console.log("[v0] Starting parallel queries for activities...")
     const queries = [
       withTimeout(
         supabase
@@ -158,7 +148,6 @@ export async function GET(request: NextRequest) {
         if (error) {
           console.warn(`[v0] ${tableNames[index]} query error:`, error.message)
         } else if (data) {
-          console.log(`[v0] ${tableNames[index]} records for ${timeframe}:`, data.length)
           data.forEach((item: any) => {
             activityMap[item.agent_id] = (activityMap[item.agent_id] || 0) + 1
           })
@@ -188,9 +177,6 @@ export async function GET(request: NextRequest) {
       }))
 
     const duration = Date.now() - startTime
-    console.log(
-      `[v0] Ranking calculation completed in ${duration}ms for ${sortedAgents.length} agents with timeframe ${timeframe}`,
-    )
 
     return NextResponse.json(
       {

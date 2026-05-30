@@ -60,11 +60,9 @@ export async function safeInsertCommission(
     const validatedPayload = validateCommissionInsertPayload(payload)
 
     if (!validatedPayload) {
-      console.log(`[v0] Commission insert skipped - amount is invalid`)
       return { success: true } // Return success since this is expected behavior
     }
 
-    console.log(`[v0] Attempting to insert commission for source ${payload.source_id}:`, validatedPayload)
 
     const { data, error } = await supabaseClient.from("commissions").insert([validatedPayload]).select()
 
@@ -97,7 +95,6 @@ export async function safeInsertCommission(
       return { success: false, error: errorMessage }
     }
 
-    console.log(`[v0] Commission inserted successfully for source ${payload.source_id}`)
     return { success: true, data }
   } catch (err: any) {
     console.error(`[v0] Commission insert exception:`, {

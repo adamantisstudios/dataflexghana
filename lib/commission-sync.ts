@@ -33,7 +33,6 @@ export async function syncDataOrderCommission(
   forceRecalculate = false,
 ): Promise<CommissionSyncResult> {
   try {
-    console.log("Starting commission sync for data order:", { orderId, agentId, bundleId })
 
     // Get the data order with bundle information
     const { data: orderData, error: orderError } = await supabase
@@ -74,11 +73,6 @@ export async function syncDataOrderCommission(
 
     const displayCommission = calculateCorrectCommission(bundle.price, bundle.commission_rate)
 
-    console.log("Commission calculation:", {
-      bundlePrice: bundle.price,
-      commissionRate: bundle.commission_rate,
-      calculatedCommission: displayCommission,
-    })
 
     // Check if commission has already been processed (unless forcing recalculation)
     if (!forceRecalculate) {
@@ -91,7 +85,6 @@ export async function syncDataOrderCommission(
         .single()
 
       if (!checkError && existingTransaction) {
-        console.log("Commission already processed for this order:", existingTransaction.id)
         return {
           success: true,
           commissionAmount: existingTransaction.amount,
@@ -156,7 +149,6 @@ export async function syncDataOrderCommission(
     }
 
     if (displayCommission <= 0) {
-      console.log(`Skipping commission record insert for order ${orderId} - amount is 0 or less`)
       return {
         success: true,
         commissionAmount: displayCommission,
@@ -200,16 +192,8 @@ export async function syncDataOrderCommission(
       console.warn("Failed to create commission record:", commissionInsertError)
       // Continue execution - wallet transaction was successful
     } else {
-      console.log("Commission record created:", commissionRecord.id)
     }
 
-    console.log("Commission sync completed successfully:", {
-      orderId,
-      agentId,
-      commissionAmount: displayCommission,
-      transactionId: insertedTransaction.id,
-      commissionRecordId: commissionRecord?.id,
-    })
 
     return {
       success: true,
@@ -241,7 +225,6 @@ export async function batchSyncCommissions(
   errors: string[]
 }> {
   try {
-    console.log("Starting batch commission sync:", { agentId, limit })
 
     // Build query for completed orders without commission transactions
     let query = supabase
@@ -283,7 +266,6 @@ export async function batchSyncCommissions(
       }
     }
 
-    console.log(`Found ${orders.length} completed orders to process`)
 
     let processed = 0
     let successful = 0
@@ -309,7 +291,6 @@ export async function batchSyncCommissions(
           if (result.success) {
             successful++
             if (!result.skipped) {
-              console.log(`Commission synced for order ${order.id}: ${result.commissionAmount}`)
             }
           } else {
             failed++
@@ -331,12 +312,6 @@ export async function batchSyncCommissions(
       }
     }
 
-    console.log("Batch commission sync completed:", {
-      processed,
-      successful,
-      failed,
-      errorCount: errors.length,
-    })
 
     return {
       processed,
@@ -370,7 +345,6 @@ export async function validateAndFixCommissions(
   errors: string[]
 }> {
   try {
-    console.log("Starting commission validation:", { agentId, autoFix })
 
     // Get completed orders with bundle information
     let query = supabase
@@ -428,11 +402,6 @@ export async function validateAndFixCommissions(
         // Check for discrepancy (allow small floating point differences)
         if (difference > 0.001) {
           discrepancies++
-          console.log(`Commission discrepancy found for order ${order.id}:`, {
-            expected: expectedCommission,
-            current: currentCommission,
-            difference,
-          })
 
           if (autoFix) {
             // Fix the commission amount in the order
@@ -448,7 +417,6 @@ export async function validateAndFixCommissions(
               errors.push(`Order ${order.id}: Failed to fix commission - ${updateError.message}`)
             } else {
               fixed++
-              console.log(`Fixed commission for order ${order.id}: ${currentCommission} → ${expectedCommission}`)
             }
           }
         }
@@ -459,12 +427,6 @@ export async function validateAndFixCommissions(
       }
     }
 
-    console.log("Commission validation completed:", {
-      checked,
-      discrepancies,
-      fixed,
-      errorCount: errors.length,
-    })
 
     return {
       checked,

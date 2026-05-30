@@ -153,11 +153,6 @@ export default function WithdrawPage() {
         const totalPaidOut = Number(agentData.totalpaidout) || 0
         const availableBalance = Math.max(totalCommissions - totalPaidOut, 0)
 
-        console.log("Using stored agent commission data as fallback:", {
-          totalCommissions,
-          totalPaidOut,
-          availableBalance,
-        })
 
         return {
           availableCommissions: availableBalance,
@@ -196,12 +191,6 @@ export default function WithdrawPage() {
 
       const totalPooled = referralTotal + dataOrderTotal + wholesaleTotal
 
-      console.log("✅ Legacy commission pooling:", {
-        referralTotal,
-        dataOrderTotal,
-        wholesaleTotal,
-        totalPooled,
-      })
 
       return {
         availableCommissions: totalPooled,
@@ -336,11 +325,6 @@ export default function WithdrawPage() {
       })
     }
 
-    console.log("✅ Withdrawal page commission breakdown:", {
-      breakdown,
-      totalAvailable,
-      availableBalance,
-    })
 
     return breakdown
   }
@@ -425,14 +409,6 @@ export default function WithdrawPage() {
         throw new Error("Agent session not found. Please log in again.")
       }
 
-      console.log("[v0] Withdrawal request details:", {
-        agentId: agent.id,
-        amount: withdrawAmount,
-        momoNumber: momoNumber,
-        totalAvailable: totalAvailable,
-        hasPendingWithdrawal: hasPendingWithdrawal,
-        monthlyWithdrawals: monthlyWithdrawals,
-      })
 
       const response = await fetch("/api/agent/withdraw", {
         method: "POST",
@@ -447,10 +423,8 @@ export default function WithdrawPage() {
         }),
       })
 
-      console.log("[v0] Withdrawal API response status:", response.status)
 
       const responseText = await response.text()
-      console.log("[v0] Withdrawal API response body:", responseText)
 
       let result
       try {
@@ -474,7 +448,6 @@ export default function WithdrawPage() {
         throw new Error(result.error || "Failed to submit withdrawal request")
       }
 
-      console.log("[v0] Withdrawal request successful:", result)
 
       showCustomAlert(
         "success",

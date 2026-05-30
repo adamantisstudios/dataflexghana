@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
     )
 
     // Fetch all data orders from the data_orders_log table
-    console.log("[v0] Fetching data orders from data_orders_log table")
     const { data, error, count } = await supabase
       .from("data_orders_log")
       .select("*", { count: "exact" })
@@ -33,10 +32,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log("[v0] Successfully fetched data orders log:", {
-      count: count || 0,
-      dataLength: data?.length || 0,
-    })
 
     return NextResponse.json(
       {

@@ -9,20 +9,17 @@ import { verifyPaymentGate } from "@/lib/payment-gate"
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[v0] Check payment status endpoint called")
 
     // Check if payment was verified (cookie exists)
     const agentId = await verifyPaymentGate()
 
     if (agentId) {
-      console.log(`[v0] Payment verified for agent ${agentId}`)
       return NextResponse.json({
         verified: true,
         agentId,
       })
     }
 
-    console.log("[v0] Payment not verified - cookie not found")
     return NextResponse.json({
       verified: false,
       message: "Payment verification required. Please complete payment first.",

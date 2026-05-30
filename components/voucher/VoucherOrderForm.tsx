@@ -35,14 +35,12 @@ export function VoucherOrderForm({ preselectedProductId }: VoucherOrderFormProps
 
   // Debug: log when prop changes
   useEffect(() => {
-    console.log("VoucherOrderForm received preselectedProductId:", preselectedProductId);
   }, [preselectedProductId]);
 
   // Auto‑select product
   useEffect(() => {
     if (preselectedProductId && preselectedProductId > 0) {
       const product = getProductById(preselectedProductId);
-      console.log("Found product:", product);
       if (product) {
         setFormData(prev => ({
           ...prev,

@@ -24,10 +24,6 @@ export function getSupabaseEnv(): SupabaseEnvConfig {
   if (!serviceKey) missingVars.push("SUPABASE_SERVICE_ROLE_KEY")
 
   if (process.env.NODE_ENV === "development") {
-    console.log("[v0] Supabase Environment Configuration:")
-    console.log("  - NEXT_PUBLIC_SUPABASE_URL:", url ? `✓ ${url.substring(0, 30)}...` : "✗ NOT SET")
-    console.log("  - NEXT_PUBLIC_SUPABASE_ANON_KEY:", anonKey ? "✓ SET" : "✗ NOT SET")
-    console.log("  - SUPABASE_SERVICE_ROLE_KEY:", serviceKey ? "✓ SET" : "✗ NOT SET")
 
     if (missingVars.length > 0) {
       console.warn("[v0] Missing Supabase environment variables:", missingVars)

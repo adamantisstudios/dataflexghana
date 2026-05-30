@@ -127,7 +127,6 @@ export function NetworksSection() {
           result,
         });
       } else {
-        console.log("[v0] Data bundle order logged successfully (networks section):", result.data);
       }
     } catch (error) {
       console.error("[v0] Error logging data bundle order (networks section):", error);

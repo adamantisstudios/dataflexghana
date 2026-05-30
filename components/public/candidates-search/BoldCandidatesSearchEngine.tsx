@@ -76,9 +76,7 @@ export default function BoldCandidatesSearchEngine() {
       setShowLocationNotification(false)
       setShowSearchAd(false)
 
-      console.log("[v0] Fetching candidates, attempt:", retryCount + 1)
       const url = `/api/candidates/search?query=${encodeURIComponent(searchTerm)}`
-      console.log("[v0] Fetch URL:", url)
 
       const response = await fetch(url, {
         method: "GET",
@@ -87,14 +85,12 @@ export default function BoldCandidatesSearchEngine() {
         },
       })
 
-      console.log("[v0] Response received:", response.status, response.statusText)
 
       let data
       try {
         data = await response.json()
       } catch (jsonError) {
         console.error("[v0] Failed to parse response as JSON:", jsonError)
-        console.log("[v0] Response text:", await response.text())
         throw new Error("Invalid response from server")
       }
 
@@ -111,7 +107,6 @@ export default function BoldCandidatesSearchEngine() {
 
       const searchTermLower = searchTerm.toLowerCase().trim()
       const isGhanaLocation = isLocationInGhana(searchTermLower)
-      console.log("[v0] Location search:", searchTermLower, "is Ghana location:", isGhanaLocation)
 
       if (isGhanaLocation) {
         setSearchedLocation(searchTerm.trim())
@@ -133,7 +128,6 @@ export default function BoldCandidatesSearchEngine() {
       
       // Retry once if it's a network error
       if (retryCount < 1 && error instanceof TypeError && error.message.includes("fetch")) {
-        console.log("[v0] Retrying search...")
         await new Promise((resolve) => setTimeout(resolve, 500))
         return handleSearch(retryCount + 1)
       }

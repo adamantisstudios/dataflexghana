@@ -71,7 +71,6 @@ export async function PUT(request: NextRequest,
       )
     }
 
-    console.log(`[v0] ✅ Updated update permission for agent ${agentId}: ${can_update_products}`)
 
     return NextResponse.json({
       success: true,

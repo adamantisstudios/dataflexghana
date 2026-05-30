@@ -118,7 +118,6 @@ export class SessionManager {
       }
 
       if (data.session) {
-        console.log('Session refreshed successfully')
         return true
       }
 
@@ -145,13 +144,11 @@ export class SessionManager {
         // Only log if there's an actual session to manage
         if (status.isValid || status.needsRefresh) {
           if (status.needsRefresh && !this.isRefreshing) {
-            console.log('Session needs refresh, attempting refresh...')
             await this.refreshSession()
           }
         }
       } catch (error) {
         // Silently handle errors to avoid console spam
-        console.debug('Session monitoring error:', error)
       }
     }, this.SESSION_CHECK_INTERVAL)
   }
@@ -212,10 +209,8 @@ if (typeof window !== 'undefined') {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
       sessionManager.checkAndRefreshIfNeeded().catch((error) => {
-        console.debug("Session check failed:", error)
       })
       sessionManager.refreshSession().catch((error) => {
-        console.debug("Proactive session refresh failed:", error)
       })
     }
   })

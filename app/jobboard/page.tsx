@@ -80,12 +80,10 @@ const fetchJobs = async (): Promise<Job[]> => {
   const now = Date.now()
 
   if (jobsCache.data && now - jobsCache.timestamp < jobsCache.CACHE_DURATION) {
-    console.log("[v0] Using cached jobs data")
     return jobsCache.data
   }
 
   try {
-    console.log("[v0] Fetching jobs from /api/jobs")
     const jobs = await fetchJobsFromApi({ active: true })
     jobsCache.data = jobs
     jobsCache.timestamp = now

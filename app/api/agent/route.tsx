@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Log the request for debugging
-    console.log('Fetching agents data for admin:', admin.id)
 
     // Fetch all agents with their wallet and commission data
     const { data: agents, error } = await supabase
@@ -56,7 +55,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Log successful fetch
-    console.log(`Successfully fetched ${agents.length} agents`)
 
     return NextResponse.json({
       success: true,

@@ -32,17 +32,14 @@ export default function AdminProjectChatPage() {
 
   useEffect(() => {
     const checkAuthAndLoadData = async () => {
-      console.log("[v0] Checking admin authentication")
 
       const storedAdmin = getStoredAdmin()
 
       if (!storedAdmin) {
-        console.log("[v0] No admin session found, redirecting to login")
         router.push("/admin/login")
         return
       }
 
-      console.log("[v0] Admin session found:", storedAdmin.email)
       setAdmin(storedAdmin)
 
       await loadData()
@@ -67,7 +64,6 @@ export default function AdminProjectChatPage() {
   }
 
   const loadData = async () => {
-    console.log("[v0] Loading referral and chat data for:", referralId)
     try {
       // Load referral details
       const { data: referralData, error: referralError } = await supabase
@@ -85,7 +81,6 @@ export default function AdminProjectChatPage() {
         throw referralError
       }
 
-      console.log("[v0] Referral loaded:", referralData)
 
       // Load chat messages
       const { data: messagesData, error: messagesError } = await supabase
@@ -99,7 +94,6 @@ export default function AdminProjectChatPage() {
         throw messagesError
       }
 
-      console.log("[v0] Messages loaded:", messagesData?.length || 0)
 
       setReferral(referralData)
       setMessages(messagesData || [])

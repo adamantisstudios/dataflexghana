@@ -282,7 +282,6 @@ export function createCommissionTransaction(
     const commissionAmount = calculateCommission(bundlePrice, commissionRate)
 
     if (!isCommissionAboveThreshold(commissionAmount)) {
-      console.log(`Skipping commission transaction for order ${orderId} - amount too small: $${commissionAmount}`)
       return { success: true, skipped: true }
     }
 

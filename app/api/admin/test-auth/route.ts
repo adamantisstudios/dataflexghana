@@ -7,7 +7,6 @@ export async function GET(request: NextRequest) {
   if (!adminSession.ok) return adminSession.response
 
   try {
-    console.log("🔍 Testing admin authentication system...")
 
     // Test 1: Check if admin_users table is accessible
     const { data: adminUsers, error: adminError } = await supabase
@@ -15,10 +14,6 @@ export async function GET(request: NextRequest) {
       .select("*")
       .eq("email", "sales.dataflex@gmail.com")
 
-    console.log("Admin users query result:", {
-      data: adminUsers,
-      error: adminError?.message,
-    })
 
     // Test 2: Check if we can query the table at all
     const { data: allAdmins, error: allAdminsError } = await supabase
@@ -26,10 +21,6 @@ export async function GET(request: NextRequest) {
       .select("id, email, is_active")
       .limit(5)
 
-    console.log("All admins query result:", {
-      data: allAdmins,
-      error: allAdminsError?.message,
-    })
 
     // Test 3: Try to get table info
     const { data: tableInfo, error: tableError } = await supabase
@@ -76,7 +67,6 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json()
 
-    console.log("🔐 Testing admin login with:", { email, passwordLength: password?.length })
 
     // Test the exact login logic
     const { data: adminUser, error: userError } = await supabase
@@ -86,19 +76,6 @@ export async function POST(request: NextRequest) {
       .eq("is_active", true)
       .single()
 
-    console.log("Admin user lookup result:", {
-      found: !!adminUser,
-      error: userError?.message,
-      userDetails: adminUser
-        ? {
-            id: adminUser.id,
-            email: adminUser.email,
-            role: adminUser.role,
-            is_active: adminUser.is_active,
-            password_matches: adminUser.password_hash === password,
-          }
-        : null,
-    })
 
     return NextResponse.json({
       success: true,

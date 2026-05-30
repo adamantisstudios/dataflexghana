@@ -88,7 +88,6 @@ export default function OrderManagement({ onOrdersChange }: OrderManagementProps
   const loadOrders = async () => {
     try {
       setLoading(true)
-      console.log("🔄 Loading wholesale orders via admin API...")
 
       // Enhanced order loading with retry mechanism using admin API
       let retryCount = 0
@@ -113,14 +112,8 @@ export default function OrderManagement({ onOrdersChange }: OrderManagementProps
         }
       }
 
-      console.log("✅ Successfully loaded orders via admin API:", {
-        count: data?.length || 0,
-        orders: data?.slice(0, 3).map((o) => ({ id: o.id, status: o.status, agent: o.agents?.full_name })) || [],
-      })
 
       if (data && data.length > 0) {
-        console.log("[v0] First order from admin API:", data[0])
-        console.log("[v0] First order variant_data from admin API:", data[0].variant_data)
       }
 
       setOrders(data || [])
@@ -297,7 +290,6 @@ export default function OrderManagement({ onOrdersChange }: OrderManagementProps
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      console.log(`[v0] Status change initiated: ${orderId} -> ${newStatus}`)
 
       // PAGINATION FIX: Store current page before update to preserve it
       const currentPageBeforeUpdate = currentPage
@@ -305,28 +297,19 @@ export default function OrderManagement({ onOrdersChange }: OrderManagementProps
       const order = orders.find((o) => o.id === orderId)
       const oldStatus = order?.status
 
-      console.log(`[v0] Order found:`, { orderId, oldStatus, newStatus, commission: order?.commission_amount })
 
       await updateWholesaleOrderStatusAdmin(orderId, newStatus as WholesaleOrder["status"])
-      console.log(`[v0] Status updated successfully in database`)
 
       if (
         oldStatus !== "completed" &&
         oldStatus !== "delivered" &&
         (newStatus === "completed" || newStatus === "delivered")
       ) {
-        console.log("🎯 Wholesale order marked as completed/delivered, triggering commission creation:", {
-          orderId,
-          oldStatus,
-          newStatus,
-        })
 
         try {
           const result = await handleWholesaleOrderStatusChange(orderId, oldStatus || "pending", newStatus, "admin")
-          console.log(`[v0] Commission handler result:`, result)
 
           if (result.success && result.commissionChange?.action === "created") {
-            console.log("✅ Wholesale commission created successfully:", result.commissionChange)
             // Show success message to admin
             alert(
               `Order ${newStatus}! Commission of GH₵${result.commissionChange.amount.toFixed(2)} has been credited to the agent.`,
@@ -352,7 +335,6 @@ export default function OrderManagement({ onOrdersChange }: OrderManagementProps
       setCurrentPage(currentPageBeforeUpdate)
 
       onOrdersChange?.()
-      console.log(`[v0] Status change completed successfully`)
     } catch (error) {
       console.error("❌ Error updating order status:", error)
       alert("Failed to update order status")

@@ -59,14 +59,6 @@ export async function POST(request: NextRequest) {
     userAgent: clientMeta.userAgent,
   })
 
-  console.info("[storefront webhook] charge.success", {
-    reference,
-    ok: capture.ok,
-    alreadyRecorded: capture.alreadyRecorded,
-    insertedCount: capture.insertedCount,
-    error: capture.error,
-    orderType: meta.order_type,
-  })
 
   if (!capture.ok && !capture.alreadyRecorded) {
     await logAudit({

@@ -30,7 +30,6 @@ export async function handleDataOrderStatusChange(
   adminId: string,
 ): Promise<OrderStatusChangeResult> {
   try {
-    console.log("📱 Handling data order status change:", { orderId, oldStatus, newStatus })
 
     // Get order details
     const { data: order, error: orderError } = await supabase
@@ -89,7 +88,6 @@ export async function handleReferralStatusChange(
   adminId: string,
 ): Promise<OrderStatusChangeResult> {
   try {
-    console.log("👥 Handling referral status change:", { referralId, oldStatus, newStatus })
 
     // Get referral details
     const { data: referral, error: referralError } = await supabase
@@ -148,7 +146,6 @@ export async function handleWholesaleOrderStatusChange(
   adminId: string,
 ): Promise<OrderStatusChangeResult> {
   try {
-    console.log("🛒 Handling wholesale order status change:", { orderId, oldStatus, newStatus })
 
     // Get order details
     const { data: order, error: orderError } = await supabase
@@ -209,7 +206,6 @@ async function createDataOrderCommission(order: any, adminId: string): Promise<O
     }
 
     if (commissionAmount <= 0) {
-      console.log(`Data order ${order.id} has zero calculated commission - skipping commission insertion`)
       return {
         success: true,
         message: `Order completed successfully. No commission created (calculated commission was 0)`,
@@ -228,7 +224,6 @@ async function createDataOrderCommission(order: any, adminId: string): Promise<O
       commissionAmount = calculateFinalCommission(bundlePrice, rate)
 
       if (commissionAmount <= 0) {
-        console.log(`Recalculated commission still 0, skipping insertion`)
         return {
           success: true,
           message: `Order completed successfully. No commission created (recalculated commission was 0)`,
@@ -319,13 +314,6 @@ async function createDataOrderCommission(order: any, adminId: string): Promise<O
       }
     }
 
-    console.log("✅ Data order commission created:", {
-      orderId: order.id,
-      agentId: order.agent_id,
-      commissionAmount,
-      newBalance: newCommissionBalance,
-      commissionRecordId: commissionRecord.id,
-    })
 
     return {
       success: true,
@@ -440,13 +428,6 @@ async function createReferralCommission(referral: any, adminId: string): Promise
       }
     }
 
-    console.log("✅ Referral commission created:", {
-      referralId: referral.id,
-      agentId: referral.agent_id,
-      commissionAmount,
-      newBalance: newCommissionBalance,
-      commissionRecordId: commissionRecord.id,
-    })
 
     return {
       success: true,
@@ -473,7 +454,6 @@ async function createWholesaleOrderCommission(order: any, adminId: string): Prom
 
     // but still allow order to be marked as completed
     if (commissionAmount <= 0) {
-      console.log(`Wholesale order ${order.id} has zero or missing commission - skipping commission insertion`)
       return {
         success: true,
         message: `Order completed successfully. No commission created (commission amount was 0 or missing)`,
@@ -506,12 +486,6 @@ async function createWholesaleOrderCommission(order: any, adminId: string): Prom
       }
     }
 
-    console.log("[v0] Creating wholesale commission with validated constraints:", {
-      orderId: order.id,
-      agentId: order.agent_id,
-      amount: commissionAmount,
-      status: commissionStatus,
-    })
 
     const { data: commissionRecord, error: commissionError } = await supabase
       .from("commissions")
@@ -578,13 +552,6 @@ async function createWholesaleOrderCommission(order: any, adminId: string): Prom
       }
     }
 
-    console.log("✅ Wholesale order commission created:", {
-      orderId: order.id,
-      agentId: order.agent_id,
-      commissionAmount,
-      newBalance: newCommissionBalance,
-      commissionRecordId: commissionRecord.id,
-    })
 
     return {
       success: true,

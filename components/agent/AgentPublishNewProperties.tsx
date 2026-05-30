@@ -111,9 +111,7 @@ export default function AgentPublishNewProperties({ agentId }: AgentPublishNewPr
       const fileArray = Array.from(files)
 
       // Compress images first
-      console.log("[v0] Starting compression of", fileArray.length, "images")
       const compressedFiles = await compressImages(fileArray, undefined, (current, total, filename) => {
-        console.log(`[v0] Compressing: ${filename} (${current}/${total})`)
       })
 
       // Calculate compression stats
@@ -132,7 +130,6 @@ export default function AgentPublishNewProperties({ agentId }: AgentPublishNewPr
       const uploadedUrls: string[] = []
       for (let i = 0; i < compressedFiles.length; i++) {
         try {
-          console.log(`[v0] Uploading compressed image ${i + 1}/${compressedFiles.length} to agent bucket`)
           const progressCallback = (progress: number) => {
             setUploadProgress(Math.round(((i + progress / 100) / compressedFiles.length) * 100))
           }

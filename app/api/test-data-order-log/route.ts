@@ -18,7 +18,6 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    console.log("[v0] TEST: Creating test data order record")
 
     const testData = {
       paying_pin: "TEST-" + Date.now(),
@@ -30,7 +29,6 @@ export async function POST(request: NextRequest) {
       phone_number: "0551234567",
     }
 
-    console.log("[v0] TEST: Inserting test data:", testData)
 
     const { data: result, error } = await supabase
       .from("data_orders_log")
@@ -50,7 +48,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[v0] TEST: Insert successful:", result)
 
     // Now verify we can read it back
     const { data: verifyData, error: verifyError } = await supabase
@@ -72,7 +69,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[v0] TEST: Verification successful:", verifyData)
 
     return NextResponse.json(
       {
@@ -110,7 +106,6 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    console.log("[v0] TEST: Fetching all data orders")
 
     const { data, error, count } = await supabase
       .from("data_orders_log")
@@ -129,7 +124,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log("[v0] TEST: Fetch successful, found", count, "records")
 
     return NextResponse.json(
       {

@@ -25,7 +25,6 @@ export async function uploadFashionProductImage(
       throw new Error("Image size must be less than 5MB")
     }
 
-    console.log(`[v0] Starting fashion image upload: ${file.name}`)
 
     // Create a unique filename
     const timestamp = Date.now()
@@ -51,7 +50,6 @@ export async function uploadFashionProductImage(
       .from("fashion-images")
       .getPublicUrl(data.path)
 
-    console.log(`[v0] Fashion image upload successful: ${publicUrlData.publicUrl}`)
 
     // Call progress callback if provided
     if (typeof onProgress === "function") {
@@ -87,7 +85,6 @@ export async function deleteFashionProductImage(imageUrl: string): Promise<void>
       throw new Error(`Delete failed: ${error.message}`)
     }
 
-    console.log(`[v0] Fashion image deleted successfully: ${filePath}`)
   } catch (error) {
     console.error(`[v0] Error deleting fashion image:`, error)
     throw error

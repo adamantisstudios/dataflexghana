@@ -63,7 +63,6 @@ export function StorageMonitoringDashboard({ userId, channelId }: StorageMonitor
       }
 
       const result = await response.json()
-      console.log("[v0] Cleanup result:", result)
 
       // Refresh stats after cleanup
       await fetchStorageStats()

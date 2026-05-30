@@ -52,14 +52,12 @@ export default function BulkStatusTracker() {
 
   const loadOrders = async (id: string) => {
     try {
-      console.log("[v0] Loading bulk orders for agent:", id)
       const response = await fetch(`/api/agent/bulk-orders/status?agent_id=${id}`)
       if (!response.ok) {
         console.error("[v0] Failed to fetch orders, status:", response.status)
         throw new Error("Failed to fetch orders")
       }
       const data = await response.json()
-      console.log("[v0] Bulk orders loaded:", data?.length || 0, "items")
       setOrders(Array.isArray(data) ? data : [])
       setLastRefresh(new Date())
     } catch (error) {

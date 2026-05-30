@@ -34,7 +34,6 @@ export async function getPendingWalletTransactions(agentId: string): Promise<Pen
   }
 
   try {
-    console.log(`🔍 Fetching pending wallet transactions for agent: ${agentId}`)
 
     const { data: pendingTransactions, error } = await supabase
       .from("wallet_transactions")
@@ -49,7 +48,6 @@ export async function getPendingWalletTransactions(agentId: string): Promise<Pen
     }
 
     if (!pendingTransactions || !Array.isArray(pendingTransactions)) {
-      console.log("No pending wallet transactions found")
       return []
     }
 
@@ -65,7 +63,6 @@ export async function getPendingWalletTransactions(agentId: string): Promise<Pen
       admin_notes: tx.admin_notes || "",
     }))
 
-    console.log(`✅ Found ${formattedTransactions.length} pending wallet transactions`)
     return formattedTransactions
   } catch (error) {
     console.error("❌ Error fetching pending wallet transactions:", error)
@@ -84,7 +81,6 @@ export async function calculatePendingWalletAmount(agentId: string): Promise<num
   }
 
   try {
-    console.log(`💰 Calculating pending wallet amount for agent: ${agentId}`)
 
     const { data: pendingTransactions, error } = await supabase
       .from("wallet_transactions")
@@ -98,7 +94,6 @@ export async function calculatePendingWalletAmount(agentId: string): Promise<num
     }
 
     if (!pendingTransactions || !Array.isArray(pendingTransactions)) {
-      console.log("No pending transactions found, pending amount is 0")
       return 0
     }
 
@@ -117,7 +112,6 @@ export async function calculatePendingWalletAmount(agentId: string): Promise<num
       }
     }
 
-    console.log(`✅ Total pending wallet amount: ${pendingAmount} (NOT spendable until approved)`)
     return pendingAmount
   } catch (error) {
     console.error("❌ Error calculating pending wallet amount:", error)
@@ -147,7 +141,6 @@ export async function getWalletTransactionSummary(agentId: string): Promise<{
   }
 
   try {
-    console.log(`📊 Getting wallet transaction summary for agent: ${agentId}`)
 
     const { calculateCorrectWalletBalance } = await import("./commission-earnings")
 
@@ -168,7 +161,6 @@ export async function getWalletTransactionSummary(agentId: string): Promise<{
           : "All transactions are processed",
     }
 
-    console.log("✅ Wallet transaction summary:", summary)
     return summary
   } catch (error) {
     console.error("❌ Error getting wallet transaction summary:", error)
@@ -205,7 +197,6 @@ export async function checkSpendableBalance(
   }
 
   try {
-    console.log(`💳 Checking spendable balance for agent: ${agentId}, required: ${requiredAmount}`)
 
     const { calculateCorrectWalletBalance } = await import("./commission-earnings")
     const { balance: availableBalance } = await calculateCorrectWalletBalance(agentId)
@@ -222,7 +213,6 @@ export async function checkSpendableBalance(
         : `Insufficient balance. Need GH₵${shortfall.toFixed(2)} more`,
     }
 
-    console.log("✅ Balance check result:", result)
     return result
   } catch (error) {
     console.error("❌ Error checking spendable balance:", error)
@@ -271,7 +261,6 @@ export async function getAllWalletTransactionsWithStatus(
   }
 
   try {
-    console.log(`📋 Getting all wallet transactions with status for agent: ${agentId}`)
 
     const { data: allTransactions, error } = await supabase
       .from("wallet_transactions")
@@ -286,7 +275,6 @@ export async function getAllWalletTransactionsWithStatus(
     }
 
     if (!allTransactions || !Array.isArray(allTransactions)) {
-      console.log("No wallet transactions found")
       return {
         approved: [],
         pending: [],
@@ -356,13 +344,6 @@ export async function getAllWalletTransactionsWithStatus(
       },
     }
 
-    console.log("✅ Wallet transactions categorized:", {
-      approved: result.approved.length,
-      pending: result.pending.length,
-      rejected: result.rejected.length,
-      totalApprovedAmount: result.summary.totalApprovedAmount,
-      totalPendingAmount: result.summary.totalPendingAmount,
-    })
 
     return result
   } catch (error) {

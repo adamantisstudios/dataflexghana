@@ -21,7 +21,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Agent not found" }, { status: 404 })
     }
 
-    console.log(`📊 Exporting CSV data for agent: ${agent.full_name} (${agent.id})`)
 
     // Fetch all related data
     const [walletTransactions, dataOrders, commissions, referrals, withdrawals, eOrders] = await Promise.all([
@@ -298,7 +297,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Generate ZIP buffer
     const zipBuffer = await zip.generateAsync({ type: "nodebuffer" })
 
-    console.log(`✅ Successfully prepared CSV export for agent ${agent.full_name}`)
 
     // Return ZIP file
     return new NextResponse(zipBuffer, {

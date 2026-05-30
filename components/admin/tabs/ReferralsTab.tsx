@@ -127,23 +127,12 @@ export default function ReferralsTab({
       if (error) throw error
 
       if (oldStatus !== "completed" && newStatus === "completed") {
-        console.log("🎯 Referral marked as completed, triggering commission creation:", {
-          referralId,
-          oldStatus,
-          newStatus,
-          referralData: {
-            agent_id: currentReferral?.agent_id,
-            service_id: currentReferral?.service_id,
-            services: currentReferral?.services,
-          },
-        })
 
         try {
           const { handleReferralStatusChange } = await import("@/lib/order-status-handlers")
           const result = await handleReferralStatusChange(referralId, oldStatus || "pending", newStatus, "admin")
 
           if (result.success && result.commissionChange?.action === "created") {
-            console.log("✅ Referral commission created successfully:", result.commissionChange)
             alert(
               `Referral completed! Commission of GH₵${result.commissionChange.amount.toFixed(2)} has been credited to ${currentReferral?.agents?.full_name}.`,
             )

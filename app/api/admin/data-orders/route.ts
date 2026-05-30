@@ -191,7 +191,6 @@ export async function PUT(request: NextRequest) {
       if (calculatedCommission > 0) {
         updateData.commission_amount = calculatedCommission
       } else {
-        console.log(`Order ${orderId}: Calculated commission is 0, not updating commission_amount field`)
       }
     }
 

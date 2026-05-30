@@ -23,7 +23,6 @@ const DashboardFloatingChat = () => {
 
   const handleSendComplaint = () => {
     // Handle complaint sending logic here
-    console.log("Sending complaint:", message, issueType)
     setIsOpen(false)
   }
 

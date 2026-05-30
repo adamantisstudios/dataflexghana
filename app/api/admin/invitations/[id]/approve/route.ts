@@ -28,7 +28,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { admin_id, notes } = await request.json()
     const referralId = params.id
 
-    console.log("[v0] Approving invitation:", referralId)
 
     const { data: referralLink, error: fetchError } = await supabase
       .from("referral_links")
@@ -41,7 +40,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       throw new Error("Referral link not found")
     }
 
-    console.log("[v0] Referral link found:", referralLink)
 
     const { error: updateError } = await supabase
       .from("referral_links")
@@ -57,7 +55,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       throw updateError
     }
 
-    console.log("[v0] Referral link updated to approved")
 
     // Using upsert to avoid 409 conflict if the record already exists
     const { error: creditError } = await supabase.from("referral_credits").upsert(
@@ -80,7 +77,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // Don't throw - log it but continue since the main approval worked
     }
 
-    console.log("[v0] Referral credit processed")
 
     if (!admin_id) {
       console.warn("[v0] No admin_id provided, skipping wallet credit")
@@ -95,7 +91,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         )
 
         if (adjustmentId) {
-          console.log("[v0] Wallet credit applied for news agent approval:", adjustmentId)
         } else {
           console.warn("[v0] Failed to create wallet adjustment for news agent approval")
         }
@@ -114,7 +109,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (auditError) console.error("[v0] Audit log error:", auditError)
 
-    console.log("[v0] Invitation approved successfully with wallet credit")
 
     return NextResponse.json({
       success: true,

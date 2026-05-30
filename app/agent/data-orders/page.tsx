@@ -170,7 +170,6 @@ export default function DataOrdersPage() {
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log("[v0] Order changes listener subscribed successfully")
           }
         })
 
@@ -185,13 +184,11 @@ export default function DataOrdersPage() {
             filter: `agent_id=eq.${agentId}`,
           },
           (payload) => {
-            console.log("Wallet transaction changed, refreshing balance:", payload)
             loadDisplayBalances(agentId)
           },
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log("[v0] Wallet balance updates listener subscribed successfully")
           }
         })
 
@@ -206,13 +203,11 @@ export default function DataOrdersPage() {
             filter: `agent_id=eq.${agentId}`,
           },
           (payload) => {
-            console.log("Commission changed, refreshing commission data:", payload)
             loadDisplayBalances(agentId)
           },
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log("[v0] Commission updates listener subscribed successfully")
           }
         })
 
@@ -247,18 +242,10 @@ export default function DataOrdersPage() {
         throw error
       }
 
-      console.log("[v0] Raw data from database:", JSON.stringify(data?.slice(0, 2), null, 2))
 
       const cleanedOrders = cleanOrdersData(data || [])
 
-      console.log("[v0] Cleaned data after processing:", JSON.stringify(cleanedOrders?.slice(0, 2), null, 2))
 
-      console.log("✅ Agent: Loaded and cleaned orders with bundle data:", cleanedOrders.length)
-      console.log("🔍 Agent: Bundle status distribution:", {
-        valid: cleanedOrders.filter((o) => o.bundle_status === "valid").length,
-        invalid: cleanedOrders.filter((o) => o.bundle_status === "invalid").length,
-        missing: cleanedOrders.filter((o) => o.bundle_status === "missing").length,
-      })
 
       setOrders(cleanedOrders)
     } catch (error: any) {
@@ -320,9 +307,7 @@ export default function DataOrdersPage() {
   const refreshWalletBalance = async () => {
     if (!agent) return
     try {
-      console.log("[v0] Refreshing wallet balance using unified calculation for agent:", agent.id)
       const { balance } = await calculateCorrectWalletBalance(agent.id)
-      console.log("[v0] Refreshed wallet balance:", balance)
       setWalletBalance(balance)
     } catch (error: any) {
       console.error("[v0] Error refreshing wallet balance:", error)

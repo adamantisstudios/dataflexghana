@@ -323,10 +323,8 @@ export function PartnershipForm({ agentId, onComplete, onCancel }: PartnershipFo
   }
 
   const handleSubmit = async () => {
-    console.log("[v0] Starting partnership form submission", { agentId, formData })
     setIsSubmitting(true)
     try {
-      console.log("[v0] Uploading partner documents...")
       let finalSubmissionId = submissionId
       if (submissionId) {
         const { error } = await supabase
@@ -393,7 +391,6 @@ export function PartnershipForm({ agentId, onComplete, onCancel }: PartnershipFo
         const { error: imagesError } = await supabase.from("form_images").insert(imageInserts)
         if (imagesError) throw imagesError
       }
-      console.log("[v0] Partnership form submitted successfully!")
       toast.success(
         "Partnership form submitted successfully! Your application will be processed within 14 working days.",
         { duration: 6000 },

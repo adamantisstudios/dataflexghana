@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
     const pageSize = 10
     const offset = (page - 1) * pageSize
 
-    console.log("[v0] Fetching referral credits with status:", status, "search:", search)
 
     let query = supabase
       .from("referral_credits")
@@ -100,7 +99,6 @@ export async function GET(request: NextRequest) {
       credited_at: item.credited_at,
     }))
 
-    console.log("[v0] Found referral credits:", mappedData.length || 0)
 
     return NextResponse.json({
       success: true,

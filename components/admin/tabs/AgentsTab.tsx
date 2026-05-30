@@ -640,11 +640,9 @@ const AgentsTab = memo(function AgentsTab({ getCachedData, setCachedData }: Agen
   };
 
   const handleCompleteRefresh = useCallback(async () => {
-    console.log("Performing complete refresh...");
     try {
       await connectionManager.forceReconnect();
       await loadAgentsPage(currentAgentsPage, agentSearchTerm, agentsFilterAdmin);
-      console.log("Complete refresh successful");
     } catch (error) {
       console.error("Complete refresh failed:", error);
     }

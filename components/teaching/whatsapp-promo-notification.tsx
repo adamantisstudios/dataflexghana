@@ -132,7 +132,6 @@ export function WhatsAppPromoNotification({ memberId, userType = "member" }: Wha
                   alt="Educational Resources"
                   className="w-full h-full object-cover rounded-md"
                   onError={(e) => {
-                    console.log("[v0] Image failed to load:", e)
                   }}
                 />
               </div>

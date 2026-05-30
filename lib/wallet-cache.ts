@@ -54,7 +54,6 @@ export function setPendingTopupCache(agentId: string): void {
       expiryTime: Date.now() + CACHE_EXPIRY_MS,
     }
     localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
-    console.log("[v0] Wallet topup cache set for agent:", agentId)
   } catch (error) {
     console.error("[v0] Error setting wallet cache:", error)
   }
@@ -68,7 +67,6 @@ export function clearPendingTopupCache(): void {
 
   try {
     localStorage.removeItem(CACHE_KEY)
-    console.log("[v0] Wallet topup cache cleared")
   } catch (error) {
     console.error("[v0] Error clearing wallet cache:", error)
   }

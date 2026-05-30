@@ -40,7 +40,6 @@ export async function processSecureWithdrawalPayout(
   payoutReference?: string,
 ): Promise<WithdrawalSecurityResult> {
   try {
-    console.log("🔒 Processing secure withdrawal payout:", { withdrawalId, adminId })
 
     // 1. Get withdrawal details and validate
     const { data: withdrawal, error: withdrawalError } = await supabase
@@ -120,14 +119,6 @@ export async function processSecureWithdrawalPayout(
       payoutReference,
     )
 
-    console.log("✅ Secure withdrawal payout processed successfully:", {
-      withdrawalId,
-      agentId: agent.id,
-      amount: withdrawalAmount,
-      status: "paid",
-      auditRecordCreated: auditResult.success,
-      securityNote: "Money permanently removed from available balance via PAID status",
-    })
 
     return {
       success: true,
@@ -336,12 +327,6 @@ export async function reverseCommissionForOrderStatusChange(
       }
     }
 
-    console.log("🔄 Reversing commission for order status change:", {
-      orderId,
-      orderType,
-      oldStatus,
-      newStatus,
-    })
 
     // Get order details and commission amount
     let orderData: any = null
@@ -426,14 +411,6 @@ export async function reverseCommissionForOrderStatusChange(
       }
     }
 
-    console.log("✅ Commission reversed successfully:", {
-      orderId,
-      orderType,
-      agentId,
-      commissionAmount,
-      oldBalance: currentCommissions,
-      newBalance: newCommissionBalance,
-    })
 
     return {
       success: true,
@@ -519,12 +496,6 @@ export async function synchronizeWalletBalance(agentId: string): Promise<{
         }
       }
 
-      console.log("✅ Wallet balance synchronized:", {
-        agentId,
-        oldBalance: storedBalance,
-        newBalance: calculatedBalance,
-        difference,
-      })
 
       return {
         success: true,

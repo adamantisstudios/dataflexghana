@@ -30,7 +30,6 @@ export async function GET(request: Request) {
       },
     )
 
-    console.log("[v0] Fetching bulk orders for agent:", agentId)
 
     const { data, error } = await supabase
       .from("bulk_orders")
@@ -44,7 +43,6 @@ export async function GET(request: Request) {
       throw error
     }
 
-    console.log("[v0] Found bulk orders:", data?.length || 0)
     return Response.json(data || [])
   } catch (error) {
     console.error("Error fetching bulk order status:", error)

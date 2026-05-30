@@ -1211,7 +1211,6 @@ export function VoiceRoomAdminControl({
           options={roomOptions}
           className="h-full"
           onDisconnected={(reason) => {
-            console.info("[voice-host] disconnected:", reason)
           }}
           onError={(e) => {
             if (!isTransientLiveKitError(e.message)) toast.error(e.message)

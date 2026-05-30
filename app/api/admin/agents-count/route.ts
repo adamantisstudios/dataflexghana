@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseAdmin()
 
-    console.log("[v0] Fetching agent counts...")
 
     // Use eq() for exact count of total agents
     const { count: totalCount, error: totalError } = await supabase
@@ -63,7 +62,6 @@ export async function GET(request: NextRequest) {
       pendingAgents: pendingCount ?? 0,
     }
 
-    console.log("[v0] Agent counts:", counts)
 
     return NextResponse.json(counts)
   } catch (error: any) {

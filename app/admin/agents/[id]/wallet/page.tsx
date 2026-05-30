@@ -180,11 +180,6 @@ export default function AdminAgentWalletPage() {
           lastTransactionDate: null,
         }
 
-        console.log("✅ Admin wallet using unified commission system:", {
-          agentId,
-          totalCommissions: finalSummary.totalCommissions,
-          availableCommissions: finalSummary.availableCommissions,
-        })
       } catch (commissionError) {
         console.error("Error with unified commission system, using fallback:", commissionError)
         try {
@@ -237,7 +232,6 @@ export default function AdminAgentWalletPage() {
           if (pageNum === 1) {
             setTotalTransactions(count || 0)
             setHasMoreTransactions((count || 0) > ITEMS_PER_PAGE * 3)
-            console.log("📊 Total transactions:", count, "Loading pages 1-3 initially")
           }
         }
       }
@@ -256,7 +250,6 @@ export default function AdminAgentWalletPage() {
     const itemsNeeded = targetPage * ITEMS_PER_PAGE
     const itemsLoaded = transactions.length
     if (itemsLoaded < itemsNeeded && !loadingMorePages) {
-      console.log(`📄 Loading page ${targetPage} on demand...`)
       const nextPageToLoad = Math.ceil(itemsLoaded / ITEMS_PER_PAGE) + 1
       await loadWalletData(nextPageToLoad)
     }

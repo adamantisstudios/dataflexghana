@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing id or status" }, { status: 400 })
     }
 
-    console.log("[v0] Updating bulk order status:", id, "to", status)
 
     const { error } = await supabase
       .from("bulk_orders")
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    console.log("[v0] Bulk order status updated successfully")
     return NextResponse.json({ success: true, message: "Status updated successfully" })
   } catch (error) {
     console.error("[v0] Error in update-status:", error)

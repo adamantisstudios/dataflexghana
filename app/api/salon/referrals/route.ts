@@ -9,7 +9,6 @@ const supabase = createClient(
 // GET - Fetch all referrals
 export async function GET(request: NextRequest) {
   try {
-    console.log('[v0] Fetching salon referrals...');
     
     const { data: referrals, error } = await supabase
       .from('salon_referrals')
@@ -28,7 +27,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('[v0] Successfully fetched referrals:', referrals?.length || 0);
     return NextResponse.json(
       {
         success: true,
@@ -94,7 +92,6 @@ Date: ${new Date().toLocaleString('en-GB')}
 
     try {
       const whatsappUrl = `https://wa.me/233246827049?text=${encodeURIComponent(message)}`;
-      console.log('[v0] WhatsApp link generated:', whatsappUrl);
     } catch (waErr) {
       console.error('[v0] WhatsApp error:', waErr);
     }

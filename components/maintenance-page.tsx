@@ -65,7 +65,6 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
 
           // If maintenance is disabled, reload the page
           if (data.success && !data.data.isEnabled) {
-            console.log("Maintenance disabled, reloading page...")
             setHasReloaded(true)
 
             // Clear any cached data
@@ -110,7 +109,6 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
 
       // If countdown is finished, check maintenance status
       if (remaining.total <= 0 && !hasReloaded && !isCheckingStatus) {
-        console.log("Countdown finished, checking maintenance status...")
         setIsCheckingStatus(true)
 
         // Check maintenance status after countdown ends
@@ -125,7 +123,6 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
           .then((response) => response.json())
           .then((data) => {
             if (data.success && !data.data.isEnabled) {
-              console.log("Maintenance disabled after countdown, reloading...")
               setHasReloaded(true)
 
               // Clear caches
@@ -137,7 +134,6 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
                 window.location.href = "/"
               }, 2000)
             } else {
-              console.log("Maintenance still enabled after countdown")
               setIsCheckingStatus(false)
             }
           })

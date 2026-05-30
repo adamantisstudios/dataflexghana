@@ -33,7 +33,6 @@ export async function setPaymentVerified(agentId: string) {
       maxAge: PAYMENT_EXPIRY_HOURS * 60 * 60,
       path: "/",
     })
-    console.log(`[v0] Payment verified for agent ${agentId}`)
     return true
   } catch (error) {
     console.error("[v0] Error setting payment cookie:", error)
@@ -51,11 +50,9 @@ export async function verifyPaymentGate(): Promise<string | null> {
     const agentId = cookieStore.get(PAYMENT_COOKIE_NAME)?.value
     
     if (agentId) {
-      console.log(`[v0] Payment gate verified for agent ${agentId}`)
       return agentId
     }
     
-    console.log("[v0] Payment gate NOT verified - no cookie found")
     return null
   } catch (error) {
     console.error("[v0] Error verifying payment gate:", error)
@@ -71,7 +68,6 @@ export async function clearPaymentGate() {
   try {
     const cookieStore = await cookies()
     cookieStore.delete(PAYMENT_COOKIE_NAME)
-    console.log("[v0] Payment gate cleared after registration")
     return true
   } catch (error) {
     console.error("[v0] Error clearing payment gate:", error)

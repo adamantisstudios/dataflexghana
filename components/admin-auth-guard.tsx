@@ -18,14 +18,11 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
 
   useEffect(() => {
     const checkAuth = async () => {
-      console.log("Checking authentication...")
 
       const currentAdmin = getCurrentAdmin()
 
-      console.log("Current admin:", currentAdmin)
 
       if (!currentAdmin) {
-        console.log("No admin session found, redirecting to login")
         setIsAuthenticated(false)
         router.push("/admin/login")
         return
@@ -33,14 +30,11 @@ export function AdminAuthGuard({ children }: AdminAuthGuardProps) {
 
       const { valid, user } = await verifyAdminSession()
 
-      console.log("Session verification:", { valid, user })
 
       if (valid && user) {
         setAdmin(user)
         setIsAuthenticated(true)
-        console.log("Authentication successful")
       } else {
-        console.log("Session invalid, clearing and redirecting")
         clearAdminSession()
         setIsAuthenticated(false)
         router.push("/admin/login")

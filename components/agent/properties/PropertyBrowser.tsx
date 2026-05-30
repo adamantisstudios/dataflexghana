@@ -105,7 +105,6 @@ export default function PropertyBrowser({
   useEffect(() => {
     const loadProperties = async () => {
       try {
-        console.log("[v0] Loading properties from database...")
 
         const { data, error } = await supabase
           .from("properties")
@@ -119,8 +118,6 @@ export default function PropertyBrowser({
           throw error
         }
 
-        console.log("[v0] Properties loaded from database:", data?.length || 0)
-        console.log("[v0] Sample properties:", data?.slice(0, 2))
 
         setProperties(data || [])
       } catch (error) {
@@ -135,12 +132,8 @@ export default function PropertyBrowser({
 
   // Filter properties
   useEffect(() => {
-    console.log("[v0] Filtering properties. Total properties:", properties.length)
 
     properties.forEach((property, index) => {
-      console.log(
-        `[v0] Property ${index + 1}: ${property.title}, Currency: "${property.currency}", Type: ${typeof property.currency}`,
-      )
     })
 
     let filtered = properties
@@ -163,11 +156,8 @@ export default function PropertyBrowser({
       })
     }
 
-    console.log("[v0] Filtered properties:", filtered.length)
-    console.log("[v0] Applied filters:", { searchTerm, selectedCategory, selectedCurrency, selectedPriceRange })
 
     filtered.forEach((property, index) => {
-      console.log(`[v0] Filtered Property ${index + 1}: ${property.title}, Currency: "${property.currency}"`)
     })
 
     setFilteredProperties(filtered)
@@ -334,13 +324,6 @@ Contact: ${agent.phone_number}`
   const currentProperties = getPaginatedData(filteredProperties, currentPage)
   const totalPages = getTotalPages(filteredProperties.length)
 
-  console.log("[v0] Pagination info:", {
-    currentPage,
-    totalPages,
-    filteredPropertiesLength: filteredProperties.length,
-    currentPropertiesLength: currentProperties.length,
-    itemsPerPage,
-  })
 
   return (
     <div className="space-y-6 relative">

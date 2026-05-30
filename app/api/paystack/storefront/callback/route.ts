@@ -101,13 +101,6 @@ export async function GET(request: NextRequest) {
   const cartTotal = Number(meta.cart_total ?? amountPaid)
   const segment = resolveRedirectSegment(meta, agentId)
 
-  console.info("[storefront callback] verified payment", {
-    reference: verifiedReference,
-    orderType,
-    agentId: agentId || "(missing)",
-    amountPaid,
-    metadataKeys: Object.keys(meta),
-  })
 
   if (!agentId) {
     console.error("[storefront callback] missing agent in metadata", {
@@ -246,15 +239,6 @@ export async function GET(request: NextRequest) {
     })
     return NextResponse.redirect(buildFailureRedirect(verifiedReference))
   } else {
-    console.info("[storefront callback] capture result:", {
-      reference: verifiedReference,
-      agentId,
-      orderType,
-      ok: capture.ok,
-      alreadyRecorded: capture.alreadyRecorded,
-      insertedCount: capture.insertedCount,
-      orderIds: capture.orderIds,
-    })
   }
 
   if (orderType === "wholesale") {

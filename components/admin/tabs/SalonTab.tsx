@@ -277,13 +277,11 @@ export default function SalonTab() {
     }
     
     try {
-      console.log('[v0] Deleting service:', serviceId);
       const response = await fetch(`/api/salon/services?id=${serviceId}`, {
         method: 'DELETE',
       });
 
       const data = await response.json();
-      console.log('[v0] Delete response:', data);
 
       if (data.success) {
         await fetchServices();

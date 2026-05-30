@@ -1,24 +1,12 @@
 /**
- * Placeholder email sender — logs to server console until SMTP is configured.
+ * Placeholder email sender — configure SMTP for production delivery.
  */
-export async function sendEmail(params: {
+export async function sendEmail(_params: {
   to: string
   subject: string
   text: string
   html?: string
 }): Promise<{ success: boolean }> {
-  const divider = "=".repeat(60)
-  console.log(`\n${divider}`)
-  console.log("[sendEmail] OUTBOUND (console placeholder — configure SMTP later)")
-  console.log(`To: ${params.to}`)
-  console.log(`Subject: ${params.subject}`)
-  console.log(divider)
-  console.log(params.text)
-  if (params.html) {
-    console.log("--- HTML ---")
-    console.log(params.html)
-  }
-  console.log(`${divider}\n`)
   return { success: true }
 }
 

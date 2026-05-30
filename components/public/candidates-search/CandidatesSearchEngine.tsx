@@ -41,7 +41,6 @@ export default function CandidatesSearchEngine({ onRefresh }: { onRefresh?: () =
   useEffect(() => {
     const cache = getSearchCache()
     if (cache && isSearchCacheValid()) {
-      console.log("[v0] Restoring search from cache:", cache.query)
       setCandidates(cache.results)
       setFilteredCandidates(cache.results)
       setSearchTerm(cache.query)
@@ -59,7 +58,6 @@ export default function CandidatesSearchEngine({ onRefresh }: { onRefresh?: () =
       }
       setLoading(true)
       setSearchLimitExceeded(false)
-      console.log("[v0] Starting search for term:", searchTerm)
       const response = await fetch(`/api/candidates/search?query=${encodeURIComponent(searchTerm)}`, {
         method: "GET",
       })
@@ -69,7 +67,6 @@ export default function CandidatesSearchEngine({ onRefresh }: { onRefresh?: () =
         throw new Error(errorData.message || "Failed to load candidates")
       }
       const data = await response.json()
-      console.log("[v0] Search successful, found:", data.candidates?.length || 0, "candidates")
       const limitedCandidates = (data.candidates || []).slice(0, 36)
       setCandidates(limitedCandidates)
       setFilteredCandidates(limitedCandidates)

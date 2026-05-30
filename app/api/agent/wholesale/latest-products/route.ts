@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase-client";
 export async function GET(request: NextRequest) {
   try {
     const timestamp = new Date().toISOString()
-    console.log(`[v0] API: Fetching latest wholesale products at ${timestamp}`)
 
     const { data: products, error } = await supabase
       .from("wholesale_products")
@@ -19,16 +18,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ products: [], timestamp })
     }
 
-    console.log(`[v0] API: Found ${products?.length || 0} products at ${timestamp}`)
-    console.log(
-      "[v0] API: Product details:",
-      products?.map((p) => ({
-        id: p.id,
-        name: p.name,
-        created_at: p.created_at,
-        quantity: p.quantity,
-      })) || [],
-    )
 
     const transformedProducts = (products || []).map((product) => ({
       ...product,

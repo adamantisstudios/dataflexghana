@@ -24,7 +24,6 @@ export function useFashionCache() {
         if (now - data.timestamp < CACHE_DURATION) {
           cacheRef.current = data;
           setIsCached(true);
-          console.log('[v0] Fashion data loaded from cache');
         } else {
           // Cache expired, remove it
           sessionStorage.removeItem(CACHE_KEY);
@@ -50,14 +49,12 @@ export function useFashionCache() {
     };
     cacheRef.current = data;
     sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
-    console.log('[v0] Fashion data cached');
   };
 
   const clearCache = () => {
     cacheRef.current = null;
     sessionStorage.removeItem(CACHE_KEY);
     setIsCached(false);
-    console.log('[v0] Fashion cache cleared');
   };
 
   return { getCache, setCache, clearCache, isCached };

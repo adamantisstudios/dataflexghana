@@ -302,22 +302,7 @@ export function logAgentMenuInteraction(
   action: "view" | "click" | "engage" | "earn",
   metadata?: Record<string, unknown>,
 ): void {
-  const timestamp = new Date().toISOString()
-  const logEntry = {
-    timestamp,
-    agentId,
-    menuItem,
-    action,
-    metadata: {
-      ...metadata,
-      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
-      location: typeof window !== "undefined" ? window.location.pathname : "unknown",
-    },
-  }
-
-  console.log("[DataFlex Agent Menu] ", JSON.stringify(logEntry, null, 2))
-
-  // In production, this would send to analytics service
+  // In production, send to analytics service (no console logging of agent data)
   if (typeof window !== "undefined" && window.gtag) {
     window.gtag("event", `agent_menu_${action}`, {
       agent_id: agentId,

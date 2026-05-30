@@ -81,7 +81,6 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
   }
 
   try {
-    console.log(`🔍 Calculating APPROVED SPENDABLE wallet balance for agent: ${agentId}`)
 
     // CRITICAL FIX: Add timeout to prevent abort errors
     const controller = new AbortController()
@@ -104,7 +103,6 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
       }
 
       if (!transactions || !Array.isArray(transactions)) {
-        console.log("No approved wallet transactions found, balance is 0")
         return 0
       }
 
@@ -133,7 +131,6 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
           case "interest":
           case "payment_completed":
             spendableBalance += amount
-            console.log(`💰 Added to spendable balance: ${amount} (${transaction.transaction_type})`)
             break
           case "debit":
           case "deduction":
@@ -142,12 +139,10 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
           case "withdrawal":
           case "penalty":
             spendableBalance -= amount
-            console.log(`💸 Deducted from spendable balance: ${amount} (${transaction.transaction_type})`)
             break
           case "commission_deposit":
             // CRITICAL FIX: Commission deposits do NOT add to spendable wallet balance
             // They should only be available for withdrawal, not for spending
-            console.log(`🚫 Commission deposit EXCLUDED from spendable balance: ${amount}`)
             break
           default:
             console.warn(`❓ Unknown transaction type: ${transaction.transaction_type}`)
@@ -156,9 +151,6 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
 
       // Ensure balance is never negative
       const finalBalance = Math.max(spendableBalance, 0)
-      console.log(
-        `✅ APPROVED SPENDABLE wallet balance: ${finalBalance} (from ${transactions.length} approved transactions)`,
-      )
 
       return finalBalance
     } catch (error) {
@@ -176,7 +168,6 @@ export async function calculateWalletBalance(agentId: string): Promise<number> {
  */
 async function calculateWalletBalanceDirectQuery(agentId: string): Promise<number> {
   try {
-    console.log("Using direct table query for wallet balance calculation")
 
     // CRITICAL FIX: Direct query to calculate balance from transactions
     const { data: transactions, error } = await getDb()
@@ -191,7 +182,6 @@ async function calculateWalletBalanceDirectQuery(agentId: string): Promise<numbe
     }
 
     if (!transactions || !Array.isArray(transactions)) {
-      console.log("No approved transactions found, balance is 0")
       return 0
     }
 
@@ -224,7 +214,6 @@ async function calculateWalletBalanceDirectQuery(agentId: string): Promise<numbe
           balance -= amount
           break
         case "commission_deposit":
-          console.log(`🚫 Commission deposit EXCLUDED from spendable balance: ${amount}`)
           break
         default:
           console.warn(`Unknown transaction type: ${transaction.transaction_type}`)
@@ -233,7 +222,6 @@ async function calculateWalletBalanceDirectQuery(agentId: string): Promise<numbe
     }
 
     const finalBalance = Math.max(balance, 0)
-    console.log(`Direct query calculated SPENDABLE balance: ${finalBalance}`)
     return finalBalance
   } catch (error) {
     console.error("Direct table query failed:", error)
@@ -246,7 +234,6 @@ async function calculateWalletBalanceDirectQuery(agentId: string): Promise<numbe
  */
 async function calculateWalletBalanceComprehensiveFallback(agentId: string): Promise<number> {
   try {
-    console.log("Using comprehensive fallback calculation for wallet balance")
 
     // CRITICAL FIX: Get all wallet transactions for the agent
     const { data: transactions, error: transactionsError } = await getDb()
@@ -262,7 +249,6 @@ async function calculateWalletBalanceComprehensiveFallback(agentId: string): Pro
     }
 
     if (!transactions || !Array.isArray(transactions)) {
-      console.log("No wallet transactions found, returning 0 balance")
       return 0
     }
 
@@ -298,7 +284,6 @@ async function calculateWalletBalanceComprehensiveFallback(agentId: string): Pro
           balance -= amount
           break
         case "commission_deposit":
-          console.log(`🚫 Commission deposit EXCLUDED from spendable balance: ${amount}`)
           break
         default:
           console.warn(`Unknown transaction type: ${transaction.transaction_type}`)
@@ -307,7 +292,6 @@ async function calculateWalletBalanceComprehensiveFallback(agentId: string): Pro
     }
 
     const finalBalance = Math.max(balance, 0) // Ensure non-negative
-    console.log(`Comprehensive fallback calculated SPENDABLE balance: ${finalBalance}`)
     return finalBalance
   } catch (error) {
     console.error("Comprehensive fallback calculation failed:", error)
@@ -320,7 +304,6 @@ async function calculateWalletBalanceComprehensiveFallback(agentId: string): Pro
  */
 async function calculateWalletBalanceManualFallback(agentId: string): Promise<number> {
   try {
-    console.log("Using manual fallback calculation for wallet balance")
 
     // CRITICAL FIX: Try to get balance from agent record first
     const { data: agentData, error: agentError } = await getDb()
@@ -331,7 +314,6 @@ async function calculateWalletBalanceManualFallback(agentId: string): Promise<nu
 
     if (!agentError && agentData && typeof agentData.wallet_balance === "number") {
       const balance = Math.max(agentData.wallet_balance, 0)
-      console.log(`Manual fallback using agent record balance: ${balance}`)
       return balance
     }
 
@@ -358,13 +340,11 @@ async function calculateWalletBalanceManualFallback(agentId: string): Promise<nu
           balance -= amount
         } else if (tx.transaction_type === "commission_deposit") {
           // CRITICAL FIX: Commission deposits do NOT add to spendable wallet balance
-          console.log(`🚫 Commission deposit EXCLUDED from spendable balance: ${amount}`)
         }
       }
     }
 
     const finalBalance = Math.max(balance, 0)
-    console.log(`Manual fallback calculated SPENDABLE balance: ${finalBalance}`)
     return finalBalance
   } catch (error) {
     console.error("Manual fallback calculation failed:", error)
@@ -625,7 +605,6 @@ export async function calculateWithdrawalAmounts(agentId: string): Promise<{
  */
 export async function calculateCompleteEarnings(agentId: string): Promise<EarningsData> {
   try {
-    console.log("💰 Calculating complete earnings with separation enforcement for agent:", agentId)
 
     const { getAgentCommissionSummary } = await import("./commission-earnings")
     const commissionSummary = await getAgentCommissionSummary(agentId)
@@ -637,14 +616,6 @@ export async function calculateCompleteEarnings(agentId: string): Promise<Earnin
     const pendingPayout = commissionSummary.pendingWithdrawal
     const totalPaidOut = commissionSummary.totalWithdrawn
 
-    console.log("✅ Earnings calculated with separation:", {
-      agentId,
-      totalCommission,
-      availableBalance,
-      walletBalance: walletSummary.walletBalance,
-      totalPaidOut,
-      pendingPayout,
-    })
 
     return {
       totalCommission, // Total earned commissions
@@ -679,7 +650,6 @@ export async function calculateCompleteEarnings(agentId: string): Promise<Earnin
  */
 export async function calculateMonthlyStatistics(agentId: string) {
   try {
-    console.log(`🔍 Calculating monthly statistics for agent: ${agentId}`)
 
     const startOfMonth = new Date()
     startOfMonth.setDate(1)
@@ -729,14 +699,6 @@ export async function calculateMonthlyStatistics(agentId: string) {
       wholesaleProducts: wholesaleCount.data?.length || 0,
     }
 
-    console.log("✅ Monthly statistics calculated:", {
-      agentId,
-      totalCommissions: commissionSummary.totalEarned,
-      totalPaidOut: commissionSummary.totalWithdrawn,
-      pendingPayout: commissionSummary.pendingWithdrawal,
-      availableCommissions: commissionSummary.availableForWithdrawal,
-      walletBalance,
-    })
 
     return result
   } catch (error) {
@@ -811,7 +773,6 @@ export async function batchCalculateAgentEarnings(agentIds: string[]): Promise<M
   const earningsMap = new Map<string, EarningsData>()
 
   if (!agentIds || agentIds.length === 0) {
-    console.log("No agent IDs provided for batch calculation")
     return earningsMap
   }
 
@@ -835,7 +796,6 @@ export async function batchCalculateAgentEarnings(agentIds: string[]): Promise<M
     }
   }
 
-  console.log(`🔄 Batch calculating earnings for ${agentIds.length} agents`)
 
   try {
     // Process agents in parallel for better performance
@@ -868,7 +828,6 @@ export async function batchCalculateAgentEarnings(agentIds: string[]): Promise<M
       earningsMap.set(agentId, earnings)
     })
 
-    console.log(`✅ Batch calculation completed for ${earningsMap.size} agents`)
     return earningsMap
   } catch (error) {
     console.error("Error in batch calculate agent earnings:", error)
@@ -910,7 +869,6 @@ export async function createWithdrawalDeduction(
       throw new Error("Withdrawal ID is required")
     }
 
-    console.log(`🔄 Creating withdrawal deduction for agent ${agentId}: ${amount}`)
 
     const withdrawalType = assertDbTransactionType("withdrawal_deduction")
     const { data, error } = await getDb()
@@ -940,7 +898,6 @@ export async function createWithdrawalDeduction(
       throw new Error("No data returned from withdrawal deduction creation")
     }
 
-    console.log("✅ Withdrawal deduction created successfully:", data.id)
     return true
   } catch (error) {
     console.error("❌ Error in createWithdrawalDeduction:", error)
@@ -972,7 +929,6 @@ export async function createAdminReversal(
       throw new Error("Reason is required")
     }
 
-    console.log(`🔄 Creating admin reversal for agent ${agentId}, original transaction: ${originalTransactionId}`)
 
     const { data: originalTransaction, error: fetchError } = await getDb()
       .from("wallet_transactions")
@@ -1027,7 +983,6 @@ export async function createAdminReversal(
       throw new Error("No data returned from admin reversal creation")
     }
 
-    console.log("✅ Admin reversal created successfully:", data.id)
     return data.id
   } catch (error) {
     console.error("❌ Error in createAdminReversal:", error)
@@ -1071,7 +1026,6 @@ export async function createAdminAdjustment(
 
     assertUuid(agentId, "agent ID")
 
-    console.log(`🔄 Creating admin adjustment for agent ${agentId}: ${isCredit ? "+" : "-"}${amount}`)
 
     const reference = `adj-${Date.now()}`
     const description =
@@ -1108,7 +1062,6 @@ export async function createAdminAdjustment(
       throw new Error("No data returned from admin adjustment creation")
     }
 
-    console.log("✅ Admin adjustment created successfully:", data.id)
     return data.id
   } catch (error) {
     console.error("❌ Error in createAdminAdjustment:", error)

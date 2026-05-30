@@ -69,12 +69,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.info("[storefront confirm] capture ok:", {
-      reference: verifiedReference,
-      agentId: metaAgentId,
-      insertedCount: capture.insertedCount,
-      alreadyRecorded: capture.alreadyRecorded,
-    })
 
     return NextResponse.json({
       success: true,

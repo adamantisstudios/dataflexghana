@@ -509,7 +509,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        console.log('🔒 Processing secure withdrawal via admin wallet API:', { withdrawal_id, admin_id })
 
         try {
           const result = await processSecureWithdrawalPayout(withdrawal_id, admin_id, payout_reference)

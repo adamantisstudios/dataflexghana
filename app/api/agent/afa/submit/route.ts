@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
     )
 
     const data = await request.json()
-    console.log("[v0] AFA Submission Data:", data)
     const { agent_id, full_name, phone_number, ghana_card, date_of_birth, location, occupation, notes, payment_instructions } = data
 
     // Validate required fields
@@ -41,13 +40,6 @@ export async function POST(request: NextRequest) {
 
     const paymentPin = generatePaymentPIN()
 
-    console.log("[v0] Attempting to insert AFA registration with data:", {
-      agent_id: agent_id || null,
-      full_name,
-      phone_number: normalizedPhone,
-      ghana_card: cardValue.toUpperCase(),
-      location: location || "NOT_PROVIDED",
-    })
 
     // Insert into mtnafa_registrations table
     const { data: submission, error } = await supabase
@@ -89,7 +81,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[v0] Successfully inserted AFA registration:", submission.id)
 
     // Create admin notification - wrapped in try-catch since this is non-critical
     try {

@@ -9,7 +9,6 @@ import { setPaymentVerified } from "@/lib/payment-gate"
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] Mark payment ready endpoint called")
 
     const { agentId } = await request.json()
 
@@ -32,7 +31,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[v0] Successfully marked payment for agent ${agentId}`)
     return NextResponse.json({
       success: true,
       message: "Payment marked ready. Redirecting to registration form.",

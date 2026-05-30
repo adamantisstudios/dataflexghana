@@ -43,23 +43,18 @@ export function FloatingRefreshButton({
     setShowSuccess(false)
 
     try {
-      console.log('Starting comprehensive refresh...')
 
       // Step 1: Force session refresh
-      console.log('Refreshing session...')
       await sessionManager.refreshSession()
 
       // Step 2: Force connection reconnect
-      console.log('Reconnecting database...')
       await connectionManager.forceReconnect()
 
       // Step 3: Reconnect all realtime subscriptions
-      console.log('Reconnecting realtime subscriptions...')
       await realtimeManager.reconnectAll()
 
       // Step 4: Call custom refresh function if provided
       if (onRefresh) {
-        console.log('Executing custom refresh...')
         await onRefresh()
       }
 
@@ -68,7 +63,6 @@ export function FloatingRefreshButton({
       // Update health status
       setHealthStatus(connectionManager.getHealthStatus())
 
-      console.log('Comprehensive refresh completed successfully')
 
       // Hide success indicator after 3 seconds
       setTimeout(() => setShowSuccess(false), 3000)

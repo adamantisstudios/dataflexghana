@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
       product_code 
     } = body;
 
-    console.log('[v0] Referral API received:', { referrer_name, referrer_whatsapp, friend_whatsapp, product_id, product_name, product_code });
 
     // Validate required fields
     if (!referrer_name || !referrer_whatsapp || !friend_whatsapp || !product_id || !product_name) {
@@ -160,12 +159,6 @@ export async function POST(request: NextRequest) {
     const whatsappUrl = `https://wa.me/${formattedFriendWhatsApp}?text=${encodeURIComponent(messageText)}`;
     const adminNotificationUrl = `https://wa.me/233246827049?text=${encodeURIComponent(adminNotification)}`;
 
-    console.log('[v0] Referral created:', {
-      referralId: savedReferral.id,
-      referrerName: referrer_name,
-      friendWhatsApp: formattedFriendWhatsApp,
-      adminNotificationUrl
-    });
 
     return NextResponse.json(
       {

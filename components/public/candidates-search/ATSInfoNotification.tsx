@@ -39,7 +39,6 @@ export default function ATSInfoNotification({ searchInputRef }: ATSInfoNotificat
 
       // Only trigger if user actually typed something
       if (input.value.length > 0 && !hasTriggered) {
-        console.log("[v0] Search input detected - triggering ATS notification")
 
         // Mark as triggered for today
         const today = new Date().toISOString().split("T")[0]

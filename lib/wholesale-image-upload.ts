@@ -27,7 +27,6 @@ export async function uploadWholesaleProductImage(
       throw new Error("Image size must be less than 5MB")
     }
 
-    console.log(`[v0] Starting upload to 'wholesale-products': products/${file.name}`)
 
     // Create a unique filename
     const timestamp = Date.now()
@@ -53,7 +52,6 @@ export async function uploadWholesaleProductImage(
       .from("wholesale-products")
       .getPublicUrl(data.path)
 
-    console.log(`[v0] Upload successful: ${publicUrlData.publicUrl}`)
 
     // Call progress callback if provided (after successful upload)
     if (typeof onProgress === "function") {
@@ -91,7 +89,6 @@ export async function deleteWholesaleProductImage(imageUrl: string): Promise<voi
       throw new Error(`Delete failed: ${error.message}`)
     }
 
-    console.log(`[v0] Image deleted successfully: ${filePath}`)
   } catch (error) {
     console.error(`[v0] Error deleting image:`, error)
     throw error

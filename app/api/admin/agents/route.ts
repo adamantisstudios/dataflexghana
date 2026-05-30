@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Search term is required" }, { status: 400 })
     }
 
-    console.log("[v0] Searching agents with term:", searchTerm)
 
     const { data, error } = await supabase
       .from("agents")
@@ -53,7 +52,6 @@ export async function POST(request: NextRequest) {
       status: agent.status || (agent.isapproved ? "active" : "pending"),
     }))
 
-    console.log("[v0] ✅ Search results found:", agents.length)
 
     return NextResponse.json({
       success: true,

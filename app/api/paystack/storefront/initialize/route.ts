@@ -296,12 +296,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: data.message || "Paystack init failed" }, { status: 500 })
     }
 
-    console.info("[storefront initialize] data_bundle payment", {
-      agent_id,
-      reference: data.data.reference,
-      callback_url: getStorefrontPaystackCallbackUrl(request),
-      item_count: resolved.length,
-    })
 
     return NextResponse.json({
       success: true,

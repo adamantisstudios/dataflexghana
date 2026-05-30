@@ -199,11 +199,9 @@ function selectOptimalPreset(isMobile: boolean, memoryGB: number): CompressionPr
   if (isMobile) {
     // For low-memory mobile devices, use mobile preset
     if (memoryGB < 2) {
-      console.log(`[v0] Low-memory device detected (${memoryGB}GB), using mobile preset`)
       return "mobile"
     }
     // For standard mobile devices, use balanced
-    console.log(`[v0] Mobile device detected, using balanced preset`)
     return "balanced"
   }
   // For desktop, use balanced by default
@@ -230,7 +228,6 @@ export async function compressImage(
 
     // Skip compression for very small files (less than 100KB)
     if (file.size < 100 * 1024) {
-      console.log(`[v0] File ${file.name} is small (${(file.size / 1024).toFixed(2)}KB), skipping compression`)
       return file
     }
 
@@ -238,9 +235,6 @@ export async function compressImage(
     const selectedPreset = preset || selectOptimalPreset(isMobileDevice(), getDeviceMemory())
     const options = COMPRESSION_PRESETS[selectedPreset]
 
-    console.log(`[v0] Compressing image: ${file.name}`)
-    console.log(`[v0] Original size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`)
-    console.log(`[v0] Using preset: ${selectedPreset}`)
 
     // Create timeout promise for compression (30 second max)
     const compressionTimeout = new Promise<File>((resolve) => {
@@ -251,7 +245,6 @@ export async function compressImage(
     })
 
     // Fix EXIF orientation first
-    console.log(`[v0] Fixing EXIF orientation...`)
     let processedFile = await Promise.race([fixExifOrientation(file), compressionTimeout])
 
     // Validate processed file
@@ -261,7 +254,6 @@ export async function compressImage(
     }
 
     // Compress the file with timeout
-    console.log(`[v0] Starting compression...`)
     const compressedFile = await Promise.race([imageCompression(processedFile, options), compressionTimeout])
 
     // Validate compressed file
@@ -271,8 +263,6 @@ export async function compressImage(
     }
 
     const compressionRatio = ((1 - compressedFile.size / file.size) * 100).toFixed(1)
-    console.log(`[v0] Compressed size: ${(compressedFile.size / (1024 * 1024)).toFixed(2)}MB`)
-    console.log(`[v0] Compression ratio: ${compressionRatio}%`)
 
     // Return the compressed file with .jpg extension
     return new File([compressedFile], file.name.replace(/\.[^.]+$/, ".jpg"), {
@@ -281,7 +271,6 @@ export async function compressImage(
     })
   } catch (error) {
     console.error(`[v0] Error compressing image ${file.name}:`, error)
-    console.log(`[v0] Returning original file as fallback`)
     // Always return original file if any error occurs
     return file
   }
@@ -303,8 +292,6 @@ export async function compressImages(
     const compressedFiles: File[] = []
     const selectedPreset = preset || selectOptimalPreset(isMobileDevice(), getDeviceMemory())
 
-    console.log(`[v0] Starting batch compression for ${files.length} files with preset: ${selectedPreset}`)
-    console.log(`[v0] Device: ${isMobileDevice() ? "Mobile" : "Desktop"}, Memory: ${getDeviceMemory()}GB`)
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -333,10 +320,6 @@ export async function compressImages(
     const compressedSize = compressedFiles.reduce((sum, f) => sum + f.size, 0)
     const totalReduction = ((1 - compressedSize / originalSize) * 100).toFixed(1)
 
-    console.log(`[v0] Batch compression complete:`)
-    console.log(`[v0] Original total: ${(originalSize / (1024 * 1024)).toFixed(2)}MB`)
-    console.log(`[v0] Compressed total: ${(compressedSize / (1024 * 1024)).toFixed(2)}MB`)
-    console.log(`[v0] Total reduction: ${totalReduction}%`)
 
     return compressedFiles
   } catch (error) {

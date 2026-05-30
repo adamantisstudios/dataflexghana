@@ -292,7 +292,6 @@ export default function ComplianceTab() {
 
   const downloadAllImages = async (submissionId: string) => {
     try {
-      console.log("[v0] Starting image download for submission:", submissionId)
 
       const { data: images, error } = await supabase.from("form_images").select("*").eq("submission_id", submissionId)
 
@@ -301,7 +300,6 @@ export default function ComplianceTab() {
         throw error
       }
 
-      console.log("[v0] Found images:", images)
 
       if (!images || images.length === 0) {
         toast.error("No images found for this submission")
@@ -313,7 +311,6 @@ export default function ComplianceTab() {
 
       for (const image of images) {
         try {
-          console.log("[v0] Processing image:", image.image_type, "URL:", image.image_url)
 
           let imagePath = image.image_url
 
@@ -329,28 +326,23 @@ export default function ComplianceTab() {
             const parts = imagePath.split("supabase.co/storage/v1/object/public/")
             if (parts.length > 1) {
               imagePath = parts[1]
-              console.log("[v0] Extracted path from full URL:", imagePath)
             }
           }
 
           // Remove bucket name if it's included
           if (imagePath.startsWith("compliance-images/")) {
             imagePath = imagePath.replace("compliance-images/", "")
-            console.log("[v0] Removed bucket prefix:", imagePath)
           }
 
           // If path starts with /, remove it
           if (imagePath.startsWith("/")) {
             imagePath = imagePath.substring(1)
-            console.log("[v0] Removed leading slash:", imagePath)
           }
 
-          console.log("[v0] Final path for storage lookup:", imagePath)
 
           // Get the public URL from Supabase storage
           const { data: urlData } = supabase.storage.from("compliance-images").getPublicUrl(imagePath)
 
-          console.log("[v0] Generated public URL:", urlData?.publicUrl)
 
           if (!urlData?.publicUrl) {
             console.error("[v0] Failed to generate public URL for:", imagePath)
@@ -360,14 +352,12 @@ export default function ComplianceTab() {
 
           // Fetch the image
           const response = await fetch(urlData.publicUrl)
-          console.log("[v0] Fetch response status:", response.status, response.statusText)
 
           if (!response.ok) {
             console.error("[v0] Failed to fetch image. Status:", response.status, "URL:", urlData.publicUrl)
 
             // Try alternative: use the original URL directly if it's already a full URL
             if (image.image_url.startsWith("http")) {
-              console.log("[v0] Trying original URL directly:", image.image_url)
               const altResponse = await fetch(image.image_url)
               if (altResponse.ok) {
                 const blob = await altResponse.blob()

@@ -31,7 +31,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: "Agent not found" }, { status: 404 })
     }
 
-    console.log(`🚨 CLEARING ALL TRANSACTIONAL RECORDS: Agent ${agent.full_name}`)
 
     const clearingCounts = {
       withdrawals: 0,
@@ -50,7 +49,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // PERMANENT SOLUTION: Clear records in the correct order to handle foreign keys
     try {
       // STEP 1: Clear withdrawals FIRST (they reference wallet_transactions)
-      console.log("Step 1: Clearing withdrawals...")
 
       // Clear withdrawals that reference this agent's wallet transactions
       const { data: agentWalletTxIds } = await db.from("wallet_transactions").select("id").eq("agent_id", agentId)
@@ -84,10 +82,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         clearingCounts.withdrawals += withdrawalsByAgent?.length || 0
       }
 
-      console.log(`✅ Cleared ${clearingCounts.withdrawals} withdrawals`)
 
       // STEP 2: Clear wallet_transactions AFTER withdrawals
-      console.log("Step 2: Clearing wallet transactions...")
       const { data: deletedWalletTx, error: walletError } = await db
         .from("wallet_transactions")
         .delete()
@@ -99,9 +95,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         throw new Error(`Failed to clear wallet transactions: ${walletError.message}`)
       }
       clearingCounts.wallet_transactions = deletedWalletTx?.length || 0
-      console.log(`✅ Cleared ${clearingCounts.wallet_transactions} wallet transactions`)
 
-      console.log("Step 2.5: Clearing wallet topups...")
       try {
         const { data: deletedTopups, error: topupsError } = await db
           .from("wallet_topups")
@@ -111,14 +105,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         if (!topupsError) {
           clearingCounts.wallet_topups = deletedTopups?.length || 0
-          console.log(`✅ Cleared ${clearingCounts.wallet_topups} wallet topups`)
         }
       } catch (e) {
         console.warn("Wallet topups table may not exist or accessible")
       }
 
       // STEP 3: Clear other tables (safe to clear in any order)
-      console.log("Step 3: Clearing other transactional records...")
 
       try {
         const { data: deletedCommissions, error: commissionsError } = await db
@@ -129,7 +121,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         if (!commissionsError) {
           clearingCounts.commissions = deletedCommissions?.length || 0
-          console.log(`✅ Cleared ${clearingCounts.commissions} direct commissions`)
         }
       } catch (e) {
         console.warn("Commissions table may not exist or accessible")
@@ -145,7 +136,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         if (!commissionError) {
           clearingCounts.commission_deposits = deletedCommissionDeposits?.length || 0
-          console.log(`✅ Cleared ${clearingCounts.commission_deposits} commission deposits`)
         }
       } catch (e) {
         console.warn("Commission deposits table may not exist or accessible")
@@ -161,7 +151,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         if (!dataOrdersError) {
           clearingCounts.data_orders = deletedDataOrders?.length || 0
-          console.log(`✅ Cleared ${clearingCounts.data_orders} data orders`)
         }
       } catch (e) {
         console.warn("Data orders table may not exist or accessible")
@@ -177,7 +166,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         if (!wholesaleError) {
           clearingCounts.wholesale_orders = deletedWholesale?.length || 0
-          console.log(`✅ Cleared ${clearingCounts.wholesale_orders} wholesale orders`)
         }
       } catch (e) {
         console.warn("Wholesale orders table may not exist or accessible")
@@ -193,7 +181,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         if (!referralsError) {
           clearingCounts.referrals = deletedReferrals?.length || 0
-          console.log(`✅ Cleared ${clearingCounts.referrals} referrals`)
         }
       } catch (e) {
         console.warn("Referrals table may not exist or accessible")
@@ -208,7 +195,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         if (!chatsError) {
           clearingCounts.project_chats = deletedChats?.length || 0
-          console.log(`✅ Cleared ${clearingCounts.project_chats} project chats`)
         }
       } catch (e) {
         console.warn("Project chats table may not exist or accessible")
@@ -224,7 +210,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         if (!sessionsError) {
           clearingCounts.agent_sessions = deletedSessions?.length || 0
-          console.log(`✅ Cleared ${clearingCounts.agent_sessions} agent sessions`)
         }
       } catch (e) {
         console.warn("Agent sessions table may not exist or accessible")
@@ -239,14 +224,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
         if (!pendingError) {
           clearingCounts.pending_transactions = deletedPending?.length || 0
-          console.log(`✅ Cleared ${clearingCounts.pending_transactions} pending transactions`)
         }
       } catch (e) {
         console.warn("Pending transactions table may not exist or accessible")
       }
 
       // STEP 4: Reset agent balances and stats
-      console.log("Step 4: Resetting agent balances and stats...")
       const { error: resetError } = await db
         .from("agents")
         .update({
@@ -271,12 +254,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         console.error("Error resetting agent balances:", resetError)
         // Don't fail the entire operation for this
       } else {
-        console.log("✅ Reset agent balances and stats to zero")
       }
 
       const totalCleared = Object.values(clearingCounts).reduce((sum, count) => sum + count, 0)
 
-      console.log(`🎯 SUCCESS: Cleared ${totalCleared} total records for agent ${agent.full_name}`)
 
       // Create audit log
       try {

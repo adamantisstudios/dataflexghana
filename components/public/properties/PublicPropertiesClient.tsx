@@ -158,12 +158,8 @@ export default function PublicPropertiesClient() {
 
   // Filter properties
   useEffect(() => {
-    console.log("[v0] PublicPropertiesClient: Filtering properties. Total properties:", properties.length)
 
     properties.forEach((property, index) => {
-      console.log(
-        `[v0] PublicPropertiesClient: Property ${index + 1}: ${property.title}, Currency: "${property.currency}", Type: ${typeof property.currency}`,
-      )
     })
 
     let filtered = properties
@@ -213,18 +209,8 @@ export default function PublicPropertiesClient() {
       }
     }
 
-    console.log("[v0] PublicPropertiesClient: Filtered properties:", filtered.length)
-    console.log("[v0] PublicPropertiesClient: Applied filters:", {
-      searchTerm,
-      selectedCategory,
-      selectedCurrency,
-      selectedPriceRange,
-    })
 
     filtered.forEach((property, index) => {
-      console.log(
-        `[v0] PublicPropertiesClient: Filtered Property ${index + 1}: ${property.title}, Currency: "${property.currency}"`,
-      )
     })
 
     setFilteredProperties(filtered)
@@ -348,13 +334,6 @@ export default function PublicPropertiesClient() {
   const currentProperties = getPaginatedData(filteredProperties, currentPage)
   const totalPages = getTotalPages(filteredProperties.length)
 
-  console.log("[v0] PublicPropertiesClient: Pagination info:", {
-    currentPage,
-    totalPages,
-    filteredPropertiesLength: filteredProperties.length,
-    currentPropertiesLength: currentProperties.length,
-    itemsPerPage,
-  })
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 overflow-x-hidden">

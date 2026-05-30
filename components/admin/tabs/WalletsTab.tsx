@@ -1010,11 +1010,9 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
   }
 
   const handleCompleteRefresh = useCallback(async () => {
-    console.log("Performing complete refresh...")
     try {
       await connectionManager.forceReconnect()
       await Promise.all([loadNextWalletsPage(currentWalletsPage), loadPendingWalletTopups()])
-      console.log("Complete refresh successful")
     } catch (error) {
       console.error("Complete refresh failed:", error)
     }

@@ -275,7 +275,6 @@ export default function DataOrderPage() {
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log("[v0] Wallet balance listener subscribed successfully")
           }
         })
 
@@ -293,7 +292,6 @@ export default function DataOrderPage() {
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log("[v0] Wallet transactions listener subscribed successfully")
           }
         })
 

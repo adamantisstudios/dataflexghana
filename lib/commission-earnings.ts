@@ -117,7 +117,6 @@ export async function getDetailedCommissionBreakdown(agentId: string): Promise<{
   }
 
   try {
-    console.log(`📊 Getting detailed commission breakdown for agent: ${agentId}`)
 
     const { data: commissionsData, error } = await db()
       .from("commissions")
@@ -162,7 +161,6 @@ export async function getDetailedCommissionBreakdown(agentId: string): Promise<{
 
     const summary = await getAgentCommissionSummary(agentId)
 
-    console.log("✅ Detailed commission breakdown completed")
     return { summary, commissions }
   } catch (error) {
     console.error("❌ Error getting detailed commission breakdown:", error)
@@ -235,7 +233,6 @@ export async function checkCommissionWithdrawalEligibility(
   }
 
   try {
-    console.log(`🔍 Checking commission withdrawal eligibility for agent: ${agentId}, amount: ${requestedAmount}`)
 
     const summary = await getAgentCommissionSummary(agentId)
     const availableAmount = summary.availableForWithdrawal
@@ -251,7 +248,6 @@ export async function checkCommissionWithdrawalEligibility(
         : `Insufficient commission balance. Need GH₵${shortfall.toFixed(2)} more`,
     }
 
-    console.log("✅ Commission withdrawal eligibility check:", result)
     return result
   } catch (error) {
     console.error("❌ Error checking commission withdrawal eligibility:", error)
@@ -284,7 +280,6 @@ export async function processWithdrawalRequest(
   }
 
   try {
-    console.log(`🔒 Processing withdrawal request: ${withdrawalId} for agent: ${agentId}, amount: ${amount}`)
 
     const { data: commissionsToLock, error: selectError } = await db()
       .from("commissions")
@@ -337,7 +332,6 @@ export async function processWithdrawalRequest(
       throw updateError
     }
 
-    console.log(`✅ Locked ${commissionsToUpdate.length} commissions for withdrawal`)
     return {
       success: true,
       message: `Successfully locked ${commissionsToUpdate.length} commissions for withdrawal`,
@@ -369,7 +363,6 @@ export async function completeWithdrawal(withdrawalId: string): Promise<{
   }
 
   try {
-    console.log(`✅ Completing withdrawal: ${withdrawalId}`)
 
     // Step 1: Get the withdrawal details
     const { data: withdrawal, error: withdrawalError } = await db()
@@ -404,7 +397,6 @@ export async function completeWithdrawal(withdrawalId: string): Promise<{
     }
 
     const commissionsMarked = affectedRows?.length || 0
-    console.log(`✅ Marked ${commissionsMarked} commissions as withdrawn for withdrawal ${withdrawalId}`)
 
     // Step 3: Also update agent_commission_sources if it exists
     try {
@@ -452,7 +444,6 @@ export async function cancelWithdrawal(withdrawalId: string): Promise<{
   }
 
   try {
-    console.log(`❌ Canceling withdrawal: ${withdrawalId}`)
 
     // Step 1: Get the withdrawal details
     const { data: withdrawal, error: withdrawalError } = await db()
@@ -487,7 +478,6 @@ export async function cancelWithdrawal(withdrawalId: string): Promise<{
     }
 
     const commissionsReverted = affectedRows?.length || 0
-    console.log(`✅ Reverted ${commissionsReverted} commissions for cancelled withdrawal ${withdrawalId}`)
 
     // Step 3: Also update agent_commission_sources if it exists
     try {
@@ -874,7 +864,6 @@ export async function getAgentWalletSummary(agentId: string): Promise<UnifiedWal
  */
 export async function calculateCompleteEarnings(agentId: string): Promise<EarningsData> {
   try {
-    console.log("💰 Calculating complete earnings with separation enforcement for agent:", agentId)
 
     const summary = await getAgentCommissionSummary(agentId)
     const walletSummary = await getAgentWalletSummary(agentId)
@@ -899,14 +888,6 @@ export async function calculateCompleteEarnings(agentId: string): Promise<Earnin
       }
     }
 
-    console.log("✅ Earnings calculated with separation:", {
-      agentId,
-      totalCommission: summary.totalEarned,
-      availableBalance: summary.availableForWithdrawal,
-      walletBalance: walletSummary.walletBalance,
-      totalPaidOut,
-      pendingPayout,
-    })
 
     return {
       totalCommission: summary.totalEarned, // Total earned commissions
@@ -935,7 +916,6 @@ export async function calculateCompleteEarnings(agentId: string): Promise<Earnin
  */
 export async function calculateMonthlyStatistics(agentId: string) {
   try {
-    console.log(`🔍 Calculating monthly statistics for agent: ${agentId}`)
 
     const startOfMonth = new Date()
     startOfMonth.setDate(1)
@@ -982,14 +962,6 @@ export async function calculateMonthlyStatistics(agentId: string) {
       wholesaleProducts: wholesaleCount.data?.length || 0,
     }
 
-    console.log("✅ Monthly statistics calculated:", {
-      agentId,
-      totalCommissions: summary.totalEarned,
-      totalPaidOut: summary.totalWithdrawn,
-      pendingPayout: summary.pendingWithdrawal,
-      availableCommissions: summary.availableForWithdrawal,
-      walletBalance,
-    })
 
     return result
   } catch (error) {
@@ -1017,11 +989,9 @@ export async function batchCalculateAgentEarnings(agentIds: string[]): Promise<M
   const earningsMap = new Map<string, EarningsData>()
 
   if (!agentIds || agentIds.length === 0) {
-    console.log("No agent IDs provided for batch calculation")
     return earningsMap
   }
 
-  console.log(`🔄 Batch calculating earnings for ${agentIds.length} agents`)
 
   try {
     // Process agents in parallel for better performance
@@ -1054,7 +1024,6 @@ export async function batchCalculateAgentEarnings(agentIds: string[]): Promise<M
       earningsMap.set(agentId, earnings)
     })
 
-    console.log(`✅ Batch calculation completed for ${earningsMap.size} agents`)
     return earningsMap
   } catch (error) {
     console.error("Error in batch calculate agent earnings:", error)
@@ -1090,7 +1059,6 @@ async function calculateCommissionsDirectly(agentId: string): Promise<{
   totalTransactions: number
 }> {
   try {
-    console.log(`🔄 Calculating commissions directly from orders for agent: ${agentId}`)
 
     const { data: dataOrders, error: dataOrdersError } = await db()
       .from("data_orders")
@@ -1200,7 +1168,6 @@ async function calculateCommissionsDirectly(agentId: string): Promise<{
       totalTransactions: (dataOrders?.length || 0) + (referrals?.length || 0) + (wholesaleOrders?.length || 0),
     }
 
-    console.log("✅ Commission summary calculated directly from orders:", summary)
     return summary
   } catch (error) {
     console.error("❌ Error calculating commissions directly:", error)

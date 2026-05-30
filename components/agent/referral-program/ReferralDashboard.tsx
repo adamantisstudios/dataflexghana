@@ -58,7 +58,6 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
   const generateReferralLink = async () => {
     setGenerating(true)
     try {
-      console.log("[v0] Generating referral link for agent:", agentId, agentName)
 
       const response = await fetch("/api/agent/referral/generate-link", {
         method: "POST",
@@ -69,7 +68,6 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
         }),
       })
 
-      console.log("[v0] Response status:", response.status)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -82,7 +80,6 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
       }
 
       const result = await response.json()
-      console.log("[v0] API Success:", result)
 
       if (result.success && result.data) {
         setReferralLink(result.data.referral_url)
@@ -104,15 +101,7 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
       const response = await fetch(`/api/agent/referral/stats?agent_id=${agentId}`)
       const result = await response.json()
 
-      console.log("[v0] Stats result:", result)
       if (result.recentReferrals) {
-        console.log(
-          "[v0] Recent referrals with statuses:",
-          result.recentReferrals.map((r) => ({
-            name: r.full_name,
-            status: r.status,
-          })),
-        )
       }
 
       if (result.success) {
@@ -133,7 +122,6 @@ export function ReferralDashboard({ agentId, agentName }: Props) {
     fetchStats()
 
     const interval = setInterval(() => {
-      console.log("[v0] Auto-refreshing referral stats...")
       fetchStats()
     }, 10000)
 

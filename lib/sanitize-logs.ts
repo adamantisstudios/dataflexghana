@@ -74,17 +74,10 @@ export function sanitizeObject(obj: any): any {
 }
 
 /**
- * Safe console.log wrapper that sanitizes output in production
+ * Safe console.log wrapper — no-op to avoid PII in browser/server consoles
  */
-export function safeConsoleLog(...args: any[]) {
-  if (process.env.NODE_ENV === "production") {
-    // In production, sanitize all arguments
-    const sanitizedArgs = args.map((arg) => sanitizeObject(arg))
-    console.log(...sanitizedArgs)
-  } else {
-    // In development, log normally
-    console.log(...args)
-  }
+export function safeConsoleLog(..._args: any[]) {
+  // intentionally empty
 }
 
 /**
@@ -102,15 +95,8 @@ export function safeConsoleError(...args: any[]) {
 }
 
 /**
- * Safe console.warn wrapper that sanitizes output in production
+ * Safe console.warn wrapper — no-op to avoid PII in consoles
  */
-export function safeConsoleWarn(...args: any[]) {
-  if (process.env.NODE_ENV === "production") {
-    // In production, sanitize all arguments
-    const sanitizedArgs = args.map((arg) => sanitizeObject(arg))
-    console.warn(...sanitizedArgs)
-  } else {
-    // In development, log normally
-    console.warn(...args)
-  }
+export function safeConsoleWarn(..._args: any[]) {
+  // intentionally empty
 }

@@ -235,14 +235,6 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       // Note: We don't return error here as the savings account was created successfully
     }
 
-    console.log("✅ Savings commitment processed:", {
-      agentId: targetAgentId,
-      amount: depositAmount,
-      planName: plan.name,
-      walletBalanceBeforeDeduction: currentWalletBalance,
-      walletBalanceAfterDeduction: newWalletBalance,
-      savingsId: newSaving.id,
-    })
 
     await logAuditFromRequest(request, {
       actorId: targetAgentId,

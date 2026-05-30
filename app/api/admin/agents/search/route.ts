@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[v0] 🔍 Searching agents:", searchTerm)
 
     const searchPattern = `%${searchTerm}%`
 
@@ -92,7 +91,6 @@ export async function POST(request: NextRequest) {
       status: agent.status ?? (agent.isapproved ? "active" : "pending"),
     }))
 
-    console.log("[v0] ✅ Agents found:", agents.length)
 
     return NextResponse.json({
       success: true,

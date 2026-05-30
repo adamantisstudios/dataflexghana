@@ -45,7 +45,6 @@ export async function getCurrentSupabaseUser() {
  */
 export async function signInWithSupabaseAuth(email: string, password: string) {
   try {
-    console.log("🔐 Attempting Supabase Auth signIn for:", email)
 
     const { data, error } = await supabaseHybridAuth.auth.signInWithPassword({
       email: email.toLowerCase().trim(),
@@ -58,7 +57,6 @@ export async function signInWithSupabaseAuth(email: string, password: string) {
     }
 
     if (data.user) {
-      console.log("✅ Supabase Auth signIn successful! User ID:", data.user.id)
       return { success: true, user: data.user, session: data.session }
     }
 
@@ -74,7 +72,6 @@ export async function signInWithSupabaseAuth(email: string, password: string) {
  */
 export async function signOutSupabaseAuth() {
   try {
-    console.log("🚪 Signing out from Supabase Auth...")
     const { error } = await supabaseHybridAuth.auth.signOut()
 
     if (error) {
@@ -82,7 +79,6 @@ export async function signOutSupabaseAuth() {
       return { success: false, error: error.message }
     }
 
-    console.log("✅ Supabase Auth signOut successful!")
     return { success: true }
   } catch (error) {
     console.error("💥 Unexpected error in signOutSupabaseAuth:", error)

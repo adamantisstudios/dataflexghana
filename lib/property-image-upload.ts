@@ -32,7 +32,6 @@ export async function uploadPropertyImage(
     // Determine bucket based on target
     const bucketName = target === "admin" ? "admin-property-images" : "agent-property-images"
 
-    console.log(`[v0] Starting upload to '${bucketName}': properties/${file.name}`)
 
     // Create a unique filename
     const timestamp = Date.now()
@@ -58,7 +57,6 @@ export async function uploadPropertyImage(
       .from(bucketName)
       .getPublicUrl(data.path)
 
-    console.log(`[v0] Upload successful: ${publicUrlData.publicUrl}`)
 
     // Call progress callback if provided (after successful upload)
     if (typeof onProgress === "function") {
@@ -99,7 +97,6 @@ export async function deletePropertyImage(imageUrl: string, target: UploadTarget
       throw new Error(`Delete failed: ${error.message}`)
     }
 
-    console.log(`[v0] Image deleted successfully from ${bucketName}: ${filePath}`)
   } catch (error) {
     console.error(`[v0] Error deleting image:`, error)
     throw error

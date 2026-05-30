@@ -650,7 +650,6 @@ export async function createWholesaleOrder(
 
 export async function getWholesaleOrders(): Promise<WholesaleOrder[]> {
   try {
-    console.log("🔄 Starting wholesale orders fetch...")
 
     // First try the admin API (for admin dashboard usage)
     try {
@@ -665,7 +664,6 @@ export async function getWholesaleOrders(): Promise<WholesaleOrder[]> {
 
       while (retryCount < maxRetries) {
         try {
-          console.log(`📡 Attempt ${retryCount + 1}/${maxRetries} - Fetching wholesale orders...`)
 
           const queryPromise = supabase
             .from("wholesale_orders")
@@ -698,7 +696,6 @@ export async function getWholesaleOrders(): Promise<WholesaleOrder[]> {
               retryCount++
               if (retryCount < maxRetries) {
                 const delay = Math.min(1000 * Math.pow(2, retryCount), 5000) // Exponential backoff, max 5s
-                console.log(`⏳ Retrying in ${delay}ms...`)
                 await new Promise((resolve) => setTimeout(resolve, delay))
                 continue
               }
@@ -710,7 +707,6 @@ export async function getWholesaleOrders(): Promise<WholesaleOrder[]> {
 
           // Success case
           const orders = data || []
-          console.log(`✅ Successfully fetched ${orders.length} wholesale orders on attempt ${retryCount + 1}`)
           return orders
         } catch (attemptError) {
           console.error(`❌ Attempt ${retryCount + 1} threw exception:`, attemptError)
@@ -719,7 +715,6 @@ export async function getWholesaleOrders(): Promise<WholesaleOrder[]> {
 
           if (retryCount < maxRetries) {
             const delay = Math.min(1000 * Math.pow(2, retryCount), 5000)
-            console.log(`⏳ Retrying in ${delay}ms...`)
             await new Promise((resolve) => setTimeout(resolve, delay))
           }
         }
@@ -759,7 +754,6 @@ export async function getWholesaleOrders(): Promise<WholesaleOrder[]> {
 // Fallback method for fetching wholesale orders when main method fails
 async function getWholesaleOrdersFallback(): Promise<WholesaleOrder[]> {
   try {
-    console.log("🔄 Using fallback method to fetch wholesale orders...")
 
     // Try a simpler query first
     const { data: basicOrders, error: basicError } = await supabase
@@ -773,11 +767,9 @@ async function getWholesaleOrdersFallback(): Promise<WholesaleOrder[]> {
     }
 
     if (!basicOrders || basicOrders.length === 0) {
-      console.log("ℹ️ No orders found in fallback method")
       return []
     }
 
-    console.log(`📦 Found ${basicOrders.length} orders, enriching with related data...`)
 
     // Enrich orders with agent and product data separately
     const enrichedOrders = await Promise.all(
@@ -840,7 +832,6 @@ async function getWholesaleOrdersFallback(): Promise<WholesaleOrder[]> {
       }),
     )
 
-    console.log(`✅ Successfully enriched ${enrichedOrders.length} orders using fallback method`)
     return enrichedOrders
   } catch (error) {
     console.error("❌ Error in fallback wholesale orders fetch:", error)
@@ -875,7 +866,6 @@ export async function getWholesaleOrdersByAgentAPI(agentId: string): Promise<Who
       throw new WholesaleError("Agent ID is required")
     }
 
-    console.log("🔍 Fetching agent wholesale orders via API for agent:", agentId)
 
     const response = await fetch(`/api/agent/wholesale/orders?agent_id=${encodeURIComponent(agentId)}`, {
       method: "GET",
@@ -894,14 +884,8 @@ export async function getWholesaleOrdersByAgentAPI(agentId: string): Promise<Who
       throw new WholesaleError(`Failed to fetch orders: ${result.error || "API request failed"}`)
     }
 
-    console.log("✅ Successfully fetched agent orders via API:", {
-      agent_id: agentId,
-      orders_count: result.orders?.length || 0,
-    })
 
     if (result.orders && result.orders.length > 0) {
-      console.log("[v0] First order from API:", result.orders[0])
-      console.log("[v0] First order variant_data from API:", result.orders[0].variant_data)
     }
 
     return result.orders || []
@@ -1015,7 +999,6 @@ export async function deleteWholesaleOrder(id: string): Promise<void> {
 // NEW: Admin API functions for bypassing RLS
 export async function getWholesaleOrdersAdmin(): Promise<WholesaleOrder[]> {
   try {
-    console.log("🔄 Using admin API to fetch wholesale orders...")
 
     const response = await fetch("/api/admin/wholesale/orders", {
       method: "GET",
@@ -1034,13 +1017,8 @@ export async function getWholesaleOrdersAdmin(): Promise<WholesaleOrder[]> {
       throw new WholesaleError(`Failed to fetch orders: ${result.error || "API request failed"}`)
     }
 
-    console.log("✅ Successfully fetched orders via admin API:", {
-      orders_count: result.orders?.length || 0,
-    })
 
     if (result.orders && result.orders.length > 0) {
-      console.log("[v0] First order from admin API:", result.orders[0])
-      console.log("[v0] First order variant_data from admin API:", result.orders[0].variant_data)
     }
 
     return result.orders || []
@@ -1066,7 +1044,6 @@ export async function updateWholesaleOrderStatusAdmin(
       throw new WholesaleError("Order status is required")
     }
 
-    console.log("🔄 Using admin API to update order status:", { id, status, adminNotes })
 
     const response = await fetch("/api/admin/wholesale/orders", {
       method: "PUT",
@@ -1107,7 +1084,6 @@ export async function updateWholesaleOrderStatusAdmin(
       throw new WholesaleError(`Failed to update order status: ${result.error || "API request failed"}`)
     }
 
-    console.log("✅ Successfully updated order status via admin API:", { id, status })
 
     return result.order
   } catch (error) {
@@ -1125,7 +1101,6 @@ export async function updateWholesaleOrderCommissionPaidAdmin(id: string, paid: 
       throw new WholesaleError("Order ID is required")
     }
 
-    console.log("🔄 Using admin API to update commission paid status:", { id, paid })
 
     const response = await fetch("/api/admin/wholesale/orders", {
       method: "PUT",
@@ -1154,7 +1129,6 @@ export async function updateWholesaleOrderCommissionPaidAdmin(id: string, paid: 
       throw new WholesaleError(`Failed to update commission status: ${result.error || "API request failed"}`)
     }
 
-    console.log("✅ Successfully updated commission status via admin API:", { id, paid })
   } catch (error) {
     if (error instanceof WholesaleError) {
       throw error
@@ -1172,7 +1146,6 @@ export async function deleteWholesaleOrderAdmin(id: string): Promise<void> {
       throw new WholesaleError("Order ID is required")
     }
 
-    console.log("🔄 Using admin API to delete order:", id)
 
     const response = await fetch(`/api/admin/wholesale/orders?orderId=${encodeURIComponent(id)}`, {
       method: "DELETE",
@@ -1191,7 +1164,6 @@ export async function deleteWholesaleOrderAdmin(id: string): Promise<void> {
       throw new WholesaleError(`Failed to delete order: ${result.error || "API request failed"}`)
     }
 
-    console.log("✅ Successfully deleted order via admin API:", id)
   } catch (error) {
     if (error instanceof WholesaleError) {
       throw error
@@ -1283,7 +1255,6 @@ export async function searchWholesaleProducts(query: string, category?: string):
 // CRITICAL FIX: Add commission system functions
 export async function getAgentCommissionBalance(agentId: string): Promise<number> {
   try {
-    console.log("Loading commission balance for agent:", agentId)
 
     // Get unpaid referral commissions
     const { data: referralCommissions } = await supabase
@@ -1346,14 +1317,6 @@ export async function getAgentCommissionBalance(agentId: string): Promise<number
     const totalUnpaidCommissions = unpaidReferralCommission + unpaidDataCommission + unpaidWholesaleCommission
     const availableBalance = Math.max(0, totalUnpaidCommissions - totalPaidWithdrawals - totalPendingWithdrawals)
 
-    console.log("Commission balance calculated:", {
-      unpaidReferralCommission,
-      unpaidDataCommission,
-      unpaidWholesaleCommission,
-      totalPaidWithdrawals,
-      totalPendingWithdrawals,
-      availableBalance,
-    })
 
     return availableBalance
   } catch (error) {
@@ -1383,23 +1346,14 @@ export async function validateWithdrawalRequest(
   amount: number,
 ): Promise<{ isValid: boolean; errorMessage?: string }> {
   try {
-    console.log("[v0] Starting validateWithdrawalRequest:", { agentId, amount })
 
     const availableBalance = await getAgentCommissionBalance(agentId)
 
-    console.log("[v0] Validation balance check:", {
-      agentId,
-      requestedAmount: amount,
-      availableBalance,
-      isValid: availableBalance >= amount,
-    })
 
     if (availableBalance >= amount) {
-      console.log("[v0] Withdrawal validation PASSED")
       return { isValid: true }
     } else {
       const errorMessage = `Insufficient commission balance. Available: ${availableBalance.toFixed(2)}, Requested: ${amount.toFixed(2)}`
-      console.log("[v0] Withdrawal validation FAILED:", errorMessage)
       return {
         isValid: false,
         errorMessage,
@@ -1440,7 +1394,6 @@ export async function validateWithdrawalRequest(
         error.message?.includes("function") ||
         error.message?.includes("does not exist")
       ) {
-        console.log("Database function not found, using fallback validation")
         return await validateWithdrawalRequestFallback(agentId, amount)
       }
 
@@ -1488,7 +1441,6 @@ async function validateWithdrawalRequestFallback(
   commissionSources: any[]
 }> {
   try {
-    console.log("[v0] validateWithdrawalRequestFallback called with:", { agentId, amount })
 
     // Validate inputs
     if (!agentId?.trim()) {
@@ -1509,14 +1461,10 @@ async function validateWithdrawalRequestFallback(
       }
     }
 
-    console.log("[v0] About to call getAgentCommissionBalance for agent:", agentId)
 
     // Get available balance using existing function
     const availableBalance = await getAgentCommissionBalance(agentId)
 
-    console.log("[v0] getAgentCommissionBalance returned:", availableBalance)
-    console.log("[v0] Requested amount:", amount)
-    console.log("[v0] Balance check:", { availableBalance, amount, sufficient: amount <= availableBalance })
 
     // Get commission sources manually
     const commissionSources = []
@@ -1534,7 +1482,6 @@ async function validateWithdrawalRequestFallback(
         .eq("status", "completed")
         .or("commission_paid.is.null,commission_paid.eq.false")
 
-      console.log("[v0] Referrals query result:", { count: referrals?.length || 0, error: referralsError })
 
       if (!referralsError && referrals) {
         referrals.forEach((r) => {
@@ -1559,7 +1506,6 @@ async function validateWithdrawalRequestFallback(
         .eq("status", "completed")
         .or("commission_paid.is.null,commission_paid.eq.false")
 
-      console.log("[v0] Data orders query result:", { count: dataOrders?.length || 0, error: dataOrdersError })
 
       if (!dataOrdersError && dataOrders) {
         dataOrders.forEach((d) => {
@@ -1584,10 +1530,6 @@ async function validateWithdrawalRequestFallback(
         .eq("source_type", "wholesale_order")
         .eq("status", "earned")
 
-      console.log("[v0] Wholesale commissions query result:", {
-        count: commissions?.length || 0,
-        error: commissionsError,
-      })
 
       if (!commissionsError && commissions) {
         commissions.forEach((c) => {
@@ -1603,15 +1545,9 @@ async function validateWithdrawalRequestFallback(
       console.warn("Error fetching wholesale commissions:", error)
     }
 
-    console.log("[v0] Total commission sources found:", commissionSources.length)
-    console.log(
-      "[v0] Commission sources breakdown:",
-      commissionSources.map((s) => ({ type: s.source_type, amount: s.commission_amount })),
-    )
 
     // Validate amount against available balance
     if (amount > availableBalance) {
-      console.log("[v0] VALIDATION FAILED - Insufficient balance")
       return {
         isValid: false,
         errorMessage: `Insufficient commission balance. Available: ${availableBalance.toFixed(2)}, Requested: ${amount.toFixed(2)}`,
@@ -1620,7 +1556,6 @@ async function validateWithdrawalRequestFallback(
       }
     }
 
-    console.log("[v0] VALIDATION PASSED - Sufficient balance")
     return {
       isValid: true,
       errorMessage: "Valid withdrawal request",
@@ -1644,7 +1579,6 @@ export async function createWithdrawalRequest(
   momoNumber: string,
 ): Promise<string | null> {
   try {
-    console.log("[v0] Creating withdrawal request:", { agentId, amount, momoNumber })
 
     if (!agentId?.trim()) {
       throw new WholesaleError("Agent ID is required")
@@ -1677,7 +1611,6 @@ export async function createWithdrawalRequest(
       throw new WholesaleError("No withdrawal ID returned from database")
     }
 
-    console.log("[v0] Withdrawal request created successfully:", data.id)
     return data.id
   } catch (error) {
     if (error instanceof WholesaleError) {
@@ -1690,7 +1623,6 @@ export async function createWithdrawalRequest(
 
 export async function getWithdrawalWithCommissionSources(withdrawalId: string): Promise<any> {
   try {
-    console.log("Getting withdrawal with commission sources:", withdrawalId)
 
     if (!withdrawalId?.trim()) {
       throw new WholesaleError("Withdrawal ID is required")
@@ -1802,7 +1734,6 @@ export async function processWithdrawalPayout(
   payoutReference?: string,
 ): Promise<boolean> {
   try {
-    console.log("Processing withdrawal payout:", { withdrawalId, adminId, payoutReference })
 
     if (!withdrawalId?.trim()) {
       throw new WholesaleError("Withdrawal ID is required")
@@ -1872,7 +1803,6 @@ export async function processWithdrawalPayout(
         .eq("withdrawal_id", withdrawalId),
     ])
 
-    console.log("Withdrawal payout processed successfully:", withdrawalId)
     return true
   } catch (error) {
     if (error instanceof WholesaleError) {

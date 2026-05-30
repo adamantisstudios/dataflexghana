@@ -29,7 +29,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Agent not found" }, { status: 404 })
     }
 
-    console.log(`📊 Exporting data for agent: ${agent.full_name} (${agent.id})`)
 
     // Fetch all related data using correct table names with error handling
     const fetchPromises = [
@@ -299,7 +298,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       },
     }
 
-    console.log(`✅ Successfully prepared export data for agent ${agent.full_name}`)
 
     // Return as JSON file download
     const jsonString = JSON.stringify(exportData, null, 2)

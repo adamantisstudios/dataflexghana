@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
     }
 
     const admin = authResult.user;
-    console.log('✅ Admin authenticated for data bundles fetch:', admin.id);
 
     const { data: bundles, error } = await supabase
       .from('data_bundles')
@@ -50,7 +49,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const supabase = getAdminClient()
   try {
-    console.log('POST /api/admin/data-bundles - Starting request processing')
 
     // CRITICAL FIX: Add proper admin authentication
     const authResult = await authenticateAdmin(request);
@@ -62,10 +60,8 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = authResult.user;
-    console.log('✅ Admin authenticated for data bundle creation:', admin.id);
 
     const body = await request.json()
-    console.log('Request body received:', JSON.stringify(body, null, 2))
 
     const {
       name,
@@ -78,9 +74,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // CRITICAL FIX: Validate commission rate
-    console.log('Validating commission rate:', commission_rate)
     const rateValidation = validateCommissionRate(commission_rate)
-    console.log('Commission rate validation result:', rateValidation)
     
     if (!rateValidation.isValid) {
       console.error('Commission rate validation failed:', rateValidation.error)
@@ -147,11 +141,9 @@ export async function POST(request: NextRequest) {
 
     // CRITICAL FIX: Ensure precise decimal storage
     const preciseCommissionRate = parseFloat(rateValidation.numericValue!.toFixed(6))
-    console.log('Precise commission rate:', preciseCommissionRate)
 
     // Calculate sample commission for validation
     const commissionCalculation = calculatePreciseCommission(numericPrice, preciseCommissionRate)
-    console.log('Commission calculation result:', commissionCalculation)
     
     if (!commissionCalculation.isValid) {
       console.error('Commission calculation failed:', commissionCalculation.error)
@@ -172,7 +164,6 @@ export async function POST(request: NextRequest) {
       is_active: true
     }
 
-    console.log('Final bundle data to insert:', JSON.stringify(bundleData, null, 2))
 
     const { data: newBundle, error: insertError } = await supabase
       .from('data_bundles')
@@ -188,7 +179,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Bundle created successfully:', newBundle)
     return NextResponse.json({
       success: true,
       data: newBundle,
@@ -217,7 +207,6 @@ export async function PUT(request: NextRequest) {
     }
 
     const admin = authResult.user;
-    console.log('✅ Admin authenticated for data bundle update:', admin.id);
 
     const body = await request.json()
     const {
@@ -371,7 +360,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     const admin = authResult.user;
-    console.log('✅ Admin authenticated for data bundle deletion:', admin.id);
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

@@ -172,7 +172,6 @@ export function useOptimisticUpdates() {
       }
 
       if (orderToUpdate.status === normalizedStatus) {
-        console.log(`Order ${orderId} already has status "${normalizedStatus}", skipping update`)
         return orderToUpdate
       }
 
@@ -185,7 +184,6 @@ export function useOptimisticUpdates() {
       return execute(
         async () => {
           try {
-            console.log(`Attempting to update order ${orderId} to status ${normalizedStatus}`)
             if (!supabase) {
               throw new Error("Supabase client not initialized")
             }
@@ -193,13 +191,11 @@ export function useOptimisticUpdates() {
             const {
               data: { session },
             } = await supabase.auth.getSession()
-            console.log(`Auth session exists: ${!!session}`)
 
             const updatePayload = {
               status: normalizedStatus,
               updated_at: new Date().toISOString(),
             }
-            console.log("Update payload:", updatePayload)
 
             const { data, error } = await supabase
               .from("data_orders")
@@ -208,9 +204,7 @@ export function useOptimisticUpdates() {
               .select("*")
               .maybeSingle()
 
-            console.log(`Database response - Data exists: ${!!data}, Error exists: ${!!error}`)
             if (data) {
-              console.log("Returned data keys:", Object.keys(data))
             }
 
             if (error) {
@@ -302,12 +296,10 @@ export function useOptimisticUpdates() {
             const reconciled = optimistic.map((o) => (o && o.id === orderId ? { ...o, ...data } : o))
             setDataOrders(reconciled)
             if (setCachedData) setCachedData(reconciled)
-            console.log(`Successfully updated order ${orderId} to status "${normalizedStatus}"`)
 
             if (normalizedStatus === "completed") {
               setTimeout(async () => {
                 try {
-                  console.log("Creating commission transaction for completed order:", orderId)
                   let bundlePrice = 0
                   let commissionRate = 0
                   if (orderToUpdate.data_bundles?.price) {
@@ -327,7 +319,6 @@ export function useOptimisticUpdates() {
                     commissionRate = Number(orderToUpdate.commission_rate)
                   } else {
                     commissionRate = 0.1
-                    console.log("Using default commission rate of 10% for order:", orderId)
                   }
 
                   if (isNaN(bundlePrice) || bundlePrice <= 0) {
@@ -342,15 +333,8 @@ export function useOptimisticUpdates() {
 
                   // Calculate commission with full precision
                   const preciseAmount = bundlePrice * commissionRate
-                  console.log("Commission calculation:", {
-                    orderId,
-                    bundlePrice,
-                    commissionRate,
-                    finalAmount: preciseAmount,
-                  })
 
                   if (isNaN(preciseAmount) || preciseAmount <= 0) {
-                    console.log("Commission amount is invalid or zero, skipping commission creation:", preciseAmount)
                     return
                   }
 
@@ -358,12 +342,10 @@ export function useOptimisticUpdates() {
                   const truncatedAmount = Math.floor(preciseAmount * 100) / 100
 
                   if (truncatedAmount < 0.01) {
-                    console.log("Commission amount is below minimum threshold (0.01), skipping:", truncatedAmount)
                     return
                   }
 
                   if (truncatedAmount > 0.4) {
-                    console.log("Commission amount exceeds maximum threshold (0.40), capping at 0.40")
                   }
 
                   const commissionRecord = {
@@ -376,7 +358,6 @@ export function useOptimisticUpdates() {
                     updated_at: new Date().toISOString(),
                   }
 
-                  console.log("Creating commission record:", commissionRecord)
                   const { data: commData, error: commError } = await supabase
                     .from("commissions")
                     .insert([commissionRecord])
@@ -400,7 +381,6 @@ export function useOptimisticUpdates() {
                       record: commissionRecord,
                     })
                   } else {
-                    console.log("Commission record created successfully:", commData)
                   }
                 } catch (error) {
                   console.error("Background commission creation failed:", {
@@ -415,7 +395,6 @@ export function useOptimisticUpdates() {
             if (normalizedStatus === "canceled" || normalizedStatus === "cancelled") {
               setTimeout(async () => {
                 try {
-                  console.log("Creating refund transaction for cancelled order:", orderId)
                   let refundAmount = 0
                   if (orderToUpdate.total_amount) {
                     refundAmount = Number(orderToUpdate.total_amount)
@@ -456,7 +435,6 @@ export function useOptimisticUpdates() {
                       transaction: refundTransaction,
                     })
                   } else {
-                    console.log("Refund transaction created successfully:", txData)
                   }
                 } catch (error) {
                   console.error("Background refund creation failed:", {

@@ -26,9 +26,6 @@ export async function handleOrderStatusChange(
   adminId: string
 ): Promise<CommissionReversalResult> {
   try {
-    console.log('🔄 Handling order status change:', {
-      orderId, orderType, oldStatus, newStatus, adminId
-    })
 
     // Check if commission reversal is needed
     const needsReversal = shouldReverseCommission(oldStatus, newStatus)

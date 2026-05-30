@@ -8,7 +8,6 @@ export async function POST(request: NextRequest) {
 
     const data = await request.json()
     
-    console.log("[v0] Received request to data-orders log endpoint:", JSON.stringify(data, null, 2))
 
     // Validate required fields - only the fields that match the schema
     if (!data.network) {
@@ -54,7 +53,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[v0] All required fields validated. Processing data bundle order...")
 
     // Only insert the exact fields that exist in the schema
     const insertData = {
@@ -66,7 +64,6 @@ export async function POST(request: NextRequest) {
       payment_method: data.payment_method,
     }
 
-    console.log("[v0] Insert data prepared:", JSON.stringify(insertData, null, 2))
 
     // Insert into database using service role
     const { data: result, error } = await supabase
@@ -82,7 +79,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[v0] Order successfully logged to database:", JSON.stringify(result, null, 2))
     return NextResponse.json(
       { success: true, message: "Order logged successfully", data: result?.[0] },
       { status: 200 }

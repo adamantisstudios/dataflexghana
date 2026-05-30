@@ -113,15 +113,6 @@ export function DataBundleOrderForm() {
       const referenceCode = generatePaymentPIN();
       const totalAmount = selectedBundle.price * formData.quantity;
 
-      console.log("[v0] Submitting data order with reference code:", referenceCode);
-      console.log("[v0] Order data:", {
-        network: selectedNetwork,
-        data_bundle: selectedBundle.name,
-        amount: totalAmount,
-        phone_number: formData.phoneNumber,
-        reference_code: referenceCode,
-        payment_method: formData.paymentMethod,
-      });
 
       // Log the order to database
       const response = await fetch("/api/admin/data-orders/log", {
@@ -138,19 +129,16 @@ export function DataBundleOrderForm() {
       });
 
       const result = await response.json();
-      console.log("[v0] API response:", result);
 
       if (!response.ok || !result.success) {
         console.error("[v0] Order logging failed:", result);
         throw new Error(result.message || "Failed to log order");
       }
 
-      console.log("[v0] Order logged successfully to database:", result.data);
       toast.success("Order placed successfully! Admin will contact you shortly.");
 
       // Handle different payment methods AFTER logging
       if (formData.paymentMethod === "paystack") {
-        console.log("[v0] Initializing Paystack payment for data bundle order");
         // Initialize Paystack payment
         try {
           const paystackResponse = await fetch("/api/paystack/initialize", {

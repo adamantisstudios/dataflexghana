@@ -27,7 +27,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { admin_id, reason } = await request.json()
     const referralId = params.id
 
-    console.log("[v0] Rejecting invitation:", referralId)
 
     const { error: updateError } = await supabase
       .from("referral_links")
@@ -50,7 +49,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     if (auditError) console.error("[v0] Audit log error:", auditError)
 
-    console.log("[v0] Invitation rejected successfully")
 
     return NextResponse.json({
       success: true,

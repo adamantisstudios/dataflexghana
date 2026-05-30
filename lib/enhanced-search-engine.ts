@@ -680,7 +680,6 @@ export function getSearchInsights(index: CandidatesIndex, query: string) {
 import candidates from './data/candidates.json'
 const index = buildCandidatesIndex(candidates)
 const results = enhancedCandidateSearch(index, "experienced teacher in Kumasi", { topK: 30, minScore: 12 })
-console.log(results.map(r => ({ id: r.candidate.id, score: r.score, matched: r.matchedFields })))
 */
 
 /**********************

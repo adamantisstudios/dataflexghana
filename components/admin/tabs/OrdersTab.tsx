@@ -165,9 +165,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   }, [filteredOrders.length, currentOrdersPage])
 
   const setupRealtimeSubscription = useCallback(() => {
-    console.log("Setting up real-time subscription for data_orders...")
     const unsubscribe = realtimeManager.subscribe("orders_tab_subscription", "data_orders", (payload) => {
-      console.log("Real-time order update received:", payload)
       if (payload.eventType === "INSERT") {
         const newOrder = payload.new as DataOrder
         setDataOrders((prev) => {
@@ -269,7 +267,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
           throw error
         }
         const ordersData = data || []
-        console.log(`✅ Successfully loaded ${ordersData.length} data orders`)
         const processedOrders = filterVisibleDataOrders(
           ordersData.map((order) => ({
             ...order,
@@ -350,7 +347,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
           return
         }
         if (orderToUpdate.status === normalizedStatus) {
-          console.log(`Order ${orderId} already has status "${normalizedStatus}", no update needed`)
           return
         }
         const currentStatus = orderToUpdate.status?.toLowerCase()
@@ -363,12 +359,9 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
           return
         }
         setConnectionError(null)
-        console.log(`Updating order ${orderId} from "${currentStatus}" to "${normalizedStatus}"`)
         await updateOrderStatus(orderId, normalizedStatus, dataOrders, setDataOrders, setCachedData)
         if (normalizedStatus === "completed" && currentStatus !== "completed") {
-          console.log(`Order ${orderId} completed - commission should be automatically processed`)
         }
-        console.log(`Successfully updated order ${orderId} to status "${normalizedStatus}"`)
       } catch (error: any) {
         console.error("Order status update failed:", error)
         let errorMessage = "Failed to update order status. Please try again."
@@ -480,7 +473,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   }
 
   const handleCompleteRefresh = useCallback(async () => {
-    console.log("Performing complete refresh...")
     try {
       await connectionManager.forceReconnect()
       await loadOrders(true)
@@ -489,7 +481,6 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
       }
       setupRealtimeSubscription()
       setLastRefresh(new Date())
-      console.log("Complete refresh successful")
     } catch (error) {
       console.error("Complete refresh failed:", error)
     }

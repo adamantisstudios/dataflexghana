@@ -14,7 +14,7 @@
  */
 
 import { supabase } from './supabase-hybrid-auth'
-import { signInWithSupabaseAuth, signOutSupabaseAuth, getCurrentSupabaseUser, hasSupabaseAuthSession } from './supabase-hybrid-auth'
+import { signInWithSupabaseAuth, signOutSupabaseAuth } from './supabase-hybrid-auth'
 
 // ============ TYPES ============
 
@@ -112,7 +112,6 @@ export function setStoredAgent(agent: Agent): void {
 
   try {
     localStorage.setItem(AGENT_STORAGE_KEY, JSON.stringify(agent))
-    console.log('✅ Agent session saved to localStorage')
   } catch (error) {
     console.error('Error storing agent:', error)
   }
@@ -153,7 +152,6 @@ export function clearStoredAgent(): void {
 
   try {
     localStorage.removeItem(AGENT_STORAGE_KEY)
-    console.log('🗑️ Agent session cleared from localStorage')
   } catch (error) {
     console.error('Error clearing stored agent:', error)
   }
@@ -245,7 +243,6 @@ export async function loginAgent(phoneNumber: string, password: string): Promise
   error?: string
 }> {
   try {
-    console.log('🔐 Attempting agent login for:', phoneNumber)
 
     // Query the agents table directly
     const { data: agent, error } = await supabase
@@ -256,7 +253,6 @@ export async function loginAgent(phoneNumber: string, password: string): Promise
       .single()
 
     if (error || !agent) {
-      console.log('❌ Agent not found or not approved')
       return { success: false, error: 'Invalid phone number or password' }
     }
 
@@ -264,14 +260,12 @@ export async function loginAgent(phoneNumber: string, password: string): Promise
     const isValidPassword = agent.password === password || agent.password_hash === password
 
     if (!isValidPassword) {
-      console.log('❌ Invalid password')
       return { success: false, error: 'Invalid phone number or password' }
     }
 
     // Replace any stale session from a prior agent on this device
     establishAgentSession(agent)
 
-    console.log('✅ Agent login successful!')
     return { success: true, agent }
 
   } catch (error) {
@@ -321,7 +315,6 @@ export function setStoredAdmin(admin: AdminUser): void {
     // Also store in cookies for server-side access
     setCookieSafe(ADMIN_STORAGE_KEY, JSON.stringify(admin), 7)
 
-    console.log('✅ Admin session saved to localStorage and cookies')
   } catch (error) {
     console.error('Error storing admin:', error)
   }
@@ -336,7 +329,6 @@ export function clearStoredAdmin(): void {
   try {
     localStorage.removeItem(ADMIN_STORAGE_KEY)
     removeCookieSafe(ADMIN_STORAGE_KEY)
-    console.log('🗑️ Admin session cleared from localStorage and cookies')
   } catch (error) {
     console.error('Error clearing stored admin:', error)
   }
@@ -354,23 +346,11 @@ export function isAdminLoggedIn(): boolean {
  * HYBRID LOGOUT: Clears both localStorage and Supabase Auth sessions
  */
 export function logoutAdmin(): void {
-  console.log('🚪 Starting hybrid admin logout...')
-
-  // Clear localStorage session (existing behavior)
   clearStoredAdmin()
-
-  // Clear Supabase Auth session (new behavior)
-  signOutSupabaseAuth().then((result) => {
-    if (result.success) {
-      console.log('✅ Supabase Auth session cleared')
-    } else {
-      console.log('⚠️ Error clearing Supabase Auth session:', result.error)
-    }
-  }).catch((error) => {
-    console.log('⚠️ Unexpected error during Supabase Auth logout:', error)
+  signOutSupabaseAuth().catch((error) => {
+    console.error("Error clearing Supabase Auth session on admin logout:", error)
   })
 
-  // Trigger storage event for other tabs
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new StorageEvent('storage', {
       key: ADMIN_STORAGE_KEY,
@@ -378,8 +358,6 @@ export function logoutAdmin(): void {
       oldValue: localStorage.getItem(ADMIN_STORAGE_KEY)
     }))
   }
-
-  console.log('✅ Hybrid admin logout complete!')
 }
 
 // ============ NEW VALIDATE ADMIN LOGIN FUNCTION - COMPREHENSIVE FIX ============
@@ -389,11 +367,9 @@ export function logoutAdmin(): void {
  * Uses the new database function to bypass RLS issues completely
  */
 export async function validateAdminLogin(adminEmail: string, adminPassword: string) {
-  console.log("🔐 Attempting admin validation for:", adminEmail);
 
   try {
     // METHOD 1: Use the new database function (primary method)
-    console.log("📋 Method 1: Using validate_admin_credentials function...");
     
     const { data: functionResult, error: functionError } = await supabase
       .rpc('validate_admin_credentials', {
@@ -403,10 +379,6 @@ export async function validateAdminLogin(adminEmail: string, adminPassword: stri
 
     if (!functionError && functionResult && functionResult.length > 0) {
       const admin = functionResult[0];
-      console.log("✅ Method 1 successful: Admin validated via function");
-      console.log("📧 Admin Email:", admin.email);
-      console.log("👤 Admin Name:", admin.full_name);
-      console.log("🆔 Admin ID:", admin.admin_id);
       
       return {
         id: admin.admin_id,
@@ -420,10 +392,8 @@ export async function validateAdminLogin(adminEmail: string, adminPassword: stri
       };
     }
 
-    console.log("⚠️ Method 1 failed:", functionError?.message || "No results returned");
 
     // METHOD 2: Direct table query with service role (fallback)
-    console.log("📋 Method 2: Direct table query fallback...");
     
     const { data: directResult, error: directError } = await supabase
       .from("admin_users")
@@ -437,18 +407,14 @@ export async function validateAdminLogin(adminEmail: string, adminPassword: stri
       // Verify password
       const storedPassword = directResult.password_hash;
       if (adminPassword === storedPassword) {
-        console.log("✅ Method 2 successful: Admin validated via direct query");
         return directResult;
       } else {
-        console.log("❌ Method 2: Password mismatch");
         throw new Error("Invalid password");
       }
     }
 
-    console.log("⚠️ Method 2 failed:", directError?.message || "No results returned");
 
     // METHOD 3: Service role query (last resort)
-    console.log("📋 Method 3: Service role query (last resort)...");
     
     // This would require a service role client, which we don't have in client-side code
     // So we'll throw an error here
@@ -471,33 +437,19 @@ export async function loginAdmin(email: string, password: string): Promise<{
   error?: string
 }> {
   try {
-    console.log('🔐 Attempting comprehensive admin login for:', email)
 
     // STEP 1: Validate against admin_users table using comprehensive validation
-    console.log('📋 Step 1: Comprehensive admin validation...')
 
     let adminData: any
     try {
       adminData = await validateAdminLogin(email, password)
     } catch (validationError: any) {
-      console.log('❌ Admin validation failed:', validationError.message)
       return { success: false, error: 'Invalid email or password' }
     }
 
-    console.log('✅ Step 1 complete: Admin credentials validated successfully!')
 
     // STEP 2: Sign in with Supabase Auth to establish session for RLS policies (optional)
-    console.log('🔐 Step 2: Attempting Supabase Auth session (optional)...')
-    const supabaseAuthResult = await signInWithSupabaseAuth(email, password)
-
-    if (!supabaseAuthResult.success) {
-      console.log('⚠️ Supabase Auth signIn failed, but admin_users validation succeeded')
-      console.log('⚠️ This may indicate the admin user does not exist in Supabase Auth')
-      console.log('⚠️ Proceeding with localStorage-only authentication...')
-    } else {
-      console.log('✅ Step 2 complete: Supabase Auth session established!')
-      console.log('🆔 Supabase User ID:', supabaseAuthResult.user?.id)
-    }
+    await signInWithSupabaseAuth(email, password)
 
     // STEP 3: Create admin object for localStorage storage
     const admin: AdminUser = {
@@ -519,9 +471,6 @@ export async function loginAdmin(email: string, password: string): Promise<{
         .rpc('update_admin_last_login', { admin_id: adminData.id });
       
       if (updateError) {
-        console.log('⚠️ Could not update last login via function:', updateError.message)
-        
-        // Fallback: direct update
         await supabase
           .from('admin_users')
           .update({
@@ -530,28 +479,10 @@ export async function loginAdmin(email: string, password: string): Promise<{
           })
           .eq('id', adminData.id)
       }
-      
-      console.log('✅ Last login updated successfully')
     } catch (updateError) {
-      console.log('⚠️ Could not update last login:', updateError)
+      console.error("Could not update admin last login:", updateError)
     }
 
-    // STEP 5: Debug logging for both authentication systems
-    console.log('🔍 COMPREHENSIVE AUTH DEBUG INFO:')
-    console.log('📋 localStorage Admin ID:', admin.id)
-    console.log('📋 localStorage Admin Email:', admin.email)
-
-    // Get current Supabase user for debugging
-    const currentSupabaseUser = await getCurrentSupabaseUser()
-    if (currentSupabaseUser) {
-      console.log('🔐 Supabase Auth User ID:', currentSupabaseUser.id)
-      console.log('🔐 Supabase Auth Email:', currentSupabaseUser.email)
-      console.log('✅ Both authentication systems are active!')
-    } else {
-      console.log('⚠️ Supabase Auth session not found - using localStorage only')
-    }
-
-    console.log('🎉 Comprehensive admin login successful!')
     return { success: true, admin }
 
   } catch (error: any) {

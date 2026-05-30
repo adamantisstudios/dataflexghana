@@ -84,7 +84,6 @@ export async function GET(request: NextRequest) {
       totalRevenue: totalRevenue
     }
 
-    console.log('Wholesale stats:', stats) // Debug log
 
     return NextResponse.json(stats)
   } catch (error) {

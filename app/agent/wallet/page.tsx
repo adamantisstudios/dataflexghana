@@ -243,7 +243,6 @@ export default function WalletPage() {
 
   const loadWalletData = async (agentId: string) => {
     try {
-      console.log("[v0] Loading wallet data for agent:", agentId)
 
       const sessionAgent = getCurrentAgent()
       const authHeaders: Record<string, string> = {}
@@ -286,7 +285,6 @@ export default function WalletPage() {
           pendingWithdrawal: balances.pending_payout,
           lastTransactionDate: null,
         }
-        console.log("[v0] Wallet data synchronized (Agents tab method):", finalSummary)
       } else {
         console.warn("[v0] Display balances failed:", balancesResult.reason)
       }
@@ -300,16 +298,10 @@ export default function WalletPage() {
       let finalTransactionHistory: any[] = []
       if (transactionHistory.status === "fulfilled") {
         finalTransactionHistory = transactionHistory.value || []
-        console.log("[v0] Transaction history loaded:", finalTransactionHistory.length, "transactions")
       } else {
         console.warn("[v0] Transaction history API failed:", transactionHistory.reason)
       }
 
-      console.log("[v0] Final wallet data loaded successfully:", {
-        balance: finalBalance,
-        summary: finalSummary,
-        transactionCount: finalTransactionHistory?.length || 0,
-      })
 
       setWalletBalance(finalBalance)
       setWalletSummary(finalSummary)
@@ -334,16 +326,13 @@ export default function WalletPage() {
       await loadTransactionsFallback(agentId)
     } finally {
       setLoading(false)
-      console.log("[v0] Wallet loading complete, setting loading to false")
     }
   }
 
   const loadTransactionsFallback = async (agentId: string) => {
     try {
-      console.log("[v0] Using fallback method to load wallet data")
 
       const transactions = await fetchWalletTransactions(agentId, 100)
-      console.log("[v0] Fallback loaded", transactions.length, "transactions")
       setTransactions(transactions)
 
       const balance = await getAgentDisplayBalances(agentId).then((b) => b.wallet_balance).catch(() => {
@@ -376,7 +365,6 @@ export default function WalletPage() {
       })
 
       setWalletBalance(balance)
-      console.log("[v0] Fallback complete - balance:", balance, "transactions:", transactions.length)
     } catch (error) {
       console.error("[v0] Fallback loading failed:", error)
       setWalletBalance(0)

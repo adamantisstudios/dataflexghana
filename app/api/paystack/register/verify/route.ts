@@ -21,7 +21,6 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || ""
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] Paystack registration payment verification request received")
 
     if (!PAYSTACK_SECRET_KEY) {
       console.error("[v0] PAYSTACK_SECRET_KEY is not configured")
@@ -41,7 +40,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[v0] Verifying registration payment. Reference: ${reference}`)
 
     // Verify with Paystack
     const paystackResponse = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
@@ -79,8 +77,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`[v0] Payment verified successfully`)
-    console.log(`[v0] Payment amount: ${paystackData.data.amount}, Reference: ${reference}`)
 
     // Payment verification successful - no database updates required
     // Agent will see payment-success page and can contact admin via WhatsApp

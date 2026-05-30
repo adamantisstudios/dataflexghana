@@ -194,7 +194,6 @@ export default function AgentCompliancePage() {
   }
 
   const handleFormSelect = (formId: string) => {
-    console.log("[v0] Form selected:", formId)
     setSelectedFormId(formId)
     setPaymentConfirmed(false)
     setShowFormDialog(false)

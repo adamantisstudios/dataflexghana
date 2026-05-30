@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Agent ID is required" }, { status: 400 })
     }
 
-    console.log("🔍 Fetching wholesale orders for agent:", agentId)
 
     // Use admin client to bypass RLS and fetch agent's wholesale orders
     const { data: orders, error } = await supabaseAdmin
@@ -31,10 +30,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: `Failed to fetch orders: ${error.message}` }, { status: 500 })
     }
 
-    console.log("✅ Successfully fetched orders:", {
-      agent_id: agentId,
-      orders_count: orders?.length || 0,
-    })
 
     return NextResponse.json({
       success: true,

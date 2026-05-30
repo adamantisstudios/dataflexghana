@@ -27,7 +27,6 @@ class RankingCache {
   get<T>(key: string): T | null {
     const entry = this.cache.get(key)
     if (entry && this.isValid(entry)) {
-      console.log(`[v0] Cache hit for key: ${key}`)
       return entry.data as T
     }
     // Remove expired entry
@@ -44,7 +43,6 @@ class RankingCache {
       timestamp: Date.now(),
       ttl: ttlMs,
     })
-    console.log(`[v0] Cache set for key: ${key}, TTL: ${ttlMs}ms`)
   }
 
   // Deduplicate simultaneous requests
@@ -57,7 +55,6 @@ class RankingCache {
 
     // Return pending request if one already exists (deduplication)
     if (this.pendingRequests.has(key)) {
-      console.log(`[v0] Request already pending for key: ${key}, returning existing promise`)
       return this.pendingRequests.get(key)!
     }
 
@@ -80,14 +77,12 @@ class RankingCache {
   // Clear specific cache entry
   invalidate(key: string): void {
     this.cache.delete(key)
-    console.log(`[v0] Cache invalidated for key: ${key}`)
   }
 
   // Clear all cache
   clear(): void {
     this.cache.clear()
     this.pendingRequests.clear()
-    console.log(`[v0] All cache cleared`)
   }
 
   // Get cache stats (useful for monitoring costs)

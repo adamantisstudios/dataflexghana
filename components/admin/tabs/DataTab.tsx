@@ -249,7 +249,6 @@ export default function DataTab() {
         return
       }
 
-      console.log("Submitting bundle data:", bundleData) // Debug log
 
       // CRITICAL FIX: Use API route instead of direct Supabase calls for better error handling
       let response
@@ -272,7 +271,6 @@ export default function DataTab() {
         })
       }
 
-      console.log("API Response status:", response.status) // Debug log
 
       if (!response.ok) {
         let errorData
@@ -296,7 +294,6 @@ export default function DataTab() {
       }
 
       const result = await response.json()
-      console.log("API Result:", result) // Debug log
 
       if (!result.success) {
         const errorMessage = result?.error || result?.message || result?.details || "Failed to save bundle"

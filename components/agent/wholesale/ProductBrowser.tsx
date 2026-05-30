@@ -209,7 +209,6 @@ export default function ProductBrowser({ onAddToCart, cartItems, onCartUpdate }:
 
   const renderBrowserImage = (product: WholesaleProduct) => {
     const imageUrl = (product.image_urls || [])[0] || "/placeholder-product.jpg"
-    console.log(`[v0] Rendering agent browser image for ${product.name}:`, imageUrl)
     return (
       <div className="aspect-square w-full bg-gray-100 overflow-hidden relative">
         <ImageWithFallback

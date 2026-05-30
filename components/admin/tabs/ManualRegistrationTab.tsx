@@ -120,7 +120,6 @@ export default function ManualRegistrationTab() {
     setSuccess("")
     setLoading(true)
 
-    console.log("[v0] Starting agent registration with data:", agentFormData)
 
     // Validation
     if (agentFormData.password !== agentFormData.confirmPassword) {

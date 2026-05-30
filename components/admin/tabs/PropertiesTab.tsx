@@ -239,7 +239,6 @@ export default function PropertiesTab({ getCachedData, setCachedData }: Properti
       for (let i = 0; i < fileArray.length; i++) {
         try {
           const file = fileArray[i]
-          console.log(`[v0] Admin uploading image ${i + 1}/${fileArray.length}: ${file.name}`)
 
           const progressCallback = (progress: number) => {
             setUploadProgress(Math.round(((i + progress / 100) / fileArray.length) * 100))

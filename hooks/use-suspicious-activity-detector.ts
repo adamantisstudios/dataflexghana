@@ -27,7 +27,6 @@ export function useSuspiciousActivityDetector(options: SuspiciousActivityDetecto
           }
         },
       })
-      console.log('%c', element)
     }
 
     const detectDevtoolsViaPerformance = () => {
