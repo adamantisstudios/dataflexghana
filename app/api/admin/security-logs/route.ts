@@ -52,21 +52,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const logs = (data || []).map((row) => ({
-      id: row.id,
-      actor_id: row.actor_id,
-      actor_type: row.actor_type,
-      action: row.action,
-      severity: row.severity ?? "info",
-      target_table: row.target_table,
-      target_id: row.target_id,
-      details: row.new_data ?? row.old_data ?? null,
-      old_data: row.old_data,
-      new_data: row.new_data,
-      ip_address: row.ip_address,
-      user_agent: row.user_agent,
-      created_at: row.created_at,
-    }))
+    const logs = (data || []).map((row) => {
+      const newData = (row.new_data ?? {}) as Record<string, unknown>
+      const session = newData.session ?? null
+      const { session: _s, ...detailsWithoutSession } = newData
+      const hasOtherDetails = Object.keys(detailsWithoutSession).length > 0
+
+      return {
+        id: row.id,
+        actor_id: row.actor_id,
+        actor_type: row.actor_type,
+        action: row.action,
+        severity: row.severity ?? "info",
+        target_table: row.target_table,
+        target_id: row.target_id,
+        session,
+        details: hasOtherDetails ? detailsWithoutSession : row.old_data ?? null,
+        old_data: row.old_data,
+        new_data: row.new_data,
+        ip_masked: row.ip_address,
+        created_at: row.created_at,
+      }
+    })
 
     const total = count ?? 0
 
