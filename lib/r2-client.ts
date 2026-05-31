@@ -13,11 +13,18 @@ export function getR2Endpoint(accountId?: string): string {
   return `https://${id}.r2.cloudflarestorage.com`
 }
 
+/**
+ * Shared S3 client for Cloudflare R2.
+ * SDK ≥3.729 adds default CRC32 checksums that R2 does not support — use WHEN_REQUIRED.
+ * @see https://developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3/
+ */
 export function getR2Client(): S3Client {
   return new S3Client({
     region: "auto",
     endpoint: getR2Endpoint(),
     forcePathStyle: true,
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
     credentials: {
       accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
       secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),

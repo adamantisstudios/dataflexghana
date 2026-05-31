@@ -1,6 +1,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getAdminClient } from "@/lib/supabase-base"
-import { deleteFromR2, getR2Client, getR2Endpoint, getR2ObjectStream, requireEnv } from "@/lib/r2-client"
+import { deleteFromR2, getR2Client, getR2ObjectStream, requireEnv } from "@/lib/r2-client"
+import { getR2RequestLogMeta, logS3PutObjectError } from "@/lib/r2-s3-error"
 
 export const DATING_PHOTOS_BUCKET =
   process.env.R2_DATING_PHOTOS_BUCKET_NAME || "dataflex-dating-photos"
@@ -25,7 +26,7 @@ export type DatingR2Config = {
 }
 
 export function getDatingPhotosBucket(): string {
-  return process.env.R2_DATING_PHOTOS_BUCKET_NAME || "dataflex-dating-photos"
+  return process.env.R2_DATING_PHOTOS_BUCKET_NAME?.trim() || "dataflex-dating-photos"
 }
 
 /** Resolve and validate shared R2 env (same credentials as channel audio / attachments). */
@@ -88,6 +89,11 @@ export async function uploadDatingPhotoBufferToR2(
     throw new Error("Empty image buffer — file may not have been read correctly")
   }
 
+  const normalizedContentType = (contentType || "image/jpeg").trim() || "image/jpeg"
+  const logMeta = getR2RequestLogMeta(bucketName, key, normalizedContentType)
+
+  console.log("[dating-photos] R2 PutObject starting:", { ...logMeta, bytes: buffer.length })
+
   try {
     const client = getR2Client()
     await client.send(
@@ -95,25 +101,15 @@ export async function uploadDatingPhotoBufferToR2(
         Bucket: bucketName,
         Key: key,
         Body: buffer,
-        ContentType: contentType || "image/jpeg",
+        ContentType: normalizedContentType,
       }),
     )
+    console.log("[dating-photos] R2 PutObject success:", { bucket: bucketName, key })
     return getDatingPhotoPublicUrl(key, photoId)
   } catch (err) {
+    await logS3PutObjectError("dating-photos", err, { ...logMeta, bytes: buffer.length })
     const message = err instanceof Error ? err.message : String(err)
     const name = err instanceof Error ? err.name : "UnknownError"
-    console.error("[dating-photos] R2 upload failed:", {
-      name,
-      message,
-      bucket: bucketName,
-      endpoint: process.env.R2_ACCOUNT_ID?.trim()
-        ? getR2Endpoint(process.env.R2_ACCOUNT_ID.trim())
-        : "(missing R2_ACCOUNT_ID)",
-      key,
-      contentType,
-      bytes: buffer.length,
-      stack: err instanceof Error ? err.stack : undefined,
-    })
     throw new Error(`R2 upload failed (${name}): ${message}`)
   }
 }
