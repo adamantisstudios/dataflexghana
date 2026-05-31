@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAuthAgentId } from "@/lib/agent-auth-utils"
-import { deleteProfilePhoto, getPhotoById } from "@/lib/dating/dating-photos-server"
+import { deleteProfilePhoto, getPhotoById } from "@/lib/dating/dating-photos"
 import { getDatingProfile, recalculateProfileCompleteness } from "@/lib/dating/dating-server"
 import { getAdminClient } from "@/lib/supabase-base"
 

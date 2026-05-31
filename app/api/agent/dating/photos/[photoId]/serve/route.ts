@@ -1,12 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, authenticateAdmin, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAuthAgentId } from "@/lib/agent-auth-utils"
-import {
-  canViewDatingPhotoById,
-  getPhotoById,
-  streamDatingPhoto,
-  type DatingProfilePhoto,
-} from "@/lib/dating/dating-photos-server"
+import { canViewDatingPhotoById, getPhotoById } from "@/lib/dating/dating-photos"
+import { fetchObjectFromR2Worker } from "@/lib/dating/dating-r2-worker"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -20,20 +16,34 @@ export async function GET(
   if (!photo) return NextResponse.json({ error: "Photo not found" }, { status: 404 })
 
   const adminAuth = await authenticateAdmin(request)
-  if (adminAuth.success) {
-    return streamPhotoResponse(photo)
+  if (!adminAuth.success) {
+    const auth = await authenticateAgent(request)
+    if (!auth.success) return createAuthErrorResponse(auth.error || "Agent authentication required")
+    const viewerId = getAuthAgentId(auth)
+    if (!viewerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const allowed = await canViewDatingPhotoById(viewerId, photo)
+    if (!allowed) return NextResponse.json({ error: "Access denied" }, { status: 403 })
   }
 
-  const auth = await authenticateAgent(request)
-  if (!auth.success) return createAuthErrorResponse(auth.error || "Agent authentication required")
-  const viewerId = getAuthAgentId(auth)
-  if (!viewerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const allowed = await canViewDatingPhotoById(viewerId, photo)
-  if (!allowed) return NextResponse.json({ error: "Access denied" }, { status: 403 })
-
   try {
-    return await streamPhotoResponse(photo)
+    const workerRes = await fetchObjectFromR2Worker(photo.storage_path)
+    if (!workerRes.ok) {
+      console.error("[dating/photos/serve] Worker GET failed:", {
+        photoId: photo.id,
+        storage_path: photo.storage_path,
+        status: workerRes.status,
+      })
+      return NextResponse.json({ error: "Image missing in storage" }, { status: 404 })
+    }
+
+    const headers = new Headers(workerRes.headers)
+    headers.set("Cache-Control", "private, max-age=3600")
+    if (!headers.get("Content-Type")) {
+      headers.set("Content-Type", "image/jpeg")
+    }
+
+    return new NextResponse(workerRes.body, { status: 200, headers })
   } catch (err) {
     console.error("[dating/photos/serve] stream failed:", {
       photoId: photo.id,
@@ -42,22 +52,4 @@ export async function GET(
     })
     return NextResponse.json({ error: "Failed to load image" }, { status: 502 })
   }
-}
-
-async function streamPhotoResponse(photo: DatingProfilePhoto) {
-  const result = await streamDatingPhoto(photo)
-  if (!result.Body) {
-    console.error("[dating/photos/serve] empty body:", {
-      photoId: photo.id,
-      storage_path: photo.storage_path,
-    })
-    return NextResponse.json({ error: "Image missing in storage" }, { status: 404 })
-  }
-  const headers = new Headers()
-  headers.set("Content-Type", result.ContentType || "image/jpeg")
-  headers.set("Cache-Control", "private, max-age=3600")
-  if (result.ContentLength != null) {
-    headers.set("Content-Length", String(result.ContentLength))
-  }
-  return new NextResponse(result.Body.transformToWebStream(), { status: 200, headers })
 }

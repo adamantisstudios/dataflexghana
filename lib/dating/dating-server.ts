@@ -8,7 +8,7 @@ import {
   getPhotosForProfile,
   getPhotosForProfiles,
   type DatingProfilePhoto,
-} from "@/lib/dating/dating-photos-server"
+} from "@/lib/dating/dating-photos"
 import {
   DATING_PLANS,
   type DatingIntention,
@@ -21,7 +21,7 @@ import {
   religionCompatible,
 } from "@/lib/dating/constants"
 
-export type { DatingProfilePhoto } from "@/lib/dating/dating-photos-server"
+export type { DatingProfilePhoto } from "@/lib/dating/dating-photos"
 
 export type DatingProfile = {
   id: string

@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAuthAgentId } from "@/lib/agent-auth-utils"
 import { getDatingProfile } from "@/lib/dating/dating-server"
-import { reorderProfilePhotos } from "@/lib/dating/dating-photos-server"
+import { reorderProfilePhotos } from "@/lib/dating/dating-photos"
 
 export const dynamic = "force-dynamic"
 

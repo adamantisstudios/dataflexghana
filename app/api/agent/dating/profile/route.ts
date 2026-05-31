@@ -10,7 +10,7 @@ import {
   profileToCompletenessInput,
   touchDatingStreak,
 } from "@/lib/dating/dating-server"
-import { countProfilePhotos, getPhotosForProfile } from "@/lib/dating/dating-photos-server"
+import { countProfilePhotos, getPhotosForProfile } from "@/lib/dating/dating-photos"
 import { DATING_INTENTIONS } from "@/lib/dating/constants"
 import { getAdminClient } from "@/lib/supabase-base"
 

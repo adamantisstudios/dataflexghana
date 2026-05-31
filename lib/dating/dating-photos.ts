@@ -1,16 +1,5 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getAdminClient } from "@/lib/supabase-base"
-import {
-  deleteFromR2,
-  getR2Client,
-  getR2Endpoint,
-  getR2ObjectStream,
-  requireEnv,
-} from "@/lib/r2-client"
-import { getR2RequestLogMeta, logS3PutObjectError } from "@/lib/r2-s3-error"
-
-export const DATING_PHOTOS_BUCKET =
-  process.env.R2_DATING_PHOTOS_BUCKET_NAME || "dataflex-dating-photos"
+import { deleteObjectFromR2Worker } from "@/lib/dating/dating-r2-worker"
 
 export const MAX_PHOTOS_PER_PROFILE = 5
 
@@ -23,135 +12,24 @@ export type DatingProfilePhoto = {
   created_at: string
 }
 
-export type DatingR2Config = {
-  accountId: string
-  accessKeyId: string
-  secretAccessKey: string
-  bucketName: string
-  endpoint: string
-}
-
-export function getDatingPhotosBucket(): string {
-  return process.env.R2_DATING_PHOTOS_BUCKET_NAME?.trim() || "dataflex-dating-photos"
-}
-
-/** Resolve and validate shared R2 env (same credentials as channel audio / attachments). */
-export function getDatingR2Config(): DatingR2Config {
-  const accountId = requireEnv("R2_ACCOUNT_ID")
-  const accessKeyId = requireEnv("R2_ACCESS_KEY_ID")
-  const secretAccessKey = requireEnv("R2_SECRET_ACCESS_KEY")
-  const bucketName = getDatingPhotosBucket()
-
-  return {
-    accountId,
-    accessKeyId,
-    secretAccessKey,
-    bucketName,
-    endpoint: getR2Endpoint(accountId),
-  }
-}
-
-function encodeObjectKey(objectKey: string): string {
-  return objectKey
-    .replace(/^\/+/, "")
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/")
-}
-
-/** Public r2.dev base when bucket public access is enabled (see Cloudflare R2 settings). */
-export function getDatingPhotosPublicUrlBase(): string | null {
-  const explicit = process.env.R2_DATING_PHOTOS_PUBLIC_URL_BASE?.trim().replace(/\/$/, "")
-  if (explicit) return explicit
-  try {
-    const accountId = requireEnv("R2_ACCOUNT_ID")
-    return `https://${getDatingPhotosBucket()}.${accountId}.r2.dev`
-  } catch {
-    return null
-  }
-}
-
-/** Agent-authenticated image proxy (works without public bucket). */
+/** Authenticated proxy path only (private bucket; no public r2.dev URLs). */
 export function getDatingPhotoServePath(photoId: string): string {
   return `/api/agent/dating/photos/${photoId}/serve`
 }
 
-/** Admin-authenticated image proxy. */
 export function getDatingPhotoAdminServePath(photoId: string): string {
   return `/api/admin/dating/photos/${photoId}/serve`
 }
 
-/**
- * URL stored on the row and sent to clients.
- * Default: serve route (private bucket). Set R2_DATING_PHOTOS_USE_PUBLIC_URL=true after enabling public access.
- */
-export function getDatingPhotoPublicUrl(objectKey: string, photoId?: string): string {
-  const publicBase = getDatingPhotosPublicUrlBase()
-  if (publicBase && process.env.R2_DATING_PHOTOS_USE_PUBLIC_URL === "true") {
-    return `${publicBase}/${encodeObjectKey(objectKey)}`
-  }
-  if (photoId) {
-    return getDatingPhotoServePath(photoId)
-  }
-  if (publicBase && process.env.R2_DATING_PHOTOS_USE_PUBLIC_URL === "true") {
-    return `${publicBase}/${encodeObjectKey(objectKey)}`
-  }
-  return `/api/agent/dating/photos/serve?key=${encodeURIComponent(objectKey)}`
-}
-
-/** Fix stale DB public_url values (e.g. wrong pub-{account}.r2.dev paths). */
 export function normalizeDatingPhotoRow(photo: DatingProfilePhoto): DatingProfilePhoto {
   return {
     ...photo,
-    public_url: getDatingPhotoPublicUrl(photo.storage_path, photo.id),
+    public_url: getDatingPhotoServePath(photo.id),
   }
 }
 
 function normalizeDatingPhotoRows(photos: DatingProfilePhoto[]): DatingProfilePhoto[] {
   return photos.map(normalizeDatingPhotoRow)
-}
-
-export async function uploadDatingPhotoBufferToR2(
-  buffer: Buffer,
-  objectKey: string,
-  contentType: string,
-  photoId?: string,
-): Promise<string> {
-  const bucketName = getDatingPhotosBucket()
-  const key = objectKey.replace(/^\/+/, "")
-
-  if (!buffer?.length) {
-    throw new Error("Empty image buffer — file may not have been read correctly")
-  }
-
-  const normalizedContentType = (contentType || "image/jpeg").trim() || "image/jpeg"
-  const logMeta = getR2RequestLogMeta(bucketName, key, normalizedContentType)
-
-  console.log("[dating-photos] R2 PutObject starting:", { ...logMeta, bytes: buffer.length })
-
-  try {
-    const client = getR2Client()
-    await client.send(
-      new PutObjectCommand({
-        Bucket: bucketName,
-        Key: key,
-        Body: buffer,
-        ContentType: normalizedContentType,
-      }),
-    )
-    console.log("[dating-photos] R2 PutObject success:", { bucket: bucketName, key })
-    return getDatingPhotoPublicUrl(key, photoId)
-  } catch (err) {
-    await logS3PutObjectError("dating-photos", err, { ...logMeta, bytes: buffer.length })
-    const message = err instanceof Error ? err.message : String(err)
-    const name = err instanceof Error ? err.name : "UnknownError"
-    throw new Error(`R2 upload failed (${name}): ${message}`)
-  }
-}
-
-export function buildDatingPhotoKey(agentId: string, photoId: string, ext: string): string {
-  const safeExt = ext.replace(/^\./, "").toLowerCase() || "jpg"
-  return `agents/${agentId}/${photoId}.${safeExt}`
 }
 
 export async function countProfilePhotos(profileId: string): Promise<number> {
@@ -217,12 +95,10 @@ export async function getPhotoById(photoId: string): Promise<DatingProfilePhoto 
   return normalizeDatingPhotoRow(data as DatingProfilePhoto)
 }
 
-export async function uploadProfilePhoto(
+/** Insert DB row after Worker upload (storage_path = Worker key). */
+export async function insertProfilePhotoRecord(
   profileId: string,
-  agentId: string,
-  buffer: Buffer,
-  contentType: string,
-  ext: string,
+  storageKey: string,
 ): Promise<DatingProfilePhoto> {
   const db = getAdminClient()
   const current = await countProfilePhotos(profileId)
@@ -231,27 +107,14 @@ export async function uploadProfilePhoto(
   }
 
   const photoId = crypto.randomUUID()
-  const storage_path = buildDatingPhotoKey(agentId, photoId, ext)
-
-  let public_url: string
-  try {
-    public_url = await uploadDatingPhotoBufferToR2(
-      buffer,
-      storage_path,
-      contentType,
-      photoId,
-    )
-  } catch (err) {
-    console.error("[dating-photos] uploadProfilePhoto R2 step failed:", err)
-    throw err
-  }
+  const public_url = getDatingPhotoServePath(photoId)
 
   const { data, error } = await db
     .from("dating_profile_photos")
     .insert({
       id: photoId,
       profile_id: profileId,
-      storage_path,
+      storage_path: storageKey,
       public_url,
       order_index: current,
     })
@@ -259,14 +122,8 @@ export async function uploadProfilePhoto(
     .single()
 
   if (error) {
-    console.error("[dating-photos] DB insert failed:", {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint,
-    })
-    await deleteFromR2(storage_path, getDatingPhotosBucket()).catch((e) => {
-      console.error("[dating-photos] R2 rollback delete failed:", e)
+    await deleteObjectFromR2Worker(storageKey).catch((e) => {
+      console.error("[dating-photos] Worker rollback delete failed:", e)
     })
     if (error.code === "42P01" || error.message?.includes("does not exist")) {
       throw new Error(
@@ -294,8 +151,8 @@ export async function deleteProfilePhoto(photoId: string, agentId: string): Prom
     throw new Error("Not authorized to delete this photo")
   }
 
-  await deleteFromR2(photo.storage_path, getDatingPhotosBucket()).catch((e) => {
-    console.error("[dating-photos] R2 delete:", e)
+  await deleteObjectFromR2Worker(photo.storage_path).catch((e) => {
+    console.error("[dating-photos] Worker delete:", e)
   })
 
   const { error } = await db.from("dating_profile_photos").delete().eq("id", photoId)
@@ -379,8 +236,4 @@ export async function canViewDatingPhotoById(
 
   const sub = await getOrCreateSubscription(viewerAgentId)
   return sub.plan === "gold" || sub.plan === "silver"
-}
-
-export async function streamDatingPhoto(photo: DatingProfilePhoto) {
-  return getR2ObjectStream(photo.storage_path, { bucketName: getDatingPhotosBucket() })
 }

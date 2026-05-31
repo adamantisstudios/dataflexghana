@@ -50,6 +50,7 @@ import {
   type DatingIntention,
 } from "@/lib/dating/constants"
 import { DatingPhotoImage } from "@/components/agent/dating/DatingPhotoImage"
+import { DatingProtectionNotice } from "@/components/agent/dating/DatingProtectionNotice"
 import {
   DatingPhotoUploader,
   type DatingPhoto,
@@ -94,11 +95,8 @@ type MatchRow = {
   profile?: { display_name: string; id: string }
 }
 
-function cardPhotoProfile(p: DiscoverProfile) {
-  const photo = p.photos?.[0]
-  const id = p.first_photo_id ?? photo?.id
-  if (!id) return null
-  return { id, public_url: photo?.public_url }
+function cardPhotoId(p: DiscoverProfile): string | null {
+  return p.first_photo_id ?? p.photos?.[0]?.id ?? null
 }
 
 const SETUP_STEPS = 4
@@ -903,6 +901,7 @@ export default function FindADatePage() {
             </TabsList>
 
             <TabsContent value="discover" className="mt-4 space-y-4">
+              <DatingProtectionNotice />
               {topPick && (
                 <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-rose-50 overflow-hidden">
                   <CardContent className="p-0">
@@ -911,10 +910,11 @@ export default function FindADatePage() {
                       className="relative aspect-[4/5] max-h-[420px] w-full bg-gray-100 block"
                       onClick={() => { setDetailProfile(topPick); setDetailPhotoIndex(0) }}
                     >
-                      {cardPhotoProfile(topPick) ? (
+                      {cardPhotoId(topPick) ? (
                         <DatingPhotoImage
-                          photo={cardPhotoProfile(topPick)!}
-                          className="object-cover w-full h-full"
+                          photoId={cardPhotoId(topPick)!}
+                          protected
+                          className="h-full w-full"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-gray-400 text-sm">No photo</div>
@@ -949,10 +949,11 @@ export default function FindADatePage() {
                     className="relative aspect-[4/5] max-h-[480px] w-full bg-gray-100 block"
                     onClick={() => { setDetailProfile(currentCard); setDetailPhotoIndex(0) }}
                   >
-                    {cardPhotoProfile(currentCard) ? (
+                    {cardPhotoId(currentCard) ? (
                       <DatingPhotoImage
-                        photo={cardPhotoProfile(currentCard)!}
-                        className="object-cover w-full h-full"
+                        photoId={cardPhotoId(currentCard)!}
+                        protected
+                        className="h-full w-full"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-gray-400">No photo</div>
@@ -985,8 +986,9 @@ export default function FindADatePage() {
                         {(detailProfile.photos?.length ?? 0) > 0 ? (
                           <>
                             <DatingPhotoImage
-                              photo={detailProfile.photos![detailPhotoIndex]}
-                              className="w-full h-full object-cover"
+                              photoId={detailProfile.photos![detailPhotoIndex].id}
+                              protected
+                              className="h-full w-full"
                             />
                             {detailProfile.photos!.length > 1 && (
                               <div className="absolute bottom-16 inset-x-0 flex justify-center gap-1">
@@ -1001,10 +1003,11 @@ export default function FindADatePage() {
                               </div>
                             )}
                           </>
-                        ) : cardPhotoProfile(detailProfile) ? (
+                        ) : cardPhotoId(detailProfile) ? (
                           <DatingPhotoImage
-                            photo={cardPhotoProfile(detailProfile)!}
-                            className="w-full h-full object-cover"
+                            photoId={cardPhotoId(detailProfile)!}
+                            protected
+                            className="h-full w-full"
                           />
                         ) : null}
                         <button

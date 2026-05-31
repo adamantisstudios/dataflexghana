@@ -7,7 +7,6 @@ import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { parseJsonResponse } from "@/lib/agent-auth-utils"
 import { toast } from "sonner"
 import { DatingPhotoImage } from "@/components/agent/dating/DatingPhotoImage"
-import { resolveDatingPhotoUrl } from "@/lib/dating/dating-photo-client"
 import { cn } from "@/lib/utils"
 
 export type DatingPhoto = {
@@ -22,10 +21,6 @@ type Props = {
   onPhotosChange: (photos: DatingPhoto[]) => void
   maxPhotos?: number
   className?: string
-}
-
-export function datingPhotoServeUrl(photoId: string, publicUrl?: string | null) {
-  return resolveDatingPhotoUrl({ id: photoId, public_url: publicUrl })
 }
 
 export function DatingPhotoUploader({ photos, onPhotosChange, maxPhotos = 5, className }: Props) {
@@ -45,28 +40,30 @@ export function DatingPhotoUploader({ photos, onPhotosChange, maxPhotos = 5, cla
       setUploading(true)
 
       try {
-        const formData = new FormData()
         for (const file of toUpload) {
           setCompressPct(0)
           const { blob } = await compressImageFile(file, { maxWidth: 800, quality: 0.7 }, (p) =>
             setCompressPct(p),
           )
-          formData.append("files", blob, file.name.replace(/\.[^.]+$/, ".jpg"))
-        }
+          const filename = file.name.replace(/\.[^.]+$/, ".jpg")
+          const formData = new FormData()
+          formData.append("file", blob, filename)
 
-        setCompressPct(null)
-        const res = await fetch("/api/agent/dating/photos", {
-          method: "POST",
-          headers: getAgentAuthHeaders(),
-          body: formData,
-        })
-        const { data } = await parseJsonResponse(res)
-        if (!res.ok) {
-          toast.error(data.error || "Upload failed")
-          return
+          const res = await fetch("/api/agent/dating/upload", {
+            method: "POST",
+            headers: getAgentAuthHeaders(),
+            body: formData,
+          })
+          const { data } = await parseJsonResponse(res)
+          if (!res.ok) {
+            toast.error(data.error || "Upload failed")
+            return
+          }
+          if (data.photos) {
+            onPhotosChange(data.photos)
+          }
         }
-        onPhotosChange(data.photos ?? [])
-        toast.success("Photo uploaded")
+        toast.success(toUpload.length > 1 ? "Photos uploaded" : "Photo uploaded")
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Upload failed")
       } finally {
@@ -124,13 +121,10 @@ export function DatingPhotoUploader({ photos, onPhotosChange, maxPhotos = 5, cla
           >
             {photo ? (
               <>
-                <DatingPhotoImage
-                  photo={{ id: photo.id, public_url: photo.public_url }}
-                  className="h-full w-full object-cover"
-                />
+                <DatingPhotoImage photoId={photo.id} className="h-full w-full" protected={false} />
                 <button
                   type="button"
-                  className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white"
+                  className="absolute top-1 right-1 z-30 rounded-full bg-black/60 p-1 text-white"
                   onClick={() => void deletePhoto(photo.id)}
                   aria-label="Remove photo"
                 >

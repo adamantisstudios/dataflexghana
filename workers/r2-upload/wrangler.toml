@@ -1,0 +1,10 @@
+name = "r2-upload"
+main = "index.ts"
+compatibility_date = "2024-12-01"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "dataflex-dating-photos"
+
+# Set via: wrangler secret put SERVICE_TOKEN
+# Or deploy with: --var SERVICE_TOKEN=your-token
