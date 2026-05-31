@@ -49,11 +49,12 @@ import {
   isFemaleGender,
   type DatingIntention,
 } from "@/lib/dating/constants"
+import { DatingPhotoImage } from "@/components/agent/dating/DatingPhotoImage"
 import {
   DatingPhotoUploader,
-  datingPhotoServeUrl,
   type DatingPhoto,
 } from "@/components/agent/dating/DatingPhotoUploader"
+import { syncAgentSessionCookie } from "@/lib/unified-auth-system"
 import { DEFAULT_DATING_SETTINGS } from "@/lib/dating/dating-settings"
 import type { Agent } from "@/lib/unified-auth-system"
 
@@ -93,9 +94,11 @@ type MatchRow = {
   profile?: { display_name: string; id: string }
 }
 
-function cardPhotoUrl(p: DiscoverProfile) {
-  const id = p.first_photo_id ?? p.photos?.[0]?.id
-  return id ? datingPhotoServeUrl(id) : null
+function cardPhotoProfile(p: DiscoverProfile) {
+  const photo = p.photos?.[0]
+  const id = p.first_photo_id ?? photo?.id
+  if (!id) return null
+  return { id, public_url: photo?.public_url }
 }
 
 const SETUP_STEPS = 4
@@ -298,6 +301,7 @@ export default function FindADatePage() {
       return
     }
     setAgent(stored)
+    syncAgentSessionCookie()
     setAuthChecked(true)
   }, [router])
 
@@ -559,6 +563,12 @@ export default function FindADatePage() {
     <div className="min-h-screen bg-gradient-to-b from-rose-50 via-white to-rose-50/30">
       <AgentHeader
         fullName={agent.full_name}
+        profileImageUrl={
+          typeof (agent as Agent & { profile_image_url?: string }).profile_image_url ===
+          "string"
+            ? (agent as Agent & { profile_image_url?: string }).profile_image_url
+            : undefined
+        }
         agent={agent}
         walletBalance={agent.wallet_balance}
         onLogout={() => {
@@ -901,8 +911,11 @@ export default function FindADatePage() {
                       className="relative aspect-[4/5] max-h-[420px] w-full bg-gray-100 block"
                       onClick={() => { setDetailProfile(topPick); setDetailPhotoIndex(0) }}
                     >
-                      {cardPhotoUrl(topPick) ? (
-                        <img src={cardPhotoUrl(topPick)!} alt="" className="object-cover w-full h-full" />
+                      {cardPhotoProfile(topPick) ? (
+                        <DatingPhotoImage
+                          photo={cardPhotoProfile(topPick)!}
+                          className="object-cover w-full h-full"
+                        />
                       ) : (
                         <div className="flex h-full items-center justify-center text-gray-400 text-sm">No photo</div>
                       )}
@@ -936,8 +949,11 @@ export default function FindADatePage() {
                     className="relative aspect-[4/5] max-h-[480px] w-full bg-gray-100 block"
                     onClick={() => { setDetailProfile(currentCard); setDetailPhotoIndex(0) }}
                   >
-                    {cardPhotoUrl(currentCard) ? (
-                      <img src={cardPhotoUrl(currentCard)!} alt="" className="object-cover w-full h-full" />
+                    {cardPhotoProfile(currentCard) ? (
+                      <DatingPhotoImage
+                        photo={cardPhotoProfile(currentCard)!}
+                        className="object-cover w-full h-full"
+                      />
                     ) : (
                       <div className="flex h-full items-center justify-center text-gray-400">No photo</div>
                     )}
@@ -968,9 +984,8 @@ export default function FindADatePage() {
                       <div className="relative aspect-[4/5] bg-gray-900">
                         {(detailProfile.photos?.length ?? 0) > 0 ? (
                           <>
-                            <img
-                              src={datingPhotoServeUrl(detailProfile.photos![detailPhotoIndex].id)}
-                              alt=""
+                            <DatingPhotoImage
+                              photo={detailProfile.photos![detailPhotoIndex]}
                               className="w-full h-full object-cover"
                             />
                             {detailProfile.photos!.length > 1 && (
@@ -986,8 +1001,11 @@ export default function FindADatePage() {
                               </div>
                             )}
                           </>
-                        ) : cardPhotoUrl(detailProfile) ? (
-                          <img src={cardPhotoUrl(detailProfile)!} alt="" className="w-full h-full object-cover" />
+                        ) : cardPhotoProfile(detailProfile) ? (
+                          <DatingPhotoImage
+                            photo={cardPhotoProfile(detailProfile)!}
+                            className="w-full h-full object-cover"
+                          />
                         ) : null}
                         <button
                           type="button"

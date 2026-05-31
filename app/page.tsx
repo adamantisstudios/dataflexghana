@@ -16,7 +16,6 @@ import type { Service, DataBundle, Job } from "@/lib/supabase";
   getSupportEmail,
 } from "@/lib/config"
 import { Footer } from "@/components/footer"
-import { AnnouncementsFloatingButton } from "@/components/announcements/AnnouncementsFloatingButton"
 import { BackToTop } from "@/components/back-to-top"
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt"
 import { HeroSlider } from "@/components/hero-slider"
@@ -1845,7 +1844,6 @@ export default function HomePage() {
       </section>
 
       <Footer />
-      <AnnouncementsFloatingButton />
       <BackToTop />
       <PwaInstallPrompt variant="dataflex" />
     </div>

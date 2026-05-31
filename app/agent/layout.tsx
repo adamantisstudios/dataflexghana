@@ -3,7 +3,7 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from 'next/navigation'
-import { getStoredAgent, type Agent, logoutAgent } from "@/lib/unified-auth-system"
+import { getStoredAgent, syncAgentSessionCookie, type Agent, logoutAgent } from "@/lib/unified-auth-system"
 import { AgentSecurityProvider } from "@/components/agent/AgentSecurityProvider"
 import { AnnouncementsFloatingButton } from "@/components/announcements/AnnouncementsFloatingButton"
 import { AgentFloatingChrome } from "@/components/agent/AgentFloatingChrome"
@@ -34,6 +34,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         }
 
         if (mounted) {
+          syncAgentSessionCookie()
           setAgent(storedAgent)
         }
       } catch (error) {

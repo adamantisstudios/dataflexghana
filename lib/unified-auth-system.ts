@@ -112,9 +112,27 @@ export function setStoredAgent(agent: Agent): void {
 
   try {
     localStorage.setItem(AGENT_STORAGE_KEY, JSON.stringify(agent))
+    setCookieSafe(
+      'agent',
+      JSON.stringify({ id: agent.id, phone_number: agent.phone_number }),
+      7,
+    )
+    setCookieSafe('agent_id', String(agent.id), 7)
   } catch (error) {
     console.error('Error storing agent:', error)
   }
+}
+
+/** Sync httpOnly-readable cookies from localStorage (for <img> / same-origin API auth). */
+export function syncAgentSessionCookie(): void {
+  const agent = getStoredAgent()
+  if (!agent) return
+  setCookieSafe(
+    'agent',
+    JSON.stringify({ id: agent.id, phone_number: agent.phone_number }),
+    7,
+  )
+  setCookieSafe('agent_id', String(agent.id), 7)
 }
 
 /**

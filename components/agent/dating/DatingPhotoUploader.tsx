@@ -6,6 +6,8 @@ import { compressImageFile } from "@/lib/compress-image"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { parseJsonResponse } from "@/lib/agent-auth-utils"
 import { toast } from "sonner"
+import { DatingPhotoImage } from "@/components/agent/dating/DatingPhotoImage"
+import { resolveDatingPhotoUrl } from "@/lib/dating/dating-photo-client"
 import { cn } from "@/lib/utils"
 
 export type DatingPhoto = {
@@ -22,8 +24,8 @@ type Props = {
   className?: string
 }
 
-export function datingPhotoServeUrl(photoId: string) {
-  return `/api/agent/dating/photos/${photoId}/serve`
+export function datingPhotoServeUrl(photoId: string, publicUrl?: string | null) {
+  return resolveDatingPhotoUrl({ id: photoId, public_url: publicUrl })
 }
 
 export function DatingPhotoUploader({ photos, onPhotosChange, maxPhotos = 5, className }: Props) {
@@ -122,9 +124,8 @@ export function DatingPhotoUploader({ photos, onPhotosChange, maxPhotos = 5, cla
           >
             {photo ? (
               <>
-                <img
-                  src={datingPhotoServeUrl(photo.id)}
-                  alt=""
+                <DatingPhotoImage
+                  photo={{ id: photo.id, public_url: photo.public_url }}
                   className="h-full w-full object-cover"
                 />
                 <button

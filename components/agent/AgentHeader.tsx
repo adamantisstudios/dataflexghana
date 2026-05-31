@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { BookOpen, Heart, LogOut, Megaphone, Settings, Wallet } from "lucide-react"
+import { BookOpen, Heart, Home, LogOut, Megaphone, Settings, Wallet } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { getAnnouncementsMemberPath } from "@/lib/announcements-channel"
 import { Button } from "@/components/ui/button"
 import { AgentAvatar } from "@/components/agent/AgentAvatar"
@@ -36,6 +37,9 @@ export function AgentHeader({
   onLogout,
   className,
 }: AgentHeaderProps) {
+  const pathname = usePathname()
+  const onDatingPage = pathname?.startsWith("/agent/dating")
+
   return (
     <header
       className={cn(
@@ -44,7 +48,11 @@ export function AgentHeader({
       )}
     >
       <div className="mx-auto flex h-14 min-h-14 w-full max-w-full items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4">
-        <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
+        <Link
+          href="/agent/dashboard"
+          className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+          title="Agent dashboard"
+        >
           <AgentAvatar
             name={fullName}
             imageUrl={profileImageUrl}
@@ -66,7 +74,7 @@ export function AgentHeader({
               )}
             </div>
           </div>
-        </div>
+        </Link>
 
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
           <Button
@@ -84,12 +92,21 @@ export function AgentHeader({
             </Link>
           </Button>
 
-          <Button variant="secondary" size="sm" asChild className={iconBtnClass} title="Find a Date">
-            <Link href="/agent/dating">
-              <Heart className="h-4 w-4 shrink-0" />
-              <span className="sr-only sm:not-sr-only sm:ml-1.5">Find a Date</span>
-            </Link>
-          </Button>
+          {onDatingPage ? (
+            <Button variant="secondary" size="sm" asChild className={iconBtnClass} title="Dashboard">
+              <Link href="/agent/dashboard">
+                <Home className="h-4 w-4 shrink-0" />
+                <span className="sr-only sm:not-sr-only sm:ml-1.5">Home</span>
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="secondary" size="sm" asChild className={iconBtnClass} title="Find a Date">
+              <Link href="/agent/dating">
+                <Heart className="h-4 w-4 shrink-0" />
+                <span className="sr-only sm:not-sr-only sm:ml-1.5">Find a Date</span>
+              </Link>
+            </Button>
+          )}
 
           <Button variant="secondary" size="sm" asChild className={iconBtnClass} title="Settings">
             <Link href="/agent/settings">

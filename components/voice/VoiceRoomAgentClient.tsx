@@ -36,7 +36,6 @@ import {
   VideoOff,
   Volume2,
   MoreVertical,
-  SwitchCamera,
   MessageCircle,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -591,9 +590,6 @@ function AgentRoomUI({
             <Hand className="h-6 w-6" />
           </VoipFloatingButton>
         )}
-        <VoipFloatingButton title="Switch camera" disabled>
-          <SwitchCamera className="h-6 w-6" />
-        </VoipFloatingButton>
         <VoipFloatingButton title="Reactions" onClick={() => setReactionsOpen(true)}>
           <Smile className="h-6 w-6" />
         </VoipFloatingButton>

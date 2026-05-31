@@ -7,39 +7,32 @@ import { useShouldHideStreamingChrome } from "@/lib/streaming-session"
 import { Megaphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getAnnouncementsMemberPath } from "@/lib/announcements-channel"
+import { getStoredAgent } from "@/lib/unified-auth-system"
 
-/** Fixed FAB — official Announcements channel (replaces homepage WhatsApp widget). */
+/** Fixed FAB — official Announcements channel (agents only). */
 export function AnnouncementsFloatingButton() {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const [hasAgent, setHasAgent] = useState(false)
   const hideOnStreaming = useShouldHideStreamingChrome()
 
   useEffect(() => {
     setMounted(true)
+    setHasAgent(getStoredAgent() !== null)
   }, [])
 
-  if (hideOnStreaming) {
+  if (hideOnStreaming || !hasAgent) {
     return null
   }
 
   const handleClick = () => {
     const memberPath = getAnnouncementsMemberPath()
-    if (typeof window === "undefined") return
-    const stored = localStorage.getItem("agent")
-    if (!stored) {
+    const agent = getStoredAgent()
+    if (!agent?.id) {
       router.push(`/agent/login?redirect=${encodeURIComponent(memberPath)}`)
       return
     }
-    try {
-      const agent = JSON.parse(stored) as { id?: string }
-      if (!agent?.id) {
-        router.push(`/agent/login?redirect=${encodeURIComponent(memberPath)}`)
-        return
-      }
-      router.push(memberPath)
-    } catch {
-      router.push(`/agent/login?redirect=${encodeURIComponent(memberPath)}`)
-    }
+    router.push(memberPath)
   }
 
   const fab = (

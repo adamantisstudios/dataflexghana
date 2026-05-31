@@ -68,7 +68,6 @@ import {
   MessageCircle,
   BarChart3,
   Volume2,
-  SwitchCamera,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -1004,9 +1003,6 @@ function ControlPanelInner({
         <VoipFloatingActions>
           <VoipFloatingButton title="Invite participant" onClick={() => setInviteOpen(true)}>
             <UserPlus className="h-6 w-6" />
-          </VoipFloatingButton>
-          <VoipFloatingButton title="Switch camera" disabled>
-            <SwitchCamera className="h-6 w-6" />
           </VoipFloatingButton>
           <VoipFloatingButton title="Chat" onClick={() => setChatOpen(true)}>
             <MessageCircle className="h-6 w-6" />
