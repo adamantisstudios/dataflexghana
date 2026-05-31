@@ -8,12 +8,24 @@ export async function createR2PresignedPutUrl(
   bucketName: string,
   expiresInSeconds = 3600,
 ): Promise<string> {
-  const client = getR2Client()
+  const key = objectKey.replace(/^\/+/, "")
+  const normalizedContentType = contentType.trim() || "application/octet-stream"
+
   const command = new PutObjectCommand({
     Bucket: bucketName,
-    Key: objectKey.replace(/^\/+/, ""),
-    ContentType: contentType,
+    Key: key,
+    ContentType: normalizedContentType,
   })
+
+  const signedAt = new Date().toISOString()
+  console.log("[R2 presign] signing PUT at server time:", signedAt, {
+    bucket: bucketName,
+    key,
+    contentType: normalizedContentType,
+    expiresInSeconds,
+  })
+
+  const client = getR2Client()
   return getSignedUrl(client, command, { expiresIn: expiresInSeconds })
 }
 

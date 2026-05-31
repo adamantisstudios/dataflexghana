@@ -1,6 +1,6 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getAdminClient } from "@/lib/supabase-base"
-import { deleteFromR2, getR2Client, getR2ObjectStream } from "@/lib/r2-client"
+import { deleteFromR2, getR2Client, getR2Endpoint, getR2ObjectStream, requireEnv } from "@/lib/r2-client"
 
 export const DATING_PHOTOS_BUCKET =
   process.env.R2_DATING_PHOTOS_BUCKET_NAME || "dataflex-dating-photos"
@@ -30,21 +30,17 @@ export function getDatingPhotosBucket(): string {
 
 /** Resolve and validate shared R2 env (same credentials as channel audio / attachments). */
 export function getDatingR2Config(): DatingR2Config {
-  const accountId = process.env.R2_ACCOUNT_ID?.trim()
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim()
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim()
+  const accountId = requireEnv("R2_ACCOUNT_ID")
+  const accessKeyId = requireEnv("R2_ACCESS_KEY_ID")
+  const secretAccessKey = requireEnv("R2_SECRET_ACCESS_KEY")
   const bucketName = getDatingPhotosBucket()
-
-  if (!accountId) throw new Error("Missing environment variable: R2_ACCOUNT_ID")
-  if (!accessKeyId) throw new Error("Missing environment variable: R2_ACCESS_KEY_ID")
-  if (!secretAccessKey) throw new Error("Missing environment variable: R2_SECRET_ACCESS_KEY")
 
   return {
     accountId,
     accessKeyId,
     secretAccessKey,
     bucketName,
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    endpoint: getR2Endpoint(accountId),
   }
 }
 
@@ -106,12 +102,13 @@ export async function uploadDatingPhotoBufferToR2(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     const name = err instanceof Error ? err.name : "UnknownError"
-    const accountId = process.env.R2_ACCOUNT_ID?.trim()
     console.error("[dating-photos] R2 upload failed:", {
       name,
       message,
       bucket: bucketName,
-      endpoint: accountId ? `https://${accountId}.r2.cloudflarestorage.com` : "(missing R2_ACCOUNT_ID)",
+      endpoint: process.env.R2_ACCOUNT_ID?.trim()
+        ? getR2Endpoint(process.env.R2_ACCOUNT_ID.trim())
+        : "(missing R2_ACCOUNT_ID)",
       key,
       contentType,
       bytes: buffer.length,

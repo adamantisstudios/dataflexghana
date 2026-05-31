@@ -39,7 +39,12 @@ export async function POST(request: NextRequest) {
     const objectKey = `channel-videos/thumbnails/${channelId}-${Date.now()}.jpg`
     const uploadUrl = await createR2PresignedPutUrl(objectKey, "image/jpeg", bucket)
 
-    return NextResponse.json({ success: true, uploadUrl, objectKey })
+    return NextResponse.json({
+      success: true,
+      uploadUrl,
+      objectKey,
+      contentType: "image/jpeg",
+    })
   } catch (err) {
     console.error("[videos/presign-thumbnail]", err)
     return NextResponse.json(

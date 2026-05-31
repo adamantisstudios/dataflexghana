@@ -212,12 +212,12 @@ export function VideoPostCreator({ channelId, teacherId, teacherName, onVideoCre
 
       setUploadProgress(40)
 
+      // Content-Type must match what was signed in PutObjectCommand (returned as presignJson.contentType).
+      const signedVideoType = presignJson.contentType || videoFile!.type || "video/mp4"
       const putRes = await fetch(presignJson.uploadUrl, {
         method: "PUT",
         body: videoFile,
-        headers: {
-          "Content-Type": presignJson.contentType || videoFile!.type || "video/mp4",
-        },
+        headers: { "Content-Type": signedVideoType },
       })
 
       if (!putRes.ok) {
@@ -240,10 +240,11 @@ export function VideoPostCreator({ channelId, teacherId, teacherName, onVideoCre
         })
         const thumbPresignJson = await thumbPresignRes.json()
         if (thumbPresignRes.ok && thumbPresignJson.success) {
+          const signedThumbType = thumbPresignJson.contentType || "image/jpeg"
           const thumbPut = await fetch(thumbPresignJson.uploadUrl, {
             method: "PUT",
             body: thumbnailBlob,
-            headers: { "Content-Type": "image/jpeg" },
+            headers: { "Content-Type": signedThumbType },
           })
           if (thumbPut.ok) {
             thumbnailObjectKey = thumbPresignJson.objectKey

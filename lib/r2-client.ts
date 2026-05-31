@@ -1,16 +1,23 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 
-function requireEnv(name: string): string {
-  const v = process.env[name]
+/** Read required R2 env var with whitespace trimmed (avoids signature/auth failures). */
+export function requireEnv(name: string): string {
+  const v = process.env[name]?.trim()
   if (!v) throw new Error(`Missing environment variable: ${name}`)
   return v
 }
 
+/** Cloudflare R2 S3-compatible endpoint: https://<account_id>.r2.cloudflarestorage.com */
+export function getR2Endpoint(accountId?: string): string {
+  const id = (accountId ?? requireEnv("R2_ACCOUNT_ID")).trim()
+  return `https://${id}.r2.cloudflarestorage.com`
+}
+
 export function getR2Client(): S3Client {
-  const accountId = requireEnv("R2_ACCOUNT_ID")
   return new S3Client({
     region: "auto",
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    endpoint: getR2Endpoint(),
+    forcePathStyle: true,
     credentials: {
       accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
       secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
@@ -21,14 +28,14 @@ export function getR2Client(): S3Client {
 /** Channel audio lectures bucket (public read via R2_PUBLIC_URL_BASE or stream API). */
 export function getChannelAudioBucketName(): string {
   return (
-    process.env.R2_CHANNEL_AUDIO_BUCKET_NAME ||
-    process.env.R2_BUCKET_NAME ||
+    process.env.R2_CHANNEL_AUDIO_BUCKET_NAME?.trim() ||
+    process.env.R2_BUCKET_NAME?.trim() ||
     "dataflex-channel-audio"
   )
 }
 
 export function getAttachmentsBucketName(): string {
-  return process.env.R2_ATTACHMENTS_BUCKET_NAME || "dataflex-channel-attachments"
+  return process.env.R2_ATTACHMENTS_BUCKET_NAME?.trim() || "dataflex-channel-attachments"
 }
 
 function encodeObjectKey(objectKey: string): string {

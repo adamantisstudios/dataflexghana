@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: contentAccess.error }, { status: 403 })
     }
     const fileName = String(body.fileName || "video.mp4")
-    const contentType = String(body.contentType || "video/mp4")
+    const contentType = String(body.contentType || "video/mp4").trim() || "video/mp4"
     const fileSize = Number(body.fileSize || 0)
     const duration = Number(body.duration || 0)
     const title = String(body.title || "").trim()
