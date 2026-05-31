@@ -11,6 +11,7 @@ import {
   touchDatingStreak,
 } from "@/lib/dating/dating-server"
 import { countProfilePhotos, getPhotosForProfile } from "@/lib/dating/dating-photos"
+import { deleteDatingAccountByAgentId } from "@/lib/dating/delete-dating-account"
 import { DATING_INTENTIONS } from "@/lib/dating/constants"
 import { getAdminClient } from "@/lib/supabase-base"
 
@@ -198,4 +199,30 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   return POST(request)
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = await authenticateAgent(request)
+  if (!auth.success) return createAuthErrorResponse(auth.error || "Agent authentication required")
+  const agentId = getAuthAgentId(auth)
+  if (!agentId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  try {
+    const result = await deleteDatingAccountByAgentId(agentId)
+    return NextResponse.json({
+      success: true,
+      message: "Dating profile and photos deleted permanently",
+      ...result,
+    })
+  } catch (e) {
+    const statusCode = (e as Error & { statusCode?: number }).statusCode
+    if (statusCode === 404 || (e instanceof Error && e.message === "Dating profile not found")) {
+      return NextResponse.json({ success: false, error: "Dating profile not found" }, { status: 404 })
+    }
+    console.error("[dating/profile DELETE]", e)
+    return NextResponse.json(
+      { success: false, error: e instanceof Error ? e.message : "Failed to delete profile" },
+      { status: 500 },
+    )
+  }
 }

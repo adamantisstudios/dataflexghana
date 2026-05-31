@@ -34,7 +34,18 @@ import {
   Ban,
   Calendar,
   Flame,
+  Trash2,
 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import {
   DATING_INTENTIONS,
@@ -140,6 +151,8 @@ export default function FindADatePage() {
   const [detailProfile, setDetailProfile] = useState<DiscoverProfile | null>(null)
   const [detailPhotoIndex, setDetailPhotoIndex] = useState(0)
   const [editingProfile, setEditingProfile] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingProfile, setDeletingProfile] = useState(false)
   const [form, setForm] = useState({
     display_name: "",
     bio: "",
@@ -455,6 +468,28 @@ export default function FindADatePage() {
     setDetailProfile(null)
   }
 
+  const deleteMyDatingProfile = async () => {
+    setDeletingProfile(true)
+    try {
+      const res = await fetch("/api/agent/dating/profile", {
+        method: "DELETE",
+        headers: headers(),
+      })
+      const { data } = await parseJsonResponse(res)
+      if (!res.ok) {
+        toast.error(data.error || "Failed to delete profile")
+        return
+      }
+      setDeleteDialogOpen(false)
+      toast.success("Your dating profile has been permanently deleted")
+      router.push("/agent/dashboard")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete profile")
+    } finally {
+      setDeletingProfile(false)
+    }
+  }
+
   const blockProfile = async (targetAgentId: string) => {
     await fetch("/api/agent/dating/block", {
       method: "POST",
@@ -635,6 +670,16 @@ export default function FindADatePage() {
                   <Flame className="h-3 w-3" /> {limits?.streak_count} day streak
                 </p>
               )}
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="w-full text-xs mt-1"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Delete My Dating Profile
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -1192,6 +1237,38 @@ export default function FindADatePage() {
           </Tabs>
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete dating profile?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure? This will permanently delete your dating profile and all photos. This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingProfile}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deletingProfile}
+              onClick={(e) => {
+                e.preventDefault()
+                void deleteMyDatingProfile()
+              }}
+            >
+              {deletingProfile ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete permanently"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

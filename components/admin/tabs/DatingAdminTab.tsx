@@ -22,7 +22,18 @@ import {
   ChevronUp,
   User,
   Clock,
+  Trash2,
 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { INTENTION_LABELS } from "@/lib/dating/constants"
 import { Input } from "@/components/ui/input"
@@ -145,6 +156,8 @@ export default function DatingAdminTab() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [rejectTarget, setRejectTarget] = useState<ProfileRow | null>(null)
   const [rejectReason, setRejectReason] = useState("")
+  const [deleteTarget, setDeleteTarget] = useState<ProfileRow | null>(null)
+  const [deletingAgentId, setDeletingAgentId] = useState<string | null>(null)
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null)
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [priceForm, setPriceForm] = useState({
@@ -193,6 +206,28 @@ export default function DatingAdminTab() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const deleteProfileByAgent = async (target: ProfileRow) => {
+    setDeletingAgentId(target.agent_id)
+    try {
+      const res = await fetch(`/api/admin/dating/profiles/agent/${target.agent_id}`, {
+        method: "DELETE",
+        headers: getAdminAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Delete failed")
+      setProfiles((prev) => prev.filter((p) => p.agent_id !== target.agent_id))
+      setDeleteTarget(null)
+      if (lightboxProfile?.agent_id === target.agent_id) {
+        setLightboxProfile(null)
+      }
+      toast.success(`Deleted dating profile for ${target.display_name}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete profile")
+    } finally {
+      setDeletingAgentId(null)
+    }
+  }
 
   const profileAction = async (
     id: string,
@@ -442,6 +477,22 @@ export default function DatingAdminTab() {
                         Unsuspend
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      disabled={actingId === p.id || deletingAgentId === p.agent_id}
+                      onClick={() => setDeleteTarget(p)}
+                      className={cn(
+                        TOUCH_BTN,
+                        "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800",
+                      )}
+                    >
+                      {deletingAgentId === p.agent_id ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="mr-2 h-4 w-4" />
+                      )}
+                      Delete
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -789,6 +840,38 @@ export default function DatingAdminTab() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete dating profile?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete this agent&apos;s dating profile ({deleteTarget?.display_name})? All photos and
+              dating data will be permanently removed. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingAgentId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              disabled={!!deletingAgentId}
+              onClick={(e) => {
+                e.preventDefault()
+                if (deleteTarget) void deleteProfileByAgent(deleteTarget)
+              }}
+            >
+              {deletingAgentId ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting…
+                </>
+              ) : (
+                "Delete profile"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
