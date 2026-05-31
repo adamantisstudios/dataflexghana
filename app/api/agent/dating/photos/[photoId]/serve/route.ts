@@ -34,7 +34,12 @@ export async function GET(
 
   try {
     return await streamPhotoResponse(photo)
-  } catch {
+  } catch (err) {
+    console.error("[dating/photos/serve] stream failed:", {
+      photoId: photo.id,
+      storage_path: photo.storage_path,
+      error: err instanceof Error ? err.message : String(err),
+    })
     return NextResponse.json({ error: "Failed to load image" }, { status: 502 })
   }
 }
@@ -42,6 +47,10 @@ export async function GET(
 async function streamPhotoResponse(photo: DatingProfilePhoto) {
   const result = await streamDatingPhoto(photo)
   if (!result.Body) {
+    console.error("[dating/photos/serve] empty body:", {
+      photoId: photo.id,
+      storage_path: photo.storage_path,
+    })
     return NextResponse.json({ error: "Image missing in storage" }, { status: 404 })
   }
   const headers = new Headers()

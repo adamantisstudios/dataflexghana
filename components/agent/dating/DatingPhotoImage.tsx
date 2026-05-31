@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import {
+  isDatingPhotoServeUrl,
   resolveDatingPhotoUrl,
   type DatingPhotoRef,
 } from "@/lib/dating/dating-photo-client"
@@ -14,35 +15,19 @@ type Props = {
   className?: string
 }
 
-/** Loads dating photos with cookie auth; falls back to Bearer fetch if <img> fails. */
+/**
+ * Dating images use either a public r2.dev URL or the authenticated serve API.
+ * <img> cannot send Bearer tokens — serve URLs are loaded via fetch + blob URL.
+ */
 export function DatingPhotoImage({ photo, alt = "", className }: Props) {
-  const primarySrc = resolveDatingPhotoUrl(photo)
-  const [src, setSrc] = useState(primarySrc)
-  const triedAuthFetch = useRef(false)
+  const resolvedUrl = resolveDatingPhotoUrl(photo)
+  const needsAuthFetch = isDatingPhotoServeUrl(resolvedUrl)
+  const [src, setSrc] = useState<string | null>(needsAuthFetch ? null : resolvedUrl)
   const blobUrlRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    setSrc(primarySrc)
-    triedAuthFetch.current = false
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current)
-      blobUrlRef.current = null
-    }
-  }, [primarySrc, photo.id])
-
-  useEffect(() => {
-    return () => {
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current)
-      }
-    }
-  }, [])
-
   const loadWithAuth = useCallback(async () => {
-    if (triedAuthFetch.current) return
-    triedAuthFetch.current = true
     try {
-      const res = await fetch(`/api/agent/dating/photos/${photo.id}/serve`, {
+      const res = await fetch(resolvedUrl, {
         headers: getAgentAuthHeaders(),
         credentials: "same-origin",
       })
@@ -53,16 +38,50 @@ export function DatingPhotoImage({ photo, alt = "", className }: Props) {
       blobUrlRef.current = url
       setSrc(url)
     } catch {
-      /* keep broken state */
+      /* keep placeholder */
     }
-  }, [photo.id])
+  }, [resolvedUrl])
+
+  useEffect(() => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current)
+      blobUrlRef.current = null
+    }
+
+    if (needsAuthFetch) {
+      setSrc(null)
+      void loadWithAuth()
+    } else {
+      setSrc(resolvedUrl)
+    }
+  }, [resolvedUrl, needsAuthFetch, loadWithAuth, photo.id])
+
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current)
+      }
+    }
+  }, [])
+
+  if (!src) {
+    return (
+      <div
+        className={cn(className, "animate-pulse bg-gray-200")}
+        aria-hidden
+        role="presentation"
+      />
+    )
+  }
 
   return (
     <img
       src={src}
       alt={alt}
       className={cn(className)}
-      onError={() => void loadWithAuth()}
+      onError={() => {
+        if (!needsAuthFetch) void loadWithAuth()
+      }}
     />
   )
 }

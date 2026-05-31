@@ -1,6 +1,12 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getAdminClient } from "@/lib/supabase-base"
-import { deleteFromR2, getR2Client, getR2ObjectStream, requireEnv } from "@/lib/r2-client"
+import {
+  deleteFromR2,
+  getR2Client,
+  getR2Endpoint,
+  getR2ObjectStream,
+  requireEnv,
+} from "@/lib/r2-client"
 import { getR2RequestLogMeta, logS3PutObjectError } from "@/lib/r2-s3-error"
 
 export const DATING_PHOTOS_BUCKET =
@@ -53,27 +59,56 @@ function encodeObjectKey(objectKey: string): string {
     .join("/")
 }
 
-export function getDatingPhotoPublicUrl(objectKey: string, photoId?: string): string {
-  const datingBase = process.env.R2_DATING_PHOTOS_PUBLIC_URL_BASE?.replace(/\/$/, "")
-  if (datingBase) {
-    return `${datingBase}/${encodeObjectKey(objectKey)}`
+/** Public r2.dev base when bucket public access is enabled (see Cloudflare R2 settings). */
+export function getDatingPhotosPublicUrlBase(): string | null {
+  const explicit = process.env.R2_DATING_PHOTOS_PUBLIC_URL_BASE?.trim().replace(/\/$/, "")
+  if (explicit) return explicit
+  try {
+    const accountId = requireEnv("R2_ACCOUNT_ID")
+    return `https://${getDatingPhotosBucket()}.${accountId}.r2.dev`
+  } catch {
+    return null
   }
+}
 
-  const publicBase = process.env.R2_PUBLIC_URL_BASE?.replace(/\/$/, "")
-  if (publicBase) {
+/** Agent-authenticated image proxy (works without public bucket). */
+export function getDatingPhotoServePath(photoId: string): string {
+  return `/api/agent/dating/photos/${photoId}/serve`
+}
+
+/** Admin-authenticated image proxy. */
+export function getDatingPhotoAdminServePath(photoId: string): string {
+  return `/api/admin/dating/photos/${photoId}/serve`
+}
+
+/**
+ * URL stored on the row and sent to clients.
+ * Default: serve route (private bucket). Set R2_DATING_PHOTOS_USE_PUBLIC_URL=true after enabling public access.
+ */
+export function getDatingPhotoPublicUrl(objectKey: string, photoId?: string): string {
+  const publicBase = getDatingPhotosPublicUrlBase()
+  if (publicBase && process.env.R2_DATING_PHOTOS_USE_PUBLIC_URL === "true") {
     return `${publicBase}/${encodeObjectKey(objectKey)}`
   }
-
   if (photoId) {
-    return `/api/agent/dating/photos/${photoId}/serve`
+    return getDatingPhotoServePath(photoId)
   }
-
-  const accountId = process.env.R2_ACCOUNT_ID?.trim()
-  if (accountId) {
-    return `https://pub-${accountId}.r2.dev/${encodeObjectKey(objectKey)}`
+  if (publicBase && process.env.R2_DATING_PHOTOS_USE_PUBLIC_URL === "true") {
+    return `${publicBase}/${encodeObjectKey(objectKey)}`
   }
-
   return `/api/agent/dating/photos/serve?key=${encodeURIComponent(objectKey)}`
+}
+
+/** Fix stale DB public_url values (e.g. wrong pub-{account}.r2.dev paths). */
+export function normalizeDatingPhotoRow(photo: DatingProfilePhoto): DatingProfilePhoto {
+  return {
+    ...photo,
+    public_url: getDatingPhotoPublicUrl(photo.storage_path, photo.id),
+  }
+}
+
+function normalizeDatingPhotoRows(photos: DatingProfilePhoto[]): DatingProfilePhoto[] {
+  return photos.map(normalizeDatingPhotoRow)
 }
 
 export async function uploadDatingPhotoBufferToR2(
@@ -147,7 +182,7 @@ export async function getPhotosForProfile(profileId: string): Promise<DatingProf
     console.error("[dating-photos] list error:", error.message)
     return []
   }
-  return (data ?? []) as DatingProfilePhoto[]
+  return normalizeDatingPhotoRows((data ?? []) as DatingProfilePhoto[])
 }
 
 export async function getPhotosForProfiles(
@@ -166,7 +201,7 @@ export async function getPhotosForProfiles(
 
   for (const row of (data ?? []) as DatingProfilePhoto[]) {
     const list = map.get(row.profile_id) ?? []
-    list.push(row)
+    list.push(normalizeDatingPhotoRow(row))
     map.set(row.profile_id, list)
   }
   return map
@@ -179,7 +214,7 @@ export async function getPhotoById(photoId: string): Promise<DatingProfilePhoto 
     .eq("id", photoId)
     .maybeSingle()
   if (error || !data) return null
-  return data as DatingProfilePhoto
+  return normalizeDatingPhotoRow(data as DatingProfilePhoto)
 }
 
 export async function uploadProfilePhoto(
@@ -241,7 +276,7 @@ export async function uploadProfilePhoto(
     throw new Error(`Database error: ${error.message}`)
   }
 
-  return data as DatingProfilePhoto
+  return normalizeDatingPhotoRow(data as DatingProfilePhoto)
 }
 
 export async function deleteProfilePhoto(photoId: string, agentId: string): Promise<void> {

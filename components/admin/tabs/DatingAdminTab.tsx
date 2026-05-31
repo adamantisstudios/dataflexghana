@@ -357,9 +357,9 @@ export default function DatingAdminTab() {
                       }}
                       title="View photos"
                     >
-                      {p.photos?.[0]?.public_url ? (
+                      {p.photos?.[0]?.id ? (
                         <img
-                          src={p.photos[0].public_url}
+                          src={`/api/admin/dating/photos/${p.photos[0].id}/serve`}
                           alt=""
                           className="w-full h-full object-cover"
                         />
@@ -731,7 +731,7 @@ export default function DatingAdminTab() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="relative max-w-lg w-full bg-white rounded-2xl overflow-hidden shadow-xl">
             <img
-              src={lightboxProfile.photos![lightboxIndex].public_url ?? ""}
+              src={`/api/admin/dating/photos/${lightboxProfile.photos![lightboxIndex].id}/serve`}
               alt=""
               className="w-full aspect-square object-contain bg-black"
             />
