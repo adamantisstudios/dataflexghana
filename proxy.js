@@ -1,7 +1,188 @@
 import { NextResponse } from 'next/server'
 
+const AGENT_AUTH_PUBLIC_PATHS = new Set([
+  '/agent/login',
+  '/agent/register',
+  '/agent/registration-payment',
+  '/agent/registration-complete',
+])
+
+const AGENT_PHOTO_VERIFICATION_HOLD_PATH = '/agent/dashboard'
+
+const AGENT_API_PHOTO_EXEMPT_PATHS = [
+  '/api/agent/login',
+  '/api/agent/register',
+  '/api/agent/check-payment',
+  '/api/agent/mark-payment-ready',
+  '/api/agent/clear-payment',
+  '/api/agent/profile-photo/verify',
+]
+
+const AGENT_UPLOAD_PHOTO_EXEMPT_PATHS = ['/api/upload/image']
+
+const AGENT_REGISTRATION_API_EXEMPT_PREFIXES = ['/api/paystack/register']
+
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function getPlatformAdminEmail() {
+  return (
+    process.env.SUPPORT_EMAIL ||
+    process.env.NEXT_PUBLIC_SUPPORT_EMAIL ||
+    'sales.dataflex@gmail.com'
+  )
+    .trim()
+    .toLowerCase()
+}
+
+function isPlatformAdminEmail(email) {
+  const adminEmail = getPlatformAdminEmail()
+  if (!adminEmail || !email) return false
+  return String(email).trim().toLowerCase() === adminEmail
+}
+
+function getPhotoVerificationStatus(agent) {
+  if (!agent) return 'unverified'
+  if (agent.profile_verified === true) return 'verified'
+  if (String(agent.profile_image_url ?? '').trim()) return 'pending'
+  return 'unverified'
+}
+
+function isAgentPhotoVerified(agent) {
+  if (!agent) return false
+  if (isPlatformAdminEmail(agent.email)) return true
+  return getPhotoVerificationStatus(agent) === 'verified'
+}
+
+function parseAgentIdFromRequest(request) {
+  const headerId = request.headers.get('x-agent-id')
+  if (headerId) return headerId
+
+  const authHeader = request.headers.get('authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const decoded = JSON.parse(atob(authHeader.slice(7)))
+      if (decoded?.id) return String(decoded.id)
+    } catch {
+      const raw = authHeader.slice(7).trim()
+      if (UUID_RE.test(raw)) return raw
+    }
+  }
+
+  const agentIdCookie = request.cookies.get('agent_id')
+  if (agentIdCookie?.value) return agentIdCookie.value
+
+  const agentCookie = request.cookies.get('agent')
+  if (agentCookie?.value) {
+    try {
+      const agentData = JSON.parse(agentCookie.value)
+      if (agentData?.id) return String(agentData.id)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return null
+}
+
+async function fetchAgentForPhotoGate(agentId) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey || !agentId) return null
+
+  const url = new URL(`${supabaseUrl}/rest/v1/agents`)
+  url.searchParams.set('id', `eq.${agentId}`)
+  url.searchParams.set('isapproved', 'eq.true')
+  url.searchParams.set(
+    'select',
+    'id,email,profile_image_url,profile_verified,isapproved',
+  )
+  url.searchParams.set('limit', '1')
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+    },
+    signal: AbortSignal.timeout(4000),
+  })
+
+  if (!res.ok) return null
+  const rows = await res.json()
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
+}
+
+function isExemptAgentApiPath(pathname) {
+  return AGENT_API_PHOTO_EXEMPT_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  )
+}
+
+function isExemptUploadPath(pathname) {
+  return AGENT_UPLOAD_PHOTO_EXEMPT_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  )
+}
+
+function isExemptRegistrationApiPath(pathname) {
+  return AGENT_REGISTRATION_API_EXEMPT_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  )
+}
+
+async function enforceAgentPhotoVerification(request) {
+  const { pathname } = request.nextUrl
+  const agentId = parseAgentIdFromRequest(request)
+  if (!agentId) return null
+
+  const needsAgentApiGate =
+    pathname.startsWith('/api/agent/') && !isExemptAgentApiPath(pathname)
+  const needsUploadGate =
+    !isExemptUploadPath(pathname) &&
+    !isExemptRegistrationApiPath(pathname) &&
+    pathname.startsWith('/api/') &&
+    (pathname.startsWith('/api/upload/') ||
+      pathname.startsWith('/api/channel') ||
+      pathname.startsWith('/api/videos/') ||
+      pathname.startsWith('/api/calls/') ||
+      pathname.startsWith('/api/paystack/'))
+
+  const needsAgentPageGate =
+    pathname.startsWith('/agent/') && !AGENT_AUTH_PUBLIC_PATHS.has(pathname)
+
+  if (!needsAgentApiGate && !needsUploadGate && !needsAgentPageGate) {
+    return null
+  }
+
+  if (isExemptUploadPath(pathname)) {
+    return null
+  }
+
+  const agent = await fetchAgentForPhotoGate(agentId)
+  if (!agent) return null
+
+  if (isAgentPhotoVerified(agent)) {
+    return null
+  }
+
+  if (needsAgentPageGate) {
+    if (pathname === AGENT_PHOTO_VERIFICATION_HOLD_PATH) {
+      return NextResponse.next()
+    }
+    const redirectUrl = new URL(AGENT_PHOTO_VERIFICATION_HOLD_PATH, request.url)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error:
+        'Account photo verification required. Upload your profile photo and wait for admin approval before using the platform.',
+      code: 'PHOTO_VERIFICATION_REQUIRED',
+    },
+    { status: 403 },
+  )
+}
 
 const RESERVED_STORE_SEGMENTS = new Set([
   'not-available',
@@ -15,6 +196,14 @@ function isUuid(value) {
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl
+
+  try {
+    const photoGateResponse = await enforceAgentPhotoVerification(request)
+    if (photoGateResponse) return photoGateResponse
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(`Agent photo verification gate skipped (${message})`)
+  }
 
   const hostname = request.headers.get('host') || ''
   const isStorefrontDomain = hostname.includes('referralpowerhouse.vercel.app')

@@ -5,6 +5,11 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "./supabase-base"
+import {
+  isAgentPhotoVerificationExemptApiPath,
+  isAgentPhotoVerified,
+  PHOTO_VERIFICATION_REQUIRED_ERROR,
+} from "./agent-photo-verification-gate"
 
 export interface AuthResult {
   success: boolean
@@ -113,10 +118,19 @@ export async function authenticateAdmin(request: NextRequest): Promise<AuthResul
   }
 }
 
+export type AuthenticateAgentOptions = {
+  /** Skip photo verification (e.g. profile photo submit endpoints). */
+  allowUnverifiedPhoto?: boolean
+}
+
 /**
  * Authenticate agent user from request headers or body
  */
-export async function authenticateAgent(request: NextRequest, agentId?: string): Promise<AuthResult> {
+export async function authenticateAgent(
+  request: NextRequest,
+  agentId?: string,
+  options?: AuthenticateAgentOptions,
+): Promise<AuthResult> {
   try {
     let targetAgentId = agentId
 
@@ -173,6 +187,17 @@ export async function authenticateAgent(request: NextRequest, agentId?: string):
       }
     }
 
+    const allowUnverified =
+      options?.allowUnverifiedPhoto === true ||
+      isAgentPhotoVerificationExemptApiPath(request.nextUrl.pathname)
+
+    if (!allowUnverified && !isAgentPhotoVerified(agent)) {
+      return {
+        success: false,
+        error: PHOTO_VERIFICATION_REQUIRED_ERROR,
+      }
+    }
+
     return {
       success: true,
       user: agent,
@@ -187,12 +212,16 @@ export async function authenticateAgent(request: NextRequest, agentId?: string):
 }
 
 export function createAuthErrorResponse(error: string, status: number = 401) {
+  const isPhotoGate =
+    error === PHOTO_VERIFICATION_REQUIRED_ERROR ||
+    error.includes("photo verification required")
   return NextResponse.json(
     {
       success: false,
       error,
+      code: isPhotoGate ? "PHOTO_VERIFICATION_REQUIRED" : undefined,
     },
-    { status },
+    { status: isPhotoGate ? 403 : status },
   )
 }
 

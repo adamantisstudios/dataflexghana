@@ -1,6 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "./supabase-base"
 import { authenticateAdmin as authenticateAdminFromApiAuth } from "./api-auth"
+import {
+  isAgentPhotoVerificationExemptApiPath,
+  isAgentPhotoVerified,
+  PHOTO_VERIFICATION_REQUIRED_ERROR,
+} from "./agent-photo-verification-gate"
+
+const AGENT_AUTH_SELECT =
+  "id, full_name, phone_number, email, wallet_balance, commission, status, created_at, isapproved, profile_image_url, profile_verified"
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {
@@ -139,7 +147,7 @@ export async function authenticateAgent(
     const supabase = getAdminClient()
     const { data: agent, error: agentError } = await supabase
       .from("agents")
-      .select("id, full_name, phone_number, wallet_balance, commission, status, created_at, isapproved")
+      .select(AGENT_AUTH_SELECT)
       .eq("id", agentId)
       .eq("isapproved", true)
       .single()
@@ -148,6 +156,10 @@ export async function authenticateAgent(
       return { success: false, error: "Agent not found or not approved" }
     }
 
+    const allowUnverified = isAgentPhotoVerificationExemptApiPath(request.nextUrl.pathname)
+    if (!allowUnverified && !isAgentPhotoVerified(agent)) {
+      return { success: false, error: PHOTO_VERIFICATION_REQUIRED_ERROR }
+    }
 
     return {
       success: true,
@@ -156,6 +168,10 @@ export async function authenticateAgent(
         phone_number: agent.phone_number,
         role: "agent",
         full_name: agent.full_name,
+        email: agent.email,
+        profile_image_url: agent.profile_image_url,
+        profile_verified: agent.profile_verified,
+        isapproved: agent.isapproved,
       },
     }
   } catch (error) {
@@ -179,12 +195,16 @@ export async function authenticateFromLocalStorage(
     if (agentId && (!requiredRole || requiredRole === "agent")) {
       const { data: agent, error } = await supabase
         .from("agents")
-        .select("id, full_name, phone_number, wallet_balance, commission, status, created_at, isapproved")
+        .select(AGENT_AUTH_SELECT)
         .eq("id", agentId)
         .eq("isapproved", true)
         .single()
 
       if (!error && agent) {
+        const allowUnverified = isAgentPhotoVerificationExemptApiPath(request.nextUrl.pathname)
+        if (!allowUnverified && !isAgentPhotoVerified(agent)) {
+          return { success: false, error: PHOTO_VERIFICATION_REQUIRED_ERROR }
+        }
         return {
           success: true,
           user: {
@@ -192,6 +212,10 @@ export async function authenticateFromLocalStorage(
             phone_number: agent.phone_number,
             role: "agent",
             full_name: agent.full_name,
+            email: agent.email,
+            profile_image_url: agent.profile_image_url,
+            profile_verified: agent.profile_verified,
+            isapproved: agent.isapproved,
           },
         }
       }
@@ -254,7 +278,14 @@ export function withAuth(
     const auth = await authenticate(request, requiredRole)
 
     if (!auth.success) {
-      return NextResponse.json({ error: auth.error || "Authentication required" }, { status: 401 })
+      const isPhotoGate = auth.error === PHOTO_VERIFICATION_REQUIRED_ERROR
+      return NextResponse.json(
+        {
+          error: auth.error || "Authentication required",
+          code: isPhotoGate ? "PHOTO_VERIFICATION_REQUIRED" : undefined,
+        },
+        { status: isPhotoGate ? 403 : 401 },
+      )
     }
 
     // Add user to request object

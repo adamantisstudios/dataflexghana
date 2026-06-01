@@ -5,9 +5,11 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from 'next/navigation'
 import { getStoredAgent, syncAgentSessionCookie, type Agent, logoutAgent } from "@/lib/unified-auth-system"
 import { AgentSecurityProvider } from "@/components/agent/AgentSecurityProvider"
+import { AgentPhotoVerificationGate } from "@/components/agent/AgentPhotoVerificationGate"
 import { AnnouncementsFloatingButton } from "@/components/announcements/AnnouncementsFloatingButton"
 import { AgentFloatingChrome } from "@/components/agent/AgentFloatingChrome"
 import { StreamingSessionProvider } from "@/lib/streaming-session"
+import { isAgentAuthPublicPath } from "@/lib/agent-photo-verification-gate"
 
 interface AgentLayoutProps {
   children: React.ReactNode
@@ -27,7 +29,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         const storedAgent = getStoredAgent()
 
         if (!storedAgent) {
-          if (mounted && pathname !== "/agent/login" && pathname !== "/agent/register" && pathname !== "/agent/registration-payment" && pathname !== "/agent/registration-complete") {
+          if (mounted && !isAgentAuthPublicPath(pathname)) {
             router.push("/agent/login")
           }
           return
@@ -39,7 +41,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         }
       } catch (error) {
         console.error("Auth check error:", error)
-        if (mounted && pathname !== "/agent/login" && pathname !== "/agent/register" && pathname !== "/agent/registration-payment" && pathname !== "/agent/registration-complete") {
+        if (mounted && !isAgentAuthPublicPath(pathname)) {
           router.push("/agent/login")
         }
       } finally {
@@ -55,7 +57,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "agent" && !e.newValue) {
         setAgent(null)
-        if (pathname !== "/agent/login" && pathname !== "/agent/register" && pathname !== "/agent/registration-payment" && pathname !== "/agent/registration-complete") {
+        if (!isAgentAuthPublicPath(pathname)) {
           router.push("/agent/login")
         }
       }
@@ -90,7 +92,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     )
   }
 
-  if (pathname === "/agent/login" || pathname === "/agent/register" || pathname === "/agent/registration-payment" || pathname === "/agent/registration-complete") {
+  if (isAgentAuthPublicPath(pathname)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         {children}
@@ -105,14 +107,16 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
 
   return (
     <StreamingSessionProvider>
-      <AgentSecurityProvider
-        enabled={true}
-        inactivityTimeoutMinutes={90}
-        showWarningMinutes={5}
-      >
-        {children}
-        <AgentFloatingChrome />
-      </AgentSecurityProvider>
+      <AgentPhotoVerificationGate>
+        <AgentSecurityProvider
+          enabled={true}
+          inactivityTimeoutMinutes={90}
+          showWarningMinutes={5}
+        >
+          {children}
+          <AgentFloatingChrome />
+        </AgentSecurityProvider>
+      </AgentPhotoVerificationGate>
     </StreamingSessionProvider>
   )
 }
