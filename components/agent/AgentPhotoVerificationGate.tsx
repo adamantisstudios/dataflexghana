@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { ShieldAlert, LogOut } from "lucide-react"
+import { LogOut } from "lucide-react"
+import { PhotoVerificationWelcome } from "@/components/agent/PhotoVerificationWelcome"
 import { Button } from "@/components/ui/button"
 import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
 import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
@@ -62,7 +63,7 @@ function AgentPhotoVerificationLockScreen({
       if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
       const verified = await confirmAgentProfilePhotoVerified(data.url)
       if (!verified.ok) throw new Error(verified.error || "Could not submit photo")
-      toast.success("Photo submitted — waiting for admin approval")
+      toast.success("Photo received! We'll notify you once your account is verified.")
       await onRefresh()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed")
@@ -82,25 +83,11 @@ function AgentPhotoVerificationLockScreen({
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl border bg-white shadow-lg p-6 space-y-5">
-        <div className="space-y-2 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-            <ShieldAlert className="h-6 w-6 text-amber-700" />
-          </div>
-          <h1 className="text-xl font-semibold text-gray-900">Account verification required</h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            You must verify your account with a clear face photo and receive admin approval before
-            you can access any part of the agent platform.
-          </p>
-        </div>
+        <PhotoVerificationWelcome pending={pending} />
 
-        {pending ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Your photo is pending admin review. You will gain full access automatically once
-            approved.
-          </div>
-        ) : (
+        {!pending && (
           <FacePhotoUpload
-            label="Profile photo"
+            label="Upload verification photo"
             uploading={photoUploading}
             disabled={photoUploading}
             onFile={uploadProfilePhoto}

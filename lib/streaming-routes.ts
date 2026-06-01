@@ -1,21 +1,21 @@
-/** Routes where full-screen voice/video streaming is active — hide floating UI chrome. */
+/** Routes where immersive media is active — hide call FAB, scroll widget, announcements, etc. */
 export function isStreamingPagePath(pathname: string | null | undefined): boolean {
   if (!pathname) return false
 
   const path = pathname.split("?")[0].replace(/\/$/, "") || "/"
 
+  // Full-screen agent tutorial videos
+  if (path === "/agent/tutorials" || path.startsWith("/agent/tutorials/")) {
+    return true
+  }
+
+  // Teaching hub, channels list, and all channel member/host views
+  if (path === "/agent/teaching" || path.startsWith("/agent/teaching/")) {
+    return true
+  }
+
   // Agent conference room (not the list at /agent/voice-rooms)
   if (path.includes("/agent/voice-room") && !path.includes("/agent/voice-rooms")) {
-    return true
-  }
-
-  // Channel live member view (e.g. /agent/teaching/[channelId]/member)
-  if (path.includes("/agent/teaching/") && path.includes("/member")) {
-    return true
-  }
-
-  // Teacher/host channel dashboard (live session overlay)
-  if (/^\/agent\/teaching\/[^/]+$/.test(path) && path !== "/agent/teaching") {
     return true
   }
 

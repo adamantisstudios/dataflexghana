@@ -18,7 +18,7 @@ export const AGENT_PHOTO_VERIFICATION_EXEMPT_API_PATHS = [
 ] as const
 
 export const PHOTO_VERIFICATION_REQUIRED_ERROR =
-  "Account photo verification required. Upload your profile photo and wait for admin approval before using the platform."
+  "Please verify your account with a photo before using this feature. Upload a clear selfie from your dashboard and wait for our team to approve it."
 
 export function isAgentAuthPublicPath(pathname: string): boolean {
   return AGENT_AUTH_PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))

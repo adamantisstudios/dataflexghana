@@ -37,7 +37,7 @@ export function useRegisterStreamingSession(active: boolean): void {
   }, [active, setActive])
 }
 
-/** Path-based or overlay-based — hide call widget, back-to-top, announcements FAB. */
+/** Path-based or overlay-based — hide call widget, scroll widget, and other bottom-right FABs. */
 export function useShouldHideStreamingChrome(): boolean {
   const pathname = usePathname()
   const { active } = useStreamingSession()
