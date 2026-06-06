@@ -151,6 +151,7 @@ export function ChannelAudioRecorder({
         const ext = mimeRef.current.includes("mp4") ? "m4a" : "webm"
         file = new File([blob], `lecture-${Date.now()}.${ext}`, { type: blob.type })
       }
+      ;(file as File & { duration?: number }).duration = secondsRef.current
 
       pendingFileRef.current = file
       onRecordedFile(file)

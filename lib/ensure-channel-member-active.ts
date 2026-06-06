@@ -41,13 +41,15 @@ export async function ensureChannelMemberActive(
   }
 
   const now = new Date().toISOString()
+  const roleToApply =
+    existing?.role && existing.role !== "member" && role === "member" ? existing.role : role
 
   if (existing) {
     if (existing.status === "active") {
-      if (role && existing.role !== role) {
+      if (roleToApply && existing.role !== roleToApply) {
         const { error: roleError } = await db
           .from("channel_members")
-          .update({ role })
+          .update({ role: roleToApply })
           .eq("id", existing.id)
         if (roleError) {
           return { ok: false, error: roleError.message }
@@ -57,7 +59,7 @@ export async function ensureChannelMemberActive(
     }
     const { error: updateError } = await db
       .from("channel_members")
-      .update({ status: "active", joined_at: now, role })
+      .update({ status: "active", joined_at: now, role: roleToApply })
       .eq("id", existing.id)
 
     if (updateError) {

@@ -86,6 +86,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const title = String(formData.get("title") || "").trim()
     const description = String(formData.get("description") || "").trim() || null
     const attachmentsRaw = formData.get("attachments")
+    const submittedDuration = Number(formData.get("duration") || 0)
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 })
@@ -110,6 +111,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const ext = originalName.includes(".") ? originalName.split(".").pop() || "mp3" : "mp3"
 
     const { buffer, duration, contentType } = await compressAudioBuffer(inputBuffer, ext)
+    const safeSubmittedDuration =
+      Number.isFinite(submittedDuration) && submittedDuration > 0 && submittedDuration < 24 * 60 * 60
+        ? Math.round(submittedDuration)
+        : 0
+    const finalDuration = safeSubmittedDuration || duration || null
 
     const objectKey = `channels/${channelId}/audio/${randomUUID()}.mp3`
     const bucket = getChannelAudioBucketName()
@@ -122,7 +128,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         title,
         description,
         audio_url: audioUrl,
-        duration: duration || null,
+        duration: finalDuration,
         attachments,
       })
       .select("*")

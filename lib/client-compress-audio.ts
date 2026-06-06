@@ -32,7 +32,8 @@ export async function compressAudioBlobToMp3(
   fileName?: string,
 ): Promise<File> {
   const arrayBuffer = await blob.arrayBuffer()
-  const audioContext = new AudioContext()
+  const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext
+  const audioContext = new AudioContextCtor()
   try {
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0))
     const samples =
@@ -74,9 +75,10 @@ export async function compressAudioBlobToMp3(
 
 export function pickRecordingMimeType(): string {
   const candidates = [
+    "audio/mp4;codecs=mp4a.40.2",
+    "audio/mp4",
     "audio/webm;codecs=opus",
     "audio/webm",
-    "audio/mp4",
     "audio/ogg;codecs=opus",
   ]
   for (const mime of candidates) {

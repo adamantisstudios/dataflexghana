@@ -124,6 +124,8 @@ export function ChannelAudioLecturesAdmin({ channelId }: Props) {
       form.append("title", title.trim())
       form.append("description", description.trim())
       form.append("audio", file)
+      const recordedDuration = Number((file as File & { duration?: number }).duration || 0)
+      if (recordedDuration > 0) form.append("duration", String(recordedDuration))
       form.append("attachments", JSON.stringify(attachments))
       onProgress?.(40)
       setProgress(40)

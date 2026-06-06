@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Mic, Square, Send, Trash2 } from "lucide-react"
+import { pickRecordingMimeType } from "@/lib/client-compress-audio"
 
 interface AudioRecorderProps {
   onAudioRecorded: (audioFile: File) => void
@@ -22,6 +23,7 @@ export function AudioRecorder({ onAudioRecorded, disabled = false }: AudioRecord
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const animationFrameRef = useRef<number | null>(null)
+  const startedAtRef = useRef<number>(0)
 
   useEffect(() => {
     return () => {
@@ -64,7 +66,7 @@ export function AudioRecorder({ onAudioRecorded, disabled = false }: AudioRecord
       const source = audioContext.createMediaStreamSource(stream)
       source.connect(analyser)
 
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/wav"
+      const mimeType = pickRecordingMimeType()
 
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType,
@@ -84,6 +86,7 @@ export function AudioRecorder({ onAudioRecorded, disabled = false }: AudioRecord
       }
 
       mediaRecorder.start()
+      startedAtRef.current = Date.now()
       setIsRecording(true)
       setDuration(0)
       setDisplayTime("0:00")
@@ -93,7 +96,7 @@ export function AudioRecorder({ onAudioRecorded, disabled = false }: AudioRecord
 
       timerRef.current = setInterval(() => {
         setDuration((prev) => {
-          const newDuration = prev + 1
+          const newDuration = Math.max(1, Math.round((Date.now() - startedAtRef.current) / 1000))
           const minutes = Math.floor(newDuration / 60)
           const seconds = newDuration % 60
           setDisplayTime(`${minutes}:${seconds.toString().padStart(2, "0")}`)
@@ -129,10 +132,13 @@ export function AudioRecorder({ onAudioRecorded, disabled = false }: AudioRecord
       const mimeType = recordedAudio.type
       let extension = "webm"
       if (mimeType.includes("wav")) extension = "wav"
+      if (mimeType.includes("mp4")) extension = "m4a"
+      if (mimeType.includes("mpeg")) extension = "mp3"
 
       const audioFile = new File([recordedAudio], `audio-${Date.now()}.${extension}`, {
         type: mimeType,
       })
+      ;(audioFile as File & { duration?: number }).duration = duration
       onAudioRecorded(audioFile)
       setRecordedAudio(null)
       setDuration(0)

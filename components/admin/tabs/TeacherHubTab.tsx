@@ -112,6 +112,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   const [selectedAgentForAdd, setSelectedAgentForAdd] = useState("")
   const [selectedRoleForAdd, setSelectedRoleForAdd] = useState<"member" | "teacher" | "admin">("member")
   const [agentSearchTerm, setAgentSearchTerm] = useState("")
+  const [memberSearchTerm, setMemberSearchTerm] = useState("")
   const [channelForm, setChannelForm] = useState({
     name: "",
     description: "",
@@ -348,6 +349,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
       setShowAddMemberDialog(false)
       setSelectedAgentForAdd("")
       setSelectedRoleForAdd("member")
+      setAgentSearchTerm("")
       loadData()
       if (selectedChannel) loadChannelMembers(selectedChannel.id)
     } catch (error) {
@@ -358,7 +360,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   // Change Member Role
   const handleChangeMemberRole = async (memberId: string, newRole: "admin" | "teacher" | "member") => {
     try {
-      await supabase.from("channel_members").update({ role: newRole }).eq("id", memberId)
+      const { error } = await supabase.from("channel_members").update({ role: newRole }).eq("id", memberId)
+      if (error) throw error
       toast.success(`Member role updated to ${newRole}!`)
       if (selectedChannel) loadChannelMembers(selectedChannel.id)
     } catch (error) {
@@ -674,6 +677,26 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
   const filteredData = getFilteredData()
   const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  const selectedMemberIds = new Set(selectedChannelMembers.map((member) => member.agent_id))
+  const filteredMembers = selectedChannelMembers.filter((member) => {
+    const search = memberSearchTerm.trim().toLowerCase()
+    if (!search) return true
+    return (
+      member.agent_name.toLowerCase().includes(search) ||
+      member.phone_number?.toLowerCase().includes(search) ||
+      member.role.toLowerCase().includes(search)
+    )
+  })
+  const filteredAgentsForAdd = agents
+    .filter((agent) => {
+      const search = agentSearchTerm.trim().toLowerCase()
+      if (!search) return true
+      return (
+        agent.full_name.toLowerCase().includes(search) ||
+        agent.phone_number?.toLowerCase().includes(search)
+      )
+    })
+    .slice(0, 30)
 
   // Render
   if (loading) {
@@ -970,6 +993,8 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                               variant="outline"
                               onClick={() => {
                                 setSelectedChannel(channel)
+                                setMemberSearchTerm("")
+                                setAgentSearchTerm("")
                                 setShowChannelDetailsDialog(true)
                                 loadChannelMembers(channel.id)
                               }}
@@ -1286,13 +1311,14 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
 
       {/* Channel Details Dialog */}
       <Dialog open={showChannelDetailsDialog} onOpenChange={setShowChannelDetailsDialog}>
-        <DialogContent className="sm:max-w-md rounded-2xl border border-gray-100">
-          <DialogHeader>
-            <DialogTitle>{selectedChannel?.name}</DialogTitle>
+        <DialogContent className="max-h-[90dvh] w-[calc(100vw-1rem)] max-w-md overflow-hidden rounded-2xl border border-gray-100 p-0 sm:max-w-lg">
+          <DialogHeader className="border-b border-gray-100 px-4 py-3 pr-12 text-left">
+            <DialogTitle className="text-base leading-6">{selectedChannel?.name}</DialogTitle>
           </DialogHeader>
+          <div className="max-h-[calc(90dvh-8.5rem)] overflow-y-auto px-4 py-3">
           {selectedChannel?.image_url && (
             <div className="flex justify-center mb-4">
-              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-blue-200">
+              <div className="h-20 w-20 overflow-hidden rounded-xl bg-gray-100 border border-blue-200">
                 <img
                   src={selectedChannel.image_url || "/placeholder.svg"}
                   alt={selectedChannel.name}
@@ -1301,12 +1327,12 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               </div>
             </div>
           )}
-          <div className="grid gap-4 py-2">
+          <div className="grid gap-3">
             <div>
               <p className="text-sm text-gray-500">Description</p>
               <p className="text-gray-800 break-words">{selectedChannel?.description}</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3 rounded-xl bg-gray-50 p-3">
               <div>
                 <p className="text-sm text-gray-500">Category</p>
                 <p className="font-medium break-words">{selectedChannel?.category}</p>
@@ -1319,26 +1345,37 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               </div>
             </div>
             <div>
-              <h4 className="font-medium mb-2">Channel Members</h4>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h4 className="font-medium">Channel Members</h4>
+                <Badge variant="outline" className="shrink-0 text-xs">{filteredMembers.length}</Badge>
+              </div>
+              <Input
+                value={memberSearchTerm}
+                onChange={(e) => setMemberSearchTerm(e.target.value)}
+                placeholder="Search members by name, phone, or role..."
+                className="mb-2 h-10"
+              />
               {selectedChannelMembers.length === 0 ? (
                 <p className="text-sm text-gray-500">No members yet</p>
+              ) : filteredMembers.length === 0 ? (
+                <p className="rounded-lg bg-gray-50 p-3 text-sm text-gray-500">No matching members found.</p>
               ) : (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {selectedChannelMembers.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div>
+                <div className="space-y-2">
+                  {filteredMembers.map((member) => (
+                    <div key={member.id} className="rounded-xl bg-gray-50 p-2">
+                      <div className="min-w-0">
                         <p className="text-sm font-medium break-words">{member.agent_name}</p>
                         <p className="text-xs text-gray-500">
                           {member.phone_number ? `📞 ${member.phone_number}` : "No contact"} • Joined{" "}
                           {new Date(member.joined_at).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="mt-2 flex items-center gap-2">
                         <Select
                           value={member.role}
                           onValueChange={(val) => handleChangeMemberRole(member.id, val as any)}
                         >
-                          <SelectTrigger className="h-8 w-24 text-xs">
+                          <SelectTrigger className="h-10 flex-1 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1351,7 +1388,7 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                           size="icon"
                           variant="ghost"
                           onClick={() => handleDeleteMemberFromChannel(member.id, member.agent_name)}
-                          className="h-10 w-10 text-red-600 hover:text-red-700"
+                          className="h-10 w-10 shrink-0 text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1362,28 +1399,20 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
               )}
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedChannel(null)
-                setShowChannelDetailsDialog(false)
-              }}
-            >
-              Close
-            </Button>
-            <Dialog>
+          </div>
+          <DialogFooter className="sticky bottom-0 flex-row border-t border-gray-100 bg-white px-4 py-3">
+            <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
               <DialogTrigger asChild>
-                <Button className="h-11 bg-green-500 text-white hover:bg-green-600">
+                <Button className="h-11 w-full bg-green-500 text-white hover:bg-green-600">
                   <UserPlus className="h-4 w-4 mr-2" />
                   Add Member
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md rounded-2xl border border-gray-100">
-                <DialogHeader>
-                  <DialogTitle>Add Member to {selectedChannel?.name}</DialogTitle>
+              <DialogContent className="max-h-[90dvh] w-[calc(100vw-1rem)] max-w-md overflow-hidden rounded-2xl border border-gray-100 p-0">
+                <DialogHeader className="border-b border-gray-100 px-4 py-3 pr-12 text-left">
+                  <DialogTitle className="text-base leading-6">Add Member</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+                <div className="max-h-[calc(90dvh-8.5rem)] space-y-3 overflow-y-auto px-4 py-3">
                   <div className="grid gap-2">
                     <Label htmlFor="agent-search">Search Agent</Label>
                     <Input
@@ -1394,25 +1423,36 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="agent-select">Select Agent</Label>
-                    <Select value={selectedAgentForAdd} onValueChange={setSelectedAgentForAdd}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose an agent..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {agents
-                          .filter(
-                            (agent) =>
-                              agent.full_name.toLowerCase().includes(agentSearchTerm.toLowerCase()) ||
-                              agent.phone_number?.toLowerCase().includes(agentSearchTerm.toLowerCase()),
+                    <Label>Select Agent</Label>
+                    <div className="max-h-56 space-y-2 overflow-y-auto rounded-xl border border-gray-100 bg-gray-50 p-2">
+                      {filteredAgentsForAdd.length === 0 ? (
+                        <p className="p-3 text-sm text-gray-500">No matching agents found.</p>
+                      ) : (
+                        filteredAgentsForAdd.map((agent) => {
+                          const isSelected = selectedAgentForAdd === agent.id
+                          const alreadyMember = selectedMemberIds.has(agent.id)
+                          return (
+                            <button
+                              key={agent.id}
+                              type="button"
+                              onClick={() => setSelectedAgentForAdd(agent.id)}
+                              className={cn(
+                                "w-full rounded-lg border bg-white p-3 text-left transition",
+                                isSelected ? "border-emerald-500 ring-2 ring-emerald-100" : "border-gray-100 hover:border-emerald-200",
+                              )}
+                            >
+                              <span className="block text-sm font-medium text-gray-900">{agent.full_name}</span>
+                              <span className="block text-xs text-gray-500">{agent.phone_number || "No contact"}</span>
+                              {alreadyMember && (
+                                <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                                  Already in channel
+                                </span>
+                              )}
+                            </button>
                           )
-                          .map((agent) => (
-                            <SelectItem key={agent.id} value={agent.id}>
-                              {agent.full_name} {agent.phone_number ? `(${agent.phone_number})` : ""}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                        })
+                      )}
+                    </div>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="member-role">Role</Label>
@@ -1428,11 +1468,11 @@ export default function TeacherHubTab({ getCachedData, setCachedData }: TeacherH
                     </Select>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowAddMemberDialog(false)}>
+                <DialogFooter className="sticky bottom-0 flex-row border-t border-gray-100 bg-white px-4 py-3">
+                  <Button variant="outline" className="h-11 flex-1" onClick={() => setShowAddMemberDialog(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleAddMemberToChannel} className="h-11 bg-green-500 text-white hover:bg-green-600">
+                  <Button onClick={handleAddMemberToChannel} className="h-11 flex-1 bg-green-500 text-white hover:bg-green-600">
                     Add Member
                   </Button>
                 </DialogFooter>

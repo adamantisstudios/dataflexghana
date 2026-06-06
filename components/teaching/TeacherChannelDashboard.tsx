@@ -564,17 +564,22 @@ export function TeacherChannelDashboard({ channelId, teacherId, teacherName }: T
           throw mediaError
         }
       } else if (mediaForm.type === "audio" && mediaForm.selectedAudio) {
-        const audioUrl = await uploadAudioToBlob(
-          new File([mediaForm.selectedAudio], "audio.webm", { type: "audio/webm" }),
-        )
-        const duration = await getAudioDuration(new File([mediaForm.selectedAudio], "audio.webm"))
+        const audioFile =
+          mediaForm.selectedAudio instanceof File
+            ? mediaForm.selectedAudio
+            : new File([mediaForm.selectedAudio], "audio-message.webm", {
+                type: mediaForm.selectedAudio.type || "audio/webm",
+              })
+        const measuredDuration = Number((audioFile as File & { duration?: number }).duration || 0)
+        const duration = measuredDuration > 0 ? measuredDuration : await getAudioDuration(audioFile)
+        const audioUrl = await uploadAudioToBlob(audioFile)
         const { error: mediaError } = await supabase.from("message_media").insert([
           {
             message_id: messageData.id,
             media_type: "audio",
             media_url: audioUrl,
-            file_name: "audio-message.webm",
-            file_size: mediaForm.selectedAudio.size,
+            file_name: audioFile.name,
+            file_size: audioFile.size,
             duration,
           },
         ])
