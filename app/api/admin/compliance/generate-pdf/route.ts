@@ -593,7 +593,9 @@ function drawAddressText(page: PDFPage | undefined, text: string, x: number, y: 
   if (!page) return
   const value = uppercase(text)
   if (!value) return
-  const cellCount = Math.max(20, Math.floor(width / Math.max(7.2, height * 0.48)))
+  // Form A address rows are single AcroForm fields drawn over 30 visual character boxes.
+  // A fixed comb count keeps registered/residential address text aligned and at a uniform size.
+  const cellCount = 30
   drawCombText(page, value, x, y, width, height, font, cellCount)
 }
 
