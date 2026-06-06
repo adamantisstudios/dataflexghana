@@ -25,6 +25,7 @@ type CombTextOptions = {
   xInset?: number
   yOffset?: number
   fontScale?: number
+  heightScale?: number
   maxFontSize?: number
 }
 
@@ -33,10 +34,11 @@ const TARGET_MAX_BYTES = 2 * 1024 * 1024
 
 const DEFAULT_ADDRESS_COMB: CombTextOptions = {
   cells: 30,
-  xInset: 1.1,
-  yOffset: 0.25,
-  fontScale: 0.92,
-  maxFontSize: 9.8,
+  xInset: 0.6,
+  yOffset: 0.35,
+  fontScale: 0.98,
+  heightScale: 0.64,
+  maxFontSize: 10,
 }
 
 const FORM_A_COMB_CONFIG: Record<string, CombTextOptions> = {
@@ -62,10 +64,10 @@ const FORM_A_COMB_CONFIG: Record<string, CombTextOptions> = {
   other_district: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
   other_region: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
   occupation: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
-  date_of_commencement: { cells: 10, xInset: 1.2, yOffset: 0.2, fontScale: 0.94, maxFontSize: 10.2 },
-  dob: { cells: 10, xInset: 1.2, yOffset: 0.2, fontScale: 0.94, maxFontSize: 10.2 },
-  declaration_date: { cells: 10, xInset: 1.2, yOffset: 0.15, fontScale: 0.94, maxFontSize: 10.2 },
-  ghana_card: { cells: 13, xInset: 1.2, yOffset: 0.2, fontScale: 0.92, maxFontSize: 10.4 },
+  date_of_commencement: { cells: 10, xInset: 0.8, yOffset: 0.35, fontScale: 0.9, heightScale: 0.64, maxFontSize: 10 },
+  dob: { cells: 10, xInset: 0.8, yOffset: 0.35, fontScale: 0.9, heightScale: 0.64, maxFontSize: 10 },
+  declaration_date: { cells: 10, xInset: 0.8, yOffset: 0.3, fontScale: 0.9, heightScale: 0.64, maxFontSize: 10 },
+  ghana_card: { cells: 13, xInset: 0.8, yOffset: 0.35, fontScale: 0.9, heightScale: 0.64, maxFontSize: 10 },
 }
 
 const PDF_FIELDS = {
@@ -627,7 +629,8 @@ function drawCombText(
   const cellWidth = drawableWidth / cellCount
   const fontScale = options?.fontScale ?? 0.92
   const maxFontSize = options?.maxFontSize ?? 10.5
-  const size = Math.min(height * 0.62, cellWidth * fontScale, maxFontSize)
+  const heightScale = options?.heightScale ?? 0.64
+  const size = Math.min(height * heightScale, cellWidth * fontScale, maxFontSize)
   chars.forEach((char, index) => {
     const charWidth = font.widthOfTextAtSize(char, size)
     page.drawText(char, {
