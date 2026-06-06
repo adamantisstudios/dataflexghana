@@ -8,6 +8,8 @@ import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
 import { checkChannelMembership, logMembershipDiagnostic } from "@/lib/channel-membership-utils"
 import { checkChannelSubscriptionAccess } from "@/lib/channel-subscription-access"
 import { MemberChannelView } from "@/components/teaching/MemberChannelView"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
+import { getAnnouncementsChannelIdFromEnv } from "@/lib/announcements-channel"
 import { BackToTop } from "@/components/back-to-top"
 import { teachingHubMainClass, teachingHubPageClass } from "@/components/teaching/teaching-hub-ui"
 import { cn } from "@/lib/utils"
@@ -36,6 +38,22 @@ export default function MemberChannelPage() {
       try {
         logMembershipDiagnostic(`Member page: verifying ${agent.id} for channel ${channelId}`)
 
+        if (channelId === getAnnouncementsChannelIdFromEnv()) {
+          const ensureRes = await fetch("/api/agent/announcements/ensure-membership", {
+            method: "POST",
+            headers: getAgentAuthHeaders(),
+            credentials: "same-origin",
+          })
+          const data = await ensureRes.json().catch(() => ({}))
+          if (ensureRes.ok && data.channelId && data.channelId !== channelId) {
+            router.replace(`/agent/teaching/${data.channelId}/member`)
+            return
+          }
+          if (!ensureRes.ok) {
+            console.warn("[announcements] membership self-heal failed:", data.error || ensureRes.statusText)
+          }
+        }
+
         const { isMember, role, status, error } = await checkChannelMembership(channelId, agent.id)
 
         if (!isMember) {
@@ -52,9 +70,14 @@ export default function MemberChannelPage() {
           return
         }
 
-        const subAccess = await checkChannelSubscriptionAccess(channelId, agent.id, role)
+        const subAccess = await checkChannelSubscriptionAccess(channelId, agent.id, role || "member")
         if (!subAccess.allowed) {
-          setSubscriptionBlocked({ reason: subAccess.reason })
+          setSubscriptionBlocked({
+            reason:
+              subAccess.reason === "subscription_expired"
+                ? "subscription_expired"
+                : "subscription_required",
+          })
           setDenyReason("subscription")
           setAccessDenied(true)
           setLoading(false)
@@ -192,7 +215,7 @@ export default function MemberChannelPage() {
         <MemberChannelView
           channelId={channelId}
           memberId={agent.id}
-          memberName={agent.full_name || agent.email}
+          memberName={agent.full_name || agent.email || "Agent"}
         />
       </div>
 

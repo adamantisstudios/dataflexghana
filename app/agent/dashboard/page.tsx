@@ -51,7 +51,6 @@ import { Label } from "@/components/ui/label"
   Upload,
   CheckCircle,
 } from "lucide-react"
-import DashboardLoginNotification from "@/components/agent/DashboardLoginNotification"
 import AgentDashboardNotification from "@/components/agent/AgentDashboardNotification"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
 import { supabase } from "@/lib/supabase-client";
@@ -95,6 +94,50 @@ import {
   agentNeedsProfileCompletion,
   isAgentProfileVerified,
 } from "@/lib/agent-profile-completion"
+
+const initialEarningsData = {
+  totalEarnings: 0,
+  totalPaidEarnings: 0,
+  pendingPayout: 0,
+  availableBalance: 0,
+  walletBalance: 0,
+  referralCommissions: 0,
+  dataOrderCommissions: 0,
+  wholesaleCommissions: 0,
+}
+
+type DashboardAgent = {
+  id: string
+  full_name?: string | null
+  phone_number?: string | null
+  momo_number?: string | null
+  region?: string | null
+  profile_image_url?: string | null
+  profile_verified?: boolean | null
+  isapproved?: boolean | null
+  [key: string]: any
+}
+
+type DashboardTabData = {
+  referrals: any[]
+  dataOrders: any[]
+  wholesaleOrders: any[]
+  withdrawals: any[]
+  paidWithdrawals: any[]
+  services: any[]
+  dataBundles: any[]
+  jobs: any[]
+  onlineCourses: any[]
+}
+
+type CachedDashboardData = {
+  earnings?: typeof initialEarningsData
+  referrals?: any[]
+  dataOrders?: any[]
+  wholesaleOrders?: any[]
+  withdrawals?: any[]
+  paidWithdrawals?: any[]
+}
 
 interface SimpleAgent {
   name: string
@@ -175,7 +218,7 @@ export default function AgentDashboard() {
 
   const router = useRouter()
   const { getFromCache, setInCache } = useAgentDashboardCache()
-  const [agent, setAgent] = useState(null)
+  const [agent, setAgent] = useState<DashboardAgent | null>(null)
   const { unreadCount, getUnreadCount, markAsRead } = useUnreadMessages(agent?.id || "", "agent")
 
   useEffect(() => {
@@ -191,17 +234,8 @@ export default function AgentDashboard() {
   }, [agent])
 
   const [loading, setLoading] = useState(true)
-  const [earningsData, setEarningsData] = useState({
-    totalEarnings: 0,
-    totalPaidEarnings: 0,
-    pendingPayout: 0,
-    availableBalance: 0,
-    walletBalance: 0,
-    referralCommissions: 0,
-    dataOrderCommissions: 0,
-    wholesaleCommissions: 0,
-  })
-  const [tabData, setTabData] = useState({
+  const [earningsData, setEarningsData] = useState(initialEarningsData)
+  const [tabData, setTabData] = useState<DashboardTabData>({
     referrals: [],
     dataOrders: [],
     wholesaleOrders: [],
@@ -419,16 +453,16 @@ export default function AgentDashboard() {
           .eq("agent_id", parsedAgent.id)
           .maybeSingle()
         setIsApprovedInfluencer(Boolean(influencerProfile?.approved))
-        const cachedData = getFromCache(`dashboard-${parsedAgent.id}`)
+        const cachedData = getFromCache(`dashboard-${parsedAgent.id}`) as CachedDashboardData | null
         if (cachedData) {
-          setEarningsData(cachedData.earnings)
+          setEarningsData(cachedData.earnings ?? initialEarningsData)
           setTabData((prev) => ({
             ...prev,
-            referrals: cachedData.referrals,
-            dataOrders: cachedData.dataOrders,
-            wholesaleOrders: cachedData.wholesaleOrders,
-            withdrawals: cachedData.withdrawals,
-            paidWithdrawals: cachedData.paidWithdrawals,
+            referrals: cachedData.referrals ?? [],
+            dataOrders: cachedData.dataOrders ?? [],
+            wholesaleOrders: cachedData.wholesaleOrders ?? [],
+            withdrawals: cachedData.withdrawals ?? [],
+            paidWithdrawals: cachedData.paidWithdrawals ?? [],
           }))
           setLoadedTabs({
             referrals: true,
@@ -442,7 +476,7 @@ export default function AgentDashboard() {
         }
         const dashboardData = await loadAgentDashboardData(mergedAgent.id)
         const balances =
-          dashboardData.displayBalances ??
+          (dashboardData as any).displayBalances ??
           (await getAgentDisplayBalances(parsedAgent.id))
         const earnings = {
           totalEarnings: balances.total_commission_earned,
@@ -941,7 +975,7 @@ DataFlex Ghana Agent 🇬🇭`
       const response = await fetch("/api/agent/clear-old-records", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.JSON.stringify({
+        body: JSON.stringify({
           agent_id: agent?.id,
           cutoff_date: cutoffDate.toISOString(),
           record_type: "referrals",
@@ -987,7 +1021,6 @@ DataFlex Ghana Agent 🇬🇭`
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <InactivityNotificationManager agentId={agent?.id} />
-      <DashboardLoginNotification />
       <AgentDashboardNotification agentId={agent?.id} />
       {showDashboardAudioPlayer && (
         <FloatingAudioPlayer
@@ -1012,7 +1045,7 @@ DataFlex Ghana Agent 🇬🇭`
         walletBalance={earningsData.walletBalance}
         onLogout={handleLogout}
       />
-      {agentNeedsProfileCompletion(agent) && <ProfileVerificationBar />}
+      {agentNeedsProfileCompletion(agent) && <ProfileVerificationBar agent={agent} />}
       <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <SecurityNoticeBanner />
 

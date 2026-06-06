@@ -1,8 +1,8 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react"
 import Player from "@vimeo/player"
-import { Pause, Play, MessageCircle } from "lucide-react"
+import { MessageCircle, Pause, Play, Volume2, VolumeX } from "lucide-react"
 import { detectPlatformFromEmbed, prepareAgentFeedEmbed } from "@/lib/tutorial-embed"
 
 export interface TutorialVideoItem {
@@ -43,6 +43,9 @@ export function TutorialVideoSlide({
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
   const [paused, setPaused] = useState(false)
+  const [seeking, setSeeking] = useState(false)
+  const [volume, setVolume] = useState(0.75)
+  const [volumeOpen, setVolumeOpen] = useState(false)
 
   const preparedEmbed = useMemo(() => prepareAgentFeedEmbed(video.embed_code), [video.embed_code])
   const platform = video.platform || detectPlatformFromEmbed(video.embed_code) || "vimeo"
@@ -88,12 +91,26 @@ export function TutorialVideoSlide({
       player.play().catch(() => {})
       if (soundEnabled) {
         player.setMuted(false).catch(() => {})
-        player.setVolume(1).catch(() => {})
+        player.setVolume(volume).catch(() => {})
       }
     } else {
       player.pause().catch(() => {})
     }
-  }, [isActive, soundEnabled, isVimeo])
+  }, [isActive, soundEnabled, isVimeo, volume])
+
+  useEffect(() => {
+    const player = playerRef.current
+    if (!player || !isVimeo || !soundEnabled) return
+    player.setMuted(volume <= 0).catch(() => {})
+    player.setVolume(volume).catch(() => {})
+  }, [volume, soundEnabled, isVimeo])
+
+  useEffect(() => {
+    if (!volumeOpen) return
+    const close = () => setVolumeOpen(false)
+    window.addEventListener("pointerdown", close)
+    return () => window.removeEventListener("pointerdown", close)
+  }, [volumeOpen])
 
   const togglePlayPause = async () => {
     const player = playerRef.current
@@ -107,13 +124,40 @@ export function TutorialVideoSlide({
     }
   }
 
-  const handleSeek = async (event: React.MouseEvent<HTMLDivElement>) => {
+  const seekFromClientX = async (clientX: number, track: HTMLDivElement) => {
     const player = playerRef.current
     if (!player || duration <= 0) return
-    const rect = event.currentTarget.getBoundingClientRect()
-    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+    const rect = track.getBoundingClientRect()
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
     try {
       await player.setCurrentTime(ratio * duration)
+      setProgress(ratio * duration)
+    } catch {
+      // ignore
+    }
+  }
+
+  const handleSeekPointerDown = async (event: PointerEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setSeeking(true)
+    event.currentTarget.setPointerCapture(event.pointerId)
+    await seekFromClientX(event.clientX, event.currentTarget)
+  }
+
+  const handleSeekPointerMove = async (event: PointerEvent<HTMLDivElement>) => {
+    if (!seeking) return
+    event.preventDefault()
+    event.stopPropagation()
+    await seekFromClientX(event.clientX, event.currentTarget)
+  }
+
+  const handleSeekPointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setSeeking(false)
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId)
     } catch {
       // ignore
     }
@@ -145,12 +189,50 @@ export function TutorialVideoSlide({
       ) : null}
 
       {isVimeo && shouldMount && (
+        <div
+          className="pointer-events-auto absolute right-4 top-16 z-30"
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <div className="flex flex-row-reverse items-center gap-2 rounded-full bg-black/50 px-2 py-2 text-white backdrop-blur-sm">
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/25"
+              aria-label="Volume"
+              onClick={(event) => {
+                event.stopPropagation()
+                setVolumeOpen((open) => !open)
+              }}
+            >
+              {volume <= 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+            {volumeOpen && (
+              <div className="flex h-9 items-center gap-2 pl-2">
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={volume}
+                  onChange={(event) => setVolume(Number(event.target.value))}
+                  className="h-2 w-28 accent-white"
+                  aria-label="Video volume"
+                />
+                <span className="w-8 text-right text-xs tabular-nums text-white/90">
+                  {Math.round(volume * 100)}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {isVimeo && shouldMount && (
         <button
           type="button"
           onClick={togglePlayPause}
           disabled={!soundEnabled}
           aria-label="Toggle play/pause"
-          className="absolute inset-0 z-10 bg-transparent disabled:cursor-default"
+          className="absolute inset-x-0 top-0 bottom-28 z-10 bg-transparent disabled:cursor-default"
         />
       )}
 
@@ -171,13 +253,27 @@ export function TutorialVideoSlide({
               role="slider"
               aria-label="Seek"
               tabIndex={0}
-              onClick={handleSeek}
-              className="group h-1.5 min-w-0 flex-1 cursor-pointer rounded-full bg-white/25"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(duration)}
+              aria-valuenow={Math.round(progress)}
+              onPointerDown={handleSeekPointerDown}
+              onPointerMove={handleSeekPointerMove}
+              onPointerUp={handleSeekPointerEnd}
+              onPointerCancel={handleSeekPointerEnd}
+              className="group flex h-8 min-w-0 flex-1 cursor-pointer touch-none items-center rounded-full"
             >
               <div
-                className="h-full rounded-full bg-white transition-all group-hover:bg-white/90"
-                style={{ width: `${progressPercent}%` }}
-              />
+                className="relative h-1.5 w-full rounded-full bg-white/25"
+              >
+                <div
+                  className="h-full rounded-full bg-white transition-all group-hover:bg-white/90"
+                  style={{ width: `${progressPercent}%` }}
+                />
+                <span
+                  className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow-md"
+                  style={{ left: `calc(${progressPercent}% - 8px)` }}
+                />
+              </div>
             </div>
             <p className="w-10 shrink-0 text-right text-xs tabular-nums text-white/80">{formatTime(duration)}</p>
           </div>
@@ -192,4 +288,3 @@ export function TutorialVideoSlide({
     </div>
   )
 }
-

@@ -30,7 +30,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unsupported form type" }, { status: 400 })
     }
 
-    const required = ["business_name", "owner_name", "phone", "email", "location", "signature"]
+    const required = [
+      "business_name",
+      "date_of_commencement",
+      "owner_name",
+      "date_of_birth",
+      "phone",
+      "email",
+      "location",
+      "signature",
+      "signature_image",
+      "ghana_card_front",
+      "ghana_card_back",
+    ]
     for (const key of required) {
       if (!String(customer_data[key] ?? "").trim()) {
         return NextResponse.json({ error: `Missing required field: ${key}` }, { status: 400 })
@@ -38,6 +50,10 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getAdminClient()
+    const finalCustomerData = {
+      ...customer_data,
+      declaration_date: new Date().toISOString(),
+    }
 
     const { data: existing } = await db
       .from("storefront_compliance_submissions")
@@ -54,7 +70,7 @@ export async function POST(request: NextRequest) {
       const { data: updated, error: updateError } = await db
         .from("storefront_compliance_submissions")
         .update({
-          customer_data,
+          customer_data: finalCustomerData,
           status: "pending",
         })
         .eq("id", existing.id)

@@ -1,17 +1,19 @@
 /** Shared filter serialization / application for /api/db and the client wrapper. */
 
 export type DbOp = "gt" | "gte" | "lt" | "lte" | "neq";
+export type DbPatternOp = "like" | "ilike";
 
 export const OP_KEY_REGEX = /^__(gte|gt|lte|lt|neq)__(.+)$/;
+export const PATTERN_KEY_REGEX = /^__(like|ilike)__(.+)$/;
 export const IS_KEY_REGEX = /^__is__(.+)$/;
 
 export function isOpFilterKey(key: string): boolean {
-  return key.startsWith("__in__") || OP_KEY_REGEX.test(key) || IS_KEY_REGEX.test(key);
+  return key.startsWith("__in__") || OP_KEY_REGEX.test(key) || PATTERN_KEY_REGEX.test(key) || IS_KEY_REGEX.test(key);
 }
 
 export function parseFilterKey(
   key: string,
-): { type: "eq" | "in" | "op" | "is"; column: string; op?: DbOp; isNull?: boolean } | null {
+): { type: "eq" | "in" | "op" | "pattern" | "is"; column: string; op?: DbOp | DbPatternOp; isNull?: boolean } | null {
   if (key.startsWith("__in__")) {
     return { type: "in", column: key.replace(/^__in__/, "") };
   }
@@ -22,6 +24,10 @@ export function parseFilterKey(
   const m = key.match(OP_KEY_REGEX);
   if (m) {
     return { type: "op", column: m[2], op: m[1] as DbOp };
+  }
+  const patternMatch = key.match(PATTERN_KEY_REGEX);
+  if (patternMatch) {
+    return { type: "pattern", column: patternMatch[2], op: patternMatch[1] as DbPatternOp };
   }
   return { type: "eq", column: key };
 }
@@ -60,6 +66,8 @@ export function applyFiltersToSupabaseQuery(query: any, filters: Record<string, 
           q = q.neq(parsed.column, v);
           break;
       }
+    } else if (parsed.type === "pattern" && parsed.op) {
+      q = parsed.op === "ilike" ? q.ilike(parsed.column, v) : q.like(parsed.column, v);
     } else {
       q = q.eq(k, v);
     }

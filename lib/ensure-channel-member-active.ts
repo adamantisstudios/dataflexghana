@@ -1,6 +1,6 @@
-import type { SupabaseClient } from "@supabase/supabase-js"
-
-type Db = SupabaseClient
+type Db = {
+  from: (table: string) => any
+}
 
 /** Returns true when the agent has a paid subscription row that is currently valid. */
 export async function hasActiveChannelSubscription(

@@ -86,6 +86,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "You must accept the Dating Terms" }, { status: 400 })
     }
     const photoCount = existing ? await countProfilePhotos(existing.id) : 0
+    if (!saveDraft && photoCount < 1) {
+      return NextResponse.json(
+        { error: "Upload at least one dating profile photo before submitting for approval." },
+        { status: 400 },
+      )
+    }
 
     const payload = {
       agent_id: agentId,

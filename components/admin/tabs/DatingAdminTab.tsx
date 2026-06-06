@@ -146,6 +146,62 @@ function SessionStatusBadge({ status }: { status: string }) {
   )
 }
 
+function datingPhotoSrc(photo?: ProfilePhotoRef | null) {
+  if (!photo) return ""
+  return `/api/admin/dating/photos/${photo.id}/serve`
+}
+
+function AdminDatingPhoto({
+  photo,
+  alt,
+  className,
+}: {
+  photo?: ProfilePhotoRef | null
+  alt: string
+  className: string
+}) {
+  const [src, setSrc] = useState(() => datingPhotoSrc(photo))
+
+  useEffect(() => {
+    let objectUrl: string | null = null
+    const directSrc = datingPhotoSrc(photo)
+    setSrc(directSrc)
+
+    if (!photo) return
+
+    const loadWithAuth = async () => {
+      try {
+        const res = await fetch(`/api/admin/dating/photos/${photo.id}/serve`, {
+          headers: getAdminAuthHeaders(),
+        })
+        if (!res.ok) return
+        const blob = await res.blob()
+        objectUrl = URL.createObjectURL(blob)
+        setSrc(objectUrl)
+      } catch {
+        // Keep the normal route as fallback.
+      }
+    }
+
+    void loadWithAuth()
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [photo])
+
+  if (!src) return <ImageIcon className="h-8 w-8 text-slate-400" />
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      loading="lazy"
+      decoding="async"
+    />
+  )
+}
+
 export default function DatingAdminTab() {
   const [loading, setLoading] = useState(true)
   const [profiles, setProfiles] = useState<ProfileRow[]>([])
@@ -392,10 +448,10 @@ export default function DatingAdminTab() {
                       }}
                       title="View photos"
                     >
-                      {p.photos?.[0]?.id ? (
-                        <img
-                          src={`/api/admin/dating/photos/${p.photos[0].id}/serve`}
-                          alt=""
+                      {p.photos?.[0] ? (
+                        <AdminDatingPhoto
+                          photo={p.photos[0]}
+                          alt={`${p.display_name} first uploaded photo`}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -412,6 +468,40 @@ export default function DatingAdminTab() {
                         {INTENTION_LABELS[p.intentions as keyof typeof INTENTION_LABELS] ?? p.intentions}
                       </p>
                       <ProfileStatusBadges p={p} />
+                      {(p.photos?.length ?? 0) > 0 && (
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            className="text-sm font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
+                            onClick={() => {
+                              setLightboxProfile(p)
+                              setLightboxIndex(0)
+                            }}
+                          >
+                            View all uploaded photos ({p.photos!.length})
+                          </button>
+                          <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+                            {p.photos!.slice(0, 5).map((photo, index) => (
+                              <button
+                                key={photo.id}
+                                type="button"
+                                className="h-14 w-14 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                onClick={() => {
+                                  setLightboxProfile(p)
+                                  setLightboxIndex(index)
+                                }}
+                                title={`View photo ${index + 1}`}
+                              >
+                                <AdminDatingPhoto
+                                  photo={photo}
+                                  alt={`${p.display_name} uploaded photo ${index + 1}`}
+                                  className="h-full w-full object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {p.rejection_reason && (
                         <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-left">
                           <span className="font-medium">Rejection reason: </span>
@@ -781,9 +871,9 @@ export default function DatingAdminTab() {
       {lightboxProfile && (lightboxProfile.photos?.length ?? 0) > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="relative max-w-lg w-full bg-white rounded-2xl overflow-hidden shadow-xl">
-            <img
-              src={`/api/admin/dating/photos/${lightboxProfile.photos![lightboxIndex].id}/serve`}
-              alt=""
+            <AdminDatingPhoto
+              photo={lightboxProfile.photos![lightboxIndex]}
+              alt={`${lightboxProfile.display_name} uploaded photo`}
               className="w-full aspect-square object-contain bg-black"
             />
             <button

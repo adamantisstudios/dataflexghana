@@ -64,7 +64,7 @@ const BUSINESS_SECTORS = [
   "Other",
 ]
 
-const TITLES = ["Mr.", "Mrs.", "Ms.", "Miss", "Dr.", "Prof.", "Rev.", "Pastor", "Imam", "Chief", "Hon.", "Nana"]
+const TITLES = ["Mr.", "Mrs.", "Miss", "Ms.", "Dr."]
 
 const OWNERSHIP_TYPES = ["Owned", "Rented", "Family Property", "Company Property", "Government Property"]
 
@@ -107,6 +107,9 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
   const [formData, setFormData] = useState({
     // Section 1: Business Information
     business_name: "",
+    business_name_alt_1: "",
+    business_name_alt_2: "",
+    business_name_alt_3: "",
     nature_of_business: "",
     isic_code_1: "",
     isic_code_2: "",
@@ -114,10 +117,12 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
     isic_code_4: "",
     isic_code_5: "",
     business_description: "",
+    date_of_commencement: "",
 
     // Section 2: Address Information
     registered_digital_address: "",
     registered_house_number: "",
+    registered_house_number_2: "",
     registered_street_name: "",
     registered_city: "",
     registered_district: "",
@@ -127,12 +132,25 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
     same_as_registered: false,
     principal_digital_address: "",
     principal_house_number: "",
+    principal_house_number_2: "",
     principal_street_name: "",
+    principal_street_name_2: "",
     principal_city: "",
     principal_district: "",
     principal_region: "",
+    other_digital_address: "",
+    other_house_number: "",
+    other_house_number_2: "",
+    other_street_name: "",
+    other_street_name_2: "",
+    other_city: "",
+    other_district: "",
+    other_region: "",
 
     // Section 3: Contact Information
+    postal_care_of_1: "",
+    postal_care_of_2: "",
+    postal_care_of_3: "",
     postal_type: "",
     postal_prefix: "",
     postal_number: "",
@@ -352,6 +370,10 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
         throw new Error("Failed to upload images")
       }
 
+      const finalFormData = {
+        ...formData,
+        declaration_date: new Date().toISOString(),
+      }
 
       // Create or update submission
       let finalSubmissionId = submissionId
@@ -361,7 +383,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
         const { error } = await supabase
           .from("form_submissions")
           .update({
-            form_data: formData,
+            form_data: finalFormData,
             status: "Pending",
             updated_at: new Date().toISOString(),
           })
@@ -384,7 +406,7 @@ export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SolePr
           .insert({
             agent_id: agentId,
             form_id: "sole-proprietorship",
-            form_data: formData,
+            form_data: finalFormData,
             status: "Pending",
           })
           .select()
@@ -579,6 +601,42 @@ return (
                       placeholder="Enter business name"
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="business_name_alt_1">Alternative Business Name 1</Label>
+                    <Input
+                      id="business_name_alt_1"
+                      value={formData.business_name_alt_1}
+                      onChange={(e) => handleInputChange("business_name_alt_1", e.target.value)}
+                      placeholder="Optional alternative name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="business_name_alt_2">Alternative Business Name 2</Label>
+                    <Input
+                      id="business_name_alt_2"
+                      value={formData.business_name_alt_2}
+                      onChange={(e) => handleInputChange("business_name_alt_2", e.target.value)}
+                      placeholder="Optional alternative name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="business_name_alt_3">Alternative Business Name 3</Label>
+                    <Input
+                      id="business_name_alt_3"
+                      value={formData.business_name_alt_3}
+                      onChange={(e) => handleInputChange("business_name_alt_3", e.target.value)}
+                      placeholder="Optional alternative name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="date_of_commencement">Date of Commencement *</Label>
+                    <Input
+                      id="date_of_commencement"
+                      type="date"
+                      value={formData.date_of_commencement}
+                      onChange={(e) => handleInputChange("date_of_commencement", e.target.value)}
+                    />
+                  </div>
                   <div className="md:col-span-2">
                     <Label htmlFor="nature_of_business">Nature of Business/Sector(s) *</Label>
                     <Select
@@ -683,6 +741,15 @@ return (
                         value={formData.registered_house_number}
                         onChange={(e) => handleInputChange("registered_house_number", e.target.value)}
                         placeholder="Enter house number"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="registered_house_number_2">Building/Flat Line 2</Label>
+                      <Input
+                        id="registered_house_number_2"
+                        value={formData.registered_house_number_2}
+                        onChange={(e) => handleInputChange("registered_house_number_2", e.target.value)}
+                        placeholder="Optional second line"
                       />
                     </div>
                     <div>
@@ -793,7 +860,16 @@ return (
                             id="principal_house_number"
                             value={formData.principal_house_number}
                             onChange={(e) => handleInputChange("principal_house_number", e.target.value)}
-                            placeholder="Enter house number"
+                        placeholder="Enter house number"
+                      />
+                    </div>
+                        <div>
+                          <Label htmlFor="principal_house_number_2">Building/Flat Line 2</Label>
+                          <Input
+                            id="principal_house_number_2"
+                            value={formData.principal_house_number_2}
+                            onChange={(e) => handleInputChange("principal_house_number_2", e.target.value)}
+                            placeholder="Optional second line"
                           />
                         </div>
                         <div>
@@ -803,6 +879,15 @@ return (
                             value={formData.principal_street_name}
                             onChange={(e) => handleInputChange("principal_street_name", e.target.value)}
                             placeholder="Enter street name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="principal_street_name_2">Street Name Line 2</Label>
+                          <Input
+                            id="principal_street_name_2"
+                            value={formData.principal_street_name_2}
+                            onChange={(e) => handleInputChange("principal_street_name_2", e.target.value)}
+                            placeholder="Optional second street line"
                           />
                         </div>
                         <div>
@@ -845,6 +930,87 @@ return (
                     </>
                   )}
                 </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold text-emerald-700 mb-3">Other Place of Business</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <Label htmlFor="other_digital_address">Digital Address (Ghana Post GPS)</Label>
+                      <Input
+                        id="other_digital_address"
+                        value={formData.other_digital_address}
+                        onChange={(e) => handleInputChange("other_digital_address", e.target.value)}
+                        placeholder="Optional other business address"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="other_house_number">House Number/Building Name</Label>
+                      <Input
+                        id="other_house_number"
+                        value={formData.other_house_number}
+                        onChange={(e) => handleInputChange("other_house_number", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="other_house_number_2">Building/Flat Line 2</Label>
+                      <Input
+                        id="other_house_number_2"
+                        value={formData.other_house_number_2}
+                        onChange={(e) => handleInputChange("other_house_number_2", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="other_street_name">Street Name</Label>
+                      <Input
+                        id="other_street_name"
+                        value={formData.other_street_name}
+                        onChange={(e) => handleInputChange("other_street_name", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="other_street_name_2">Street Name Line 2</Label>
+                      <Input
+                        id="other_street_name_2"
+                        value={formData.other_street_name_2}
+                        onChange={(e) => handleInputChange("other_street_name_2", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="other_city">City/Town</Label>
+                      <Input
+                        id="other_city"
+                        value={formData.other_city}
+                        onChange={(e) => handleInputChange("other_city", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="other_district">District</Label>
+                      <Input
+                        id="other_district"
+                        value={formData.other_district}
+                        onChange={(e) => handleInputChange("other_district", e.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="other_region">Region</Label>
+                      <Select
+                        value={formData.other_region}
+                        onValueChange={(value) => handleInputChange("other_region", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select region" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GHANA_REGIONS.map((region) => (
+                            <SelectItem key={region} value={region}>
+                              {region}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -859,6 +1025,30 @@ return (
                 <div className="border-t pt-4">
                   <h4 className="font-semibold text-emerald-700 mb-3">Postal Address</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <Label htmlFor="postal_care_of_1">Care Of / Postal Address Line 1</Label>
+                      <Input
+                        id="postal_care_of_1"
+                        value={formData.postal_care_of_1}
+                        onChange={(e) => handleInputChange("postal_care_of_1", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="postal_care_of_2">Postal Address Line 2</Label>
+                      <Input
+                        id="postal_care_of_2"
+                        value={formData.postal_care_of_2}
+                        onChange={(e) => handleInputChange("postal_care_of_2", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="postal_care_of_3">Postal Address Line 3</Label>
+                      <Input
+                        id="postal_care_of_3"
+                        value={formData.postal_care_of_3}
+                        onChange={(e) => handleInputChange("postal_care_of_3", e.target.value)}
+                      />
+                    </div>
                     <div>
                       <Label htmlFor="postal_type">Postal Type</Label>
                       <Select
@@ -1114,7 +1304,7 @@ return (
                         id="ghana_card_number"
                         value={formData.ghana_card_number}
                         onChange={(e) => handleInputChange("ghana_card_number", e.target.value)}
-                        placeholder="GHA-XXXXXXXXX-X"
+                        placeholder="XXXXXXXXX-X"
                       />
                     </div>
                   </div>

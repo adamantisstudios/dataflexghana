@@ -42,6 +42,18 @@ export function agentNeedsProfileCompletion(agent: AgentProfileFields | null | u
   return Boolean(agent?.isapproved) && !isAgentProfileVerified(agent)
 }
 
+export function getMissingAgentProfileFields(agent: AgentProfileFields | null | undefined): string[] {
+  const missing: string[] = []
+  if (!isProfileFieldFilled(agent?.email)) missing.push("email")
+  if (!isProfileFieldFilled(agent?.profession)) missing.push("profession")
+  if (!isProfileFieldFilled(agent?.exact_location)) missing.push("exact location")
+  if (!isProfileFieldFilled(agent?.profile_image_url)) missing.push("profile photo")
+  if (isProfileFieldFilled(agent?.profile_image_url) && agent?.profile_verified !== true) {
+    missing.push("photo approval")
+  }
+  return missing
+}
+
 export function getAgentInitials(name: string | null | undefined): string {
   const parts = String(name ?? "A")
     .trim()

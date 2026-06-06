@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ensureFaceApiModels } from "@/lib/face-api-models"
 import { validateFacePhoto } from "@/lib/face-photo-validation"
+import { compressImage } from "@/lib/image-compression"
 import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
 
 export const FACE_PHOTO_INSTRUCTION =
@@ -35,6 +36,7 @@ export function FacePhotoUpload({
 }: Props) {
   const [modelsLoading, setModelsLoading] = useState(false)
   const [validating, setValidating] = useState(false)
+  const [compressing, setCompressing] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -63,17 +65,20 @@ export function FacePhotoUpload({
           toast.error(result.error)
           return
         }
-        onFile(file)
+        setCompressing(true)
+        const compressed = await compressImage(file, "mobile")
+        onFile(compressed)
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not verify photo")
       } finally {
+        setCompressing(false)
         setValidating(false)
       }
     },
     [onFile],
   )
 
-  const busy = modelsLoading || validating || uploading
+  const busy = modelsLoading || validating || compressing || uploading
 
   return (
     <div className="space-y-2 w-full">

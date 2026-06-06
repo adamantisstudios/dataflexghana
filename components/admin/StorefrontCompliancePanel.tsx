@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import { Download, Search, Trash2 } from "lucide-react"
+import { Download, FileText, Search, Trash2 } from "lucide-react"
 
 type Submission = {
   id: string
@@ -66,6 +66,7 @@ export function StorefrontCompliancePanel() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmDeleteRow, setConfirmDeleteRow] = useState<Submission | null>(null)
   const [exportingCsv, setExportingCsv] = useState(false)
+  const [downloadingPdfId, setDownloadingPdfId] = useState<string | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -187,6 +188,45 @@ export function StorefrontCompliancePanel() {
     }
   }
 
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const downloadOfficialPdf = async (row: Submission) => {
+    setDownloadingPdfId(row.id)
+    try {
+      const res = await fetch("/api/admin/compliance/generate-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        body: JSON.stringify({ submissionId: row.id, source: "storefront" }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Official PDF generation failed")
+      }
+      const blob = await res.blob()
+      const safeName = `${row.form_type}_${customerName(row.customer_data)}`.replace(/[^a-z0-9]+/gi, "_")
+      downloadBlob(blob, `Form_A_${safeName}.pdf`)
+      const sizeHeader = Number(res.headers.get("X-PDF-Size-Bytes") || 0)
+      if (sizeHeader > 2 * 1024 * 1024) {
+        toast.warning("PDF downloaded, but uploaded images kept it above 2MB.")
+      } else {
+        toast.success("Official Form A PDF downloaded")
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "PDF download failed")
+    } finally {
+      setDownloadingPdfId(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
@@ -276,16 +316,27 @@ export function StorefrontCompliancePanel() {
                       {new Date(row.created_at).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-red-600 border-red-200 hover:bg-red-50"
-                        disabled={deletingId === row.id || updatingId === row.id}
-                        onClick={() => setConfirmDeleteRow(row)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={downloadingPdfId === row.id}
+                          onClick={() => void downloadOfficialPdf(row)}
+                        >
+                          <FileText className={`h-4 w-4 mr-1 ${downloadingPdfId === row.id ? "animate-pulse" : ""}`} />
+                          Official PDF
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                          disabled={deletingId === row.id || updatingId === row.id}
+                          onClick={() => setConfirmDeleteRow(row)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -322,6 +373,16 @@ export function StorefrontCompliancePanel() {
                 <p className="text-xs text-muted-foreground">
                   {new Date(row.created_at).toLocaleString()}
                 </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  disabled={downloadingPdfId === row.id}
+                  onClick={() => void downloadOfficialPdf(row)}
+                >
+                  <FileText className={`h-4 w-4 mr-1 ${downloadingPdfId === row.id ? "animate-pulse" : ""}`} />
+                  Download official PDF
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"

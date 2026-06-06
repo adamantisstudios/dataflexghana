@@ -7,6 +7,7 @@ import { useShouldHideStreamingChrome } from "@/lib/streaming-session"
 import { Megaphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getAnnouncementsMemberPath } from "@/lib/announcements-channel"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { getStoredAgent } from "@/lib/unified-auth-system"
 
 /** Fixed FAB — official Announcements channel (agents only). */
@@ -25,12 +26,26 @@ export function AnnouncementsFloatingButton() {
     return null
   }
 
-  const handleClick = () => {
+  const handleClick = async () => {
     const memberPath = getAnnouncementsMemberPath()
     const agent = getStoredAgent()
     if (!agent?.id) {
       router.push(`/agent/login?redirect=${encodeURIComponent(memberPath)}`)
       return
+    }
+    try {
+      const res = await fetch("/api/agent/announcements/ensure-membership", {
+        method: "POST",
+        headers: getAgentAuthHeaders(),
+        credentials: "same-origin",
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.channelId) {
+        router.push(`/agent/teaching/${data.channelId}/member`)
+        return
+      }
+    } catch {
+      // Fall back to the configured announcements path.
     }
     router.push(memberPath)
   }

@@ -3,8 +3,13 @@
 import Link from "next/link"
 import { ShieldCheck, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { getMissingAgentProfileFields, type AgentProfileFields } from "@/lib/agent-profile-completion"
 
-export function ProfileVerificationBar() {
+export function ProfileVerificationBar({ agent }: { agent?: AgentProfileFields | null }) {
+  const missing = getMissingAgentProfileFields(agent)
+  const hasApprovedPhoto = Boolean(agent?.profile_verified)
+  const missingText = missing.length > 0 ? missing.join(", ") : "your remaining details"
+
   return (
     <div
       className="sticky top-14 z-30 border-b border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 shadow-sm"
@@ -14,8 +19,10 @@ export function ProfileVerificationBar() {
         <div className="flex items-start sm:items-center gap-2 flex-1 min-w-0">
           <ShieldCheck className="h-5 w-5 text-[#0E8F3D] shrink-0 mt-0.5 sm:mt-0" />
           <p className="text-sm text-emerald-900 leading-snug">
-            Complete your profile to get <strong>verified status</strong>, priority support, and 24/7 assistance.
-            It only takes a minute.
+            {hasApprovedPhoto
+              ? "Your photo has been approved. Please complete "
+              : "Complete "}
+            <strong>{missingText}</strong> to keep the community trusted and unlock full verified status.
           </p>
         </div>
         <Button

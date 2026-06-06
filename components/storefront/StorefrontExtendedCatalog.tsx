@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,8 @@ import {
   COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO,
 } from "@/lib/storefront-catalog"
 import { getStorefrontPaystackCallbackUrl } from "@/lib/storefront-utils"
+
+const PROPRIETOR_TITLES = ["Mr.", "Mrs.", "Miss", "Ms.", "Dr."]
 
 export type WholesaleCartLine = {
   lineId: string
@@ -93,11 +96,79 @@ export function StorefrontExtendedCatalog({
   const [compliancePayerPhone, setCompliancePayerPhone] = useState("")
   const [complianceForm, setComplianceForm] = useState({
     business_name: "",
+    business_name_alt_1: "",
+    business_name_alt_2: "",
+    business_name_alt_3: "",
+    nature_of_business: "",
+    business_description: "",
+    isic_code_1: "",
+    isic_code_2: "",
+    isic_code_3: "",
+    date_of_commencement: "",
     owner_name: "",
+    title: "",
+    gender: "",
+    date_of_birth: "",
+    nationality: "",
+    occupation: "",
+    tin_number: "",
+    ghana_card_number: "",
     phone: "",
     email: customerEmail || "",
     location: "",
+    registered_digital_address: "",
+    registered_house_number: "",
+    registered_house_number_2: "",
+    registered_street_name: "",
+    registered_city: "",
+    registered_district: "",
+    registered_region: "",
+    same_as_registered: "",
+    principal_digital_address: "",
+    principal_house_number: "",
+    principal_house_number_2: "",
+    principal_street_name: "",
+    principal_street_name_2: "",
+    principal_city: "",
+    principal_district: "",
+    principal_region: "",
+    ownership_type: "",
+    landlord_name: "",
+    other_digital_address: "",
+    other_house_number: "",
+    other_house_number_2: "",
+    other_street_name: "",
+    other_street_name_2: "",
+    other_city: "",
+    other_district: "",
+    other_region: "",
+    postal_care_of_1: "",
+    postal_care_of_2: "",
+    postal_care_of_3: "",
+    postal_type: "",
+    postal_number: "",
+    box_town: "",
+    box_region: "",
+    secondary_phone: "",
+    secondary_mobile: "",
+    fax_number: "",
+    business_website: "",
+    residential_digital_address: "",
+    residential_house_number: "",
+    residential_house_number_2: "",
+    residential_street_name: "",
+    residential_city: "",
+    residential_district: "",
+    residential_region: "",
+    residential_country: "",
+    revenue_envisaged: "",
+    employment_size: "",
+    bop_application: "",
+    bop_reference_number: "",
     signature: "",
+    signature_image: "",
+    ghana_card_front: "",
+    ghana_card_back: "",
   })
   const [submittingCompliance, setSubmittingCompliance] = useState(false)
   const [complianceSuccess, setComplianceSuccess] = useState(false)
@@ -185,11 +256,79 @@ export function StorefrontExtendedCatalog({
       setComplianceSuccess(true)
       setComplianceForm({
         business_name: "",
+        business_name_alt_1: "",
+        business_name_alt_2: "",
+        business_name_alt_3: "",
+        nature_of_business: "",
+        business_description: "",
+        isic_code_1: "",
+        isic_code_2: "",
+        isic_code_3: "",
+        date_of_commencement: "",
         owner_name: "",
+        title: "",
+        gender: "",
+        date_of_birth: "",
+        nationality: "",
+        occupation: "",
+        tin_number: "",
+        ghana_card_number: "",
         phone: "",
         email: "",
         location: "",
+        registered_digital_address: "",
+        registered_house_number: "",
+        registered_house_number_2: "",
+        registered_street_name: "",
+        registered_city: "",
+        registered_district: "",
+        registered_region: "",
+        same_as_registered: "",
+        principal_digital_address: "",
+        principal_house_number: "",
+        principal_house_number_2: "",
+        principal_street_name: "",
+        principal_street_name_2: "",
+        principal_city: "",
+        principal_district: "",
+        principal_region: "",
+        ownership_type: "",
+        landlord_name: "",
+        other_digital_address: "",
+        other_house_number: "",
+        other_house_number_2: "",
+        other_street_name: "",
+        other_street_name_2: "",
+        other_city: "",
+        other_district: "",
+        other_region: "",
+        postal_care_of_1: "",
+        postal_care_of_2: "",
+        postal_care_of_3: "",
+        postal_type: "",
+        postal_number: "",
+        box_town: "",
+        box_region: "",
+        secondary_phone: "",
+        secondary_mobile: "",
+        fax_number: "",
+        business_website: "",
+        residential_digital_address: "",
+        residential_house_number: "",
+        residential_house_number_2: "",
+        residential_street_name: "",
+        residential_city: "",
+        residential_district: "",
+        residential_region: "",
+        residential_country: "",
+        revenue_envisaged: "",
+        employment_size: "",
+        bop_application: "",
+        bop_reference_number: "",
         signature: "",
+        signature_image: "",
+        ghana_card_front: "",
+        ghana_card_back: "",
       })
       onComplianceSubmitted?.()
       const redirectPath =
@@ -206,6 +345,61 @@ export function StorefrontExtendedCatalog({
       toast.error(e instanceof Error ? e.message : "Submit failed")
     } finally {
       setSubmittingCompliance(false)
+    }
+  }
+
+  const imageFileToDataUrl = (file: File, options: { maxWidth: number; maxHeight: number; quality: number; png?: boolean }) =>
+    new Promise<string>((resolve, reject) => {
+      if (!file.type.startsWith("image/")) {
+        reject(new Error("Please upload an image file"))
+        return
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        reject(new Error("Image must be 8MB or smaller"))
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onerror = () => reject(new Error("Could not read image"))
+      reader.onload = () => {
+        const img = new Image()
+        img.onerror = () => reject(new Error("Could not load image"))
+        img.onload = () => {
+          const ratio = Math.min(options.maxWidth / img.width, options.maxHeight / img.height, 1)
+          const canvas = document.createElement("canvas")
+          canvas.width = Math.max(1, Math.round(img.width * ratio))
+          canvas.height = Math.max(1, Math.round(img.height * ratio))
+          const ctx = canvas.getContext("2d")
+          if (!ctx) {
+            reject(new Error("Could not process image"))
+            return
+          }
+          ctx.fillStyle = "#fff"
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          resolve(canvas.toDataURL(options.png ? "image/png" : "image/jpeg", options.quality))
+        }
+        img.src = String(reader.result || "")
+      }
+      reader.readAsDataURL(file)
+    })
+
+  const handleComplianceImage = async (
+    key: "signature_image" | "ghana_card_front" | "ghana_card_back",
+    file?: File,
+  ) => {
+    if (!file) return
+    try {
+      const dataUrl = await imageFileToDataUrl(file, {
+        maxWidth: key === "signature_image" ? 520 : 1000,
+        maxHeight: key === "signature_image" ? 220 : 650,
+        quality: key === "signature_image" ? 0.9 : 0.68,
+        png: key === "signature_image",
+      })
+      setComplianceForm((f) => ({ ...f, [key]: dataUrl }))
+      toast.success("Image attached")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Image upload failed")
     }
   }
 
@@ -356,22 +550,181 @@ export function StorefrontExtendedCatalog({
                     </p>
                     {(
                       [
-                        ["business_name", "Business name"],
-                        ["owner_name", "Owner full name"],
-                        ["phone", "Phone"],
-                        ["email", "Email"],
-                        ["location", "Location"],
-                        ["signature", "Digital signature (type full name)"],
+                        {
+                          title: "Business Information",
+                          fields: [
+                            ["business_name", "Business name"],
+                            ["business_name_alt_1", "Alternative business name 1"],
+                            ["business_name_alt_2", "Alternative business name 2"],
+                            ["business_name_alt_3", "Alternative business name 3"],
+                            ["nature_of_business", "Nature of business / sector"],
+                            ["business_description", "Business activity description"],
+                            ["isic_code_1", "ISIC code 1"],
+                            ["isic_code_2", "ISIC code 2"],
+                            ["isic_code_3", "ISIC code 3"],
+                            ["date_of_commencement", "Date of commencement"],
+                          ],
+                        },
+                        {
+                          title: "Registered Office",
+                          fields: [
+                            ["registered_digital_address", "Digital address"],
+                            ["registered_house_number", "House/building/flat"],
+                            ["registered_house_number_2", "House/building/flat line 2"],
+                            ["registered_street_name", "Street name"],
+                            ["registered_city", "City/town"],
+                            ["registered_district", "District"],
+                            ["registered_region", "Region"],
+                            ["ownership_type", "Ownership type"],
+                            ["landlord_name", "Landlord name"],
+                          ],
+                        },
+                        {
+                          title: "Principal Place of Business",
+                          fields: [
+                            ["same_as_registered", "Same as registered office? (Yes/No)"],
+                            ["principal_digital_address", "Principal digital address"],
+                            ["principal_house_number", "Principal house/building/flat"],
+                            ["principal_house_number_2", "Principal house/building/flat line 2"],
+                            ["principal_street_name", "Principal street name"],
+                            ["principal_street_name_2", "Principal street name line 2"],
+                            ["principal_city", "Principal city/town"],
+                            ["principal_district", "Principal district"],
+                            ["principal_region", "Principal region"],
+                          ],
+                        },
+                        {
+                          title: "Other Place of Business",
+                          fields: [
+                            ["other_digital_address", "Other digital address"],
+                            ["other_house_number", "Other house/building/flat"],
+                            ["other_house_number_2", "Other house/building/flat line 2"],
+                            ["other_street_name", "Other street name"],
+                            ["other_street_name_2", "Other street name line 2"],
+                            ["other_city", "Other city/town"],
+                            ["other_district", "Other district"],
+                            ["other_region", "Other region"],
+                          ],
+                        },
+                        {
+                          title: "Postal and Contact",
+                          fields: [
+                            ["postal_care_of_1", "Care of / postal line 1"],
+                            ["postal_care_of_2", "Postal line 2"],
+                            ["postal_care_of_3", "Postal line 3"],
+                            ["postal_type", "Postal type (P.O. Box / PMB / DTD)"],
+                            ["postal_number", "Postal number"],
+                            ["box_town", "Postal town"],
+                            ["box_region", "Postal region"],
+                            ["phone", "Phone"],
+                            ["secondary_phone", "Secondary phone"],
+                            ["secondary_mobile", "Secondary mobile"],
+                            ["email", "Email"],
+                            ["fax_number", "Fax"],
+                            ["business_website", "Website"],
+                          ],
+                        },
+                        {
+                          title: "Proprietor",
+                          fields: [
+                            ["title", "Title (Mr/Mrs/Miss/Ms/Dr)"],
+                            ["owner_name", "Owner full name"],
+                            ["gender", "Gender"],
+                            ["date_of_birth", "Date of birth"],
+                            ["nationality", "Nationality"],
+                            ["occupation", "Occupation"],
+                            ["tin_number", "TIN"],
+                            ["ghana_card_number", "Ghana Card number"],
+                            ["residential_digital_address", "Residential digital address"],
+                            ["residential_house_number", "Residential house/building/flat"],
+                            ["residential_house_number_2", "Residential house/building/flat line 2"],
+                            ["residential_street_name", "Residential street name"],
+                            ["residential_city", "Residential city/town"],
+                            ["residential_district", "Residential district"],
+                            ["residential_region", "Residential region"],
+                            ["residential_country", "Residential country"],
+                          ],
+                        },
+                        {
+                          title: "MSME, BOP and Declaration",
+                          fields: [
+                            ["revenue_envisaged", "Revenue envisaged"],
+                            ["employment_size", "Employees envisaged"],
+                            ["bop_application", "BOP option"],
+                            ["bop_reference_number", "BOP reference number"],
+                            ["signature", "Digital signature (type full name)"],
+                          ],
+                        },
                       ] as const
-                    ).map(([key, label]) => (
-                      <div key={key}>
-                        <Label>{label}</Label>
-                        <Input
-                          value={complianceForm[key]}
-                          onChange={(e) => setComplianceForm((f) => ({ ...f, [key]: e.target.value }))}
-                        />
+                    ).map((section) => (
+                      <div key={section.title} className="space-y-3 rounded-lg border p-3">
+                        <h5 className="font-semibold text-slate-900">{section.title}</h5>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {section.fields.map(([key, label]) => (
+                            <div key={key} className={key === "business_description" ? "sm:col-span-2" : ""}>
+                              <Label>{label}</Label>
+                              {key === "title" ? (
+                                <Select
+                                  value={complianceForm.title}
+                                  onValueChange={(value) => setComplianceForm((f) => ({ ...f, title: value }))}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select title" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {PROPRIETOR_TITLES.map((title) => (
+                                      <SelectItem key={title} value={title}>
+                                        {title}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : key === "business_description" ? (
+                                <Textarea
+                                  value={complianceForm.business_description}
+                                  onChange={(e) => setComplianceForm((f) => ({ ...f, business_description: e.target.value }))}
+                                  rows={3}
+                                />
+                              ) : (
+                                <Input
+                                  type={key === "date_of_commencement" || key === "date_of_birth" ? "date" : "text"}
+                                  value={complianceForm[key]}
+                                  placeholder={key === "ghana_card_number" ? "XXXXXXXXX-X" : undefined}
+                                  onChange={(e) => setComplianceForm((f) => ({ ...f, [key]: e.target.value }))}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {(
+                        [
+                          ["signature_image", "Signature image"],
+                          ["ghana_card_front", "Ghana Card front"],
+                          ["ghana_card_back", "Ghana Card back"],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <div key={key} className="space-y-2">
+                          <Label>{label}</Label>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => void handleComplianceImage(key, e.target.files?.[0])}
+                          />
+                          {complianceForm[key] ? (
+                            <div className="rounded-md border bg-white p-2">
+                              <img
+                                src={complianceForm[key]}
+                                alt={label}
+                                className="h-24 w-full object-contain"
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
                     <PaystackSecureBadge />
                     <Button
                       onClick={submitCompliance}
@@ -589,4 +942,3 @@ export function StorefrontExtendedCatalog({
     </>
   )
 }
-

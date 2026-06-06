@@ -3,10 +3,10 @@
 import * as React from "react"
 import type * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
+import {
   Controller,
   type ControllerProps,
   type FieldPath,
-  import {
   type FieldValues,
   FormProvider,
   useFormContext,
@@ -44,12 +44,20 @@ const useFormField = () => {
   const itemContext = React.useContext(FormItemContext)
   const { getFieldState, formState } = useFormContext()
 
-  const isServer = typeof window === "undefined"
-  const fieldState = isServer ? {} : getFieldState(fieldContext.name, formState)
-
   if (!fieldContext) {
     throw new Error("useFormField should be used within <FormField>")
   }
+
+  const isServer = typeof window === "undefined"
+  const fieldState = isServer
+    ? {
+        invalid: false,
+        isDirty: false,
+        isTouched: false,
+        isValidating: false,
+        error: undefined,
+      }
+    : getFieldState(fieldContext.name, formState)
 
   const { id } = itemContext
 
@@ -59,11 +67,11 @@ const useFormField = () => {
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
-    invalid: isServer ? false : fieldState.invalid,
-    isDirty: isServer ? false : fieldState.isDirty,
-    isTouched: isServer ? false : fieldState.isTouched,
-    isValidating: isServer ? false : fieldState.isValidating,
-    error: isServer ? undefined : fieldState.error,
+    invalid: fieldState.invalid,
+    isDirty: fieldState.isDirty,
+    isTouched: fieldState.isTouched,
+    isValidating: fieldState.isValidating,
+    error: fieldState.error,
   }
 }
 

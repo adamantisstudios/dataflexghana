@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { applyFiltersToSupabaseQuery, coerceFilterValue, OP_KEY_REGEX } from "@/lib/db-filter-utils";
+import { applyFiltersToSupabaseQuery, coerceFilterValue, OP_KEY_REGEX, PATTERN_KEY_REGEX } from "@/lib/db-filter-utils";
 
 type RouteContext = { params: Promise<{ table: string }> };
 
@@ -61,6 +61,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const eqFilters: Record<string, string | boolean | number> = {};
     const inFilters: Record<string, string[]> = {};
     const opFilters: { op: "gt" | "gte" | "lt" | "lte" | "neq"; column: string; value: string }[] = [];
+    const patternFilters: { op: "like" | "ilike"; column: string; value: string }[] = [];
     const isNullFilters: string[] = [];
     const isNotNullFilters: string[] = [];
     const orderClauses: { column: string; ascending: boolean }[] = [];
@@ -98,12 +99,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
             column: opMatch[2],
             value,
           });
-        } else if (value === "is.null") {
-          isNullFilters.push(key);
-        } else if (value === "not.is.null") {
-          isNotNullFilters.push(key);
         } else {
-          eqFilters[key] = coerceFilterValue(value);
+          const patternMatch = key.match(PATTERN_KEY_REGEX);
+          if (patternMatch) {
+            patternFilters.push({
+              op: patternMatch[1] as "like" | "ilike",
+              column: patternMatch[2],
+              value,
+            });
+            return;
+          }
+          if (value === "is.null") {
+            isNullFilters.push(key);
+          } else if (value === "not.is.null") {
+            isNotNullFilters.push(key);
+          } else {
+            eqFilters[key] = coerceFilterValue(value);
+          }
         }
       }
     });
@@ -152,6 +164,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
           query = query.neq(column, coerced);
           break;
       }
+    }
+
+    for (const { op, column, value } of patternFilters) {
+      query = op === "ilike" ? query.ilike(column, value) : query.like(column, value);
     }
 
     Object.entries(inFilters).forEach(([col, vals]) => {

@@ -402,6 +402,31 @@ export default function ComplianceTab() {
     URL.revokeObjectURL(url)
   }
 
+  const downloadOfficialPDF = async (submission: FormSubmission) => {
+    try {
+      const toastId = toast.loading("Generating official PDF...")
+      const response = await fetch("/api/admin/compliance/generate-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissionId: submission.id }),
+      })
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        throw new Error(errData.error || "Failed to generate PDF")
+      }
+
+      const blob = await response.blob()
+      const filename = `Official_${submission.form_name.replace(/[^a-z0-9]/gi, '_')}.pdf`
+      downloadBlob(blob, filename)
+      
+      toast.success("Official PDF downloaded successfully", { id: toastId })
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate PDF")
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       Pending: { color: "bg-yellow-500", icon: Clock },
@@ -561,6 +586,19 @@ export default function ComplianceTab() {
                   Images
                 </Button>
               </div>
+
+              {(submission.form_id === "1" || submission.form_id === "sole_proprietorship" || submission.form_id === "sole-proprietorship") && (
+                <div className="grid grid-cols-1 gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    className="text-xs bg-emerald-600 hover:bg-emerald-700"
+                    onClick={() => downloadOfficialPDF(submission)}
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Download Official PDF
+                  </Button>
+                </div>
+              )}
 
               <div className="pt-2 border-t border-emerald-100 flex gap-2">
                 <Select
@@ -725,6 +763,18 @@ export default function ComplianceTab() {
                     Download Images
                   </Button>
                 </div>
+
+                {(selectedSubmission.form_id === "1" || selectedSubmission.form_id === "sole_proprietorship" || selectedSubmission.form_id === "sole-proprietorship") && (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      onClick={() => downloadOfficialPDF(selectedSubmission)}
+                      className="flex-1 text-sm bg-emerald-600 hover:bg-emerald-700"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Download Official PDF
+                    </Button>
+                  </div>
+                )}
 
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Button

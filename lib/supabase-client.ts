@@ -64,6 +64,9 @@ function mixinFilters<T extends FilterableBuilder>(builder: T): T & {
   lte: (column: string, value: unknown) => T;
   neq: (column: string, value: unknown) => T;
   or: (queryString: string) => T;
+  not: (column: string, operator: string, value: unknown) => T;
+  like: (column: string, value: unknown) => T;
+  ilike: (column: string, value: unknown) => T;
 } {
   const b = builder as T & FilterableBuilder;
   return Object.assign(builder, {
@@ -103,6 +106,22 @@ function mixinFilters<T extends FilterableBuilder>(builder: T): T & {
       b.orFilter = queryString;
       return builder;
     },
+    not(column: string, operator: string, value: unknown) {
+      if (operator === "is") {
+        b.filters[`__is__${column}`] = value === null ? "not-null" : value;
+      } else if (operator === "eq") {
+        b.filters[`__neq__${column}`] = value;
+      }
+      return builder;
+    },
+    like(column: string, value: unknown) {
+      b.filters[`__like__${column}`] = value;
+      return builder;
+    },
+    ilike(column: string, value: unknown) {
+      b.filters[`__ilike__${column}`] = value;
+      return builder;
+    },
   });
 }
 
@@ -137,7 +156,7 @@ const authStub = {
 
 type SupabaseError = { message: string; status?: number; code?: string } | null;
 
-type QueryResult = { data: unknown; error: SupabaseError; count?: number | null };
+type QueryResult = { data: any; error: SupabaseError; count?: number | null };
 
 /** Ensures builder chains support `.then().catch()` like native Promises. */
 function chainPromise<T extends QueryResult>(
@@ -178,8 +197,21 @@ function parseMutationResponse(
 }
 
 class DeleteBuilder {
+  readonly [Symbol.toStringTag] = "Promise";
   filters: Filters = {};
   orFilter?: string;
+  declare eq: (column: string, value: unknown) => this;
+  declare in: (column: string, values: unknown[]) => this;
+  declare is: (column: string, value: unknown) => this;
+  declare gt: (column: string, value: unknown) => this;
+  declare gte: (column: string, value: unknown) => this;
+  declare lt: (column: string, value: unknown) => this;
+  declare lte: (column: string, value: unknown) => this;
+  declare neq: (column: string, value: unknown) => this;
+  declare or: (queryString: string) => this;
+  declare not: (column: string, operator: string, value: unknown) => this;
+  declare like: (column: string, value: unknown) => this;
+  declare ilike: (column: string, value: unknown) => this;
 
   constructor(private table: string) {
     mixinFilters(this);
@@ -232,8 +264,21 @@ class DeleteBuilder {
 }
 
 class UpdateBuilder {
+  readonly [Symbol.toStringTag] = "Promise";
   filters: Filters = {};
   orFilter?: string;
+  declare eq: (column: string, value: unknown) => this;
+  declare in: (column: string, values: unknown[]) => this;
+  declare is: (column: string, value: unknown) => this;
+  declare gt: (column: string, value: unknown) => this;
+  declare gte: (column: string, value: unknown) => this;
+  declare lt: (column: string, value: unknown) => this;
+  declare lte: (column: string, value: unknown) => this;
+  declare neq: (column: string, value: unknown) => this;
+  declare or: (queryString: string) => this;
+  declare not: (column: string, operator: string, value: unknown) => this;
+  declare like: (column: string, value: unknown) => this;
+  declare ilike: (column: string, value: unknown) => this;
   private selectColumns?: string;
   private _single = false;
   private _maybeSingle = false;
@@ -311,6 +356,7 @@ class UpdateBuilder {
 }
 
 class InsertBuilder {
+  readonly [Symbol.toStringTag] = "Promise";
   private selectColumns?: string;
   private _single = false;
   private _maybeSingle = false;
@@ -386,12 +432,9 @@ class InsertBuilder {
 function parseGetResponse(
   json: unknown,
   opts: { single: boolean; maybeSingle: boolean; headOnly: boolean; wantsCount: boolean }
-): { data: unknown; error: SupabaseError; count: number | null } {
+): { data: any; error: SupabaseError; count: number | null } {
   if (json !== null && typeof json === "object" && !Array.isArray(json) && "data" in json) {
     const payload = json as { data: unknown; count?: number | null; message?: string };
-    if ("message" in payload && !("data" in payload)) {
-      return { data: null, error: { message: payload.message || "Request failed" }, count: null };
-    }
     const rows = Array.isArray(payload.data)
       ? payload.data
       : payload.data != null
@@ -453,8 +496,21 @@ function parseGetResponse(
 }
 
 class QueryBuilder {
+  readonly [Symbol.toStringTag] = "Promise";
   filters: Filters = {};
   orFilter?: string;
+  declare eq: (column: string, value: unknown) => this;
+  declare in: (column: string, values: unknown[]) => this;
+  declare is: (column: string, value: unknown) => this;
+  declare gt: (column: string, value: unknown) => this;
+  declare gte: (column: string, value: unknown) => this;
+  declare lt: (column: string, value: unknown) => this;
+  declare lte: (column: string, value: unknown) => this;
+  declare neq: (column: string, value: unknown) => this;
+  declare or: (queryString: string) => this;
+  declare not: (column: string, operator: string, value: unknown) => this;
+  declare like: (column: string, value: unknown) => this;
+  declare ilike: (column: string, value: unknown) => this;
   private selectColumns = "*";
   private countMode?: "exact" | "planned" | "estimated";
   private limitCount?: number;
@@ -502,6 +558,10 @@ class QueryBuilder {
   }
 
   insert(payload: unknown | unknown[]) {
+    return new InsertBuilder(this.table, payload);
+  }
+
+  upsert(payload: unknown | unknown[], _options?: Record<string, unknown>) {
     return new InsertBuilder(this.table, payload);
   }
 

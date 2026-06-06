@@ -23,7 +23,7 @@ export interface Agent {
   id: string
   full_name: string
   phone_number: string
-  momo_number: string
+  momo_number?: string | null
   region: string
   password_hash?: string
   isapproved: boolean

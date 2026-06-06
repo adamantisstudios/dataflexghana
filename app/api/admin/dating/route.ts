@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   const profileList = profiles ?? []
   const profileIds = profileList.map((p) => p.id as string)
-  let photosByProfile: Record<string, { id: string; order_index: number }[]> = {}
+  let photosByProfile: Record<string, { id: string; order_index: number; public_url?: string }[]> = {}
 
   if (profileIds.length > 0) {
     const { data: photoRows } = await db
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       photosByProfile[pid].push({
         id: row.id as string,
         order_index: row.order_index as number,
-        public_url: row.public_url as string,
+        public_url: `/api/admin/dating/photos/${row.id as string}/serve`,
       })
     }
   }

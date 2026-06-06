@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
-import { Eye, MessageSquare, Heart, Share2, Bookmark } from 'lucide-react'
+import { Download, Eye, FileText, Heart, MessageSquare, Share2, Bookmark } from 'lucide-react'
 import { ContentRenderer } from "./media/ContentRenderer"
 import { CommentThread } from "./CommentThread"
 import { FontSizeControl } from "./FontSizeControl"
@@ -65,6 +65,26 @@ interface ChannelPost {
   comment_count?: number
 }
 
+interface ChannelMessageMedia {
+  id: string
+  media_type: "image" | "audio" | "video" | "document" | string
+  media_url: string
+  file_name?: string | null
+  width?: number | null
+  height?: number | null
+  duration?: number | null
+}
+
+interface ChannelMessage {
+  id: string
+  channel_id: string
+  agent_id: string
+  content: string
+  message_type: "text" | "image" | "audio" | "video" | "document" | "link" | string
+  created_at: string
+  message_media?: ChannelMessageMedia[]
+}
+
 interface MemberChannelViewProps {
   channelId: string
   memberId: string
@@ -76,6 +96,7 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
   const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set())
   const [channel, setChannel] = useState<Channel | null>(null)
   const [posts, setPosts] = useState<ChannelPost[]>([])
+  const [messages, setMessages] = useState<ChannelMessage[]>([])
   const [qaPosts, setQAPosts] = useState<any[]>([])
   const [youtubeVideos, setYoutubeVideos] = useState<any[]>([])
   const [uploadedVideos, setUploadedVideos] = useState<any[]>([])
@@ -141,6 +162,34 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
         console.error("[v0] Error loading posts:", postsError)
       } else {
         setPosts(postsData || [])
+      }
+
+      const { data: messagesData, error: messagesError } = await supabase
+        .from("channel_messages")
+        .select(
+          `id,
+          channel_id,
+          agent_id,
+          content,
+          message_type,
+          created_at,
+          message_media (
+            id,
+            media_type,
+            media_url,
+            file_name,
+            width,
+            height,
+            duration
+          )`,
+        )
+        .eq("channel_id", channelId)
+        .order("created_at", { ascending: false })
+
+      if (messagesError) {
+        console.error("[v0] Error loading channel messages:", messagesError)
+      } else {
+        setMessages((messagesData as ChannelMessage[]) || [])
       }
 
       const { data: qaPostsData, error: qaError } = await supabase
@@ -433,7 +482,12 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                 </Link>
               </div>
             )}
-            {posts.length === 0 && qaPosts.length === 0 && youtubeVideos.length === 0 ? (
+            {posts.length === 0 &&
+            messages.length === 0 &&
+            qaPosts.length === 0 &&
+            youtubeVideos.length === 0 &&
+            uploadedVideos.length === 0 &&
+            embedVideos.length === 0 ? (
               <div className="bg-blue-50 border-b-2 border-blue-200 rounded p-6 text-center text-blue-600">
                 <p>No posts yet. Check back soon!</p>
               </div>
@@ -447,6 +501,17 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                       timestamp: new Date(v.created_at).getTime(),
                     })),
                     ...posts.map((p) => ({ ...p, type: "post", timestamp: new Date(p.created_at).getTime() })),
+                    ...messages.map((m) => ({ ...m, type: "message", timestamp: new Date(m.created_at).getTime() })),
+                    ...uploadedVideos.map((v) => ({
+                      ...v,
+                      type: "uploaded-video",
+                      timestamp: new Date(v.created_at).getTime(),
+                    })),
+                    ...embedVideos.map((v) => ({
+                      ...v,
+                      type: "embed-video",
+                      timestamp: new Date(v.created_at).getTime(),
+                    })),
                     ...qaPosts.map((q) => ({ ...q, type: "qa", timestamp: new Date(q.created_at).getTime() })),
                   ].sort((a, b) => b.timestamp - a.timestamp)
 
@@ -574,6 +639,151 @@ export function MemberChannelView({ channelId, memberId, memberName }: MemberCha
                               />
                             </div>
                           )}
+                        </div>
+                      )}
+
+                      {/* Admin media/text messages */}
+                      {item.type === "message" && (
+                        <div className="border-b-2 border-emerald-200 pb-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-lg font-semibold text-emerald-800 break-words">
+                                {item.message_type === "image"
+                                  ? "Image update"
+                                  : item.message_type === "audio"
+                                    ? "Audio update"
+                                    : item.message_type === "video"
+                                      ? "Video update"
+                                      : item.message_type === "document"
+                                        ? "Document update"
+                                        : "Announcement"}
+                              </h4>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {item.message_type} • {formatDateTime(item.created_at)}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                              {item.message_type}
+                            </Badge>
+                          </div>
+
+                          {item.content && (
+                            <div className="mt-3">
+                              <ContentRenderer content={item.content} />
+                            </div>
+                          )}
+
+                          {item.message_media?.length > 0 && (
+                            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                              {item.message_media.map((media: ChannelMessageMedia) => (
+                                <div
+                                  key={media.id}
+                                  className="overflow-hidden rounded-xl border border-emerald-100 bg-white"
+                                >
+                                  {media.media_type === "image" ? (
+                                    <a href={media.media_url} target="_blank" rel="noopener noreferrer">
+                                      <img
+                                        src={media.media_url || "/placeholder.svg"}
+                                        alt={media.file_name || "Announcement image"}
+                                        className="aspect-video w-full bg-slate-100 object-cover"
+                                        loading="lazy"
+                                      />
+                                    </a>
+                                  ) : media.media_type === "audio" ? (
+                                    <div className="space-y-3 p-4">
+                                      <p className="text-sm font-medium text-slate-800">
+                                        {media.file_name || "Audio announcement"}
+                                      </p>
+                                      <audio src={media.media_url} controls className="w-full" />
+                                    </div>
+                                  ) : media.media_type === "video" ? (
+                                    <video src={media.media_url} controls className="aspect-video w-full bg-black" />
+                                  ) : (
+                                    <a
+                                      href={media.media_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex min-h-[96px] items-center gap-3 p-4 text-emerald-800 hover:bg-emerald-50"
+                                    >
+                                      <FileText className="h-6 w-6 shrink-0" />
+                                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                                        {media.file_name || "Open document"}
+                                      </span>
+                                      <Download className="h-4 w-4 shrink-0" />
+                                    </a>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Uploaded Videos */}
+                      {item.type === "uploaded-video" && (
+                        <div className="border-b-2 border-red-200 pb-4">
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-lg font-semibold text-red-800 break-words">{item.title}</h4>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Video • {formatDateTime(item.created_at)}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="bg-red-100 text-red-800">
+                              Video
+                            </Badge>
+                          </div>
+                          <ChannelVideoWithComments
+                            videoId={item.id}
+                            source="upload"
+                            hideComments={isReadOnlyOfficial}
+                          >
+                            <VideoPostDisplay
+                              id={item.id}
+                              title={item.title}
+                              description={item.description || ""}
+                              videoUrl={item.video_url}
+                              thumbnailUrl={item.thumbnail_url}
+                              duration={item.duration || 0}
+                              viewCount={item.view_count}
+                              likeCount={item.like_count}
+                              commentCount={item.comment_count}
+                              authorName={item.created_by_name || "Teacher"}
+                              createdAt={item.created_at}
+                              isTeacher={false}
+                              currentUserId={memberId}
+                            />
+                          </ChannelVideoWithComments>
+                        </div>
+                      )}
+
+                      {/* Embedded Videos */}
+                      {item.type === "embed-video" && (
+                        <div className="border-b-2 border-red-200 pb-4">
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-lg font-semibold text-red-800 break-words">{item.title}</h4>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Embedded video • {formatDateTime(item.created_at)}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="bg-red-100 text-red-800">
+                              Video
+                            </Badge>
+                          </div>
+                          <ChannelVideoWithComments
+                            videoId={item.id}
+                            source="embed"
+                            hideComments={isReadOnlyOfficial}
+                          >
+                            <ChannelEmbedVideoDisplay
+                              id={item.id}
+                              title={item.title}
+                              embedCode={item.embed_code}
+                              platform={item.platform}
+                              createdAt={item.created_at}
+                            />
+                          </ChannelVideoWithComments>
                         </div>
                       )}
 

@@ -226,8 +226,8 @@ export function createAuthErrorResponse(error: string, status: number = 401) {
 }
 
 export type AdminSessionResult =
-  | { ok: true; admin: Record<string, unknown> }
-  | { ok: false; response: NextResponse }
+  | { ok: true; admin: Record<string, any>; user: Record<string, any>; response?: never }
+  | { ok: false; response: NextResponse; admin?: never; user?: never }
 
 /**
  * Require a verified admin session for admin API routes.
@@ -247,7 +247,7 @@ export async function requireAdminSession(request: NextRequest): Promise<AdminSe
       ),
     }
   }
-  return { ok: true, admin: auth.user }
+  return { ok: true, admin: auth.user, user: auth.user }
 }
 
 /**

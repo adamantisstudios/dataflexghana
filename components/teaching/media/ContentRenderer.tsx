@@ -21,10 +21,10 @@ export function ContentRenderer({ content }: ContentRendererProps) {
     content.includes("√")
   const hasCodeBlock = content.includes("```")
   const hasTable = content.includes("|") && content.split("\n").length > 2
-  const hasMarkdownLinks = /\[([^\]]+)\]$$([^)]+)$$/g.test(content)
+  const hasMarkdownLinks = /\[([^\]]+)\]\(([^)]+)\)/g.test(content)
 
   const renderWithMarkdownLinks = (text: string): ReactNode[] => {
-    const linkRegex = /\[([^\]]+)\]$$([^)]+)$$/g
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
     const parts: ReactNode[] = []
     let lastIndex = 0
     let match

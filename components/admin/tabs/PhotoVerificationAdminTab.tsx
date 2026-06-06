@@ -40,8 +40,9 @@ export default function PhotoVerificationAdminTab() {
   const [actingId, setActingId] = useState<string | null>(null)
   const [bulkActing, setBulkActing] = useState(false)
   const [search, setSearch] = useState("")
-  const [filter, setFilter] = useState<FilterKey>("all")
+  const [filter, setFilter] = useState<FilterKey>("pending")
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [previewAgent, setPreviewAgent] = useState<AgentRow | null>(null)
   const [stats, setStats] = useState({
     verified: 0,
     pending: 0,
@@ -55,7 +56,16 @@ export default function PhotoVerificationAdminTab() {
       const res = await fetch("/api/admin/photo-verification", { headers: getAdminAuthHeaders() })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to load")
-      setAgents(data.agents || [])
+      const rows = ((data.agents || []) as AgentRow[]).sort((a, b) => {
+        const weight = (agent: AgentRow) => {
+          const status = getPhotoVerificationStatus(agent)
+          if (status === "pending") return 0
+          if (status === "unverified") return 1
+          return 2
+        }
+        return weight(a) - weight(b)
+      })
+      setAgents(rows)
       setStats({
         total: data.total ?? 0,
         verified: data.verified_count ?? 0,
@@ -316,15 +326,22 @@ export default function PhotoVerificationAdminTab() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {agent.profile_image_url && (
-                    <div className="relative mx-auto w-28 h-28 rounded-full overflow-hidden border-2 border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewAgent(agent)}
+                      className="relative mx-auto block aspect-square w-36 overflow-hidden rounded-lg border-2 border-slate-200 bg-slate-100 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                      title="Open photo preview"
+                    >
                       <Image
                         src={agent.profile_image_url}
                         alt={`${agent.full_name} profile`}
                         fill
+                        sizes="144px"
                         className="object-cover"
                         unoptimized
+                        loading="lazy"
                       />
-                    </div>
+                    </button>
                   )}
                   <div className="flex gap-2">
                     <Button
@@ -357,6 +374,37 @@ export default function PhotoVerificationAdminTab() {
               </Card>
             )
           })}
+        </div>
+      )}
+
+      {previewAgent?.profile_image_url && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPreviewAgent(null)}
+        >
+          <div className="w-full max-w-xl rounded-xl bg-white p-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-slate-100">
+              <Image
+                src={previewAgent.profile_image_url}
+                alt={`${previewAgent.full_name || "Agent"} profile preview`}
+                fill
+                sizes="(max-width: 640px) 92vw, 576px"
+                className="object-contain"
+                unoptimized
+                priority
+              />
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="min-w-0 truncate text-sm font-medium text-slate-900">
+                {previewAgent.full_name || "Agent photo"}
+              </p>
+              <Button type="button" variant="outline" size="sm" onClick={() => setPreviewAgent(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

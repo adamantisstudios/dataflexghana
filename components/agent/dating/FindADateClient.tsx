@@ -400,6 +400,11 @@ export default function FindADatePage() {
   }
 
   const saveProfile = async () => {
+    if (myPhotos.length === 0) {
+      toast.error("Upload at least one dating profile photo before submitting for approval.")
+      setSetupStep(2)
+      return
+    }
     const interests = form.interests.split(",").map((s) => s.trim()).filter(Boolean)
     const languages = form.languages.split(",").map((s) => s.trim()).filter(Boolean)
     const res = await fetch("/api/agent/dating/profile", {
@@ -885,7 +890,9 @@ export default function FindADatePage() {
                     <div className="space-y-3">
                       <DatingPhotoUploader photos={myPhotos} onPhotosChange={setMyPhotos} />
                       {myPhotos.length === 0 && (
-                        <p className="text-xs text-amber-700">Upload at least one photo for better matches.</p>
+                        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                          At least one clear, decent photo is required before your dating profile can be submitted for admin review.
+                        </p>
                       )}
                     </div>
                   )}
@@ -925,7 +932,7 @@ export default function FindADatePage() {
                       <Button
                         className="flex-1 bg-rose-600 hover:bg-rose-700"
                         onClick={() => void saveProfile()}
-                        disabled={!form.terms_accepted && !editingProfile}
+                        disabled={(!form.terms_accepted && !editingProfile) || myPhotos.length === 0}
                       >
                         {editingProfile ? "Save changes" : "Submit for approval"}
                       </Button>

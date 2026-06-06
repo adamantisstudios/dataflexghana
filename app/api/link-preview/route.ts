@@ -61,6 +61,39 @@ async function setCachedPreview(preview: Omit<CachedPreview, "id" | "cached_at" 
   }
 }
 
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .trim()
+}
+
+function extractMetaContent(html: string, key: string): string | undefined {
+  const patterns = [
+    new RegExp(`<meta[^>]+property=["']${key}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${key}["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+name=["']${key}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${key}["'][^>]*>`, "i"),
+  ]
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    if (match?.[1]) return decodeHtmlEntities(match[1])
+  }
+  return undefined
+}
+
+function resolvePreviewImage(image: string | undefined, pageUrl: URL): string | undefined {
+  if (!image) return undefined
+  try {
+    return new URL(decodeHtmlEntities(image), pageUrl).toString()
+  } catch {
+    return undefined
+  }
+}
+
 async function fetchLinkPreview(url: string): Promise<CachedPreview | null> {
   try {
     // Check cache first
@@ -156,24 +189,24 @@ async function fetchLinkPreview(url: string): Promise<CachedPreview | null> {
       return { ...preview, id: "", cached_at: "", expires_at: "" }
     }
 
-    // Extract metadata
-    const titleMatch =
-      html.match(/<meta\s+property="og:title"\s+content="([^"]+)"/i) ||
-      html.match(/<meta\s+name="twitter:title"\s+content="([^"]+)"/i) ||
-      html.match(/<title[^>]*>([^<]+)<\/title>/i)
+    const title =
+      extractMetaContent(html, "og:title") ||
+      extractMetaContent(html, "twitter:title") ||
+      decodeHtmlEntities(html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || "") ||
+      urlObj.hostname
 
-    const descriptionMatch =
-      html.match(/<meta\s+property="og:description"\s+content="([^"]+)"/i) ||
-      html.match(/<meta\s+name="twitter:description"\s+content="([^"]+)"/i) ||
-      html.match(/<meta\s+name="description"\s+content="([^"]+)"/i)
+    const description =
+      extractMetaContent(html, "og:description") ||
+      extractMetaContent(html, "twitter:description") ||
+      extractMetaContent(html, "description") ||
+      "Click to open link"
 
-    const imageMatch =
-      html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i) ||
-      html.match(/<meta\s+name="twitter:image"\s+content="([^"]+)"/i)
-
-    const title = titleMatch?.[1] || urlObj.hostname
-    const description = descriptionMatch?.[1] || "Click to open link"
-    const image = imageMatch?.[1]
+    const image = resolvePreviewImage(
+      extractMetaContent(html, "og:image:secure_url") ||
+        extractMetaContent(html, "og:image") ||
+        extractMetaContent(html, "twitter:image"),
+      urlObj,
+    )
 
     const preview: Omit<CachedPreview, "id" | "cached_at" | "expires_at"> = {
       url,
@@ -194,10 +227,6 @@ async function fetchLinkPreview(url: string): Promise<CachedPreview | null> {
 
 export async function GET(request: NextRequest) {
   try {
-    const { url: supabaseUrl, serviceKey } = getSupabaseEnv()
-
-    const supabase = createClient(supabaseUrl, serviceKey)
-
     const url = request.nextUrl.searchParams.get("url")
 
     if (!url) {
