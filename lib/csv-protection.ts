@@ -1,8 +1,6 @@
 import { jsPDF } from "jspdf"
 import "jspdf-autotable"
 
-const ADMIN_PASSWORD = "adamantis382025aB@"
-
 export async function createPasswordProtectedCSV(csvContent: string, filename: string): Promise<Blob> {
   // For CSV files, we'll create a password-protected PDF wrapper
   // since CSV doesn't natively support password protection
@@ -17,7 +15,7 @@ export async function createPasswordProtectedCSV(csvContent: string, filename: s
   // Add protection notice
   doc.setFontSize(10)
   doc.text("This file is password protected and read-only.", 20, 35)
-  doc.text(`Password: ${ADMIN_PASSWORD}`, 20, 45)
+  doc.text("Contact an administrator for the access password.", 20, 45)
 
   // Add CSV content as text
   doc.setFontSize(8)
