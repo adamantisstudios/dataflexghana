@@ -20,8 +20,53 @@ type FormImageRecord = {
   image_url: string
 }
 
+type CombTextOptions = {
+  cells: number
+  xInset?: number
+  yOffset?: number
+  fontScale?: number
+  maxFontSize?: number
+}
+
 const A4 = { width: 595.28, height: 841.89 }
 const TARGET_MAX_BYTES = 2 * 1024 * 1024
+
+const DEFAULT_ADDRESS_COMB: CombTextOptions = {
+  cells: 30,
+  xInset: 1.1,
+  yOffset: 0.25,
+  fontScale: 0.92,
+  maxFontSize: 9.8,
+}
+
+const FORM_A_COMB_CONFIG: Record<string, CombTextOptions> = {
+  registered_digital_address: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  registered_building: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  registered_building_2: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  registered_street: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  registered_city: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  residential_digital_address: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  residential_building: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  residential_building_2: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  residential_street: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  residential_city: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  residential_district: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  residential_region: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  residential_country: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  other_digital_address: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  other_building: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  other_building_2: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  other_street: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  other_street_2: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  other_city: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  other_district: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  other_region: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  occupation: { ...DEFAULT_ADDRESS_COMB, cells: 30 },
+  date_of_commencement: { cells: 10, xInset: 1.2, yOffset: 0.2, fontScale: 0.94, maxFontSize: 10.2 },
+  dob: { cells: 10, xInset: 1.2, yOffset: 0.2, fontScale: 0.94, maxFontSize: 10.2 },
+  declaration_date: { cells: 10, xInset: 1.2, yOffset: 0.15, fontScale: 0.94, maxFontSize: 10.2 },
+  ghana_card: { cells: 13, xInset: 1.2, yOffset: 0.2, fontScale: 0.92, maxFontSize: 10.4 },
+}
 
 const PDF_FIELDS = {
   isic_code_1: "ISIC CODE 1",
@@ -569,19 +614,25 @@ function drawCombText(
   height: number,
   font: any,
   maxChars?: number,
+  options?: Partial<CombTextOptions>,
 ) {
   if (!page) return
   const value = uppercase(text)
   if (!value) return
-  const cellCount = Math.max(maxChars ?? value.length, 1)
+  const cellCount = Math.max(options?.cells ?? maxChars ?? value.length, 1)
   const chars = value.slice(0, cellCount).split("")
-  const cellWidth = width / cellCount
-  const size = Math.min(height * 0.62, cellWidth * 0.92, 10.5)
+  const xInset = options?.xInset ?? 0
+  const yOffset = options?.yOffset ?? 0
+  const drawableWidth = Math.max(1, width - xInset * 2)
+  const cellWidth = drawableWidth / cellCount
+  const fontScale = options?.fontScale ?? 0.92
+  const maxFontSize = options?.maxFontSize ?? 10.5
+  const size = Math.min(height * 0.62, cellWidth * fontScale, maxFontSize)
   chars.forEach((char, index) => {
     const charWidth = font.widthOfTextAtSize(char, size)
     page.drawText(char, {
-      x: x + index * cellWidth + (cellWidth - charWidth) / 2,
-      y: y + Math.max(2.5, (height - size) / 2),
+      x: x + xInset + index * cellWidth + (cellWidth - charWidth) / 2,
+      y: y + Math.max(2.5, (height - size) / 2) + yOffset,
       size,
       color: rgb(0.05, 0.05, 0.05),
       font,
@@ -589,14 +640,20 @@ function drawCombText(
   })
 }
 
-function drawAddressText(page: PDFPage | undefined, text: string, x: number, y: number, width: number, height: number, font: any) {
+function drawAddressText(
+  page: PDFPage | undefined,
+  text: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  font: any,
+  options: CombTextOptions,
+) {
   if (!page) return
   const value = uppercase(text)
   if (!value) return
-  // Form A address rows are single AcroForm fields drawn over 30 visual character boxes.
-  // A fixed comb count keeps registered/residential address text aligned and at a uniform size.
-  const cellCount = 30
-  drawCombText(page, value, x, y, width, height, font, cellCount)
+  drawCombText(page, value, x, y, width, height, font, options.cells, options)
 }
 
 function collectMissingFields(canonical: Record<string, any>) {
@@ -812,6 +869,7 @@ async function buildPdf(submission: SubmissionRecord, images: FormImageRecord[],
 
   Object.entries(addressPlacements).forEach(([key, placement]) => {
     if (!placement) return
+    const config = FORM_A_COMB_CONFIG[key] ?? DEFAULT_ADDRESS_COMB
     drawAddressText(
       placement.page,
       canonicalRecord[key],
@@ -820,6 +878,7 @@ async function buildPdf(submission: SubmissionRecord, images: FormImageRecord[],
       placement.width,
       placement.height,
       overlayFont,
+      config,
     )
   })
 
@@ -832,6 +891,7 @@ async function buildPdf(submission: SubmissionRecord, images: FormImageRecord[],
     criticalCombFields.date_of_commencement?.height ?? 0,
     overlayFont,
     10,
+    FORM_A_COMB_CONFIG.date_of_commencement,
   )
   drawCombText(
     criticalCombFields.dob?.page,
@@ -842,6 +902,7 @@ async function buildPdf(submission: SubmissionRecord, images: FormImageRecord[],
     criticalCombFields.dob?.height ?? 0,
     overlayFont,
     10,
+    FORM_A_COMB_CONFIG.dob,
   )
   drawCombText(
     criticalCombFields.ghana_card?.page,
@@ -852,6 +913,7 @@ async function buildPdf(submission: SubmissionRecord, images: FormImageRecord[],
     criticalCombFields.ghana_card?.height ?? 0,
     overlayFont,
     11,
+    FORM_A_COMB_CONFIG.ghana_card,
   )
   drawCombText(
     criticalCombFields.declaration_date?.page,
@@ -862,6 +924,7 @@ async function buildPdf(submission: SubmissionRecord, images: FormImageRecord[],
     criticalCombFields.declaration_date?.height ?? 0,
     overlayFont,
     10,
+    FORM_A_COMB_CONFIG.declaration_date,
   )
 
   const signature = embeddedImages.find((img) => img.type === "signature")
