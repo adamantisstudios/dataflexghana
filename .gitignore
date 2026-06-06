@@ -16,3 +16,8 @@ node_modules
 /lib/generated/prisma
 "dataflexghana-latest_upgrade.zip" 
 .vercel
+.env
+.env.*
+!.env.example
+*.pem
+*.key
