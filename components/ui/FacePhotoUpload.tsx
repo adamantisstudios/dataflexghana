@@ -10,10 +10,15 @@ import { compressImage } from "@/lib/image-compression"
 import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
 
 export const FACE_PHOTO_INSTRUCTION =
-  "Please upload a clear, well-lit photo showing only your face. This helps us verify your identity and build trust in the community."
+  "Take a clear, well-lit phone camera selfie with your face centered in the frame. Photos that pass the automatic checks are approved instantly."
+
+export type FacePhotoUploadResult = {
+  autoApproved: boolean
+  reviewReason?: string
+}
 
 type Props = {
-  onFile: (file: File) => void
+  onFile: (file: File, result: FacePhotoUploadResult) => void
   disabled?: boolean
   uploading?: boolean
   label?: string
@@ -22,6 +27,8 @@ type Props = {
   /** Show identity verification hint above the button (default true). */
   showInstruction?: boolean
   instructionClassName?: string
+  phoneCaptureOnly?: boolean
+  manualFallbackOnFailure?: boolean
 }
 
 export function FacePhotoUpload({
@@ -33,6 +40,8 @@ export function FacePhotoUpload({
   variant = "outline",
   showInstruction = true,
   instructionClassName,
+  phoneCaptureOnly = false,
+  manualFallbackOnFailure = false,
 }: Props) {
   const [modelsLoading, setModelsLoading] = useState(false)
   const [validating, setValidating] = useState(false)
@@ -59,17 +68,30 @@ export function FacePhotoUpload({
     async (file: File) => {
       setValidating(true)
       try {
-        await ensureFaceApiModels()
-        const result = await validateFacePhoto(file)
-        if (!result.ok) {
-          toast.error(result.error)
-          return
-        }
         setCompressing(true)
         const compressed = await compressImage(file, "mobile")
-        onFile(compressed)
+        setCompressing(false)
+        await ensureFaceApiModels()
+        const result = await validateFacePhoto(compressed)
+        if (!result.ok) {
+          toast.error(result.error)
+          if (manualFallbackOnFailure) {
+            onFile(compressed, { autoApproved: false, reviewReason: result.error })
+          }
+          return
+        }
+        onFile(compressed, { autoApproved: true })
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Could not verify photo")
+        const message = e instanceof Error ? e.message : "Could not verify photo"
+        toast.error(message)
+        if (manualFallbackOnFailure) {
+          try {
+            const compressed = await compressImage(file, "mobile")
+            onFile(compressed, { autoApproved: false, reviewReason: message })
+          } catch {
+            onFile(file, { autoApproved: false, reviewReason: message })
+          }
+        }
       } finally {
         setCompressing(false)
         setValidating(false)
@@ -105,6 +127,8 @@ export function FacePhotoUpload({
         label={label}
         className={className}
         variant={variant}
+        captureOnly={phoneCaptureOnly}
+        facingMode="user"
       />
     </div>
   )

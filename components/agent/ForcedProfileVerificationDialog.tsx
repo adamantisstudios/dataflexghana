@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ShieldAlert } from "lucide-react"
-import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
-import { getStoredAgent, setStoredAgent } from "@/lib/unified-auth-system"
+import { FacePhotoUpload, type FacePhotoUploadResult } from "@/components/ui/FacePhotoUpload"
+import { getStoredAgent } from "@/lib/unified-auth-system"
 import { isPlatformAdminAgent } from "@/lib/platform-admin"
 import { getPhotoVerificationStatus } from "@/lib/photo-verification-status"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
@@ -48,7 +48,16 @@ export function ForcedProfileVerificationDialog() {
     }
 
     // Photo gate only — not full profile completion (profession/location).
-    if (getPhotoVerificationStatus(stored) === "verified") {
+    const storedWithPhoto = stored as typeof stored & {
+      profile_image_url?: string | null
+      profile_verified?: boolean | null
+    }
+    const storedPhotoStatus = getPhotoVerificationStatus({
+      profile_image_url: storedWithPhoto.profile_image_url ?? null,
+      profile_verified: storedWithPhoto.profile_verified ?? null,
+    })
+
+    if (storedPhotoStatus === "verified") {
       setOpen(false)
       setAgent(stored)
       return
@@ -90,7 +99,7 @@ export function ForcedProfileVerificationDialog() {
     }
   }, [refreshAgent])
 
-  const uploadProfilePhoto = async (file: File) => {
+  const uploadProfilePhoto = async (file: File, result: FacePhotoUploadResult) => {
     const currentAgent = getStoredAgent()
     if (!currentAgent?.id) {
       toast.error("Session expired. Please log in again.")
@@ -107,9 +116,20 @@ export function ForcedProfileVerificationDialog() {
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
-      const verified = await confirmAgentProfilePhotoVerified(data.url)
+      const verified = await confirmAgentProfilePhotoVerified(data.url, result.autoApproved)
       if (!verified.ok) throw new Error(verified.error || "Could not submit photo")
-      toast.success("Photo submitted — waiting for admin approval")
+      if (verified.profile_verified) {
+        toast.success("Photo verified instantly.")
+        const stored = getStoredAgent()
+        if (stored) {
+          localStorage.setItem(
+            "agent",
+            JSON.stringify({ ...stored, profile_image_url: data.url, profile_verified: true }),
+          )
+        }
+      } else {
+        toast.success("Photo submitted for admin review.")
+      }
       await refreshAgent()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed")
@@ -150,10 +170,12 @@ export function ForcedProfileVerificationDialog() {
             </div>
           ) : (
             <FacePhotoUpload
-              label="Profile photo"
+              label="Take verification photo"
               uploading={photoUploading}
               disabled={photoUploading}
               onFile={uploadProfilePhoto}
+              phoneCaptureOnly
+              manualFallbackOnFailure
             />
           )}
 

@@ -21,17 +21,22 @@ export async function POST(request: NextRequest) {
     const profile_image_url = body.profile_image_url
       ? String(body.profile_image_url).trim()
       : undefined
+    const auto_approved = body.auto_approved === true
 
     if (!profile_image_url) {
       return NextResponse.json({ error: "profile_image_url is required" }, { status: 400 })
     }
 
-    const result = await submitAgentProfilePhotoForReview(agentId, profile_image_url)
+    const result = await submitAgentProfilePhotoForReview(agentId, profile_image_url, auto_approved)
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, profile_verified: false, pending: true })
+    return NextResponse.json({
+      success: true,
+      profile_verified: auto_approved,
+      pending: !auto_approved,
+    })
   } catch (e) {
     console.error("[profile-photo/verify]", e)
     return NextResponse.json({ error: "Failed to verify profile photo" }, { status: 500 })

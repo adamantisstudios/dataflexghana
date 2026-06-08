@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { LogOut } from "lucide-react"
 import { PhotoVerificationWelcome } from "@/components/agent/PhotoVerificationWelcome"
 import { Button } from "@/components/ui/button"
-import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
+import { FacePhotoUpload, type FacePhotoUploadResult } from "@/components/ui/FacePhotoUpload"
 import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
 import { isPlatformAdminAgent } from "@/lib/platform-admin"
 import {
@@ -43,7 +43,7 @@ function AgentPhotoVerificationLockScreen({
   const photoStatus = getPhotoVerificationStatus(agent)
   const pending = photoStatus === "pending"
 
-  const uploadProfilePhoto = async (file: File) => {
+  const uploadProfilePhoto = async (file: File, result: FacePhotoUploadResult) => {
     const currentAgent = getStoredAgent()
     if (!currentAgent?.id) {
       toast.error("Session expired. Please log in again.")
@@ -61,9 +61,20 @@ function AgentPhotoVerificationLockScreen({
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
-      const verified = await confirmAgentProfilePhotoVerified(data.url)
+      const verified = await confirmAgentProfilePhotoVerified(data.url, result.autoApproved)
       if (!verified.ok) throw new Error(verified.error || "Could not submit photo")
-      toast.success("Photo received! We'll notify you once your account is verified.")
+      if (verified.profile_verified) {
+        toast.success("Photo verified instantly. Welcome in.")
+        const stored = getStoredAgent()
+        if (stored) {
+          localStorage.setItem(
+            "agent",
+            JSON.stringify({ ...stored, profile_image_url: data.url, profile_verified: true }),
+          )
+        }
+      } else {
+        toast.success("Photo received for admin review.")
+      }
       await onRefresh()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed")
@@ -87,10 +98,12 @@ function AgentPhotoVerificationLockScreen({
 
         {!pending && (
           <FacePhotoUpload
-            label="Upload verification photo"
+            label="Take verification photo"
             uploading={photoUploading}
             disabled={photoUploading}
             onFile={uploadProfilePhoto}
+            phoneCaptureOnly
+            manualFallbackOnFailure
           />
         )}
 

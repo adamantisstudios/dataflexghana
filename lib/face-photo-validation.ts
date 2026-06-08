@@ -6,10 +6,23 @@ const BRIGHTNESS_MIN = 40
 const BRIGHTNESS_MAX = 230
 /** Laplacian variance below this threshold is treated as blurry. */
 const LAPLACIAN_MIN = 80
+const FACE_MIN_RATIO = 0.18
+const FACE_MAX_RATIO = 0.68
+const FACE_EDGE_MARGIN = 0.04
 
 export type FacePhotoValidationResult =
-  | { ok: true }
+  | { ok: true; checks: FacePhotoValidationChecks }
   | { ok: false; error: string }
+
+export type FacePhotoValidationChecks = {
+  brightness: number
+  blurScore: number
+  faceCount: number
+  faceWidthRatio: number
+  faceHeightRatio: number
+  centered: boolean
+  insideFrame: boolean
+}
 
 function loadImageFromFile(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -28,7 +41,7 @@ function loadImageFromFile(file: File): Promise<HTMLImageElement> {
 }
 
 function imageToCanvas(img: HTMLImageElement): HTMLCanvasElement {
-  const maxSide = 1024
+  const maxSide = 720
   let { width, height } = img
   if (width > maxSide || height > maxSide) {
     const scale = maxSide / Math.max(width, height)
@@ -123,7 +136,7 @@ export async function validateFacePhoto(file: File): Promise<FacePhotoValidation
     return { ok: false, error: "Photo is too bright. Please avoid direct light." }
   }
 
-  const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 })
+  const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })
   const detections = await faceapi.detectAllFaces(input, options).withFaceLandmarks()
 
   if (detections.length === 0) {
@@ -134,6 +147,35 @@ export async function validateFacePhoto(file: File): Promise<FacePhotoValidation
   }
 
   const detection = detections[0]
+  const box = detection.detection.box
+  const faceWidthRatio = box.width / canvas.width
+  const faceHeightRatio = box.height / canvas.height
+  const centerX = box.x + box.width / 2
+  const centerY = box.y + box.height / 2
+  const centered =
+    centerX > canvas.width * 0.32 &&
+    centerX < canvas.width * 0.68 &&
+    centerY > canvas.height * 0.25 &&
+    centerY < canvas.height * 0.66
+  const insideFrame =
+    box.x > canvas.width * FACE_EDGE_MARGIN &&
+    box.y > canvas.height * FACE_EDGE_MARGIN &&
+    box.x + box.width < canvas.width * (1 - FACE_EDGE_MARGIN) &&
+    box.y + box.height < canvas.height * (1 - FACE_EDGE_MARGIN)
+
+  if (faceWidthRatio < FACE_MIN_RATIO || faceHeightRatio < FACE_MIN_RATIO) {
+    return { ok: false, error: "Move closer so your face is clearly visible in the frame." }
+  }
+  if (faceWidthRatio > FACE_MAX_RATIO || faceHeightRatio > FACE_MAX_RATIO) {
+    return { ok: false, error: "Move the phone back slightly so your full head fits in the frame." }
+  }
+  if (!insideFrame) {
+    return { ok: false, error: "Keep your full head inside the frame and try again." }
+  }
+  if (!centered) {
+    return { ok: false, error: "Center your face in the frame and try again." }
+  }
+
   const faceCanvas = cropFaceRegion(canvas, detection.detection.box)
   const faceCtx = faceCanvas.getContext("2d")
   if (!faceCtx) {
@@ -145,5 +187,16 @@ export async function validateFacePhoto(file: File): Promise<FacePhotoValidation
     return { ok: false, error: "Photo is blurry. Please hold the camera steady." }
   }
 
-  return { ok: true }
+  return {
+    ok: true,
+    checks: {
+      brightness,
+      blurScore,
+      faceCount: detections.length,
+      faceWidthRatio,
+      faceHeightRatio,
+      centered,
+      insideFrame,
+    },
+  }
 }

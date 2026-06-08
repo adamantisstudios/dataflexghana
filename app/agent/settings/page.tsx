@@ -26,7 +26,7 @@ import { toast } from "sonner"
 import { AGENT_PROFILE_PRIVACY_NOTICE } from "@/lib/agent-profile-completion"
 import { AgentAvatar } from "@/components/agent/AgentAvatar"
 import { LazyProfileImage } from "@/components/ui/lazy-profile-image"
-import { FacePhotoUpload } from "@/components/ui/FacePhotoUpload"
+import { FacePhotoUpload, type FacePhotoUploadResult } from "@/components/ui/FacePhotoUpload"
 import { confirmAgentProfilePhotoVerified } from "@/lib/agent-profile-photo-client"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { getStoredAgent, logoutAgent } from "@/lib/unified-auth-system"
@@ -88,7 +88,7 @@ export default function AgentSettingsPage() {
     load()
   }, [router])
 
-  const uploadProfilePhoto = async (file: File) => {
+  const uploadProfilePhoto = async (file: File, result: FacePhotoUploadResult) => {
     const currentAgent = getStoredAgent()
     if (!currentAgent?.id) {
       toast.error("Session expired. Please log in again.")
@@ -105,19 +105,23 @@ export default function AgentSettingsPage() {
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error(data.error || "Upload failed")
-      const verified = await confirmAgentProfilePhotoVerified(data.url)
+      const verified = await confirmAgentProfilePhotoVerified(data.url, result.autoApproved)
       if (!verified.ok) throw new Error(verified.error || "Could not verify photo")
       setProfileForm((f) => ({ ...f, profile_image_url: data.url }))
-      setAgent((a) => (a ? { ...a, profile_image_url: data.url, profile_verified: true } : a))
+      setAgent((a) => (a ? { ...a, profile_image_url: data.url, profile_verified: verified.profile_verified } : a))
       const stored = localStorage.getItem("agent")
       if (stored) {
         const parsed = JSON.parse(stored)
         localStorage.setItem(
           "agent",
-          JSON.stringify({ ...parsed, profile_image_url: data.url, profile_verified: true }),
+          JSON.stringify({ ...parsed, profile_image_url: data.url, profile_verified: verified.profile_verified }),
         )
       }
-      toast.success("Photo submitted for admin review — save profile to apply other fields")
+      toast.success(
+        verified.profile_verified
+          ? "Photo verified instantly. Save profile to apply other fields."
+          : "Photo submitted for admin review. Save profile to apply other fields.",
+      )
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed")
     } finally {
@@ -322,10 +326,12 @@ export default function AgentSettingsPage() {
                   <Label>Profile photo</Label>
                   <div className="flex justify-center sm:justify-start max-w-md">
                     <FacePhotoUpload
-                      label="Choose Photo"
+                      label="Take verification photo"
                       uploading={photoUploading}
                       disabled={photoUploading}
                       onFile={uploadProfilePhoto}
+                      phoneCaptureOnly
+                      manualFallbackOnFailure
                       className="border-[#0E8F3D]/30 text-[#0E8F3D] hover:bg-emerald-50 w-full sm:w-auto"
                     />
                   </div>
