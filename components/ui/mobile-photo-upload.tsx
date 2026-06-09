@@ -31,6 +31,7 @@ export function MobilePhotoUpload({
   const streamRef = useRef<MediaStream | null>(null)
   const [cameraOpen, setCameraOpen] = useState(false)
   const [cameraStarting, setCameraStarting] = useState(false)
+  const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const isMobileCaptureDevice =
     typeof navigator !== "undefined" &&
@@ -39,11 +40,50 @@ export function MobilePhotoUpload({
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop())
     streamRef.current = null
+    setCameraReady(false)
+    if (videoRef.current) {
+      videoRef.current.pause()
+      videoRef.current.srcObject = null
+    }
   }
 
   useEffect(() => {
     return () => stopCamera()
   }, [])
+
+  useEffect(() => {
+    if (!cameraOpen || !streamRef.current || !videoRef.current) return
+
+    let cancelled = false
+    const video = videoRef.current
+    video.srcObject = streamRef.current
+
+    const handleReady = () => {
+      if (!cancelled) setCameraReady(true)
+    }
+
+    video.addEventListener("loadedmetadata", handleReady)
+    video.addEventListener("canplay", handleReady)
+
+    video
+      .play()
+      .then(() => {
+        if (!cancelled) setCameraReady(true)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCameraError("Camera opened, but the preview could not start. Close and try again.")
+        }
+      })
+
+    return () => {
+      cancelled = true
+      video.removeEventListener("loadedmetadata", handleReady)
+      video.removeEventListener("canplay", handleReady)
+      video.pause()
+      video.srcObject = null
+    }
+  }, [cameraOpen])
 
   const openCamera = async () => {
     if (!captureOnly) {
@@ -62,24 +102,27 @@ export function MobilePhotoUpload({
     }
 
     setCameraError(null)
+    setCameraReady(false)
     setCameraStarting(true)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode,
-          width: { ideal: 960 },
-          height: { ideal: 1280 },
-        },
-        audio: false,
-      })
+      let stream: MediaStream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: 960 },
+            height: { ideal: 1280 },
+          },
+          audio: false,
+        })
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        })
+      }
       streamRef.current = stream
       setCameraOpen(true)
-      window.setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          void videoRef.current.play()
-        }
-      }, 0)
     } catch {
       setCameraError("Could not open the phone camera. Please allow camera access and try again.")
     } finally {
@@ -158,7 +201,15 @@ export function MobilePhotoUpload({
       {cameraError && <p className="mt-2 text-xs text-red-600">{cameraError}</p>}
       {cameraOpen && (
         <div className="fixed inset-0 z-[80] bg-black text-white">
-          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+          <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+          {!cameraReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black text-white">
+              <div className="flex items-center gap-2 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Starting camera...
+              </div>
+            </div>
+          )}
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="h-[48vh] max-h-[520px] aspect-[3/4] rounded-[999px] border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.28)]" />
           </div>
