@@ -110,8 +110,8 @@ export function MobilePhotoUpload({
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: facingMode },
-            width: { ideal: 960 },
-            height: { ideal: 1280 },
+            width: { ideal: 720 },
+            height: { ideal: 960 },
           },
           audio: false,
         })
@@ -201,7 +201,7 @@ export function MobilePhotoUpload({
       {cameraError && <p className="mt-2 text-xs text-red-600">{cameraError}</p>}
       {cameraOpen && (
         <div className="fixed inset-0 z-[80] bg-black text-white">
-          <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+          <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-contain bg-black" />
           {!cameraReady && (
             <div className="absolute inset-0 flex items-center justify-center bg-black text-white">
               <div className="flex items-center gap-2 text-sm">
