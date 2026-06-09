@@ -1,4 +1,5 @@
 import { requireAdminSession } from "@/lib/api-auth"
+import { getAdminClient } from "@/lib/supabase-base"
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -7,30 +8,45 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const description = typeof body.description === 'string' ? body.description.trim() : '';
 
-    if (!body.name) {
+    if (!name) {
       return NextResponse.json(
         { success: false, error: 'Category name is required' },
         { status: 400 }
       );
     }
 
-    // In a real app, save to database
-    const newCategory = {
-      id: Date.now(),
-      name: body.name,
-      description: body.description || '',
-      created_at: new Date().toISOString(),
-    };
+    const supabase = getAdminClient();
+    const { data: newCategory, error } = await supabase
+      .from('fashion_categories')
+      .insert({ name, description })
+      .select()
+      .single();
+
+    if (error) {
+      const isDuplicate = error.code === '23505' || /duplicate|unique/i.test(error.message);
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: isDuplicate
+            ? 'A Fashion Avenue category with this name already exists'
+            : error.message || 'Failed to create category',
+        },
+        { status: isDuplicate ? 409 : 500 }
+      );
+    }
 
     return NextResponse.json(
       { success: true, data: newCategory },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating category:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create category' },
+      { success: false, error: error.message || 'Failed to create category' },
       { status: 500 }
     );
   }

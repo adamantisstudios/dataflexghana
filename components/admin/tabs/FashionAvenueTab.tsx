@@ -259,13 +259,14 @@ export default function FashionAvenueTab() {
         headers: getAdminAuthHeaders(),
         body: JSON.stringify({ name: categoryForm.name.trim(), description: categoryForm.description.trim() }),
       });
+      const responseData = await response.json();
 
       if (response.ok) {
         await loadData();
         setShowAddCategory(false);
         setCategoryForm({ name: '', description: '' });
       } else {
-        alert('Failed to create category');
+        alert(`Failed to create category: ${responseData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('[v0] Error creating category:', error);
