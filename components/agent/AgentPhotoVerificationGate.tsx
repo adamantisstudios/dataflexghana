@@ -103,7 +103,7 @@ function AgentPhotoVerificationLockScreen({
             disabled={photoUploading}
             onFile={uploadProfilePhoto}
             phoneCaptureOnly
-            manualFallbackOnFailure
+            compressionPreset="light"
           />
         )}
 

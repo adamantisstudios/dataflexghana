@@ -5,7 +5,7 @@ import { ensureFaceApiModels, loadFaceApi } from "@/lib/face-api-models"
 const BRIGHTNESS_MIN = 40
 const BRIGHTNESS_MAX = 230
 /** Laplacian variance below this threshold is treated as blurry. */
-const LAPLACIAN_MIN = 80
+const LAPLACIAN_MIN = 50
 const FACE_MIN_RATIO = 0.18
 const FACE_MAX_RATIO = 0.68
 const FACE_EDGE_MARGIN = 0.04

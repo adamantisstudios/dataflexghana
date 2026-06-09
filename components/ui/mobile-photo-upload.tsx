@@ -14,6 +14,8 @@ type Props = {
   variant?: "outline" | "default" | "secondary"
   captureOnly?: boolean
   facingMode?: "user" | "environment"
+  outputSize?: number
+  outputQuality?: number
 }
 
 export function MobilePhotoUpload({
@@ -25,6 +27,8 @@ export function MobilePhotoUpload({
   variant = "outline",
   captureOnly = false,
   facingMode = "environment",
+  outputSize = 1080,
+  outputQuality = 0.9,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -110,8 +114,7 @@ export function MobilePhotoUpload({
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: facingMode },
-            width: { ideal: 720 },
-            height: { ideal: 960 },
+            width: { ideal: 1280 },
           },
           audio: false,
         })
@@ -139,19 +142,19 @@ export function MobilePhotoUpload({
     const video = videoRef.current
     if (!video || !video.videoWidth || !video.videoHeight) return
 
-    const maxSide = 1280
-    const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight))
-    const width = Math.round(video.videoWidth * scale)
-    const height = Math.round(video.videoHeight * scale)
+    const sourceSize = Math.min(video.videoWidth, video.videoHeight)
+    const sourceX = Math.floor((video.videoWidth - sourceSize) / 2)
+    const sourceY = Math.floor((video.videoHeight - sourceSize) / 2)
+    const size = Math.max(320, Math.min(outputSize, sourceSize))
     const canvas = document.createElement("canvas")
-    canvas.width = width
-    canvas.height = height
+    canvas.width = size
+    canvas.height = size
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-    ctx.drawImage(video, 0, 0, width, height)
+    ctx.drawImage(video, sourceX, sourceY, sourceSize, sourceSize, 0, 0, size, size)
 
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, "image/jpeg", 0.72)
+      canvas.toBlob(resolve, "image/jpeg", outputQuality)
     })
     if (!blob) {
       setCameraError("Could not capture the photo. Please try again.")
@@ -160,7 +163,7 @@ export function MobilePhotoUpload({
 
     closeCamera()
     onFile(
-      new File([blob], `phone-verification-${Date.now()}.jpg`, {
+      new File([blob], `phone-verification-${size}x${size}-${Date.now()}.jpg`, {
         type: "image/jpeg",
         lastModified: Date.now(),
       }),
@@ -211,7 +214,7 @@ export function MobilePhotoUpload({
             </div>
           )}
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="h-[48vh] max-h-[520px] aspect-[3/4] rounded-[999px] border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.28)]" />
+            <div className="h-[52vmin] max-h-[420px] min-h-[260px] aspect-square rounded-full border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.28)]" />
           </div>
           <div className="absolute left-0 right-0 top-0 flex justify-end p-4">
             <Button type="button" variant="secondary" size="icon" onClick={closeCamera}>

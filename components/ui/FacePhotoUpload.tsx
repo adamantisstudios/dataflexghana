@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ensureFaceApiModels } from "@/lib/face-api-models"
 import { validateFacePhoto } from "@/lib/face-photo-validation"
-import { compressImage } from "@/lib/image-compression"
+import { compressImage, type CompressionPreset } from "@/lib/image-compression"
 import { MobilePhotoUpload } from "@/components/ui/mobile-photo-upload"
 
 export const FACE_PHOTO_INSTRUCTION =
@@ -29,6 +29,7 @@ type Props = {
   instructionClassName?: string
   phoneCaptureOnly?: boolean
   manualFallbackOnFailure?: boolean
+  compressionPreset?: CompressionPreset
 }
 
 export function FacePhotoUpload({
@@ -42,6 +43,7 @@ export function FacePhotoUpload({
   instructionClassName,
   phoneCaptureOnly = false,
   manualFallbackOnFailure = false,
+  compressionPreset = "mobile",
 }: Props) {
   const [modelsLoading, setModelsLoading] = useState(false)
   const [validating, setValidating] = useState(false)
@@ -69,7 +71,7 @@ export function FacePhotoUpload({
       setValidating(true)
       try {
         setCompressing(true)
-        const compressed = await compressImage(file, "mobile")
+        const compressed = await compressImage(file, compressionPreset)
         setCompressing(false)
         await ensureFaceApiModels()
         const result = await validateFacePhoto(compressed)
@@ -86,7 +88,7 @@ export function FacePhotoUpload({
         toast.error(message)
         if (manualFallbackOnFailure) {
           try {
-            const compressed = await compressImage(file, "mobile")
+            const compressed = await compressImage(file, compressionPreset)
             onFile(compressed, { autoApproved: false, reviewReason: message })
           } catch {
             onFile(file, { autoApproved: false, reviewReason: message })
@@ -97,7 +99,7 @@ export function FacePhotoUpload({
         setValidating(false)
       }
     },
-    [onFile],
+    [compressionPreset, manualFallbackOnFailure, onFile],
   )
 
   const busy = modelsLoading || validating || compressing || uploading
@@ -129,6 +131,8 @@ export function FacePhotoUpload({
         variant={variant}
         captureOnly={phoneCaptureOnly}
         facingMode="user"
+        outputSize={1080}
+        outputQuality={0.9}
       />
     </div>
   )

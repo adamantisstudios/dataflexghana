@@ -230,10 +230,12 @@ export default function AgentSettingsPage() {
 
     setLoading(true)
     try {
-      // Delete agent account and all related data
-      const { error } = await supabase.from("agents").delete().eq("id", agent.id)
-
-      if (error) throw error
+      const res = await fetch("/api/agent/account/delete", {
+        method: "POST",
+        headers: getAgentAuthHeaders(),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || "Failed to delete account")
 
       logoutAgent()
       alert("Account deleted successfully")
@@ -331,7 +333,7 @@ export default function AgentSettingsPage() {
                       disabled={photoUploading}
                       onFile={uploadProfilePhoto}
                       phoneCaptureOnly
-                      manualFallbackOnFailure
+                      compressionPreset="light"
                       className="border-[#0E8F3D]/30 text-[#0E8F3D] hover:bg-emerald-50 w-full sm:w-auto"
                     />
                   </div>

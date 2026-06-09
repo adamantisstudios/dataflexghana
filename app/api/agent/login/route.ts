@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       .from("agents")
       .select("*")
       .eq("phone_number", phone_number)
+      .is("deleted_at", null)
       .single()
 
     if (error || !agent) {

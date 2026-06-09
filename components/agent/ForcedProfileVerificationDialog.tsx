@@ -175,7 +175,7 @@ export function ForcedProfileVerificationDialog() {
               disabled={photoUploading}
               onFile={uploadProfilePhoto}
               phoneCaptureOnly
-              manualFallbackOnFailure
+              compressionPreset="light"
             />
           )}
 

@@ -178,6 +178,7 @@ export async function authenticateAgent(
       .select("*")
       .eq("id", targetAgentId)
       .eq("isapproved", true)
+      .is("deleted_at", null)
       .single()
 
     if (error || !agent) {
