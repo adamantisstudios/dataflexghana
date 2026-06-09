@@ -36,10 +36,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 })
     }
 
-    if (agent.deleted_at) {
-      return NextResponse.json({ error: "Agent not found" }, { status: 404 })
-    }
-
     if (agent.isbanned === true) {
       return NextResponse.json(
         {

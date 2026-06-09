@@ -187,13 +187,6 @@ export async function authenticateAgent(
       }
     }
 
-    if (agent.deleted_at) {
-      return {
-        success: false,
-        error: "Invalid agent session or agent not approved",
-      }
-    }
-
     const allowUnverified =
       options?.allowUnverifiedPhoto === true ||
       isAgentPhotoVerificationExemptApiPath(request.nextUrl.pathname)
