@@ -178,10 +178,16 @@ export async function authenticateAgent(
       .select("*")
       .eq("id", targetAgentId)
       .eq("isapproved", true)
-      .is("deleted_at", null)
       .single()
 
     if (error || !agent) {
+      return {
+        success: false,
+        error: "Invalid agent session or agent not approved",
+      }
+    }
+
+    if (agent.deleted_at) {
       return {
         success: false,
         error: "Invalid agent session or agent not approved",

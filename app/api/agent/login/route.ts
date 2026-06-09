@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
       .from("agents")
       .select("*")
       .eq("phone_number", phone_number)
-      .is("deleted_at", null)
       .single()
 
     if (error || !agent) {
@@ -34,6 +33,10 @@ export async function POST(request: NextRequest) {
         severity: "warning",
         newData: { reason: "agent_not_found", phone_number },
       })
+      return NextResponse.json({ error: "Agent not found" }, { status: 404 })
+    }
+
+    if (agent.deleted_at) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 })
     }
 

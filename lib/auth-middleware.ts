@@ -8,7 +8,7 @@ import {
 } from "./agent-photo-verification-gate"
 
 const AGENT_AUTH_SELECT =
-  "id, full_name, phone_number, email, wallet_balance, commission, status, created_at, isapproved, profile_image_url, profile_verified, deleted_at"
+  "id, full_name, phone_number, email, wallet_balance, commission, status, created_at, isapproved, profile_image_url, profile_verified"
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {
@@ -150,7 +150,6 @@ export async function authenticateAgent(
       .select(AGENT_AUTH_SELECT)
       .eq("id", agentId)
       .eq("isapproved", true)
-      .is("deleted_at", null)
       .single()
 
     if (agentError || !agent) {
@@ -199,7 +198,6 @@ export async function authenticateFromLocalStorage(
         .select(AGENT_AUTH_SELECT)
         .eq("id", agentId)
         .eq("isapproved", true)
-        .is("deleted_at", null)
         .single()
 
       if (!error && agent) {
