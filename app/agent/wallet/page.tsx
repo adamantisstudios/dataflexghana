@@ -709,16 +709,28 @@ export default function WalletPage() {
         {showWalletRewardNotification && (
           <div
             className={`
-              fixed bottom-0 left-0 right-0 z-50 transform transition-all duration-500 ease-out
+              fixed bottom-0 left-0 right-0 z-[55] transform transition-all duration-500 ease-out
               ${isWalletRewardNotificationVisible ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"}
-              shadow-2xl
+              shadow-2xl pb-[max(5.5rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))]
             `}
           >
-            <div className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 border-t-4 border-emerald-700">
+            <div className="relative bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 border-t-4 border-emerald-700">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsWalletRewardNotificationVisible(false)
+                  setTimeout(() => setShowWalletRewardNotification(false), 300)
+                }}
+                className="absolute top-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/20 hover:bg-black/35 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40"
+                aria-label="Close notification"
+              >
+                <X className="h-5 w-5 text-white" />
+              </button>
+
               <div className="container mx-auto px-4">
-                <div className="py-5 md:py-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
+                <div className="py-5 md:py-6 pr-10 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
                   {/* Left side - Content */}
-                  <div className="flex-1">
+                  <div className="flex-1 w-full">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-3 h-3 rounded-full bg-white animate-pulse"></div>
                       <h3 className="text-lg font-bold text-white drop-shadow-lg">💰 Wallet Top-up Rewards</h3>
@@ -752,28 +764,17 @@ export default function WalletPage() {
                     </p>
                   </div>
 
-                  {/* Right side - CTA Button */}
-                  <div className="flex items-center gap-3">
+                  {/* CTA */}
+                  <div className="flex w-full md:w-auto items-center justify-center md:justify-end">
                     <Button
                       onClick={handleWhatsAppRedirect}
                       size="lg"
-                      className="bg-white text-emerald-600 hover:bg-emerald-50 font-semibold px-5 md:px-6 py-4 md:py-5 text-sm md:text-base shadow-lg hover:shadow-xl transition-all duration-200 border border-white/30 rounded-lg flex items-center gap-2 group"
+                      className="w-full md:w-auto bg-white text-emerald-600 hover:bg-emerald-50 font-semibold px-5 md:px-6 py-4 md:py-5 text-sm md:text-base shadow-lg hover:shadow-xl transition-all duration-200 border border-white/30 rounded-lg flex items-center justify-center gap-2 group"
                     >
                       <MessageCircle className="w-4 h-4 md:w-5 md:h-5" />
                       Request Top-up
                       <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </Button>
-
-                    <button
-                      onClick={() => {
-                        setIsWalletRewardNotificationVisible(false)
-                        setTimeout(() => setShowWalletRewardNotification(false), 300)
-                      }}
-                      className="flex-shrink-0 p-2.5 md:p-3 hover:bg-emerald-700/60 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30 border border-emerald-400/30 hover:border-emerald-200/50"
-                      aria-label="Close notification"
-                    >
-                      <X className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                    </button>
                   </div>
                 </div>
               </div>
