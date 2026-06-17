@@ -41,9 +41,13 @@ export function PendingAlertsCard() {
 
   useEffect(() => {
     loadAlerts()
-    // Refresh every 30 seconds
     const interval = setInterval(loadAlerts, 30000)
-    return () => clearInterval(interval)
+    const onRefresh = () => loadAlerts()
+    window.addEventListener("admin-pending-refresh", onRefresh)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("admin-pending-refresh", onRefresh)
+    }
   }, [])
 
   const loadAlerts = async () => {

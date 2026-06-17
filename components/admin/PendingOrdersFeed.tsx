@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { PendingOrdersCategoryKey, PendingOrdersPayload } from "@/lib/admin-pending-orders"
+import { realtimeManager } from "@/lib/realtime-manager"
 
 const BRAND = "#0E8F3D"
 
@@ -107,10 +108,26 @@ export function PendingOrdersFeed({ onNavigateTab, onTotalChange }: Props) {
     load()
     const interval = setInterval(load, 30000)
     const onFocus = () => load()
+    const onRefresh = () => load()
     window.addEventListener("focus", onFocus)
+    window.addEventListener("admin-pending-refresh", onRefresh)
+
+    const unsubWalletTopups = realtimeManager.subscribe(
+      "admin_pending_wallet_topups",
+      "wallet_topups",
+      (payload) => {
+        const row = payload.new as { status?: string } | null
+        if (payload.eventType === "INSERT" && row?.status === "pending") {
+          load()
+        }
+      },
+    )
+
     return () => {
       clearInterval(interval)
       window.removeEventListener("focus", onFocus)
+      window.removeEventListener("admin-pending-refresh", onRefresh)
+      unsubWalletTopups()
     }
   }, [load])
 

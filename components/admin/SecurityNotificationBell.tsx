@@ -36,7 +36,9 @@ function summarizeAction(action: string, data?: Record<string, unknown> | null):
     agent_login: "Agent login",
     withdrawal_requested: "Withdrawal requested",
     storefront_webhook_capture_failed: "Storefront payment capture failed",
+    wallet_topup_webhook_capture_failed: "Wallet top-up payment capture failed",
     new_order: "New pending order",
+    manual_wallet_topup: "Manual wallet top-up — verify MoMo payment",
     official_announcement: "New official announcement",
   }
   if (labels[action]) return labels[action]
@@ -68,37 +70,59 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
 
   const ingestEvent = useCallback((row: SecurityEvent) => {
     const sev = row.severity || "info"
+    const isManualWalletTopup = row.action === "manual_wallet_topup"
     if (
       sev !== "warning" &&
       sev !== "critical" &&
       row.action !== "new_order" &&
-      row.action !== "official_announcement"
+      row.action !== "official_announcement" &&
+      !isManualWalletTopup
     ) {
       return
     }
 
     setRecent((prev) => {
       if (prev.some((e) => e.id === row.id)) return prev
-      return [row, ...prev].slice(0, 5)
+      return [row, ...prev].slice(0, 8)
     })
 
     if (!readIdsRef.current.has(row.id)) {
       setUnreadCount((c) => c + 1)
-      const toastFn = row.action === "official_announcement" ? toast.info : toast.warning
-      toastFn(summarizeAction(row.action, row.new_data ?? null), {
-        description: `${sev.toUpperCase()} · ${formatEventTime(row.created_at)}`,
-        duration: 6000,
-        action:
-          row.action === "new_order"
-            ? {
-                label: "View",
-                onClick: () => router.push("/admin?tab=dashboard"),
-              }
-            : undefined,
-      })
+
+      if (isManualWalletTopup) {
+        const data = row.new_data ?? null
+        const amount =
+          data?.amount != null ? `GH₵${Number(data.amount).toFixed(2)}` : ""
+        const agentName = typeof data?.agent_name === "string" ? data.agent_name : "An agent"
+        toast.error("Manual wallet top-up needs verification", {
+          description: `${agentName} submitted ${amount}. Open Wallets to approve after confirming MoMo.`,
+          duration: 15000,
+          action: {
+            label: "Open Wallets",
+            onClick: () => router.push("/admin?tab=wallets"),
+          },
+        })
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("admin-pending-refresh"))
+        }
+      } else {
+        const toastFn = row.action === "official_announcement" ? toast.info : toast.warning
+        toastFn(summarizeAction(row.action, row.new_data ?? null), {
+          description: `${sev.toUpperCase()} · ${formatEventTime(row.created_at)}`,
+          duration: 6000,
+          action:
+            row.action === "new_order"
+              ? {
+                  label: "View",
+                  onClick: () => router.push("/admin?tab=dashboard"),
+                }
+              : undefined,
+        })
+      }
+
       if (bellRef.current && typeof navigator !== "undefined" && "vibrate" in navigator) {
         try {
-          navigator.vibrate([120, 60, 120])
+          navigator.vibrate(isManualWalletTopup ? [200, 100, 200, 100, 200] : [120, 60, 120])
         } catch {
           /* ignore */
         }
@@ -112,7 +136,7 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
       const { data } = await supabase
         .from("audit_log")
         .select("id, action, severity, created_at, actor_type, new_data")
-        .or("severity.in.(warning,critical),action.eq.official_announcement")
+        .or("severity.in.(warning,critical),action.in.(official_announcement,new_order,manual_wallet_topup)")
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(5)
@@ -193,6 +217,8 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
                 setOpen(false)
                 if (ev.action === "new_order") {
                   router.push("/admin?tab=dashboard")
+                } else if (ev.action === "manual_wallet_topup") {
+                  router.push("/admin?tab=wallets")
                 } else if (ev.action === "official_announcement") {
                   router.push("/admin?tab=security-log")
                 } else {

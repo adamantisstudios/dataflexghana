@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { withUnifiedAuth } from "@/lib/auth-middleware"
+import { calculateWalletTopupPaystackFees } from "@/lib/paystack-wallet-fees"
 import { getAdminClient } from "@/lib/supabase-base"
 import {
   WALLET_TOPUP_PAYSTACK_MIN_GHS,
@@ -22,7 +23,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     }
 
     const body = await request.json()
-    const amount = Number(body.amount)
+    const walletCreditGhs = Number(body.amount)
     let email = String(body.email ?? "").trim()
 
     if (!email) {
@@ -42,14 +43,15 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       )
     }
 
-    if (!Number.isFinite(amount) || amount < WALLET_TOPUP_PAYSTACK_MIN_GHS) {
+    if (!Number.isFinite(walletCreditGhs) || walletCreditGhs < WALLET_TOPUP_PAYSTACK_MIN_GHS) {
       return NextResponse.json(
         { error: `Minimum Paystack top-up is GH₵${WALLET_TOPUP_PAYSTACK_MIN_GHS}` },
         { status: 400 },
       )
     }
 
-    const amountKobo = Math.round(amount * 100)
+    const fees = calculateWalletTopupPaystackFees(walletCreditGhs)
+    const amountKobo = Math.round(fees.total_payable_ghs * 100)
     const callbackUrl = getWalletTopupCallbackUrl(request)
 
     const paystackResponse = await fetch("https://api.paystack.co/transaction/initialize", {
@@ -61,11 +63,15 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       body: JSON.stringify({
         email,
         amount: amountKobo,
+        currency: "GHS",
         metadata: {
           agent_id: user.id,
           payment_type: WALLET_TOPUP_PAYMENT_TYPE,
           transaction_type: WALLET_TOPUP_PAYMENT_TYPE,
-          amount_ghs: amount,
+          amount_ghs: fees.wallet_credit_ghs,
+          wallet_credit_ghs: fees.wallet_credit_ghs,
+          paystack_fee_ghs: fees.paystack_fee_ghs,
+          total_payable_ghs: fees.total_payable_ghs,
         },
         callback_url: callbackUrl,
       }),
@@ -83,6 +89,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       success: true,
       authorization_url: paystackData.data.authorization_url,
       reference: paystackData.data.reference,
+      fees,
     })
   } catch (e) {
     console.error("[wallet-topup initialize]", e)

@@ -24,7 +24,7 @@ import { supabase } from "@/lib/supabase-client";
 import type { Agent } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
-import { buildWalletTransactionInsertRow } from "@/lib/wallet-transaction-types"
+import { calculateWalletTopupPaystackFees, PAYSTACK_LOCAL_FEE_RATE } from "@/lib/paystack-wallet-fees"
 import { WALLET_TOPUP_PAYSTACK_MIN_GHS } from "@/lib/paystack-wallet-topup"
 
 // Extend Window interface for timeout property
@@ -494,59 +494,35 @@ export default function WalletPage() {
     submitLockRef.current = true
     setSubmitting(true)
     try {
-      // Double-check if the reference code already exists (final validation)
-      const { data: existingTransaction, error: checkError } = await supabase
-        .from("wallet_transactions")
-        .select("id, reference_code")
-        .eq("reference_code", trimmedReference)
-        .single()
-
-      if (checkError && checkError.code !== "PGRST116") {
-        // PGRST116 is "not found" error, which is what we want
-        console.error("Error checking reference code:", checkError)
-        throw new Error("Failed to validate reference code. Please try again.")
+      const sessionAgent = getCurrentAgent()
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (sessionAgent) {
+        headers.Authorization = `Bearer ${btoa(JSON.stringify(sessionAgent))}`
       }
 
-      if (existingTransaction) {
-        const suggestedCode = generateReferenceCode()
-        toast.error("This reference has already been used")
-        setReferenceValidation({
-          isValid: false,
-          message: "This reference code has already been used",
-          suggestedCode,
-        })
-        submitLockRef.current = false
-        setSubmitting(false)
-        return
-      }
-
-      // If reference code is unique, proceed with insertion
-      const { error } = await supabase.from("wallet_transactions").insert([
-        buildWalletTransactionInsertRow({
-          agent_id: agent.id,
-          transaction_type: "topup",
-          amount: amount,
-          description: `Wallet top-up of GH₵ ${amount.toFixed(2)}`,
-          reference_code: trimmedReference,
-          status: "pending",
+      const res = await fetch("/api/agent/wallet/topup/manual", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          amount,
+          payment_reference: trimmedReference,
         }),
-      ])
+      })
+      const data = await res.json()
 
-      if (error) {
-        console.error("Database error:", error)
-
-        // Handle specific database errors
-        if (error.code === "23505" && error.message.includes("reference_code_key")) {
+      if (!res.ok) {
+        if (res.status === 409) {
           const suggestedCode = generateReferenceCode()
-          throw new Error(
-            `This reference code has already been used. Please use a unique reference ID.\n\nSuggested code: ${suggestedCode}`,
-          )
+          setReferenceValidation({
+            isValid: false,
+            message: "This reference code has already been used",
+            suggestedCode,
+          })
         }
-
-        throw new Error(error.message || "Database operation failed")
+        throw new Error(data.error || "Failed to submit top-up request")
       }
 
-      toast.success("Top-up submitted! Admin will credit your wallet after verification.")
+      toast.success(data.message || "Top-up submitted! Admin will credit your wallet after verification.")
       setShowTopUpDialog(false)
       setTopUpAmount("")
       setPaymentReference("")
@@ -564,6 +540,7 @@ export default function WalletPage() {
 
   const topUpAmountNum = Number.parseFloat(topUpAmount) || 0
   const showPaystackOption = topUpAmountNum >= WALLET_TOPUP_PAYSTACK_MIN_GHS
+  const paystackFees = showPaystackOption ? calculateWalletTopupPaystackFees(topUpAmountNum) : null
 
   const downloadCSV = () => {
     if (filteredTransactions.length === 0) {
@@ -1244,29 +1221,6 @@ export default function WalletPage() {
               </AlertDescription>
             </Alert>
 
-            {showPaystackOption && (
-              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 space-y-3">
-                <p className="text-sm font-semibold text-indigo-900">Top-up with Paystack</p>
-                <p className="text-xs text-indigo-800">
-                  Amount GH₵{topUpAmountNum.toFixed(2)} qualifies for card/MoMo checkout. Your wallet is credited automatically.
-                </p>
-                <Button
-                  type="button"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                  disabled={paystackProcessing}
-                  onClick={paystackTopUp}
-                >
-                  {paystackProcessing ? "Redirecting to Paystack…" : "Top-up with Paystack"}
-                </Button>
-              </div>
-            )}
-
-            {!showPaystackOption && topUpAmountNum > 0 && topUpAmountNum < WALLET_TOPUP_PAYSTACK_MIN_GHS && (
-              <p className="text-xs text-slate-600">
-                Enter GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS} or more to unlock Paystack top-up. Use manual MoMo below for smaller amounts.
-              </p>
-            )}
-
             <div>
               <Label htmlFor="amount" className="text-emerald-700">
                 Amount (GH₵)
@@ -1282,6 +1236,50 @@ export default function WalletPage() {
                 className="border-emerald-200 focus:border-emerald-500"
               />
               <p className="text-xs text-emerald-600 mt-1">Minimum top-up amount is GH₵ {MIN_TOPUP_AMOUNT}</p>
+            </div>
+
+            {showPaystackOption && paystackFees && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 space-y-3">
+                <p className="text-sm font-semibold text-indigo-900">Top-up with Paystack</p>
+                <p className="text-xs text-indigo-800">
+                  Paystack charges ~{(PAYSTACK_LOCAL_FEE_RATE * 100).toFixed(2)}% on local payments. The fee is added
+                  to your top-up so your wallet receives the full amount below.
+                </p>
+                <div className="rounded-md border border-indigo-200 bg-white/80 p-3 text-sm space-y-1.5">
+                  <div className="flex justify-between text-indigo-900">
+                    <span>Wallet credit</span>
+                    <span className="font-semibold">GH₵{paystackFees.wallet_credit_ghs.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-indigo-700">
+                    <span>Paystack fee</span>
+                    <span>+ GH₵{paystackFees.paystack_fee_ghs.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-indigo-100 pt-2 text-indigo-950 font-semibold">
+                    <span>You pay</span>
+                    <span>GH₵{paystackFees.total_payable_ghs.toFixed(2)}</span>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                  disabled={paystackProcessing}
+                  onClick={paystackTopUp}
+                >
+                  {paystackProcessing
+                    ? "Redirecting to Paystack…"
+                    : `Pay GH₵${paystackFees.total_payable_ghs.toFixed(2)} via Paystack`}
+                </Button>
+              </div>
+            )}
+
+            {!showPaystackOption && topUpAmountNum > 0 && topUpAmountNum < WALLET_TOPUP_PAYSTACK_MIN_GHS && (
+              <p className="text-xs text-slate-600">
+                Enter GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS} or more to unlock Paystack top-up. Use manual MoMo below for smaller amounts.
+              </p>
+            )}
+
+            <div className="border-t border-emerald-100 pt-4">
+              <p className="text-sm font-semibold text-emerald-800 mb-3">Manual MoMo top-up</p>
             </div>
 
             <div>

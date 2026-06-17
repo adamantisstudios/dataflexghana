@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       pendingPayoutsData,
       pendingDomesticWorkerRequestsData,
       pendingWalletTopupsData,
+      pendingLegacyWalletTopupsData,
       pendingProfessionalWritingData,
       pendingInvitationsData,
       pendingDomesticWorkersData,
@@ -77,6 +78,12 @@ export async function GET(request: NextRequest) {
       supabase.from("wallet_topups").select("id", { count: "exact" }).eq("status", "pending"),
 
       supabase
+        .from("wallet_transactions")
+        .select("id", { count: "exact" })
+        .eq("status", "pending")
+        .eq("transaction_type", "topup"),
+
+      supabase
         .from("professional_writing_submissions")
         .select("id", { count: "exact" })
         .eq("status", "pending"),
@@ -96,7 +103,8 @@ export async function GET(request: NextRequest) {
       pendingReferrals: pendingReferralsData.count || 0,
       pendingPayouts: pendingPayoutsData.count || 0,
       pendingDomesticWorkerRequests: pendingDomesticWorkerRequestsData.count || 0,
-      pendingWalletTopups: pendingWalletTopupsData.count || 0,
+      pendingWalletTopups:
+        (pendingWalletTopupsData.count || 0) + (pendingLegacyWalletTopupsData.count || 0),
       pendingProfessionalWriting: pendingProfessionalWritingData.count || 0,
       pendingInvitations: pendingInvitationsData.count || 0,
       pendingDomesticWorkers: pendingDomesticWorkersData.count || 0,
@@ -111,6 +119,7 @@ export async function GET(request: NextRequest) {
         (pendingPayoutsData.count || 0) +
         (pendingDomesticWorkerRequestsData.count || 0) +
         (pendingWalletTopupsData.count || 0) +
+        (pendingLegacyWalletTopupsData.count || 0) +
         (pendingProfessionalWritingData.count || 0) +
         (pendingInvitationsData.count || 0) +
         (pendingDomesticWorkersData.count || 0),

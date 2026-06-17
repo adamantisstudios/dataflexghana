@@ -454,6 +454,11 @@ export default function AdminDashboard() {
       loadGroceryCount()
     }, 30000)
 
+    const onPendingRefresh = () => {
+      void loadStats()
+    }
+    window.addEventListener("admin-pending-refresh", onPendingRefresh)
+
     const connectionUnsubscribe = connectionManager.addConnectionListener(() => {
       setConnectionHealth(connectionManager.getHealthStatus())
     })
@@ -461,6 +466,7 @@ export default function AdminDashboard() {
     return () => {
       isMounted = false
       clearInterval(storefrontPoll)
+      window.removeEventListener("admin-pending-refresh", onPendingRefresh)
       connectionUnsubscribe()
     }
   }, [])

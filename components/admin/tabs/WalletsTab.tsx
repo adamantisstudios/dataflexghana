@@ -1243,6 +1243,12 @@ export default memo(function WalletsTab({ getCachedData, setCachedData }: Wallet
                         <p className="text-amber-700">
                           <span className="font-medium">Amount:</span> GH₵ {topup.amount.toFixed(2)}
                         </p>
+                        {topup.payment_reference && (
+                          <p className="text-amber-700">
+                            <span className="font-medium">MoMo reference:</span>{" "}
+                            <code className="bg-amber-100 px-1 rounded text-xs">{topup.payment_reference}</code>
+                          </p>
+                        )}
                         <p className="text-amber-600 text-xs">
                           <span className="font-medium">Requested:</span> {formatTimestamp(topup.created_at)}
                         </p>

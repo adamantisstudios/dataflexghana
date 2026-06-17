@@ -280,7 +280,7 @@ export async function fetchPendingOrders(db: SupabaseClient): Promise<PendingOrd
       .from("wallet_topups")
       .select(
         `
-        id, status, created_at, agent_id, amount,
+        id, status, created_at, agent_id, amount, payment_reference, payment_method,
         agents ( id, full_name, phone_number )
       `,
       )
@@ -517,7 +517,9 @@ export async function fetchPendingOrders(db: SupabaseClient): Promise<PendingOrd
     type: "wallet_topup",
     created_at: o.created_at,
     agent_name: pickAgentName(o.agents),
-    product: "Wallet top-up request",
+    product: o.payment_reference
+      ? `Wallet top-up (MoMo ref: ${o.payment_reference})`
+      : "Wallet top-up request",
     amount: o.amount,
     href_tab: "wallets",
   }))

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const { data: topup, error: topupError } = await db
       .from("wallet_topups")
-      .select("id, agent_id, amount, status")
+      .select("id, agent_id, amount, status, payment_reference, payment_method")
       .eq("id", topupId)
       .single()
 
@@ -40,22 +40,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ success: false, error: "Cannot approve a rejected top-up" }, { status: 400 })
     }
 
-    if (topup.status === "pending") {
-      const { error: updateError } = await db
-        .from("wallet_topups")
-        .update({
-          status: "approved",
-          approved_at: new Date().toISOString(),
-          approved_by: adminId || null,
-        })
-        .eq("id", topupId)
-
-      if (updateError) {
-        return NextResponse.json({ success: false, error: updateError.message }, { status: 500 })
-      }
-    }
-
-    // Re-check after status flip (or concurrent approve) so we never double-credit the same request.
     const { data: creditBeforeInsert } = await db
       .from("wallet_transactions")
       .select("id")
@@ -66,16 +50,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     let walletTransactionCreated = false
 
     if (!hadCreditAlready) {
+      if (topup.status !== "pending" && topup.status !== "approved") {
+        return NextResponse.json({ success: false, error: "Top-up is not in a valid state for approval" }, { status: 400 })
+      }
+
+      const paymentRef = String(topup.payment_reference ?? "").trim()
+      const paymentMethod = String(topup.payment_method ?? "manual").trim()
+      const refNote = paymentRef ? ` MoMo ref: ${paymentRef}.` : ""
+
       const { data: insertedRow, error: insertError } = await db
         .from("wallet_transactions")
         .insert({
           agent_id: topup.agent_id,
           transaction_type: "topup",
           amount: topup.amount,
-          description: `Admin wallet top-up - GH₵${Number(topup.amount).toFixed(2)}`,
+          description: `Manual wallet top-up - GH₵${Number(topup.amount).toFixed(2)}`,
           status: "approved",
           reference_code: referenceCode,
-          admin_notes: adminId ? `Approved by admin ${adminId}` : "Approved by admin",
+          payment_method: paymentMethod === "paystack" ? "auto" : "manual",
+          admin_notes: `${adminId ? `Approved by admin ${adminId}` : "Approved by admin"}.${refNote}`.trim(),
           admin_id: adminId || null,
         })
         .select("id")
@@ -84,7 +77,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (insertError && insertError.code !== "23505") {
         return NextResponse.json({ success: false, error: insertError.message }, { status: 500 })
       }
+
       walletTransactionCreated = Boolean(insertedRow?.id)
+
+      const { data: creditAfterRace } = await db
+        .from("wallet_transactions")
+        .select("id")
+        .eq("reference_code", referenceCode)
+        .maybeSingle()
+
+      if (!creditAfterRace?.id) {
+        return NextResponse.json(
+          { success: false, error: "Wallet credit could not be recorded — top-up left pending" },
+          { status: 500 },
+        )
+      }
+    }
+
+    if (topup.status === "pending") {
+      const { error: updateError } = await db
+        .from("wallet_topups")
+        .update({
+          status: "approved",
+          approved_at: new Date().toISOString(),
+          approved_by: adminId || null,
+        })
+        .eq("id", topupId)
+        .eq("status", "pending")
+
+      if (updateError) {
+        return NextResponse.json({ success: false, error: updateError.message }, { status: 500 })
+      }
     }
 
     const balance = await calculateWalletBalance(topup.agent_id)
@@ -101,14 +124,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ success: false, error: balanceError.message }, { status: 500 })
     }
 
-    const { data: creditAfter } = await db
-      .from("wallet_transactions")
-      .select("id")
-      .eq("reference_code", referenceCode)
-      .maybeSingle()
-
-    const creditExists = Boolean(creditAfter?.id)
-    const idempotentReplay = hadCreditAlready || (creditExists && !walletTransactionCreated)
+    const idempotentReplay = hadCreditAlready
 
     return NextResponse.json({
       success: true,
