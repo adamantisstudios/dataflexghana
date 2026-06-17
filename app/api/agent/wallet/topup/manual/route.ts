@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { notifyAdminManualWalletTopup } from "@/lib/admin-wallet-topup-notify"
-import { withUnifiedAuth } from "@/lib/auth-middleware"
+import { withAgentAuth } from "@/lib/auth-middleware"
 import { getRequestClientMeta } from "@/lib/audit-logger"
 import { getAdminClient } from "@/lib/supabase-base"
 
@@ -9,12 +9,8 @@ export const dynamic = "force-dynamic"
 const MIN_MANUAL_TOPUP_GHS = 100
 const MIN_REFERENCE_LENGTH = 7
 
-export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
+export const POST = withAgentAuth(async (request: NextRequest, user) => {
   try {
-    if (user.role !== "agent") {
-      return NextResponse.json({ error: "Agents only" }, { status: 403 })
-    }
-
     const body = await request.json()
     const amount = Number(body.amount)
     const paymentReference = String(body.payment_reference ?? "").trim()

@@ -33,8 +33,21 @@ export async function authenticateAdmin(
     // Get admin ID from multiple sources (headers, cookies, or body for some requests)
     let adminId =
       request.headers.get("x-admin-id") ||
-      request.cookies.get("admin_id")?.value ||
-      request.headers.get("authorization")?.replace("Bearer ", "")
+      request.cookies.get("admin_id")?.value
+
+    const authHeader = request.headers.get("authorization")
+    if (!adminId && authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "").trim()
+      try {
+        const decoded = JSON.parse(atob(token))
+        // Agent sessions are JSON in Bearer — do not treat as admin id
+        if (!(decoded?.id && (decoded?.phone_number || decoded?.isapproved !== undefined))) {
+          adminId = token
+        }
+      } catch {
+        adminId = token
+      }
+    }
 
     // Check for maintenance system auth pattern
     const adminAuth = request.headers.get("x-admin-auth")
@@ -240,6 +253,15 @@ export async function authenticateFromLocalStorage(
           },
         }
       }
+    }
+  }
+
+  // Prefer agent session when x-agent-id is sent (shared devices / mobile wallets)
+  const explicitAgentId = request.headers.get("x-agent-id")?.trim()
+  if (explicitAgentId && (!requiredRole || requiredRole === "agent")) {
+    const agentAuth = await authenticateAgent(request)
+    if (agentAuth.success) {
+      return agentAuth
     }
   }
 

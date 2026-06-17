@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { withUnifiedAuth } from "@/lib/auth-middleware"
+import { withAgentAuth } from "@/lib/auth-middleware"
 import { calculateWalletTopupPaystackFees } from "@/lib/paystack-wallet-fees"
 import { getAdminClient } from "@/lib/supabase-base"
 import {
@@ -12,14 +12,10 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || ""
 
 export const dynamic = "force-dynamic"
 
-export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
+export const POST = withAgentAuth(async (request: NextRequest, user) => {
   try {
     if (!PAYSTACK_SECRET_KEY) {
       return NextResponse.json({ error: "Paystack not configured" }, { status: 500 })
-    }
-
-    if (user.role !== "agent") {
-      return NextResponse.json({ error: "Agents only" }, { status: 403 })
     }
 
     const body = await request.json()
@@ -88,6 +84,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
     return NextResponse.json({
       success: true,
       authorization_url: paystackData.data.authorization_url,
+      access_code: paystackData.data.access_code,
       reference: paystackData.data.reference,
       fees,
     })

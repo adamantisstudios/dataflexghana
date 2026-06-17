@@ -24,7 +24,9 @@ import { supabase } from "@/lib/supabase-client";
 import type { Agent } from "@/lib/supabase";
 import { getCurrentAgent } from "@/lib/auth"
 import { getAgentDisplayBalances } from "@/lib/agent-display-balances"
+import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import { calculateWalletTopupPaystackFees, PAYSTACK_LOCAL_FEE_RATE } from "@/lib/paystack-wallet-fees"
+import { openPaystackCheckout } from "@/lib/paystack-inline-checkout"
 import { WALLET_TOPUP_PAYSTACK_MIN_GHS } from "@/lib/paystack-wallet-topup"
 
 // Extend Window interface for timeout property
@@ -436,25 +438,30 @@ export default function WalletPage() {
 
     setPaystackProcessing(true)
     try {
-      const sessionAgent = getCurrentAgent()
-      const headers: Record<string, string> = { "Content-Type": "application/json" }
-      if (sessionAgent) {
-        headers.Authorization = `Bearer ${btoa(JSON.stringify(sessionAgent))}`
-      }
-
       const res = await fetch("/api/paystack/wallet-topup/initialize", {
         method: "POST",
-        headers,
+        headers: {
+          ...getAgentAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           amount,
-          email: agent.email || sessionAgent?.email,
+          email: agent.email,
         }),
       })
       const data = await res.json()
       if (!res.ok || !data.authorization_url) {
         throw new Error(data.error || "Could not start Paystack payment")
       }
-      window.location.href = data.authorization_url
+
+      await openPaystackCheckout({
+        accessCode: data.access_code,
+        authorizationUrl: data.authorization_url,
+        onSuccess: (reference) => {
+          window.location.href = `/api/paystack/wallet-topup/callback?reference=${encodeURIComponent(reference)}`
+        },
+        onClose: () => setPaystackProcessing(false),
+      })
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Paystack failed")
       setPaystackProcessing(false)
@@ -494,15 +501,12 @@ export default function WalletPage() {
     submitLockRef.current = true
     setSubmitting(true)
     try {
-      const sessionAgent = getCurrentAgent()
-      const headers: Record<string, string> = { "Content-Type": "application/json" }
-      if (sessionAgent) {
-        headers.Authorization = `Bearer ${btoa(JSON.stringify(sessionAgent))}`
-      }
-
       const res = await fetch("/api/agent/wallet/topup/manual", {
         method: "POST",
-        headers,
+        headers: {
+          ...getAgentAuthHeaders(),
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           amount,
           payment_reference: trimmedReference,
@@ -1190,34 +1194,25 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* Top-up Dialog */}
+      {/* Top-up Dialog — mobile-friendly bottom sheet */}
       <Dialog open={showTopUpDialog} onOpenChange={setShowTopUpDialog}>
-        <DialogContent className="w-[95vw] max-w-md bg-white/95 backdrop-blur-sm border-emerald-200 [&>button]:text-gray-600 [&>button]:hover:text-gray-900 [&>button]:hover:bg-gray-100">
-          <DialogHeader>
-            <DialogTitle className="text-emerald-800 flex items-center gap-2">
-              <Plus className="h-5 w-5" />
+        <DialogContent className="w-[calc(100vw-0.75rem)] max-w-md gap-0 border-emerald-200 bg-white p-0 overflow-hidden max-h-[92dvh] flex flex-col sm:max-h-[90vh] sm:rounded-lg sm:p-0 [&>button]:text-gray-600 [&>button]:hover:text-gray-900 [&>button]:hover:bg-gray-100 [&>button]:right-3 [&>button]:top-3 max-sm:fixed max-sm:left-1/2 max-sm:top-auto max-sm:bottom-2 max-sm:translate-x-[-50%] max-sm:translate-y-0 max-sm:rounded-2xl">
+          <DialogHeader className="shrink-0 space-y-1 px-4 pt-4 pb-2 sm:px-5 border-b border-emerald-100">
+            <DialogTitle className="text-base sm:text-lg text-emerald-800 flex items-center gap-2">
+              <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
               Top Up Wallet
             </DialogTitle>
-            <DialogDescription className="text-emerald-600">
-              Add funds to your wallet for faster data bundle purchases.
+            <DialogDescription className="text-xs sm:text-sm text-emerald-600">
+              Paystack (GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS}+) or manual MoMo (GH₵{MIN_TOPUP_AMOUNT}+).
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <Alert className="border-amber-200 bg-amber-50">
-              <Info className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800">
-                <div className="space-y-2">
-                  <p className="font-semibold">Wallet top-up</p>
-                  <ul className="text-sm list-disc list-inside ml-1 space-y-1">
-                    <li>
-                      Manual MoMo (GH₵{MIN_TOPUP_AMOUNT}+): pay to <strong>0557943392</strong>, then submit reference below
-                    </li>
-                    <li>
-                      Paystack (GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS}+): instant credit after payment
-                    </li>
-                  </ul>
-                </div>
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5 space-y-3">
+            <Alert className="border-amber-200 bg-amber-50 py-2">
+              <Info className="h-3.5 w-3.5 text-amber-600" />
+              <AlertDescription className="text-amber-800 text-xs leading-relaxed">
+                <strong>MoMo:</strong> 0557943392 then submit reference.{" "}
+                <strong>Paystack:</strong> instant credit from GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS}.
               </AlertDescription>
             </Alert>
 
@@ -1239,35 +1234,32 @@ export default function WalletPage() {
             </div>
 
             {showPaystackOption && paystackFees && (
-              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 space-y-3">
-                <p className="text-sm font-semibold text-indigo-900">Top-up with Paystack</p>
-                <p className="text-xs text-indigo-800">
-                  Paystack charges ~{(PAYSTACK_LOCAL_FEE_RATE * 100).toFixed(2)}% on local payments. The fee is added
-                  to your top-up so your wallet receives the full amount below.
-                </p>
-                <div className="rounded-md border border-indigo-200 bg-white/80 p-3 text-sm space-y-1.5">
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-2">
+                <p className="text-sm font-semibold text-indigo-900">Paystack top-up</p>
+                <div className="rounded-md border border-indigo-200 bg-white/80 p-2.5 text-xs sm:text-sm space-y-1">
                   <div className="flex justify-between text-indigo-900">
                     <span>Wallet credit</span>
                     <span className="font-semibold">GH₵{paystackFees.wallet_credit_ghs.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-indigo-700">
-                    <span>Paystack fee</span>
+                    <span>Fee (~{(PAYSTACK_LOCAL_FEE_RATE * 100).toFixed(2)}%)</span>
                     <span>+ GH₵{paystackFees.paystack_fee_ghs.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between border-t border-indigo-100 pt-2 text-indigo-950 font-semibold">
+                  <div className="flex justify-between border-t border-indigo-100 pt-1.5 font-semibold text-indigo-950">
                     <span>You pay</span>
                     <span>GH₵{paystackFees.total_payable_ghs.toFixed(2)}</span>
                   </div>
                 </div>
                 <Button
                   type="button"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                  size="sm"
+                  className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
                   disabled={paystackProcessing}
                   onClick={paystackTopUp}
                 >
                   {paystackProcessing
-                    ? "Redirecting to Paystack…"
-                    : `Pay GH₵${paystackFees.total_payable_ghs.toFixed(2)} via Paystack`}
+                    ? "Opening Paystack…"
+                    : `Pay GH₵${paystackFees.total_payable_ghs.toFixed(2)}`}
                 </Button>
               </div>
             )}
@@ -1278,8 +1270,8 @@ export default function WalletPage() {
               </p>
             )}
 
-            <div className="border-t border-emerald-100 pt-4">
-              <p className="text-sm font-semibold text-emerald-800 mb-3">Manual MoMo top-up</p>
+            <div className="border-t border-emerald-100 pt-2">
+              <p className="text-xs sm:text-sm font-semibold text-emerald-800 mb-2">Manual MoMo</p>
             </div>
 
             <div>
@@ -1343,20 +1335,22 @@ export default function WalletPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 gap-2 border-t border-emerald-100 bg-white px-4 py-3 sm:px-5">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setShowTopUpDialog(false)}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50 flex-1 sm:flex-none"
             >
               Cancel
             </Button>
             <Button
+              size="sm"
               onClick={submitTopUp}
               disabled={submitting || paystackProcessing || !topUpAmount || !paymentReference}
-              className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+              className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 flex-1 sm:flex-none"
             >
-              {submitting ? "Submitting…" : "Submit manual top-up"}
+              {submitting ? "Submitting…" : "Submit manual"}
             </Button>
           </DialogFooter>
         </DialogContent>
