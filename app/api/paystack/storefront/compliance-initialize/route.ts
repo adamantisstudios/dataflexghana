@@ -55,7 +55,6 @@ export async function POST(request: NextRequest) {
       form_type,
       store_name,
       store_segment,
-      amount: amountFromClient,
       callback_url: callbackFromClient,
     } = body
 
@@ -87,21 +86,7 @@ export async function POST(request: NextRequest) {
 
     const priceGhs = complianceFormAdminPrice()
     const expectedKobo = COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO
-    const amountKobo =
-      amountFromClient != null
-        ? Math.round(Number(amountFromClient))
-        : Math.round(priceGhs * 100)
-
-    if (!Number.isFinite(amountKobo) || amountKobo <= 0) {
-      return NextResponse.json({ error: "Invalid amount" }, { status: 400 })
-    }
-
-    if (amountKobo !== expectedKobo) {
-      return NextResponse.json(
-        { error: `Amount must be ${expectedKobo} kobo (GH₵ ${priceGhs})` },
-        { status: 400 },
-      )
-    }
+    const amountKobo = expectedKobo
 
     const db = getAdminClient()
     const { data: complianceSettings, error: settingsError } = await db
