@@ -333,7 +333,7 @@ export async function getPublicStorefrontResponse(
             title: "Sole Proprietorship Registration",
             description:
               "Includes free nation-wide delivery of all documents to your doorstep within 14 working days. Fill forms easily, sign and submit securely.",
-            admin_price: 530,
+            admin_price: 590,
           },
         ]
       : []

@@ -24,6 +24,12 @@ export function ReferralHubEarningsTip({ agentId, onLearnMore }: Props) {
     }
   }, [agentId])
 
+  useEffect(() => {
+    if (!visible) return
+    const timer = window.setTimeout(() => setVisible(false), 5000)
+    return () => window.clearTimeout(timer)
+  }, [visible])
+
   const dismiss = () => {
     try {
       localStorage.setItem(storageKey(agentId), "1")
