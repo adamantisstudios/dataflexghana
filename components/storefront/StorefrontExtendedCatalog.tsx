@@ -517,7 +517,7 @@ export function StorefrontExtendedCatalog({
                 <div>
                   <h4 className="font-semibold text-lg">{soleForm.title}</h4>
                   <p className="text-lg font-bold mt-2" style={{ color: accent }}>
-                    Fee: GH₵ 590
+                    Fee: GH₵ 530
                   </p>
                   <p className="text-sm font-medium text-slate-600 mt-1">Payment summary: GH₵ 530</p>
                   <ul className="mt-3 space-y-2 text-sm text-slate-600 list-disc pl-5">
