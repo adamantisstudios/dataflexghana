@@ -30,7 +30,6 @@ import { PaystackSecureBadge } from "@/components/storefront/PaystackSecureBadge
 import type { PublicWholesaleProduct, PublicComplianceForm, BuyerDetails } from "@/lib/storefront-catalog"
 import {
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
-  COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO,
 } from "@/lib/storefront-catalog"
 import { getStorefrontPaystackCallbackUrl } from "@/lib/storefront-utils"
 
@@ -182,6 +181,8 @@ export function StorefrontExtendedCatalog({
 
   const complianceUnlocked = Boolean(compliancePaidRef)
   const soleForm = complianceForms.find((f) => f.form_type === COMPLIANCE_FORM_SOLE_PROPRIETORSHIP)
+  const soleFormPrice = soleForm?.admin_price ?? 0
+  const soleFormPriceLabel = soleFormPrice.toFixed(0)
 
   const openLightbox = (src: string | null | undefined, alt: string) => {
     if (!src?.trim()) return
@@ -221,7 +222,7 @@ export function StorefrontExtendedCatalog({
           phone,
           agent_id: agentId,
           form_type: soleForm.form_type,
-          amount: COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO,
+          amount: Math.round(soleForm.admin_price * 100),
           store_name: storeName,
           store_segment: storeSegment,
           callback_url: callbackUrl,
@@ -517,9 +518,11 @@ export function StorefrontExtendedCatalog({
                 <div>
                   <h4 className="font-semibold text-lg">{soleForm.title}</h4>
                   <p className="text-lg font-bold mt-2" style={{ color: accent }}>
-                    Fee: GH₵ 530
+                    Fee: GH₵ {soleFormPriceLabel}
                   </p>
-                  <p className="text-sm font-medium text-slate-600 mt-1">Payment summary: GH₵ 530</p>
+                  <p className="text-sm font-medium text-slate-600 mt-1">
+                    Payment summary: GH₵ {soleFormPriceLabel}
+                  </p>
                   <ul className="mt-3 space-y-2 text-sm text-slate-600 list-disc pl-5">
                     <li>
                       Includes free nation-wide delivery of all documents to your doorstep within 14 working
@@ -540,7 +543,7 @@ export function StorefrontExtendedCatalog({
                       className="w-full text-white h-11"
                       style={{ backgroundColor: accent }}
                     >
-                      Pay GH₵ 530 to unlock form
+                      Pay GH₵ {soleFormPriceLabel} to unlock form
                     </Button>
                   </div>
                 ) : (
