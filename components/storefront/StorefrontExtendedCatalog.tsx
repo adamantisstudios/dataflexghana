@@ -519,7 +519,7 @@ export function StorefrontExtendedCatalog({
                   <p className="text-lg font-bold mt-2" style={{ color: accent }}>
                     Fee: GH₵ 590
                   </p>
-                  <p className="text-sm font-medium text-slate-600 mt-1">Payment summary: GH₵ 590</p>
+                  <p className="text-sm font-medium text-slate-600 mt-1">Payment summary: GH₵ 530</p>
                   <ul className="mt-3 space-y-2 text-sm text-slate-600 list-disc pl-5">
                     <li>
                       Includes free nation-wide delivery of all documents to your doorstep within 14 working
@@ -540,7 +540,7 @@ export function StorefrontExtendedCatalog({
                       className="w-full text-white h-11"
                       style={{ backgroundColor: accent }}
                     >
-                      Pay GH₵ 590 to unlock form
+                      Pay GH₵ 530 to unlock form
                     </Button>
                   </div>
                 ) : (
