@@ -1,7 +1,7 @@
 "use client"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { TwoFactorSetupPanel } from "@/components/security/TwoFactorSetupPanel"
-import React, { lazy, Suspense, useState, useCallback, useEffect } from "react"
+import React, { lazy, Suspense, useState, useCallback, useEffect, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,7 @@ import { Label } from "@/components/ui/label"
   Activity,
   BarChart3,
   Bell,
+  AlertTriangle,
   Shield,
   CheckCircle2,
   PiggyBank,
@@ -215,6 +216,9 @@ export default function AdminDashboard() {
 
   const admin = getStoredAdmin()
   const [showNotification, setShowNotification] = useState(true)
+  const [walletTopupAlertOpen, setWalletTopupAlertOpen] = useState(false)
+  const [walletTopupAlert, setWalletTopupAlert] = useState<any | null>(null)
+  const latestWalletTopupAlertIdRef = useRef<string | null>(null)
   const [connectionHealth, setConnectionHealth] = useState(connectionManager.getHealthStatus())
   const [visibleTabs, setVisibleTabs] = useState<TabConfigItem[]>([])
   const [isTabsLoaded, setIsTabsLoaded] = useState(false)
@@ -354,6 +358,7 @@ export default function AdminDashboard() {
           pendingDomesticWorkers: 0,
           totalAlerts: 0,
           pendingOnlineCourses: 0,
+          latestWalletTopup: null,
         }
 
         if (alertsResponse.ok && alertsResponse instanceof Response) {
@@ -388,6 +393,23 @@ export default function AdminDashboard() {
         }
 
         if (isMounted) {
+          const latestWalletTopup = alertsData.latestWalletTopup
+          if (latestWalletTopup?.id && latestWalletTopup.id !== latestWalletTopupAlertIdRef.current) {
+            latestWalletTopupAlertIdRef.current = latestWalletTopup.id
+            setWalletTopupAlert({
+              ...latestWalletTopup,
+              pendingCount: alertsData.pendingWalletTopups || 0,
+            })
+            setWalletTopupAlertOpen(true)
+            toast.error(
+              `Manual wallet top-up pending: GH₵${Number(latestWalletTopup.amount || 0).toFixed(2)}`,
+              {
+                description: `${latestWalletTopup.agent_name || "Agent"} needs wallet approval now.`,
+                duration: 15000,
+              },
+            )
+          }
+
           setStats((prev) => ({
             ...prev,
             totalAgents: agentsData.count || 0,
@@ -1121,6 +1143,83 @@ export default function AdminDashboard() {
             })}
         </Tabs>
       </div>
+      <Dialog open={walletTopupAlertOpen} onOpenChange={setWalletTopupAlertOpen}>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-md overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl [&>button]:right-4 [&>button]:top-4">
+          <div className="bg-red-600 px-5 py-4 text-white">
+            <DialogHeader className="space-y-2 text-left">
+              <div className="flex items-center gap-3 pr-8">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/30">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div>
+                  <DialogTitle className="text-lg leading-6 text-white">Wallet top-up needs approval</DialogTitle>
+                  <DialogDescription className="text-sm text-red-50">
+                    Manual MoMo payment is pending admin review.
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+          </div>
+
+          <div className="space-y-4 px-5 py-5">
+            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Amount requested</p>
+              <p className="mt-1 text-3xl font-bold text-red-900">
+                GH₵{Number(walletTopupAlert?.amount || 0).toFixed(2)}
+              </p>
+            </div>
+
+            <div className="grid gap-3 text-sm">
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2">
+                <span className="text-gray-500">Agent</span>
+                <span className="text-right font-semibold text-gray-900">
+                  {walletTopupAlert?.agent_name || "Agent"}
+                </span>
+              </div>
+              {walletTopupAlert?.agent_phone && (
+                <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2">
+                  <span className="text-gray-500">Phone</span>
+                  <span className="text-right font-medium text-gray-900">{walletTopupAlert.agent_phone}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-2">
+                <span className="text-gray-500">MoMo reference</span>
+                <code className="rounded-md bg-gray-100 px-2 py-1 text-right text-xs font-semibold text-gray-900">
+                  {walletTopupAlert?.payment_reference || "N/A"}
+                </code>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-gray-500">Pending wallet requests</span>
+                <Badge className="bg-red-100 text-red-700 hover:bg-red-100">
+                  {walletTopupAlert?.pendingCount || stats.pendingWalletTopups}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:space-x-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setWalletTopupAlertOpen(false)}
+              className="h-11 border-gray-300"
+            >
+              Dismiss
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setWalletTopupAlertOpen(false)
+                loadTab("wallets")
+              }}
+              className="h-11 bg-red-600 text-white hover:bg-red-700"
+            >
+              <Wallet className="mr-2 h-4 w-4" />
+              Review top-up
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <BackToTop />
     </div>
   )

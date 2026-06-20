@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       pendingPayoutsData,
       pendingDomesticWorkerRequestsData,
       pendingWalletTopupsData,
+      latestWalletTopupData,
       pendingLegacyWalletTopupsData,
       pendingProfessionalWritingData,
       pendingInvitationsData,
@@ -78,6 +79,14 @@ export async function GET(request: NextRequest) {
       supabase.from("wallet_topups").select("id", { count: "exact" }).eq("status", "pending"),
 
       supabase
+        .from("wallet_topups")
+        .select("id, amount, created_at, payment_reference, payment_method, agents(full_name, phone_number)")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+
+      supabase
         .from("wallet_transactions")
         .select("id", { count: "exact" })
         .eq("status", "pending")
@@ -93,6 +102,13 @@ export async function GET(request: NextRequest) {
       supabase.from("domestic_workers").select("id", { count: "exact" }).eq("approval_status", "pending"),
     ])
 
+    const latestWalletTopupRow = latestWalletTopupData.data as any
+    const latestWalletTopupAgent = latestWalletTopupRow
+      ? Array.isArray(latestWalletTopupRow.agents)
+        ? latestWalletTopupRow.agents[0]
+        : latestWalletTopupRow.agents
+      : null
+
     const alerts = {
       newAgents: newAgentsData.count || 0,
       pendingDataOrders: pendingOrdersData.count || 0,
@@ -105,6 +121,17 @@ export async function GET(request: NextRequest) {
       pendingDomesticWorkerRequests: pendingDomesticWorkerRequestsData.count || 0,
       pendingWalletTopups:
         (pendingWalletTopupsData.count || 0) + (pendingLegacyWalletTopupsData.count || 0),
+      latestWalletTopup: latestWalletTopupRow
+        ? {
+            id: latestWalletTopupRow.id,
+            amount: Number(latestWalletTopupRow.amount) || 0,
+            created_at: latestWalletTopupRow.created_at,
+            payment_reference: latestWalletTopupRow.payment_reference,
+            payment_method: latestWalletTopupRow.payment_method,
+            agent_name: latestWalletTopupAgent?.full_name,
+            agent_phone: latestWalletTopupAgent?.phone_number,
+          }
+        : null,
       pendingProfessionalWriting: pendingProfessionalWritingData.count || 0,
       pendingInvitations: pendingInvitationsData.count || 0,
       pendingDomesticWorkers: pendingDomesticWorkersData.count || 0,

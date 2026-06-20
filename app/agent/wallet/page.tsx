@@ -1197,28 +1197,30 @@ export default function WalletPage() {
 
       {/* Top-up Dialog — mobile-friendly bottom sheet */}
       <Dialog open={showTopUpDialog} onOpenChange={setShowTopUpDialog}>
-        <DialogContent className="w-[calc(100vw-0.75rem)] max-w-md gap-0 border-emerald-200 bg-white p-0 overflow-hidden max-h-[92dvh] flex flex-col sm:max-h-[90vh] sm:rounded-lg sm:p-0 [&>button]:text-gray-600 [&>button]:hover:text-gray-900 [&>button]:hover:bg-gray-100 [&>button]:right-3 [&>button]:top-3 max-sm:fixed max-sm:left-1/2 max-sm:top-auto max-sm:bottom-2 max-sm:translate-x-[-50%] max-sm:translate-y-0 max-sm:rounded-2xl">
-          <DialogHeader className="shrink-0 space-y-1 px-4 pt-4 pb-2 sm:px-5 border-b border-emerald-100">
-            <DialogTitle className="text-base sm:text-lg text-emerald-800 flex items-center gap-2">
-              <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-              Top Up Wallet
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-lg gap-0 overflow-hidden rounded-2xl border-0 bg-white p-0 shadow-2xl sm:max-h-[90vh] [&>button]:right-4 [&>button]:top-4">
+          <DialogHeader className="border-b border-gray-100 bg-gradient-to-br from-emerald-50 to-white px-5 py-5 pr-12 text-left">
+            <DialogTitle className="text-xl font-semibold leading-6 text-gray-950 flex items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
+                <Wallet className="h-5 w-5" />
+              </span>
+              Top up wallet
             </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm text-emerald-600">
+            <DialogDescription className="mt-1 text-sm leading-5 text-gray-600">
               Paystack (GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS}+) or manual MoMo (GH₵{MIN_TOPUP_AMOUNT}+).
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5 space-y-3">
-            <Alert className="border-amber-200 bg-amber-50 py-2">
-              <Info className="h-3.5 w-3.5 text-amber-600" />
-              <AlertDescription className="text-amber-800 text-xs leading-relaxed">
+          <div className="max-h-[68dvh] space-y-5 overflow-y-auto px-5 py-5">
+            <Alert className="border-emerald-200 bg-emerald-50">
+              <Info className="h-4 w-4 text-emerald-700" />
+              <AlertDescription className="text-sm leading-5 text-emerald-900">
                 <strong>MoMo:</strong> 0557943392 then submit reference.{" "}
                 <strong>Paystack:</strong> instant credit from GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS}.
               </AlertDescription>
             </Alert>
 
-            <div>
-              <Label htmlFor="amount" className="text-emerald-700">
+            <div className="space-y-2">
+              <Label htmlFor="amount" className="text-sm font-semibold text-gray-800">
                 Amount (GH₵)
               </Label>
               <Input
@@ -1229,32 +1231,37 @@ export default function WalletPage() {
                 placeholder={`Minimum: ${MIN_TOPUP_AMOUNT}.00`}
                 value={topUpAmount}
                 onChange={(e) => setTopUpAmount(e.target.value)}
-                className="border-emerald-200 focus:border-emerald-500"
+                className="h-12 border-gray-200 text-base shadow-sm focus:border-emerald-500"
               />
               <p className="text-xs text-emerald-600 mt-1">Minimum top-up amount is GH₵ {MIN_TOPUP_AMOUNT}</p>
             </div>
 
             {showPaystackOption && paystackFees && (
-              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 space-y-2">
-                <p className="text-sm font-semibold text-indigo-900">Paystack top-up</p>
-                <div className="rounded-md border border-indigo-200 bg-white/80 p-2.5 text-xs sm:text-sm space-y-1">
-                  <div className="flex justify-between text-indigo-900">
+              <div className="space-y-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-indigo-950">Paystack instant top-up</p>
+                    <p className="text-xs text-indigo-700">Available from GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS}.</p>
+                  </div>
+                  <Badge className="bg-indigo-100 text-indigo-700 hover:bg-indigo-100">Instant</Badge>
+                </div>
+                <div className="space-y-2 rounded-lg border border-indigo-100 bg-white p-3 text-sm">
+                  <div className="flex justify-between gap-4 text-gray-700">
                     <span>Wallet credit</span>
                     <span className="font-semibold">GH₵{paystackFees.wallet_credit_ghs.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-indigo-700">
+                  <div className="flex justify-between gap-4 text-gray-600">
                     <span>Fee (~{(PAYSTACK_LOCAL_FEE_RATE * 100).toFixed(2)}%)</span>
                     <span>+ GH₵{paystackFees.paystack_fee_ghs.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between border-t border-indigo-100 pt-1.5 font-semibold text-indigo-950">
+                  <div className="flex justify-between gap-4 border-t border-gray-100 pt-2 font-semibold text-gray-950">
                     <span>You pay</span>
                     <span>GH₵{paystackFees.total_payable_ghs.toFixed(2)}</span>
                   </div>
                 </div>
                 <Button
                   type="button"
-                  size="sm"
-                  className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white text-sm"
+                  className="h-11 w-full bg-indigo-600 text-white hover:bg-indigo-700"
                   disabled={paystackProcessing}
                   onClick={paystackTopUp}
                 >
@@ -1266,17 +1273,17 @@ export default function WalletPage() {
             )}
 
             {!showPaystackOption && topUpAmountNum > 0 && topUpAmountNum < WALLET_TOPUP_PAYSTACK_MIN_GHS && (
-              <p className="text-xs text-slate-600">
+              <p className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-600">
                 Enter GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS} or more to unlock Paystack top-up. Use manual MoMo below for smaller amounts.
               </p>
             )}
 
-            <div className="border-t border-emerald-100 pt-2">
-              <p className="text-xs sm:text-sm font-semibold text-emerald-800 mb-2">Manual MoMo</p>
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-sm font-semibold text-gray-950">Manual MoMo approval</p>
             </div>
 
-            <div>
-              <Label htmlFor="reference" className="text-emerald-700">
+            <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <Label htmlFor="reference" className="text-sm font-semibold text-gray-800">
                 Payment reference (MoMo)
               </Label>
               <div className="space-y-2">
@@ -1288,13 +1295,13 @@ export default function WalletPage() {
                   disabled={submitting}
                   className={
                     referenceValidation.isValid
-                      ? "border-emerald-200 focus:border-emerald-500"
-                      : "border-red-300 focus:border-red-500"
+                      ? "h-11 border-gray-200 shadow-sm focus:border-emerald-500"
+                      : "h-11 border-red-300 shadow-sm focus:border-red-500"
                   }
                 />
 
                 {/* Character Counter */}
-                <div className="flex justify-between items-center text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                   <span
                     className={
                       paymentReference.trim().length >= MIN_REFERENCE_LENGTH ? "text-emerald-600" : "text-amber-600"
@@ -1311,10 +1318,10 @@ export default function WalletPage() {
 
                 {/* Suggested Code */}
                 {referenceValidation.suggestedCode && !referenceValidation.isValid && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
                     <p className="text-sm text-blue-800 mb-2">💡 Suggested reference code:</p>
                     <div className="flex items-center gap-2">
-                      <code className="bg-blue-100 px-2 py-1 rounded text-blue-900 font-mono text-sm flex-1">
+                      <code className="flex-1 rounded bg-blue-100 px-2 py-1 font-mono text-sm text-blue-900">
                         {referenceValidation.suggestedCode}
                       </code>
                       <Button
@@ -1329,19 +1336,19 @@ export default function WalletPage() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-emerald-600 mt-1">
+              <p className="text-xs leading-5 text-gray-500">
                 Enter the same reference ID you used when sending the MoMo payment (minimum {MIN_REFERENCE_LENGTH}{" "}
                 characters)
               </p>
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 gap-2 border-t border-emerald-100 bg-white px-4 py-3 sm:px-5">
+          <DialogFooter className="gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:space-x-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowTopUpDialog(false)}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50 flex-1 sm:flex-none"
+              className="h-11 flex-1 border-gray-300 text-gray-700 hover:bg-white sm:flex-none"
             >
               Cancel
             </Button>
@@ -1349,7 +1356,7 @@ export default function WalletPage() {
               size="sm"
               onClick={submitTopUp}
               disabled={submitting || paystackProcessing || !topUpAmount || !paymentReference}
-              className="bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 flex-1 sm:flex-none"
+              className="h-11 flex-1 bg-emerald-600 text-white hover:bg-emerald-700 sm:flex-none"
             >
               {submitting ? "Submitting…" : "Submit manual"}
             </Button>
