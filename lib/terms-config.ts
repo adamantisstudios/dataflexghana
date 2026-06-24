@@ -114,4 +114,5 @@ export const NON_REFUNDABLE_STATEMENTS = [
   "No refunds for voluntary account closure.",
   "No refunds of entry fees or outstanding commissions when promotion rules are violated.",
   "Failed data orders on ineligible SIM types (see Agent Rules) are not refundable.",
+  "Failed data orders on SIM cards that owe mobile money or credits (such as borrowed airtime/data) are strictly non-refundable. Once an order is placed, the funds are paid out to the network providers immediately and cannot be recovered.",
 ] as const

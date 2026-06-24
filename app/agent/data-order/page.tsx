@@ -1753,6 +1753,7 @@ export default function DataOrderPage() {
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Data delivery takes 10 minutes to 24 hours depending on network conditions</li>
                   <li>No refunds - double-check all phone numbers and amounts before submitting</li>
+                  <li>We do not serve data to SIMs that owe mobile money or credits. If an order fails because the client SIM owes debt, it is strictly non-refundable as funds are spent/paid out immediately.</li>
                   <li>Bundles are valid for 90 days and roll over with the next purchase</li>
                   <li>Platform operates 24/7 including weekends</li>
                   <li>

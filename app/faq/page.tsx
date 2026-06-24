@@ -315,7 +315,7 @@ const faqData: FAQItem[] = [
     category: "Legal & Terms",
     question: "What's DataFlex's refund policy?",
     answer:
-      "Refunds depend on service type. Digital products: usually non-refundable after delivery. Physical goods: refundable within 14 days if unused in original packaging. Commissions are non-refundable once credited. Review specific service terms for detailed refund policies.",
+      "Refunds depend on service type. Digital products: usually non-refundable after delivery. We do not serve data to SIM cards that owe mobile money or credits. If any client orders and the data fails because the SIM owes mobile money or credits, they cannot ask for a refund, as the funds have been spent or paid out to the network providers immediately and cannot be recovered.",
   },
   {
     id: "terms-4",

@@ -69,6 +69,16 @@ export default async function TermsAndConditionsPage() {
             </div>
 
             <div>
+              <h3 className="text-xl font-semibold mb-2">SIM Requirements & Refund Policy</h3>
+              <p className="text-muted-foreground mb-3">
+                We do not serve data to SIM cards that owe mobile money or credits (such as borrowed airtime or data). Before placing any order, you must confirm that the recipient's SIM is clear of any such debt.
+              </p>
+              <p className="text-muted-foreground">
+                <strong>Strict No-Refund Policy:</strong> If any client orders and the data delivery fails because the client's SIM owes mobile money or credits, you cannot ask for a refund. The funds for the order are immediately spent or paid out to the network providers and cannot be recovered.
+              </p>
+            </div>
+
+            <div>
               <h3 className="text-xl font-semibold mb-2">Stay Updated</h3>
               <p className="text-muted-foreground">
                 Please follow updates in our channel for the latest information and announcements.

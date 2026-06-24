@@ -566,11 +566,13 @@ export function DataflexTermsPage() {
                 <AlertBanner variant="red" title="Do not contact support">
                   While order status is <strong>Pending</strong> or <strong>Processing</strong> — wait for completion.
                 </AlertBanner>
-                <PolicyCard title="Client SIM must be clear">
+                <PolicyCard title="Client SIM must be clear (Strictly No Refunds)">
+                  <p className="mb-2">
+                    We do not serve data to SIM cards that owe mobile money or credits (such as borrowed airtime/data).
+                  </p>
                   <p>
                     Before ordering, confirm the client does <strong>not</strong> owe data bundles or Mobile Money debt on
-                    the SIM. If they owe, failure is likely and funds are generally not recoverable. The agent should
-                    verify; hidden client debt is the client&apos;s responsibility.
+                    the SIM. If they owe, failure is likely. If any client orders and the data fails due to this, they cannot ask for a refund. The funds have been spent or paid out to the network providers immediately and cannot be recovered. The agent should verify; hidden client debt is the client&apos;s responsibility.
                   </p>
                 </PolicyCard>
                 <PolicyCard title="Valid complaints">
