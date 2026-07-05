@@ -37,6 +37,7 @@ import { AgentBenefitsSlideup } from "@/components/no-registration/agent-benefit
 import Link from "next/link";
 import Image from "next/image";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
+import { COMPLIANCE_PORTAL_URL } from "@/lib/compliance-portal";
 
 export default function NoRegistrationPage() {
   const searchParams = useSearchParams();
@@ -361,7 +362,7 @@ export default function NoRegistrationPage() {
                     size="lg"
                     className="w-full bg-white text-purple-600 hover:bg-purple-50 font-bold text-base md:text-lg py-6"
                   >
-                    <a href="https://bizcomplianceforms.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
+                    <a href={COMPLIANCE_PORTAL_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
                       <span>Visit Compliance Hub</span>
                       <ChevronRight className="w-5 h-5" />
                     </a>
@@ -413,7 +414,7 @@ export default function NoRegistrationPage() {
                     size="lg"
                     className="w-full bg-white text-blue-600 hover:bg-blue-50 font-bold text-base md:text-lg py-6"
                   >
-                    <a href="https://bizcomplianceforms.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
+                    <a href={COMPLIANCE_PORTAL_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
                       <span>Fill All Forms Here</span>
                       <ChevronRight className="w-5 h-5" />
                     </a>

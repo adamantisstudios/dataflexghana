@@ -56,6 +56,7 @@ import { ExploreServicesSection } from "@/components/marketing/ExploreServicesSe
 import WhatsAppChannelPopup from "@/components/WhatsAppChannelPopup"
 import { PlatformSneakPeakButton } from "@/components/platform-sneak-peak-button"
 import Image from "next/image"
+import { COMPLIANCE_PORTAL_URL } from "@/lib/compliance-portal"
 
 // CHANGE: Replace placeholder ViewChannelsSection with actual component
 
@@ -863,7 +864,7 @@ export default function HomePage() {
                   asChild
                   className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-xl text-lg px-8 py-6"
                 >
-                  <Link href="/business/register">
+                  <Link href={COMPLIANCE_PORTAL_URL} target="_blank" rel="noopener noreferrer">
                     Register Your Business
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
@@ -1184,7 +1185,7 @@ export default function HomePage() {
                   asChild
                   className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 shadow-xl text-lg px-8 py-6"
                 >
-                  <Link href="https://bizcomplianceforms.netlify.app/" target="_blank" rel="noopener noreferrer">
+                  <Link href={COMPLIANCE_PORTAL_URL} target="_blank" rel="noopener noreferrer">
                     Visit Registration Portal
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>

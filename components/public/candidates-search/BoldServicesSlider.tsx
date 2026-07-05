@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { COMPLIANCE_PORTAL_URL } from "@/lib/compliance-portal"
 
 interface Service {
   id: number
@@ -44,7 +45,7 @@ export default function BoldServicesSlider() {
       image: "/images/compliance_now.jpg",
       color: "from-emerald-600 to-emerald-700",
       icon: "⚖️",
-      link: "https://bizcomplianceforms.netlify.app/", // Custom link for Compliance Services
+      link: COMPLIANCE_PORTAL_URL,
     },
   ]
 

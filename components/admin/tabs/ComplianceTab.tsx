@@ -33,7 +33,7 @@ interface FormSubmission {
   agent_id: string
   form_id: string
   form_data: Record<string, any>
-  status: "Pending" | "Processing" | "Completed" | "Delivered"
+  status: "Pending" | "Processing" | "Completed" | "Delivered" | "Cancelled"
   submitted_at: string
   updated_at: string
   agent_name?: string
@@ -417,7 +417,7 @@ export default function ComplianceTab() {
       }
 
       const blob = await response.blob()
-      const filename = `Official_${submission.form_name.replace(/[^a-z0-9]/gi, '_')}.pdf`
+      const filename = `Official_${(submission.form_name || "submission").replace(/[^a-z0-9]/gi, '_')}.pdf`
       downloadBlob(blob, filename)
       
       toast.success("Official PDF downloaded successfully", { id: toastId })
@@ -433,6 +433,7 @@ export default function ComplianceTab() {
       Processing: { color: "bg-blue-500", icon: Loader2 },
       Completed: { color: "bg-green-500", icon: CheckCircle },
       Delivered: { color: "bg-purple-500", icon: CheckCircle },
+      Cancelled: { color: "bg-red-500", icon: Clock },
     }
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.Pending
@@ -613,6 +614,7 @@ export default function ComplianceTab() {
                     <SelectItem value="Processing">Processing</SelectItem>
                     <SelectItem value="Completed">Completed</SelectItem>
                     <SelectItem value="Delivered">Delivered</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, ChevronLeft, ChevronRight, Briefcase, BookOpen } from "lucide-react"
 import Link from "next/link"
+import { COMPLIANCE_PORTAL_URL } from "@/lib/compliance-portal"
 
 interface SlideData {
   id: number
@@ -100,7 +101,7 @@ const slides: SlideData[] = [
     gradient: "from-orange-600 via-red-600 to-pink-700",
     primaryCTA: {
       text: "Register Your Business",
-      href: "/business/register",
+      href: COMPLIANCE_PORTAL_URL,
       color: "text-orange-700",
     },
   },
@@ -190,7 +191,11 @@ export function HeroSlider() {
                     asChild
                     className={`bg-white ${slide.primaryCTA.color} hover:bg-gray-100 text-lg px-8 py-6 shadow-xl transform hover:scale-105 transition-all duration-300`}
                   >
-                    <Link href={slide.primaryCTA.href}>
+                    <Link
+                      href={slide.primaryCTA.href}
+                      target={slide.primaryCTA.href.startsWith("http") ? "_blank" : undefined}
+                      rel={slide.primaryCTA.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                    >
                       {slide.primaryCTA.text}
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>

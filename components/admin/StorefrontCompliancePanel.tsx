@@ -51,6 +51,7 @@ function customerPhone(data: Record<string, string>): string {
 }
 
 function statusLabel(status: string): string {
+  if (status === "canceled") return "Cancelled"
   return status.charAt(0).toUpperCase() + status.slice(1)
 }
 
@@ -255,6 +256,7 @@ export function StorefrontCompliancePanel() {
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="processing">Processing</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={() => void downloadCsv()} disabled={exportingCsv || loading}>
@@ -309,6 +311,7 @@ export function StorefrontCompliancePanel() {
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="processing">Processing</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -368,6 +371,7 @@ export function StorefrontCompliancePanel() {
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="processing">Processing</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">

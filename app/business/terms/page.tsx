@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Building2, ArrowLeft, Shield, Users, CreditCard, AlertCircle, HelpCircle } from "lucide-react"
 import Link from "next/link"
+import { COMPLIANCE_PORTAL_URL } from "@/lib/compliance-portal"
 
 export default function BusinessTermsPage() {
   return (
@@ -19,7 +20,12 @@ export default function BusinessTermsPage() {
               </div>
               <span className="text-xl font-bold text-gray-900">DataFlex Business</span>
             </Link>
-            <Link href="/business/register" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+            <Link
+              href={COMPLIANCE_PORTAL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
               <ArrowLeft className="h-4 w-4" />
               Back to Registration
             </Link>
@@ -274,7 +280,9 @@ export default function BusinessTermsPage() {
                 asChild
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg"
               >
-                <Link href="/business/register">I Agree - Continue Registration</Link>
+                <Link href={COMPLIANCE_PORTAL_URL} target="_blank" rel="noopener noreferrer">
+                  I Agree - Continue Registration
+                </Link>
               </Button>
 
               <Button

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { authenticateAdmin, requireAdminSession } from "@/lib/api-auth"
 import { logAuditFromRequest } from "@/lib/audit-logger"
+import { isStorefrontWithdrawal, STOREFRONT_PAYOUT_NOTE } from "@/lib/storefront-payout"
 
 export const dynamic = "force-dynamic"
 
@@ -44,6 +45,38 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    let pendingRes: {
+      data: Array<{ id: string; source?: string | null; admin_notes?: string | null; status?: string | null }> | null
+      error: { message?: string } | null
+    } = await db
+      .from("withdrawals")
+      .select("id, source, admin_notes, status")
+      .eq("agent_id", agent_id)
+      .in("status", ["requested", "pending", "processing"])
+
+    if (pendingRes.error?.message?.includes("source")) {
+      pendingRes = await db
+        .from("withdrawals")
+        .select("id, admin_notes, status")
+        .eq("agent_id", agent_id)
+        .in("status", ["requested", "pending", "processing"])
+    }
+
+    const storefrontWithdrawalIds = (pendingRes.data || [])
+      .filter((row) => isStorefrontWithdrawal(row as { source?: string | null; admin_notes?: string | null }))
+      .map((row) => row.id)
+
+    if (storefrontWithdrawalIds.length > 0) {
+      await db
+        .from("withdrawals")
+        .update({
+          status: "paid",
+          paid_at: new Date().toISOString(),
+          admin_notes: `${STOREFRONT_PAYOUT_NOTE} | Paid from Storefront Cashout`,
+        })
+        .in("id", storefrontWithdrawalIds)
     }
 
     return NextResponse.json({

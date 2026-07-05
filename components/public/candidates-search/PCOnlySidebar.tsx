@@ -4,6 +4,7 @@ import type React from "react"
 
 import { ArrowRight, Package, Briefcase, ShoppingCart } from "lucide-react"
 import Link from "next/link"
+import { COMPLIANCE_PORTAL_URL } from "@/lib/compliance-portal"
 
 interface Opportunity {
   id: number
@@ -33,7 +34,7 @@ export default function PCOnlySidebar() {
       title: "Promote Your Business",
       caption: "Work with agents to reach customers nationwide.",
       cta: "Register Business",
-      link: "/business/register",
+      link: COMPLIANCE_PORTAL_URL,
       icon: <Briefcase className="h-8 w-8" />,
       color: "from-orange-600 to-orange-700",
       image: "/images/business-agent-registration-network.jpg",
@@ -85,7 +86,11 @@ export default function PCOnlySidebar() {
                 asChild
                 className="w-fit bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 font-semibold py-2 px-4 rounded-lg text-xs md:text-sm transition-colors duration-200"
               >
-                <Link href={opp.link}>
+                <Link
+                  href={opp.link}
+                  target={opp.link.startsWith("http") ? "_blank" : undefined}
+                  rel={opp.link.startsWith("http") ? "noopener noreferrer" : undefined}
+                >
                   {opp.cta}
                   <ArrowRight className="ml-2 h-3.5 w-3.5" />
                 </Link>

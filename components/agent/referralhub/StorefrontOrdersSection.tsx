@@ -58,6 +58,11 @@ export function StorefrontOrdersSection({
   onBalanceChange,
 }: Props) {
   const [storefrontBalance, setStorefrontBalance] = useState(initialBalance)
+  const [pendingStorefrontPayout, setPendingStorefrontPayout] = useState<{
+    id: string
+    amount: number
+    status: string
+  } | null>(null)
   const [requestingPayout, setRequestingPayout] = useState(false)
   const [orders, setOrders] = useState<StorefrontOrder[]>([])
   const [adOrders, setAdOrders] = useState<AdOrderRow[]>([])
@@ -73,6 +78,7 @@ export function StorefrontOrdersSection({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setStorefrontBalance(Number(data.storefront_commission_balance ?? 0))
+      setPendingStorefrontPayout(data.pending_storefront_payout || null)
     } catch {
       /* keep last known balance */
     }
@@ -97,18 +103,27 @@ export function StorefrontOrdersSection({
       toast.error(storefrontPayoutMinimumMessage(storefrontBalance))
       return
     }
+    if (pendingStorefrontPayout) {
+      toast.error("You already have a pending storefront payout request")
+      return
+    }
     if (!confirm(`Request payout of ₵${storefrontBalance.toFixed(2)}? This will notify admin.`)) return
     setRequestingPayout(true)
     try {
       const res = await fetch("/api/agent/storefront/request-payout", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAgentAuthHeaders() },
-        body: JSON.stringify({ agentId, amount: storefrontBalance }),
+        body: JSON.stringify({ agentId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       toast.success(data.data?.message || "Payout requested")
       setStorefrontBalance(Number(data.data?.available_balance ?? 0))
+      setPendingStorefrontPayout({
+        id: data.data?.withdrawal_id,
+        amount: Number(data.data?.amount ?? storefrontBalance),
+        status: "requested",
+      })
       onBalanceChange?.()
       await refreshStorefrontBalance()
     } catch (e) {
@@ -199,7 +214,7 @@ export function StorefrontOrdersSection({
           <div className="flex flex-col gap-2 shrink-0 sm:items-end sm:max-w-xs">
             <Button
               onClick={requestPayout}
-              disabled={requestingPayout || storefrontBalance <= 0 || !meetsPayoutMinimum}
+              disabled={requestingPayout || storefrontBalance <= 0 || !meetsPayoutMinimum || !!pendingStorefrontPayout}
               className="bg-emerald-700 hover:bg-emerald-800"
             >
               {requestingPayout ? "Submitting…" : "Request Payout"}
@@ -207,6 +222,11 @@ export function StorefrontOrdersSection({
             {storefrontBalance > 0 && !meetsPayoutMinimum && (
               <p className="text-sm text-amber-800">
                 {storefrontPayoutMinimumMessage(storefrontBalance)}
+              </p>
+            )}
+            {pendingStorefrontPayout && (
+              <p className="text-sm text-emerald-800">
+                Pending payout request: GHS {Number(pendingStorefrontPayout.amount).toFixed(2)}
               </p>
             )}
           </div>

@@ -5,8 +5,6 @@ import {
   STOREFRONT_MIN_PAYOUT_GHS,
   STOREFRONT_PAYOUT_NOTE,
   fetchStorefrontCommissionBalance,
-  deductStorefrontCommissionBalance,
-  restoreStorefrontCommissionBalance,
   storefrontPayoutMinimumMessage,
 } from "@/lib/storefront-payout"
 
@@ -16,7 +14,6 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
   try {
     const body = await request.json().catch(() => ({}))
     const agentId = (body.agentId as string) || user.id
-    const requestedRaw = body.amount
 
     if (user.role === "agent" && agentId !== user.id) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 })
@@ -44,10 +41,9 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       )
     }
 
-    const payoutAmount =
-      requestedRaw !== undefined && requestedRaw !== null
-        ? Number(requestedRaw)
-        : balance
+    // Storefront commissions are separate from normal agent commissions.
+    // Use the live storefront balance, not a stale client amount.
+    const payoutAmount = balance
 
     if (!Number.isFinite(payoutAmount) || payoutAmount <= 0) {
       return NextResponse.json({ error: "Invalid payout amount" }, { status: 400 })
@@ -57,16 +53,6 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       return NextResponse.json(
         {
           error: storefrontPayoutMinimumMessage(balance),
-          available_balance: balance,
-        },
-        { status: 400 },
-      )
-    }
-
-    if (payoutAmount > balance + 0.001) {
-      return NextResponse.json(
-        {
-          error: `Insufficient storefront commission balance. Available: ${balance.toFixed(2)}`,
           available_balance: balance,
         },
         { status: 400 },
@@ -97,7 +83,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       .from("withdrawals")
       .select("id")
       .eq("agent_id", agentId)
-      .eq("status", "requested")
+      .in("status", ["requested", "pending", "processing"])
       .ilike("admin_notes", `%${STOREFRONT_PAYOUT_NOTE}%`)
 
     if (pending?.length) {
@@ -105,12 +91,6 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
         { error: "You already have a pending storefront payout request" },
         { status: 400 },
       )
-    }
-
-    const deduct = await deductStorefrontCommissionBalance(agentId, payoutAmount)
-    if (deduct.error) {
-      console.error("[storefront request-payout] balance deduct:", deduct.error)
-      return NextResponse.json({ error: deduct.error }, { status: 500 })
     }
 
     const payoutNote = `Storefront commission payout request (₵${payoutAmount.toFixed(2)})`
@@ -143,11 +123,6 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
 
     if (withdrawalError) {
       console.error("[storefront request-payout] withdrawal insert:", withdrawalError)
-      try {
-        await restoreStorefrontCommissionBalance(agentId, payoutAmount)
-      } catch (rollbackErr) {
-        console.error("[storefront request-payout] rollback failed:", rollbackErr)
-      }
       return NextResponse.json({ error: withdrawalError.message }, { status: 500 })
     }
 
@@ -156,7 +131,7 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user) => {
       data: {
         withdrawal_id: withdrawal?.id,
         amount: payoutAmount,
-        available_balance: deduct.newBalance,
+        available_balance: balance,
         message: `Payout request for ₵${payoutAmount.toFixed(2)} submitted. Admin will pay via MoMo.`,
       },
     })

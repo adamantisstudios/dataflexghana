@@ -78,6 +78,7 @@ import { useAgentDashboardCache } from "@/hooks/use-agent-dashboard-cache"
 import { loadAgentDashboardData, loadTabData } from "@/lib/agent-dashboard-loader"
 import { DashboardSkeleton } from "@/components/agent/dashboard-skeleton"
 import ReferralDashboard from "@/components/agent/referral-program/ReferralDashboard"
+import { COMPLIANCE_PORTAL_URL } from "@/lib/compliance-portal"
 import Image from "next/image"
 import { ImageModal } from "@/components/ui/image-modal"
 import { InactivityNotificationManager } from "@/components/agent/dashboard/InactivityNotificationManager"
@@ -2581,8 +2582,14 @@ DataFlex Ghana Agent 🇬🇭`
                 />
               </TabsContent>
               <TabsContent value="compliance" className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-2xl font-bold text-emerald-800">Compliance & Registration</h2>
+                  <Button asChild className="bg-emerald-700 hover:bg-emerald-800">
+                    <Link href={COMPLIANCE_PORTAL_URL} target="_blank" rel="noopener noreferrer">
+                      Visit Compliance Portal
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
                 </div>
                 <Suspense
                   fallback={

@@ -9,7 +9,9 @@ const STATUS_SORT: Record<string, number> = {
   pending: 0,
   processing: 1,
   completed: 2,
-  rejected: 3,
+  cancelled: 3,
+  canceled: 3,
+  rejected: 4,
 }
 
 function sortSubmissions<T extends { status: string; created_at: string }>(rows: T[]): T[] {
@@ -105,7 +107,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "id and status required" }, { status: 400 })
     }
 
-    const allowed = ["pending", "processing", "completed", "rejected"]
+    const allowed = ["pending", "processing", "completed", "cancelled", "canceled", "rejected"]
     if (!allowed.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 })
     }

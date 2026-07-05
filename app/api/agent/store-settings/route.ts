@@ -8,6 +8,7 @@ import {
   type StoreItemType,
 } from "@/lib/storefront-server"
 import { isStoreItemType, normalizeStoreItemId } from "@/lib/storefront-catalog"
+import { isStorefrontWithdrawal } from "@/lib/storefront-payout"
 
 export const dynamic = "force-dynamic"
 
@@ -49,11 +50,44 @@ export const GET = withUnifiedAuth(async (request: NextRequest, user) => {
     .eq("agent_id", agentId)
     .maybeSingle()
 
+  const pendingStatuses = ["requested", "pending", "processing"]
+  let pendingQuery: {
+    data:
+      | Array<{
+          id: string
+          amount: number
+          status: string
+          source?: string | null
+          admin_notes?: string | null
+          requested_at?: string | null
+        }>
+      | null
+    error: { message?: string } | null
+  } = await db
+    .from("withdrawals")
+    .select("id, amount, status, source, admin_notes, requested_at")
+    .eq("agent_id", agentId)
+    .in("status", pendingStatuses)
+
+  if (pendingQuery.error?.message?.includes("source")) {
+    pendingQuery = await db
+      .from("withdrawals")
+      .select("id, amount, status, admin_notes, requested_at")
+      .eq("agent_id", agentId)
+      .in("status", pendingStatuses)
+  }
+
+  const pendingStorefrontPayout =
+    (pendingQuery.data || []).find((row) =>
+      isStorefrontWithdrawal(row as { source?: string | null; admin_notes?: string | null }),
+    ) || null
+
   return NextResponse.json({
     settings,
     savedBundles,
     savedWholesale,
     storefront_commission_balance: Number(profileRes.data?.storefront_commission_balance ?? 0),
+    pending_storefront_payout: pendingStorefrontPayout,
   })
 })
 
