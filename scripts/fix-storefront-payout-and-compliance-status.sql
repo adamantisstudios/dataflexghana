@@ -46,6 +46,59 @@ where w.source = 'storefront'
   and coalesce(w.admin_notes, '') ilike '%source:storefront%'
   and coalesce(w.admin_notes, '') not ilike '%balance_restored_20260705%';
 
--- Optional safety if your database has no status constraint:
--- The code now uses 'cancelled' for storefront compliance submissions and
--- 'Cancelled' for main compliance form submissions.
+-- Required for the admin Compliance tab Cancel action.
+-- Production currently rejects "Cancelled" with:
+--   form_submissions_status_check violation
+alter table if exists public.form_submissions
+  drop constraint if exists form_submissions_status_check;
+
+alter table if exists public.form_submissions
+  add constraint form_submissions_status_check
+  check (
+    status in (
+      'Pending',
+      'Processing',
+      'Completed',
+      'Delivered',
+      'Cancelled',
+      'Canceled',
+      'pending',
+      'processing',
+      'completed',
+      'delivered',
+      'cancelled',
+      'canceled'
+    )
+  );
+
+-- Optional safety for storefront compliance submissions if that table has a
+-- status check constraint in production.
+do $$
+declare
+  constraint_name text;
+begin
+  select c.conname into constraint_name
+  from pg_constraint c
+  join pg_class t on t.oid = c.conrelid
+  join pg_namespace n on n.oid = t.relnamespace
+  where n.nspname = 'public'
+    and t.relname = 'storefront_compliance_submissions'
+    and c.contype = 'c'
+    and pg_get_constraintdef(c.oid) ilike '%status%'
+  limit 1;
+
+  if constraint_name is not null then
+    execute format(
+      'alter table public.storefront_compliance_submissions drop constraint %I',
+      constraint_name
+    );
+  end if;
+
+  if to_regclass('public.storefront_compliance_submissions') is not null then
+    execute 'alter table public.storefront_compliance_submissions
+      drop constraint if exists storefront_compliance_submissions_status_check';
+    execute 'alter table public.storefront_compliance_submissions
+      add constraint storefront_compliance_submissions_status_check
+      check (status in (''pending'', ''processing'', ''completed'', ''cancelled'', ''canceled'', ''rejected''))';
+  end if;
+end $$;
