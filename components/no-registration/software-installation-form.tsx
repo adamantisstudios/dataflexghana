@@ -82,6 +82,7 @@ Additional Notes: ${formData.additionalNotes || "None"}
 💳 PAYMENT REFERENCE: ${reference}
 Bank Transfer/MoMo Account: 0557943392
 Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
+Alternative Payment Name: Francis Ani-Johnson
 
 ⏱️ ORDER PLACED AT: ${timeString}
 🏢 CLOSING TIME: 9:30 PM
@@ -90,7 +91,8 @@ Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
 
 💳 PAYMENT CONFIRMATION:
 ✅ Customer confirmed payment completed to 0557943392
-Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)`
+Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
+Alternative Payment Name: Francis Ani-Johnson`
 
     setPendingMessage(message)
     setShowPaymentModal(true)

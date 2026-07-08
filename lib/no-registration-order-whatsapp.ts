@@ -43,6 +43,7 @@ export function formatNoRegistrationDataBundleMessage(
       "",
       "✅ PAYMENT CONFIRMED (Manual MoMo)",
       "Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)",
+      "Alternative Payment Name: Francis Ani-Johnson",
       "Payment Line: 0557943392",
     )
   } else {

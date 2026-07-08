@@ -59,7 +59,12 @@ export function PaymentReminderModal({ isOpen, onClose, fee, serviceName }: Paym
 
               <div>
                 <p className="text-xs font-medium text-gray-600 mb-1">Name</p>
-                <p className="text-sm text-gray-700 font-medium">Adamantis Solutions (Ani Johnson Francis)</p>
+                <p className="text-sm text-gray-700 font-medium break-words">
+                  Adamantis Solutions (Francis Ani-Johnson .K)
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Alternative Payment Name: <span className="font-semibold text-gray-800">Francis Ani-Johnson</span>
+                </p>
               </div>
             </div>
           </div>

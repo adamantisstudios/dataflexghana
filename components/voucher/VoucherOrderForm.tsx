@@ -83,6 +83,7 @@ ${formData.additionalNotes ? `📝 *Notes:* ${formData.additionalNotes}` : ""}
 💳 *PAYMENT CONFIRMATION:*
 ✅ Customer confirmed payment completed to 0557943392
 Payment Name: Adamantis Solutions (Francis Ani-Johnson .K)
+Alternative Payment Name: Francis Ani-Johnson
     `.trim();
 
     setPendingMessage(message);

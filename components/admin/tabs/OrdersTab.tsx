@@ -66,7 +66,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
   const [currentOrdersPage, setCurrentOrdersPage] = useState(1)
   const [showMessageDialog, setShowMessageDialog] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<DataOrder | null>(null)
-  const [adminMessage, setAdminMessage] = useState("We cannot verify this manual order or find proof of payment. Check and ensure you pay manually to 0557943392. Make sure to also use the payment ID or reference number to ensure your order is processed. If you have paid but our system did not detect it, send proof of payment to 0246827049. Thank You.")
+  const [adminMessage, setAdminMessage] = useState("We cannot verify this manual order or find proof of payment. Check and ensure you pay manually to 0557943392 (Alternative Payment Name: Francis Ani-Johnson). Make sure to also use the payment ID or reference number to ensure your order is processed. If you have paid but our system did not detect it, send proof of payment to 0246827049. Thank You.")
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [connectionStatus, setConnectionStatus] = useState(connectionManager.getConnectionStatus())
@@ -425,7 +425,7 @@ export default function OrdersTab({ getCachedData, setCachedData }: OrdersTabPro
     setSelectedOrder(order)
     setAdminMessage(
       order.admin_message ||
-      "We cannot verify this manual order or find proof of payment. Check and ensure you pay manually to 0557943392. Make sure to also use the payment ID or reference number to ensure your order is processed. If you have paid but our system did not detect it, send proof of payment to 0246827049. Thank You."
+      "We cannot verify this manual order or find proof of payment. Check and ensure you pay manually to 0557943392 (Alternative Payment Name: Francis Ani-Johnson). Make sure to also use the payment ID or reference number to ensure your order is processed. If you have paid but our system did not detect it, send proof of payment to 0246827049. Thank You."
     )
     setShowMessageDialog(true)
   }

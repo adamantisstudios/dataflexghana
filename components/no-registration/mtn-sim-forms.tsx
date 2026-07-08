@@ -111,7 +111,8 @@ export function MTNSimForms() {
     message += `🏢 CLOSING TIME: 9:30 PM\n`
     message += `🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms\n\n`
     message += `✅ PAYMENT CONFIRMED\n`
-    message += `Adamantis Solutions (Francis Ani-Johnson .K) - 0557943392`
+    message += `Adamantis Solutions (Francis Ani-Johnson .K) - 0557943392\n`
+    message += `Alternative Payment Name: Francis Ani-Johnson`
 
     setPendingMessage(message)
     setShowPaymentModal(true)

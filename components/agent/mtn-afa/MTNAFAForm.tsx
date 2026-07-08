@@ -39,7 +39,7 @@ interface AFAFormErrors {
 }
 
 const PAYMENT_INSTRUCTION =
-  "Your request was submitted. Please pay 20 GHS manually to 0557943392 (Adamantis Solutions) for processing."
+  "Your request was submitted. Please pay 20 GHS manually to 0557943392 (Adamantis Solutions). Alternative Payment Name: Francis Ani-Johnson. This is required for processing."
 
 export default function MTNAFAForm() {
   const router = useRouter()
@@ -195,6 +195,9 @@ export default function MTNAFAForm() {
                   <code className="flex-1 font-mono font-bold text-base sm:text-lg text-blue-900">0557943392</code>
                   <CopyButton value="0557943392" label="Copy" size="xs" className="h-7 sm:h-8 flex-shrink-0" />
                 </div>
+                <p className="mt-2 text-xs font-medium text-blue-900 break-words">
+                  Alternative Payment Name: Francis Ani-Johnson
+                </p>
               </div>
             </div>
           </div>
@@ -318,7 +321,7 @@ export default function MTNAFAForm() {
             <Alert className="border-blue-200 bg-blue-50">
               <AlertTriangle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800 text-sm">
-                After submission, you'll need to pay 20 GHS to 0557943392 (Adamantis Solutions) to complete your registration.
+            After submission, you'll need to pay 20 GHS to 0557943392 (Adamantis Solutions). Alternative Payment Name: Francis Ani-Johnson.
               </AlertDescription>
             </Alert>
             <Button

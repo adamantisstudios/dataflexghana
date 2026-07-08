@@ -68,6 +68,7 @@ Address: ${formData.address || "Not provided"}
 💳 PAYMENT REFERENCE: ${reference}
 Bank Transfer/MoMo Account: 0557943392
 Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
+Alternative Payment Name: Francis Ani-Johnson
 
 ⏱️ ORDER PLACED AT: ${timeString}
 🏢 CLOSING TIME: 11:30 PM
@@ -76,7 +77,7 @@ Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
 
 Instructions:
 1. Use the payment reference above when making payment
-2. Send payment to: 0557943392
+2. Send payment to: 0557943392 (Alternative Payment Name: Francis Ani-Johnson)
 3. Share this message via WhatsApp after confirming payment`
 
     setPendingMessage(message)

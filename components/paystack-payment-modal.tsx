@@ -50,6 +50,7 @@ export function PaystackPaymentModal({
   const [isProcessing, setIsProcessing] = useState(false)
 
   const paymentName = "Adamantis Solutions (Francis Ani-Johnson .K)"
+  const alternativePaymentName = "Francis Ani-Johnson"
   const paymentLine = "0557943392"
 
   const copy = (value: string) => {
@@ -223,7 +224,11 @@ export function PaystackPaymentModal({
             <div className="rounded-lg border bg-gray-50 p-3 space-y-2">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
                 <span className="text-xs text-gray-600">Account Name:</span>
-                <span className="font-medium text-sm break-words">Adamantis Solutions</span>
+                <span className="font-medium text-sm break-words sm:text-right">{paymentName}</span>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
+                <span className="text-xs text-gray-600">Alternative Payment Name:</span>
+                <span className="font-semibold text-sm break-words sm:text-right">{alternativePaymentName}</span>
               </div>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
                 <span className="text-xs text-gray-600">Mobile Money:</span>

@@ -52,7 +52,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "id and status required" }, { status: 400 })
     }
 
-    const allowed = ["Pending", "Processing", "Completed"]
+    const allowed = ["Pending", "Processing", "Completed", "Canceled"]
     if (!allowed.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 })
     }

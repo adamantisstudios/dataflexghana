@@ -1440,6 +1440,9 @@ export default function DataOrderPage() {
                       <p className="text-xs text-gray-600 mb-0.5">Payment Name:</p>
                       <p className="font-medium text-gray-900 text-sm">Adamantis Solutions</p>
                       <p className="text-xs text-gray-600">(Francis Ani-Johnson .K)</p>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Alternative Payment Name: <span className="font-semibold text-gray-900">Francis Ani-Johnson</span>
+                      </p>
                     </div>
 
                     {/* Payment Line */}
@@ -1489,9 +1492,10 @@ export default function DataOrderPage() {
                 {/* Important Note */}
                 <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
                   <p className="text-xs text-blue-800">
-                    <strong>Important:</strong> Complete your payment to <strong>0557943392</strong> using the reference
-                    number <strong className="truncate inline-block max-w-[60%]">{generatedReference}</strong> before
-                    clicking "Completed Payment".
+                    <strong>Important:</strong> Complete your payment to <strong>0557943392</strong>{" "}
+                    <span className="break-words">(Alternative Payment Name: Francis Ani-Johnson)</span> using the
+                    reference number <strong className="break-all">{generatedReference}</strong> before clicking
+                    "Completed Payment".
                   </p>
                 </div>
 
@@ -1655,6 +1659,7 @@ export default function DataOrderPage() {
                     </p>
                     <p className="text-amber-700 text-sm mb-2">
                       <strong>Step 2:</strong> Pay to <strong>0557943392</strong>
+                      <span className="block break-words">Alternative Payment Name: Francis Ani-Johnson</span>
                     </p>
                     <div className="bg-white rounded border border-amber-300 p-2 text-center">
                       <span className="font-mono text-sm text-amber-900 font-bold">

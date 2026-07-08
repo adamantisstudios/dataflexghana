@@ -41,6 +41,9 @@ export default function PhotoVerificationAdminTab() {
   const [bulkActing, setBulkActing] = useState(false)
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<FilterKey>("pending")
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [filteredTotal, setFilteredTotal] = useState(0)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [previewAgent, setPreviewAgent] = useState<AgentRow | null>(null)
   const [stats, setStats] = useState({
@@ -53,19 +56,19 @@ export default function PhotoVerificationAdminTab() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/photo-verification", { headers: getAdminAuthHeaders() })
+      const q = new URLSearchParams({
+        page: String(page),
+        limit: "12",
+        filter,
+        ...(search.trim() ? { search: search.trim() } : {}),
+      })
+      const res = await fetch(`/api/admin/photo-verification?${q}`, { headers: getAdminAuthHeaders() })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to load")
-      const rows = ((data.agents || []) as AgentRow[]).sort((a, b) => {
-        const weight = (agent: AgentRow) => {
-          const status = getPhotoVerificationStatus(agent)
-          if (status === "pending") return 0
-          if (status === "unverified") return 1
-          return 2
-        }
-        return weight(a) - weight(b)
-      })
+      const rows = (data.agents || []) as AgentRow[]
       setAgents(rows)
+      setFilteredTotal(data.filtered_total ?? rows.length)
+      setTotalPages(data.total_pages ?? 1)
       setStats({
         total: data.total ?? 0,
         verified: data.verified_count ?? 0,
@@ -78,25 +81,17 @@ export default function PhotoVerificationAdminTab() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filter, page, search])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const filteredAgents = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return agents.filter((agent) => {
-      const status = getPhotoVerificationStatus(agent)
-      if (filter !== "all" && status !== filter) return false
-      if (!q) return true
-      const hay = [agent.full_name, agent.email, agent.phone_number]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-      return hay.includes(q)
-    })
-  }, [agents, search, filter])
+  const filteredAgents = useMemo(() => agents, [agents])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filter, search])
 
   const toggleSelect = (id: string, checked: boolean) => {
     setSelected((prev) => {
@@ -338,8 +333,8 @@ export default function PhotoVerificationAdminTab() {
                         fill
                         sizes="144px"
                         className="object-cover"
-                        unoptimized
                         loading="lazy"
+                        quality={45}
                       />
                     </button>
                   )}
@@ -374,6 +369,30 @@ export default function PhotoVerificationAdminTab() {
               </Card>
             )
           })}
+        </div>
+      )}
+
+      {!loading && filteredTotal > 0 && (
+        <div className="flex flex-col items-center justify-between gap-2 rounded-lg border bg-white p-3 text-sm sm:flex-row">
+          <span className="text-muted-foreground">
+            Showing {filteredAgents.length} of {filteredTotal} matching agent(s)
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </Button>
+            <span className="min-w-20 text-center">
+              Page {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 

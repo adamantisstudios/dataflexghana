@@ -187,7 +187,8 @@ export default function WelcomeAgentPage() {
           <ol className="list-decimal pl-5 space-y-2 text-sm text-amber-950">
             <li>Select bundle and recipient number; note the amount and unique reference shown.</li>
             <li>
-              Pay via MoMo to <strong>0557943392</strong> — name: <strong>Adamantis Solutions (Francis Ani-Johnson .K)</strong>.
+Pay via MoMo to <strong>0557943392</strong> — name: <strong>Adamantis Solutions (Francis Ani-Johnson .K)</strong>.
+Alternative Payment Name: <strong>Francis Ani-Johnson</strong>.
             </li>
             <li>Use the exact payment reference from the order screen.</li>
             <li>Tap <strong>Completed Payment</strong> after sending — do not skip the reference.</li>

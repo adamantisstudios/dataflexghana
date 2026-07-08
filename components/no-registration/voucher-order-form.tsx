@@ -56,6 +56,7 @@ Details: ${formData.description || "N/A"}
 💳 PAYMENT REFERENCE: ${reference}
 Bank Transfer/MoMo Account: 0557943392
 Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
+Alternative Payment Name: Francis Ani-Johnson
 
 ⏱️ ORDER PLACED AT: ${timeString}
 🏢 CLOSING TIME: 9:30 PM
@@ -63,7 +64,8 @@ Business Name: Adamantis Solutions (Francis Ani-Johnson .K)
 🔗 TERMS & CONDITIONS: https://dataflexghana.com/terms
 
 ✅ PAYMENT CONFIRMED
-Adamantis Solutions (Francis Ani-Johnson .K) - 0557943392`
+Adamantis Solutions (Francis Ani-Johnson .K) - 0557943392
+Alternative Payment Name: Francis Ani-Johnson`
 
     setPendingMessage(message)
     setShowPaymentModal(true)

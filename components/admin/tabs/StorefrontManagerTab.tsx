@@ -88,6 +88,13 @@ interface StoreProfile {
   agent_name?: string
   phone_number?: string
   last_order_date?: string | null
+  payout_request?: {
+    id: string
+    amount: number
+    status: string
+    requested_at: string | null
+    momo_number: string | null
+  } | null
 }
 
 function adminHeaders(): HeadersInit {
@@ -181,6 +188,7 @@ export default function StorefrontManagerTab() {
         page: String(cashoutPage),
         limit: "20",
         positiveOnly: String(positiveOnly),
+        requestedOnly: "true",
         ...(debouncedCashoutSearch ? { search: debouncedCashoutSearch } : {}),
       })
       const res = await fetch(`/api/admin/storefront/cashout-profiles?${q}`, { headers: adminHeaders() })
@@ -293,6 +301,7 @@ export default function StorefrontManagerTab() {
           page: String(page),
           limit: "100",
           positiveOnly: String(positiveOnly),
+          requestedOnly: "true",
           ...(debouncedCashoutSearch ? { search: debouncedCashoutSearch } : {}),
         })
         const res = await fetch(`/api/admin/storefront/cashout-profiles?${q}`, { headers: adminHeaders() })
@@ -303,11 +312,14 @@ export default function StorefrontManagerTab() {
         page += 1
       }
 
-      const header = ["Agent Name", "Phone", "Balance", "Last Order Date"]
+      const header = ["Agent Name", "MoMo", "Balance", "Requested Amount", "Request Status", "Requested At", "Last Order Date"]
       const rows = allProfiles.map((p) => [
         p.agent_name || "Unknown",
         p.phone_number || "",
         Number(p.storefront_commission_balance ?? 0).toFixed(2),
+        Number(p.payout_request?.amount ?? 0).toFixed(2),
+        p.payout_request?.status || "",
+        p.payout_request?.requested_at ? new Date(p.payout_request.requested_at).toISOString() : "",
         p.last_order_date ? new Date(p.last_order_date).toISOString() : "",
       ])
       const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n")
@@ -555,7 +567,10 @@ export default function StorefrontManagerTab() {
         <TabsContent value="cashout" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Cashout — Commission Balances</CardTitle>
+              <CardTitle className="text-lg">Cashout Requests</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Agents appear here after requesting storefront commission payout. Pay their MoMo manually, then mark the request as paid.
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
@@ -595,16 +610,16 @@ export default function StorefrontManagerTab() {
               </div>
 
               {profilesLoading ? (
-                <p className="text-sm text-muted-foreground py-8 text-center">Loading commission balances…</p>
+                <p className="text-sm text-muted-foreground py-8 text-center">Loading cashout requests…</p>
               ) : profiles.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-8 text-center">
                   {positiveOnly
                     ? debouncedCashoutSearch
                       ? "No agents with a positive balance match your search."
-                      : "No agents with balance greater than ₵0."
+                      : "No pending storefront payout requests."
                     : debouncedCashoutSearch
                       ? "No agents match your search."
-                      : "No agent store profiles found."}
+                      : "No pending storefront payout requests."}
                 </p>
               ) : (
                 <>
@@ -613,8 +628,10 @@ export default function StorefrontManagerTab() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Agent</TableHead>
-                          <TableHead>Phone</TableHead>
+                          <TableHead>MoMo</TableHead>
                           <TableHead>Balance</TableHead>
+                          <TableHead>Requested</TableHead>
+                          <TableHead>Status</TableHead>
                           <TableHead>Last Order</TableHead>
                           <TableHead className="text-right">Action</TableHead>
                         </TableRow>
@@ -627,6 +644,8 @@ export default function StorefrontManagerTab() {
                             <TableCell className="font-semibold text-emerald-700">
                               ₵{Number(p.storefront_commission_balance ?? 0).toFixed(2)}
                             </TableCell>
+                            <TableCell>₵{Number(p.payout_request?.amount ?? 0).toFixed(2)}</TableCell>
+                            <TableCell>{p.payout_request?.status || "requested"}</TableCell>
                             <TableCell className="text-xs whitespace-nowrap">
                               {formatLastOrderDate(p.last_order_date)}
                             </TableCell>
@@ -670,6 +689,9 @@ export default function StorefrontManagerTab() {
                         <p className="text-sm text-muted-foreground">{p.phone_number}</p>
                         <p className="text-lg font-semibold text-emerald-700">
                           ₵{Number(p.storefront_commission_balance ?? 0).toFixed(2)}
+                        </p>
+                        <p className="text-sm text-emerald-800">
+                          Requested: ₵{Number(p.payout_request?.amount ?? 0).toFixed(2)} ({p.payout_request?.status || "requested"})
                         </p>
                         <p className="text-xs text-muted-foreground">
                           Last order: {formatLastOrderDate(p.last_order_date)}
@@ -769,6 +791,7 @@ export default function StorefrontManagerTab() {
                       <SelectItem value="Pending">Pending</SelectItem>
                       <SelectItem value="Processing">Processing</SelectItem>
                       <SelectItem value="Completed">Completed</SelectItem>
+                      <SelectItem value="Canceled">Canceled</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -852,6 +875,7 @@ export default function StorefrontManagerTab() {
                                   <SelectItem value="Pending">Pending</SelectItem>
                                   <SelectItem value="Processing">Processing</SelectItem>
                                   <SelectItem value="Completed">Completed</SelectItem>
+                                  <SelectItem value="Canceled">Canceled</SelectItem>
                                 </SelectContent>
                               </Select>
                             </TableCell>
@@ -895,6 +919,7 @@ export default function StorefrontManagerTab() {
                             <SelectItem value="Pending">Pending</SelectItem>
                             <SelectItem value="Processing">Processing</SelectItem>
                             <SelectItem value="Completed">Completed</SelectItem>
+                            <SelectItem value="Canceled">Canceled</SelectItem>
                           </SelectContent>
                         </Select>
                         <p className="text-xs text-muted-foreground">

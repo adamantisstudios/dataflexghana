@@ -28,6 +28,7 @@ export function PaymentConfirmationModal({
   const [copied, setCopied] = useState(false)
 
   const paymentName = "Adamantis Solutions (Francis Ani-Johnson .K)"
+  const alternativePaymentName = "Francis Ani-Johnson"
   const paymentLine = "0557943392"
 
   const copy = (value: string) => {
@@ -83,12 +84,16 @@ export function PaymentConfirmationModal({
         )}
 
         {/* Payment Details - Compact */}
-        <div className="rounded-lg border p-2 space-y-1 text-xs">
-          <div className="flex justify-between items-center gap-1">
+        <div className="rounded-lg border p-2 space-y-1.5 text-xs">
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:items-center">
             <span className="text-gray-600">Name:</span>
-            <span className="font-medium text-right line-clamp-1">{paymentName}</span>
+            <span className="font-medium break-words sm:text-right">{paymentName}</span>
           </div>
-          <div className="flex justify-between items-center gap-1">
+          <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:items-center">
+            <span className="text-gray-600">Alternative Payment Name:</span>
+            <span className="font-semibold break-words sm:text-right">{alternativePaymentName}</span>
+          </div>
+          <div className="flex justify-between items-center gap-2">
             <span className="text-gray-600">Line:</span>
             <div className="flex items-center gap-1">
               <span className="font-bold">{paymentLine}</span>

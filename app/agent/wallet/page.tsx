@@ -1214,7 +1214,7 @@ export default function WalletPage() {
             <Alert className="border-emerald-200 bg-emerald-50">
               <Info className="h-4 w-4 text-emerald-700" />
               <AlertDescription className="text-sm leading-5 text-emerald-900">
-                <strong>MoMo:</strong> 0557943392 then submit reference.{" "}
+                <strong>MoMo:</strong> 0557943392 (Alternative Payment Name: Francis Ani-Johnson), then submit reference.{" "}
                 <strong>Paystack:</strong> instant credit from GH₵{WALLET_TOPUP_PAYSTACK_MIN_GHS}.
               </AlertDescription>
             </Alert>

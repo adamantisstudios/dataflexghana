@@ -32,7 +32,7 @@ interface BulkOrderRow {
   valid: boolean;
 }
 
-const PAYMENT_INSTRUCTION = "Your bulk order has been submitted. Please pay manually to 0557943392 (Adamantis Solutions) for processing.";
+const PAYMENT_INSTRUCTION = "Your bulk order has been submitted. Please pay manually to 0557943392 (Adamantis Solutions). Alternative Payment Name: Francis Ani-Johnson. This is required for processing.";
 const MAX_ROWS = 2000;
 const PAYMENT_NUMBER = "0557943392";
 
