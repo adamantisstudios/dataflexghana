@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { getAdminAuthHeaders } from "@/lib/api-client"
@@ -39,11 +39,22 @@ function parseFilterFromSearch(raw: string | null): FilterKey {
   if (raw === "verified" || raw === "pending" || raw === "unverified" || raw === "all") {
     return raw
   }
-  return "pending"
+  // Default when opening Photo Verification: show Verified list first
+  return "verified"
+}
+
+function syncFilterToUrl(next: FilterKey) {
+  if (typeof window === "undefined") return
+  const url = new URL(window.location.href)
+  url.searchParams.set("tab", "photo-verification")
+  url.searchParams.set("filter", next)
+  window.history.replaceState({}, "", url.toString())
 }
 
 export default function PhotoVerificationAdminTab() {
   const searchParams = useSearchParams()
+  const photosTopRef = useRef<HTMLDivElement>(null)
+  const skipScrollOnMountRef = useRef(true)
   const [agents, setAgents] = useState<AgentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [actingId, setActingId] = useState<string | null>(null)
@@ -65,9 +76,24 @@ export default function PhotoVerificationAdminTab() {
   })
 
   useEffect(() => {
-    const next = parseFilterFromSearch(searchParams?.get("filter") ?? null)
+    const raw = searchParams?.get("filter")
+    // No filter in URL → default to verified and write it into the URL
+    if (!raw) {
+      setFilter("verified")
+      syncFilterToUrl("verified")
+      return
+    }
+    const next = parseFilterFromSearch(raw)
     setFilter((prev) => (prev === next ? prev : next))
   }, [searchParams])
+
+  const scrollPhotosToTop = useCallback(() => {
+    const el = photosTopRef.current
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -103,11 +129,28 @@ export default function PhotoVerificationAdminTab() {
     load()
   }, [load])
 
+  // After Next / Previous / page change finishes loading, slide to the first photo
+  useEffect(() => {
+    if (loading) return
+    if (skipScrollOnMountRef.current) {
+      skipScrollOnMountRef.current = false
+      return
+    }
+    scrollPhotosToTop()
+  }, [page, loading, scrollPhotosToTop])
+
   const filteredAgents = useMemo(() => agents, [agents])
 
   useEffect(() => {
     setPage(1)
   }, [filter, search])
+
+  const goToPage = (nextPage: number) => {
+    setPage((p) => {
+      const clamped = Math.min(Math.max(nextPage, 1), Math.max(totalPages, 1))
+      return clamped === p ? p : clamped
+    })
+  }
 
   const toggleSelect = (id: string, checked: boolean) => {
     setSelected((prev) => {
@@ -222,7 +265,8 @@ export default function PhotoVerificationAdminTab() {
   return (
     <div className="space-y-4 max-w-full">
       <p className="text-sm text-muted-foreground">
-        Agents with a profile photo. Pending = uploaded, awaiting approval. Verified = admin approved.
+        Opens on Verified so you can spot-check auto-approved photos. Switch filter for Pending or
+        Unverified. Reject revokes verification and clears the photo.
       </p>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -240,22 +284,17 @@ export default function PhotoVerificationAdminTab() {
           onValueChange={(v) => {
             const next = v as FilterKey
             setFilter(next)
-            if (typeof window !== "undefined") {
-              const url = new URL(window.location.href)
-              url.searchParams.set("tab", "photo-verification")
-              url.searchParams.set("filter", next)
-              window.history.replaceState({}, "", url.toString())
-            }
+            syncFilterToUrl(next)
           }}
         >
           <SelectTrigger className="w-full sm:w-[180px] h-11">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
             <SelectItem value="verified">Verified</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="unverified">Unverified</SelectItem>
+            <SelectItem value="all">All</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={load} disabled={loading} className="h-11 shrink-0">
@@ -310,6 +349,8 @@ export default function PhotoVerificationAdminTab() {
           Select all on this page ({filteredAgents.length})
         </label>
       )}
+
+      <div ref={photosTopRef} className="scroll-mt-24" />
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -405,18 +446,52 @@ export default function PhotoVerificationAdminTab() {
           <span className="text-muted-foreground">
             Showing {filteredAgents.length} of {filteredTotal} matching agent(s)
           </span>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => goToPage(page - 1)}
+            >
               Previous
             </Button>
-            <span className="min-w-20 text-center">
-              Page {page} / {totalPages}
-            </span>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((n) => {
+                if (totalPages <= 7) return true
+                if (n === 1 || n === totalPages) return true
+                return Math.abs(n - page) <= 1
+              })
+              .reduce<(number | "gap")[]>((acc, n, idx, arr) => {
+                if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("gap")
+                acc.push(n)
+                return acc
+              }, [])
+              .map((item, idx) =>
+                item === "gap" ? (
+                  <span key={`gap-${idx}`} className="px-1 text-muted-foreground">
+                    …
+                  </span>
+                ) : (
+                  <Button
+                    key={item}
+                    variant={item === page ? "default" : "outline"}
+                    size="sm"
+                    className={
+                      item === page
+                        ? "min-w-9 bg-[#0E8F3D] hover:bg-[#0a7a34]"
+                        : "min-w-9"
+                    }
+                    onClick={() => goToPage(item)}
+                  >
+                    {item}
+                  </Button>
+                ),
+              )}
             <Button
               variant="outline"
               size="sm"
               disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => goToPage(page + 1)}
             >
               Next
             </Button>
