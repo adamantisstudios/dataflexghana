@@ -1,27 +1,22 @@
 import { logAudit } from "@/lib/audit-logger"
 import { getAdminClient } from "@/lib/supabase-base"
 
-export type PhotoVerificationNotifyKind = "auto_verified" | "pending_review"
-
+/** Alert admin that a new agent was auto-verified and should be spot-checked. */
 export async function notifyAdminPhotoVerification(params: {
   agentId: string
   agentName?: string | null
-  kind: PhotoVerificationNotifyKind
   profileImageUrl?: string | null
   ipAddress?: string | null
   userAgent?: string | null
 }): Promise<void> {
   const agentLabel = params.agentName?.trim() || "Agent"
-  const isAuto = params.kind === "auto_verified"
-  const preview = isAuto
-    ? `REVIEW: ${agentLabel} was auto-verified (photo). Check verified list — reject/revoke if needed.`
-    : `REVIEW: ${agentLabel} submitted a profile photo pending your approval.`
+  const preview = `NEW VERIFIED: ${agentLabel} — auto-approved photo. Open Verified list to check their image (reject/revoke if needed).`
 
   const db = getAdminClient()
 
   try {
     await db.from("admin_notifications").insert({
-      type: isAuto ? "photo_verification_auto" : "photo_verification_pending",
+      type: "photo_verification_auto",
       agent_id: params.agentId,
       submission_id: params.agentId,
       preview,
@@ -35,18 +30,18 @@ export async function notifyAdminPhotoVerification(params: {
   await logAudit({
     actorId: params.agentId,
     actorType: "agent",
-    action: isAuto ? "profile_photo_auto_verified" : "profile_photo_pending",
+    action: "profile_photo_auto_verified",
     severity: "warning",
     targetTable: "agents",
     targetId: params.agentId,
     newData: {
       agent_id: params.agentId,
       agent_name: agentLabel,
-      profile_verified: isAuto,
-      status: isAuto ? "verified" : "pending",
+      profile_verified: true,
+      status: "verified",
       profile_image_url: params.profileImageUrl ?? null,
       href_tab: "photo-verification",
-      filter: isAuto ? "verified" : "pending",
+      filter: "verified",
     },
     ipAddress: params.ipAddress ?? null,
     userAgent: params.userAgent ?? null,

@@ -26,10 +26,7 @@ type SecurityEvent = {
   new_data?: Record<string, unknown> | null
 }
 
-const PHOTO_VERIFICATION_ACTIONS = new Set([
-  "profile_photo_auto_verified",
-  "profile_photo_pending",
-])
+const PHOTO_AUTO_VERIFIED_ACTION = "profile_photo_auto_verified"
 
 function summarizeAction(action: string, data?: Record<string, unknown> | null): string {
   const agentName = typeof data?.agent_name === "string" ? data.agent_name : "An agent"
@@ -45,8 +42,7 @@ function summarizeAction(action: string, data?: Record<string, unknown> | null):
     wallet_topup_webhook_capture_failed: "Wallet top-up payment capture failed",
     new_order: "New pending order",
     manual_wallet_topup: "Manual wallet top-up — verify MoMo payment",
-    profile_photo_auto_verified: `${agentName} auto-verified — review in Verified list`,
-    profile_photo_pending: `${agentName} submitted photo — pending approval`,
+    profile_photo_auto_verified: `New verified: ${agentName} — check their photo`,
     official_announcement: "New official announcement",
   }
   if (labels[action]) return labels[action]
@@ -79,14 +75,14 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
   const ingestEvent = useCallback((row: SecurityEvent) => {
     const sev = row.severity || "info"
     const isManualWalletTopup = row.action === "manual_wallet_topup"
-    const isPhotoVerification = PHOTO_VERIFICATION_ACTIONS.has(row.action)
+    const isPhotoAutoVerified = row.action === PHOTO_AUTO_VERIFIED_ACTION
     if (
       sev !== "warning" &&
       sev !== "critical" &&
       row.action !== "new_order" &&
       row.action !== "official_announcement" &&
       !isManualWalletTopup &&
-      !isPhotoVerification
+      !isPhotoAutoVerified
     ) {
       return
     }
@@ -115,28 +111,17 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("admin-pending-refresh"))
         }
-      } else if (isPhotoVerification) {
+      } else if (isPhotoAutoVerified) {
         const data = row.new_data ?? null
         const agentName = typeof data?.agent_name === "string" ? data.agent_name : "An agent"
-        const isAuto = row.action === "profile_photo_auto_verified"
-        toast.warning(
-          isAuto ? "Agent auto-verified — review photo" : "Profile photo pending approval",
-          {
-            description: isAuto
-              ? `${agentName} was added to the Verified list. Open Photo Verification to confirm or revoke.`
-              : `${agentName} submitted a photo. Approve or reject in Photo Verification.`,
-            duration: 12000,
-            action: {
-              label: "Review photos",
-              onClick: () =>
-                router.push(
-                  isAuto
-                    ? "/admin?tab=photo-verification&filter=verified"
-                    : "/admin?tab=photo-verification&filter=pending",
-                ),
-            },
+        toast.warning("New verified agent photo", {
+          description: `${agentName} was auto-approved. Open Verified list to check their image — reject if it looks wrong.`,
+          duration: 12000,
+          action: {
+            label: "Check photo",
+            onClick: () => router.push("/admin?tab=photo-verification&filter=verified"),
           },
-        )
+        })
       } else {
         const toastFn = row.action === "official_announcement" ? toast.info : toast.warning
         toastFn(summarizeAction(row.action, row.new_data ?? null), {
@@ -155,7 +140,7 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
       if (bellRef.current && typeof navigator !== "undefined" && "vibrate" in navigator) {
         try {
           navigator.vibrate(
-            isManualWalletTopup || isPhotoVerification
+            isManualWalletTopup || isPhotoAutoVerified
               ? [200, 100, 200, 100, 200]
               : [120, 60, 120],
           )
@@ -173,7 +158,7 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
         .from("audit_log")
         .select("id, action, severity, created_at, actor_type, new_data")
         .or(
-          "severity.in.(warning,critical),action.in.(official_announcement,new_order,manual_wallet_topup,profile_photo_auto_verified,profile_photo_pending)",
+          "severity.in.(warning,critical),action.in.(official_announcement,new_order,manual_wallet_topup,profile_photo_auto_verified)",
         )
         .gte("created_at", since)
         .order("created_at", { ascending: false })
@@ -259,8 +244,6 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
                   router.push("/admin?tab=wallets")
                 } else if (ev.action === "profile_photo_auto_verified") {
                   router.push("/admin?tab=photo-verification&filter=verified")
-                } else if (ev.action === "profile_photo_pending") {
-                  router.push("/admin?tab=photo-verification&filter=pending")
                 } else if (ev.action === "official_announcement") {
                   router.push("/admin?tab=security-log")
                 } else {

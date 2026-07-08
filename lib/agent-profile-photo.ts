@@ -30,16 +30,15 @@ export async function submitAgentProfilePhotoForReview(
   }
 
   const agentName = agentRow?.full_name ?? null
-  const wasAlreadyVerified = agentRow?.profile_verified === true && autoApprove
+  const wasAlreadyVerified = agentRow?.profile_verified === true
 
-  // Notify admin when photo lands in verified list (auto) or pending review queue.
-  // Skip duplicate alert if agent was already verified and only re-uploaded with auto-approve.
-  if (!wasAlreadyVerified) {
+  // Only alert when a NEW auto-verification lands in the Verified list
+  // (face-check passed). Admins can open Photo Verification → Verified and revoke if needed.
+  if (autoApprove && !wasAlreadyVerified) {
     try {
       await notifyAdminPhotoVerification({
         agentId,
         agentName,
-        kind: autoApprove ? "auto_verified" : "pending_review",
         profileImageUrl: url,
         ipAddress: meta?.ipAddress ?? null,
         userAgent: meta?.userAgent ?? null,
