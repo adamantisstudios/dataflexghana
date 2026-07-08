@@ -250,6 +250,7 @@ export default function AdminDashboard() {
     pendingProperties: 0,
     pendingReferrals: 0,
     pendingPayouts: 0,
+    pendingStorefrontCashouts: 0,
     pendingDomesticWorkerRequests: 0,
     pendingWalletTopups: 0,
     pendingProfessionalWriting: 0,
@@ -351,6 +352,7 @@ export default function AdminDashboard() {
           pendingProperties: 0,
           pendingReferrals: 0,
           pendingPayouts: 0,
+          pendingStorefrontCashouts: 0,
           pendingDomesticWorkerRequests: 0,
           pendingWalletTopups: 0,
           pendingProfessionalWriting: 0,
@@ -438,6 +440,7 @@ export default function AdminDashboard() {
             pendingProperties: alertsData.pendingProperties || 0,
             pendingReferrals: alertsData.pendingReferrals || 0,
             pendingPayouts: alertsData.pendingPayouts || 0,
+            pendingStorefrontCashouts: alertsData.pendingStorefrontCashouts || 0,
             pendingDomesticWorkerRequests: alertsData.pendingDomesticWorkerRequests || 0,
             pendingWalletTopups: alertsData.pendingWalletTopups || 0,
             pendingProfessionalWriting: alertsData.pendingProfessionalWriting || 0,
@@ -647,7 +650,7 @@ export default function AdminDashboard() {
       case "online-courses":
         return stats.pendingOnlineCourses
       case "storefront-manager":
-        return stats.pendingStorefrontOrders
+        return stats.pendingStorefrontOrders + stats.pendingStorefrontCashouts
       case "grocery-requests":
         return stats.newGroceryRequests
       default:

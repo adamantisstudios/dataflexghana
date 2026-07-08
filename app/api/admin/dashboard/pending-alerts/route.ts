@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { requireAdminSession } from "@/lib/api-auth"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { isStorefrontWithdrawal } from "@/lib/storefront-payout"
 
 export async function GET(request: NextRequest) {
   const adminSession = await requireAdminSession(request)
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
       pendingComplianceData,
       pendingPropertiesData,
       pendingReferralsData,
-      pendingPayoutsData,
+      pendingPayoutRowsData,
       pendingDomesticWorkerRequestsData,
       pendingWalletTopupsData,
       latestWalletTopupData,
@@ -71,8 +72,8 @@ export async function GET(request: NextRequest) {
 
       supabase
         .from("withdrawals")
-        .select("id", { count: "exact" })
-        .in("status", ["pending", "requested"]),
+        .select("id, source, admin_notes")
+        .in("status", ["pending", "requested", "processing"]),
 
       supabase.from("domestic_worker_requests").select("id", { count: "exact" }).eq("status", "pending"),
 
@@ -108,6 +109,24 @@ export async function GET(request: NextRequest) {
         ? latestWalletTopupRow.agents[0]
         : latestWalletTopupRow.agents
       : null
+    let pendingPayoutRows = (pendingPayoutRowsData.data || []) as Array<{
+      id: string
+      source?: string | null
+      admin_notes?: string | null
+    }>
+
+    if (pendingPayoutRowsData.error?.message?.includes("source")) {
+      const retry = await supabase
+        .from("withdrawals")
+        .select("id, admin_notes")
+        .in("status", ["pending", "requested", "processing"])
+      pendingPayoutRows = (retry.data || []) as Array<{ id: string; admin_notes?: string | null }>
+    }
+
+    const pendingStorefrontCashouts = pendingPayoutRows.filter((row) =>
+      isStorefrontWithdrawal(row),
+    ).length
+    const pendingGeneralPayouts = pendingPayoutRows.length - pendingStorefrontCashouts
 
     const alerts = {
       newAgents: newAgentsData.count || 0,
@@ -117,7 +136,8 @@ export async function GET(request: NextRequest) {
       pendingCompliance: pendingComplianceData.count || 0,
       pendingProperties: pendingPropertiesData.count || 0,
       pendingReferrals: pendingReferralsData.count || 0,
-      pendingPayouts: pendingPayoutsData.count || 0,
+      pendingPayouts: pendingGeneralPayouts,
+      pendingStorefrontCashouts,
       pendingDomesticWorkerRequests: pendingDomesticWorkerRequestsData.count || 0,
       pendingWalletTopups:
         (pendingWalletTopupsData.count || 0) + (pendingLegacyWalletTopupsData.count || 0),
@@ -143,7 +163,8 @@ export async function GET(request: NextRequest) {
         (pendingComplianceData.count || 0) +
         (pendingPropertiesData.count || 0) +
         (pendingReferralsData.count || 0) +
-        (pendingPayoutsData.count || 0) +
+        pendingGeneralPayouts +
+        pendingStorefrontCashouts +
         (pendingDomesticWorkerRequestsData.count || 0) +
         (pendingWalletTopupsData.count || 0) +
         (pendingLegacyWalletTopupsData.count || 0) +

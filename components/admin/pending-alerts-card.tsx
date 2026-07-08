@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
   MessageCircle,
   Banknote,
   Wallet,
+  ShoppingBag,
   Mail,
   CheckCircle2,
 } from "lucide-react"
@@ -27,6 +28,7 @@ interface PendingAlerts {
   pendingProperties: number
   pendingReferrals: number
   pendingPayouts: number
+  pendingStorefrontCashouts: number
   pendingDomesticWorkerRequests: number
   pendingWalletTopups: number
   pendingProfessionalWriting: number
@@ -77,6 +79,12 @@ export function PendingAlertsCard() {
     { icon: Home, label: "Properties", count: alerts.pendingProperties, color: "bg-green-50 border-green-200" },
     { icon: MessageCircle, label: "Referrals", count: alerts.pendingReferrals, color: "bg-cyan-50 border-cyan-200" },
     { icon: Banknote, label: "Payouts", count: alerts.pendingPayouts, color: "bg-indigo-50 border-indigo-200" },
+    {
+      icon: ShoppingBag,
+      label: "Storefront Cashouts",
+      count: alerts.pendingStorefrontCashouts,
+      color: "bg-emerald-50 border-emerald-200",
+    },
     {
       icon: Users,
       label: "Worker Requests",
