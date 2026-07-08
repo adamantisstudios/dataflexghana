@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -34,13 +35,23 @@ type AgentRow = {
 
 type FilterKey = "all" | PhotoVerificationStatus
 
+function parseFilterFromSearch(raw: string | null): FilterKey {
+  if (raw === "verified" || raw === "pending" || raw === "unverified" || raw === "all") {
+    return raw
+  }
+  return "pending"
+}
+
 export default function PhotoVerificationAdminTab() {
+  const searchParams = useSearchParams()
   const [agents, setAgents] = useState<AgentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [actingId, setActingId] = useState<string | null>(null)
   const [bulkActing, setBulkActing] = useState(false)
   const [search, setSearch] = useState("")
-  const [filter, setFilter] = useState<FilterKey>("pending")
+  const [filter, setFilter] = useState<FilterKey>(() =>
+    parseFilterFromSearch(searchParams?.get("filter") ?? null),
+  )
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [filteredTotal, setFilteredTotal] = useState(0)
@@ -52,6 +63,11 @@ export default function PhotoVerificationAdminTab() {
     unverified: 0,
     total: 0,
   })
+
+  useEffect(() => {
+    const next = parseFilterFromSearch(searchParams?.get("filter") ?? null)
+    setFilter((prev) => (prev === next ? prev : next))
+  }, [searchParams])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -219,7 +235,19 @@ export default function PhotoVerificationAdminTab() {
             className="pl-9 h-11"
           />
         </div>
-        <Select value={filter} onValueChange={(v) => setFilter(v as FilterKey)}>
+        <Select
+          value={filter}
+          onValueChange={(v) => {
+            const next = v as FilterKey
+            setFilter(next)
+            if (typeof window !== "undefined") {
+              const url = new URL(window.location.href)
+              url.searchParams.set("tab", "photo-verification")
+              url.searchParams.set("filter", next)
+              window.history.replaceState({}, "", url.toString())
+            }
+          }}
+        >
           <SelectTrigger className="w-full sm:w-[180px] h-11">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>

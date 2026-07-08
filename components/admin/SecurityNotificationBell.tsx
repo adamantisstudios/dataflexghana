@@ -26,7 +26,13 @@ type SecurityEvent = {
   new_data?: Record<string, unknown> | null
 }
 
+const PHOTO_VERIFICATION_ACTIONS = new Set([
+  "profile_photo_auto_verified",
+  "profile_photo_pending",
+])
+
 function summarizeAction(action: string, data?: Record<string, unknown> | null): string {
+  const agentName = typeof data?.agent_name === "string" ? data.agent_name : "An agent"
   const labels: Record<string, string> = {
     failed_login: "Failed agent login",
     rate_limit_hit: "Rate limit triggered",
@@ -39,6 +45,8 @@ function summarizeAction(action: string, data?: Record<string, unknown> | null):
     wallet_topup_webhook_capture_failed: "Wallet top-up payment capture failed",
     new_order: "New pending order",
     manual_wallet_topup: "Manual wallet top-up — verify MoMo payment",
+    profile_photo_auto_verified: `${agentName} auto-verified — review in Verified list`,
+    profile_photo_pending: `${agentName} submitted photo — pending approval`,
     official_announcement: "New official announcement",
   }
   if (labels[action]) return labels[action]
@@ -71,12 +79,14 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
   const ingestEvent = useCallback((row: SecurityEvent) => {
     const sev = row.severity || "info"
     const isManualWalletTopup = row.action === "manual_wallet_topup"
+    const isPhotoVerification = PHOTO_VERIFICATION_ACTIONS.has(row.action)
     if (
       sev !== "warning" &&
       sev !== "critical" &&
       row.action !== "new_order" &&
       row.action !== "official_announcement" &&
-      !isManualWalletTopup
+      !isManualWalletTopup &&
+      !isPhotoVerification
     ) {
       return
     }
@@ -105,6 +115,28 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("admin-pending-refresh"))
         }
+      } else if (isPhotoVerification) {
+        const data = row.new_data ?? null
+        const agentName = typeof data?.agent_name === "string" ? data.agent_name : "An agent"
+        const isAuto = row.action === "profile_photo_auto_verified"
+        toast.warning(
+          isAuto ? "Agent auto-verified — review photo" : "Profile photo pending approval",
+          {
+            description: isAuto
+              ? `${agentName} was added to the Verified list. Open Photo Verification to confirm or revoke.`
+              : `${agentName} submitted a photo. Approve or reject in Photo Verification.`,
+            duration: 12000,
+            action: {
+              label: "Review photos",
+              onClick: () =>
+                router.push(
+                  isAuto
+                    ? "/admin?tab=photo-verification&filter=verified"
+                    : "/admin?tab=photo-verification&filter=pending",
+                ),
+            },
+          },
+        )
       } else {
         const toastFn = row.action === "official_announcement" ? toast.info : toast.warning
         toastFn(summarizeAction(row.action, row.new_data ?? null), {
@@ -122,7 +154,11 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
 
       if (bellRef.current && typeof navigator !== "undefined" && "vibrate" in navigator) {
         try {
-          navigator.vibrate(isManualWalletTopup ? [200, 100, 200, 100, 200] : [120, 60, 120])
+          navigator.vibrate(
+            isManualWalletTopup || isPhotoVerification
+              ? [200, 100, 200, 100, 200]
+              : [120, 60, 120],
+          )
         } catch {
           /* ignore */
         }
@@ -136,10 +172,12 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
       const { data } = await supabase
         .from("audit_log")
         .select("id, action, severity, created_at, actor_type, new_data")
-        .or("severity.in.(warning,critical),action.in.(official_announcement,new_order,manual_wallet_topup)")
+        .or(
+          "severity.in.(warning,critical),action.in.(official_announcement,new_order,manual_wallet_topup,profile_photo_auto_verified,profile_photo_pending)",
+        )
         .gte("created_at", since)
         .order("created_at", { ascending: false })
-        .limit(5)
+        .limit(8)
 
       if (data?.length) {
         setRecent(data as SecurityEvent[])
@@ -219,6 +257,10 @@ export function SecurityNotificationBell({ buttonClassName }: SecurityNotificati
                   router.push("/admin?tab=dashboard")
                 } else if (ev.action === "manual_wallet_topup") {
                   router.push("/admin?tab=wallets")
+                } else if (ev.action === "profile_photo_auto_verified") {
+                  router.push("/admin?tab=photo-verification&filter=verified")
+                } else if (ev.action === "profile_photo_pending") {
+                  router.push("/admin?tab=photo-verification&filter=pending")
                 } else if (ev.action === "official_announcement") {
                   router.push("/admin?tab=security-log")
                 } else {

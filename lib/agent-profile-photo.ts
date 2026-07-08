@@ -1,3 +1,4 @@
+import { notifyAdminPhotoVerification } from "@/lib/admin-photo-verification-notify"
 import { getAdminClient } from "@/lib/supabase-base"
 
 /** Save uploaded photo URL; either auto-approves or awaits admin approval. */
@@ -5,12 +6,19 @@ export async function submitAgentProfilePhotoForReview(
   agentId: string,
   profileImageUrl: string,
   autoApprove = false,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+  meta?: { ipAddress?: string | null; userAgent?: string | null },
+): Promise<{ ok: true; profileVerified: boolean } | { ok: false; error: string }> {
   const db = getAdminClient()
   const url = profileImageUrl.trim()
   if (!url) {
     return { ok: false, error: "Photo URL is required" }
   }
+
+  const { data: agentRow } = await db
+    .from("agents")
+    .select("id, full_name, profile_verified, profile_image_url")
+    .eq("id", agentId)
+    .maybeSingle()
 
   const { error } = await db
     .from("agents")
@@ -20,7 +28,28 @@ export async function submitAgentProfilePhotoForReview(
   if (error) {
     return { ok: false, error: error.message }
   }
-  return { ok: true }
+
+  const agentName = agentRow?.full_name ?? null
+  const wasAlreadyVerified = agentRow?.profile_verified === true && autoApprove
+
+  // Notify admin when photo lands in verified list (auto) or pending review queue.
+  // Skip duplicate alert if agent was already verified and only re-uploaded with auto-approve.
+  if (!wasAlreadyVerified) {
+    try {
+      await notifyAdminPhotoVerification({
+        agentId,
+        agentName,
+        kind: autoApprove ? "auto_verified" : "pending_review",
+        profileImageUrl: url,
+        ipAddress: meta?.ipAddress ?? null,
+        userAgent: meta?.userAgent ?? null,
+      })
+    } catch (e) {
+      console.error("[agent-profile-photo] notify admin failed:", e)
+    }
+  }
+
+  return { ok: true, profileVerified: autoApprove }
 }
 
 /** Admin approval — marks photo verified. */

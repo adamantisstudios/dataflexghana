@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAuthAgentId } from "@/lib/agent-auth-utils"
+import { getRequestClientMeta } from "@/lib/audit-logger"
 import { submitAgentProfilePhotoForReview } from "@/lib/agent-profile-photo"
 
 export const dynamic = "force-dynamic"
@@ -27,15 +28,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "profile_image_url is required" }, { status: 400 })
     }
 
-    const result = await submitAgentProfilePhotoForReview(agentId, profile_image_url, auto_approved)
+    const clientMeta = getRequestClientMeta(request)
+    const result = await submitAgentProfilePhotoForReview(agentId, profile_image_url, auto_approved, {
+      ipAddress: clientMeta.ipAddress,
+      userAgent: clientMeta.userAgent,
+    })
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
-      profile_verified: auto_approved,
-      pending: !auto_approved,
+      profile_verified: result.profileVerified,
+      pending: !result.profileVerified,
     })
   } catch (e) {
     console.error("[profile-photo/verify]", e)

@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       actorId: session.admin.id,
       actorType: "admin",
       action: "profile_photo_approved",
+      severity: "info",
       targetTable: "agents",
       targetId: agent_id,
       oldData: {
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
       newData: {
         profile_verified: true,
         profile_image_url: before.profile_image_url,
+        agent_name: before.full_name,
       },
     })
 
