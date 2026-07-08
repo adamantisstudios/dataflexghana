@@ -791,7 +791,7 @@ export default function StorefrontManagerTab() {
                       <SelectItem value="Pending">Pending</SelectItem>
                       <SelectItem value="Processing">Processing</SelectItem>
                       <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="Canceled">Canceled</SelectItem>
+                      <SelectItem value="Cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -875,7 +875,7 @@ export default function StorefrontManagerTab() {
                                   <SelectItem value="Pending">Pending</SelectItem>
                                   <SelectItem value="Processing">Processing</SelectItem>
                                   <SelectItem value="Completed">Completed</SelectItem>
-                                  <SelectItem value="Canceled">Canceled</SelectItem>
+                                  <SelectItem value="Cancelled">Cancelled</SelectItem>
                                 </SelectContent>
                               </Select>
                             </TableCell>
@@ -919,7 +919,7 @@ export default function StorefrontManagerTab() {
                             <SelectItem value="Pending">Pending</SelectItem>
                             <SelectItem value="Processing">Processing</SelectItem>
                             <SelectItem value="Completed">Completed</SelectItem>
-                            <SelectItem value="Canceled">Canceled</SelectItem>
+                            <SelectItem value="Cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
                         <p className="text-xs text-muted-foreground">

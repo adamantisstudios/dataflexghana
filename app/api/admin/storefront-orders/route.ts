@@ -6,6 +6,16 @@ import { countPendingStorefrontOrders } from "@/lib/storefront-order-capture"
 
 export const dynamic = "force-dynamic"
 
+function normalizeStorefrontStatus(input: unknown): string {
+  const raw = String(input ?? "").trim().toLowerCase()
+  if (!raw) return ""
+  if (raw === "pending") return "Pending"
+  if (raw === "processing") return "Processing"
+  if (raw === "completed") return "Completed"
+  if (raw === "canceled" || raw === "cancelled" || raw === "cancel") return "Cancelled"
+  return ""
+}
+
 export async function GET(request: NextRequest) {
   const auth = await authenticateAdmin(request)
   if (!auth.success) {
@@ -17,6 +27,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10)
     const limit = parseInt(searchParams.get("limit") || "20", 10)
     const status = searchParams.get("status") || "all"
+    const normalizedStatus =
+      status === "all" ? undefined : normalizeStorefrontStatus(status)
     const search = searchParams.get("search") || ""
 
     const [result, pendingCount] = await Promise.all([
@@ -24,7 +36,7 @@ export async function GET(request: NextRequest) {
         includeAgents: true,
         page,
         limit,
-        status: status === "all" ? undefined : status,
+        status: normalizedStatus,
         search: search.trim() || undefined,
       }),
       countPendingStorefrontOrders(),
@@ -52,13 +64,18 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "id and status required" }, { status: 400 })
     }
 
-    const allowed = ["Pending", "Processing", "Completed", "Canceled"]
-    if (!allowed.includes(status)) {
+    const normalizedStatus = normalizeStorefrontStatus(status)
+    if (!normalizedStatus) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 })
     }
 
     const db = getAdminClient()
-    const { data, error } = await db.from("storefront_orders").update({ status }).eq("id", id).select().single()
+    const { data, error } = await db
+      .from("storefront_orders")
+      .update({ status: normalizedStatus })
+      .eq("id", id)
+      .select()
+      .single()
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
