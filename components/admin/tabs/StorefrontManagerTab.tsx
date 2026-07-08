@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner"
 import { getAdminAuthHeaders } from "@/lib/api-client"
 import { STOREFRONT_ORDERS_CHANGED_EVENT } from "@/lib/storefront-events"
+import { patchStorefrontOrderStatus } from "@/lib/storefront-orders"
 import {
   RefreshCw,
   Store,
@@ -360,13 +361,7 @@ export default function StorefrontManagerTab() {
 
     setProcessingId(id)
     try {
-      const res = await fetch("/api/admin/storefront-orders", {
-        method: "PATCH",
-        headers: adminHeaders(),
-        body: JSON.stringify({ id, status }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Update failed")
+      const data = await patchStorefrontOrderStatus(id, status, adminHeaders())
 
       if (data.order) {
         setOrders((current) =>
@@ -374,7 +369,7 @@ export default function StorefrontManagerTab() {
         )
       }
 
-      toast.success(`Order marked ${status}`)
+      toast.success(`Order marked ${data.order?.status ?? status}`)
       window.dispatchEvent(new CustomEvent(STOREFRONT_ORDERS_CHANGED_EVENT))
     } catch (e) {
       setOrders(previousOrders)

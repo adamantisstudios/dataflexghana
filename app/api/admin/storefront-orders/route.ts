@@ -78,11 +78,22 @@ export async function PATCH(request: NextRequest) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      const msg = error.message || "Update failed"
+      const isConstraint =
+        error.code === "23514" || msg.toLowerCase().includes("check constraint")
+      return NextResponse.json(
+        {
+          error: isConstraint
+            ? "Invalid order status. Allowed: Pending, Processing, Completed, or Cancelled."
+            : msg,
+        },
+        { status: isConstraint ? 400 : 500 },
+      )
     }
 
     return NextResponse.json({ success: true, order: data })
-  } catch {
+  } catch (e) {
+    console.error("admin storefront-orders PATCH:", e)
     return NextResponse.json({ error: "Invalid request" }, { status: 400 })
   }
 }

@@ -121,7 +121,12 @@ export async function fetchEnrichedStorefrontOrders(
     query = query.eq("agent_id", options.agentId)
   }
   if (options?.status && options.status !== "all") {
-    query = query.eq("status", options.status)
+    const filterStatus = storefrontStatusFilterValue(options.status)
+    if (filterStatus === "Cancelled") {
+      query = query.in("status", ["Cancelled", "Canceled", "cancelled", "canceled"])
+    } else {
+      query = query.eq("status", filterStatus)
+    }
   }
 
   const rawSearch = (options?.search || "").trim()
@@ -201,3 +206,72 @@ export async function fetchEnrichedStorefrontOrders(
     totalPages: Math.max(1, Math.ceil(total / limit)),
   }
 }
+
+function storefrontStatusFilterValue(status: string): string {
+  const raw = status.trim().toLowerCase()
+  if (raw === "cancelled" || raw === "canceled") return "Cancelled"
+  if (raw === "pending") return "Pending"
+  if (raw === "processing") return "Processing"
+  if (raw === "completed") return "Completed"
+  return status
+}
+
+function isRetryableStatusUpdate(status: number): boolean {
+  return status >= 500 || status === 429
+}
+
+function retryDelayMs(attempt: number): number {
+  return 400 * Math.pow(2, attempt) + Math.floor(Math.random() * 150)
+}
+
+/** PATCH storefront order status with short backoff on transient network/server failures. */
+export async function patchStorefrontOrderStatus(
+  id: string,
+  status: string,
+  headers: HeadersInit,
+): Promise<{ success: boolean; order?: Record<string, unknown> }> {
+  const maxAttempts = 3
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const res = await fetch("/api/admin/storefront-orders", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ id, status }),
+      })
+
+      let data: { error?: string; order?: Record<string, unknown> } = {}
+      try {
+        data = await res.json()
+      } catch {
+        data = {}
+      }
+
+      if (!res.ok) {
+        const msg = data.error || `Update failed (${res.status})`
+        const err = new Error(msg)
+        if (!isRetryableStatusUpdate(res.status) || attempt === maxAttempts - 1) {
+          throw err
+        }
+        lastError = err
+        await new Promise((r) => setTimeout(r, retryDelayMs(attempt)))
+        continue
+      }
+
+      return { success: true, order: data.order }
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error("Update failed")
+      const isNetwork = e instanceof TypeError
+      if (!isNetwork || attempt === maxAttempts - 1) {
+        throw err
+      }
+      lastError = err
+      await new Promise((r) => setTimeout(r, retryDelayMs(attempt)))
+    }
+  }
+
+  throw lastError ?? new Error("Update failed")
+}
+
+export { storefrontStatusFilterValue }
