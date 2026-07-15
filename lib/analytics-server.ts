@@ -30,6 +30,64 @@ function daysAgo(n: number) {
   return startOfDay(d)
 }
 
+/** PostgREST/Supabase silently caps selects at 1000 rows — use exact head counts. */
+async function countViewsSince(
+  db: ReturnType<typeof getAdminClient>,
+  sinceIso: string,
+): Promise<number> {
+  const { count, error } = await db
+    .from("analytics_page_views")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", sinceIso)
+
+  if (error) {
+    console.error("[analytics] countViewsSince:", error.message)
+    return 0
+  }
+  return count ?? 0
+}
+
+type PageViewRow = {
+  path: string | null
+  agent_id: string | null
+  created_at: string | null
+}
+
+/**
+ * Paginate through all page views since `sinceIso`.
+ * A bare `.select().limit(50000)` still only returns 1000 rows (Supabase max-rows).
+ */
+async function fetchAllViewsSince(
+  db: ReturnType<typeof getAdminClient>,
+  sinceIso: string,
+): Promise<PageViewRow[]> {
+  const pageSize = 1000
+  const all: PageViewRow[] = []
+  let from = 0
+  const maxRows = 200_000
+
+  while (from < maxRows) {
+    const { data, error } = await db
+      .from("analytics_page_views")
+      .select("path, agent_id, created_at")
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1)
+
+    if (error) {
+      console.error("[analytics] fetchAllViewsSince:", error.message)
+      break
+    }
+    if (!data?.length) break
+
+    all.push(...(data as PageViewRow[]))
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+
+  return all
+}
+
 export async function getAnalyticsDashboardData() {
   const db = getAdminClient()
   const now = new Date()
@@ -37,21 +95,12 @@ export async function getAnalyticsDashboardData() {
   const weekStart = daysAgo(7)
   const monthStart = daysAgo(30)
 
-  const { data: allViews } = await db
-    .from("analytics_page_views")
-    .select("path, agent_id, created_at")
-    .gte("created_at", monthStart)
-    .order("created_at", { ascending: false })
-    .limit(50000)
-
-  const views = allViews || []
-
-  const countSince = (iso: string) =>
-    views.filter((v) => v.created_at && v.created_at >= iso).length
-
-  const visitsToday = countSince(todayStart)
-  const visitsWeek = countSince(weekStart)
-  const visitsMonth = views.length
+  const [visitsToday, visitsWeek, visitsMonth, views] = await Promise.all([
+    countViewsSince(db, todayStart),
+    countViewsSince(db, weekStart),
+    countViewsSince(db, monthStart),
+    fetchAllViewsSince(db, monthStart),
+  ])
 
   const dayCounts = new Map<string, number>()
   for (const v of views) {
