@@ -32,6 +32,7 @@ import { AssociationForm } from "./forms/AssociationForm"
 import { CompanySharesForm } from "./forms/CompanySharesForm"
 import { PassportForm } from "./forms/PassportForm"
 import { CompliancePaymentAlert } from "./CompliancePaymentAlert"
+import { CompliancePricingProvider } from "./CompliancePricingProvider"
 
 export type ComplianceFormCompletePayload = {
   cost?: number
@@ -225,6 +226,7 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
   if (activeFormId) {
     const selectedForm = AVAILABLE_FORMS.find((f) => f.id === activeFormId)
     return (
+      <CompliancePricingProvider>
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <Button variant="outline" size="icon" onClick={handleFormCancel} className="shrink-0 bg-transparent h-8 w-8">
@@ -260,10 +262,12 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
           <CompanySharesForm agentId={agentId} onComplete={handleFormComplete} onCancel={handleFormCancel} />
         )}
       </div>
+      </CompliancePricingProvider>
     )
   }
 
   return (
+    <CompliancePricingProvider>
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
@@ -369,5 +373,6 @@ export function ComplianceTab({ agentId }: ComplianceTabProps) {
         </CardContent>
       </Card>
     </div>
+    </CompliancePricingProvider>
   )
 }

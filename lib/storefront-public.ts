@@ -5,6 +5,7 @@ import {
   type PublicComplianceForm,
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
 } from "@/lib/storefront-catalog"
+import { getComplianceSoleProprietorshipPrice } from "@/lib/service-pricing-server"
 import { getVisibleAdPackagesForAgent } from "@/lib/advertising-server"
 import type { PublicAdPackage } from "@/lib/advertising-types"
 import { listPublishedFarmListings } from "@/lib/farm-server"
@@ -326,6 +327,7 @@ export async function getPublicStorefrontResponse(
       }
     }
 
+    const compliancePrice = await getComplianceSoleProprietorshipPrice()
     const complianceForms: PublicComplianceForm[] = hasCompliance
       ? [
           {
@@ -333,7 +335,7 @@ export async function getPublicStorefrontResponse(
             title: "Sole Proprietorship Registration",
             description:
               "Includes free nation-wide delivery of all documents to your doorstep within 14 working days. Fill forms easily, sign and submit securely.",
-            admin_price: 590,
+            admin_price: compliancePrice,
           },
         ]
       : []

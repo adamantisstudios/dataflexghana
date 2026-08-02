@@ -1,10 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
-import {
-  COMPLIANCE_FORM_SOLE_PROPRIETORSHIP,
-  COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO,
-  complianceFormAdminPrice,
-} from "@/lib/storefront-catalog"
+import { getComplianceSoleProprietorshipPrice, compliancePriceToKobo } from "@/lib/service-pricing-server"
+import { COMPLIANCE_FORM_SOLE_PROPRIETORSHIP } from "@/lib/storefront-catalog"
 import {
   getStorefrontPaystackCallbackUrl,
   getStorefrontServerOrigin,
@@ -85,8 +82,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unsupported form type" }, { status: 400 })
     }
 
-    const priceGhs = complianceFormAdminPrice()
-    const expectedKobo = COMPLIANCE_SOLE_PROPRIETORSHIP_AMOUNT_KOBO
+    const priceGhs = await getComplianceSoleProprietorshipPrice()
+    const expectedKobo = compliancePriceToKobo(priceGhs)
     const amountKobo =
       amountFromClient != null
         ? Math.round(Number(amountFromClient))

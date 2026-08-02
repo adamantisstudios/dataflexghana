@@ -12,10 +12,12 @@ import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 import { SignatureCanvas } from "../SignatureCanvas"
 import { scrollToElement } from "@/lib/scroll-utils"
+import { useCompliancePricing } from "../CompliancePricingProvider"
+import { SERVICE_PRICING_KEYS } from "@/lib/service-pricing-constants"
 
 interface BankAccountFormProps {
   agentId: string
-  onComplete: () => void
+  onComplete: (payload?: { cost?: number; formName?: string }) => void
   onCancel: () => void
 }
 
@@ -42,6 +44,9 @@ const BANKS = [
 ]
 
 export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFormProps) {
+  const { amount } = useCompliancePricing()
+  const formFee = amount(SERVICE_PRICING_KEYS.COMPLIANCE_BANK_ACCOUNT, 0)
+  const feeLabel = formFee <= 0 ? "FREE" : `${formFee.toLocaleString()} GHS`
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -326,7 +331,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
       toast.success("Bank Account form submitted successfully! Processing will take 1 working day.", {
         duration: 6000,
       })
-      onComplete()
+      onComplete(formFee > 0 ? { cost: formFee, formName: "Bank Account" } : undefined)
     } catch (error: any) {
       console.error("Error submitting form:", error)
       toast.error(`Failed to submit form: ${error?.message || "Unknown error"}`)
@@ -366,7 +371,7 @@ export function BankAccountForm({ agentId, onComplete, onCancel }: BankAccountFo
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium text-blue-800">Processing Cost:</span>
-                <span className="font-bold text-blue-600">FREE</span>
+                <span className="font-bold text-blue-600">{feeLabel}</span>
               </div>
               
               {/* COMMISSION SECTION ADDED HERE */}

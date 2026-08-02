@@ -111,6 +111,8 @@ const FarmersFriendAdminTab = lazy(() => import("@/components/admin/tabs/Farmers
 const InfluencersAdminTab = lazy(() => import("@/components/admin/tabs/InfluencersAdminTab"))
 const AgentCallsAdminTab = lazy(() => import("@/components/admin/tabs/AgentCallsAdminTab"))
 const ListingPackagesAdminTab = lazy(() => import("@/components/admin/tabs/ListingPackagesAdminTab"))
+const VoucherProductsAdminTab = lazy(() => import("@/components/admin/tabs/VoucherProductsAdminTab"))
+const ServicePricingAdminTab = lazy(() => import("@/components/admin/tabs/ServicePricingAdminTab"))
 const PhotoVerificationAdminTab = lazy(() => import("@/components/admin/tabs/PhotoVerificationAdminTab"))
 const VoiceRoomsAdminTab = lazy(() => import("@/components/admin/tabs/VoiceRoomsAdminTab"))
 const TutorialsAdminTab = lazy(() => import("@/components/admin/tabs/TutorialsAdminTab"))
@@ -183,6 +185,8 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "advertising", label: "Advertising", icon: Megaphone, component: AdvertisingAdminTab },
   { id: "micro-influencers", label: "Micro-Influencers", icon: Award, component: InfluencersAdminTab },
   { id: "listing-packages", label: "Listing Packages", icon: ListChecks, component: ListingPackagesAdminTab },
+  { id: "voucher-products", label: "Voucher Products", icon: BookOpen, component: VoucherProductsAdminTab },
+  { id: "service-pricing", label: "Service Pricing", icon: Banknote, component: ServicePricingAdminTab },
   { id: "farmers-friend", label: "Farmers Friend", icon: Leaf, component: FarmersFriendAdminTab },
   { id: "wholesale", label: "Wholesale", icon: ShoppingBag, component: WholesaleTab },
   { id: "properties", label: "Properties", icon: Home, component: PropertiesTab },
@@ -1119,6 +1123,8 @@ export default function AdminDashboard() {
                       {id === "bulk-orders" ||
                       id === "agent-calls" ||
                       id === "listing-packages" ||
+                      id === "voucher-products" ||
+                      id === "service-pricing" ||
                       id === "photo-verification" ||
                       id === "voice-rooms" ? (
                         React.createElement(Component as React.ComponentType<any>)

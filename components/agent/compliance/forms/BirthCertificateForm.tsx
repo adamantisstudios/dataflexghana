@@ -12,10 +12,12 @@ import { ChevronLeft, ChevronRight, Upload, X, Baby } from "lucide-react"
 import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 import { scrollToElement } from "@/lib/scroll-utils"
+import { useCompliancePricing } from "./CompliancePricingProvider"
+import { SERVICE_PRICING_KEYS } from "@/lib/service-pricing-constants"
 
 interface BirthCertificateFormProps {
   agentId: string
-  onComplete: () => void
+  onComplete: (payload?: { cost?: number; formName?: string }) => void
   onCancel: () => void
 }
 
@@ -26,32 +28,6 @@ interface CostTier {
   delivery: string
   description: string
 }
-
-const BIRTH_CERT_COST_TIERS: CostTier[] = [
-  {
-    id: "express",
-    days: "7 Days",
-    cost: 960,
-    delivery: "Nationwide Delivery",
-    description: "Express Processing",
-  },
-  {
-    id: "standard",
-    days: "14 Days",
-    cost: 660,
-    delivery: "Nationwide Delivery",
-    description: "Standard Processing",
-  },
-  {
-    id: "economy",
-    days: "1 Month",
-    cost: 500,
-    delivery: "Nationwide Delivery",
-    description: "Economy Processing",
-  },
-]
-
-const COMMISSION_AMOUNT = 50
 const GHANA_REGIONS = [
   "Greater Accra Region", "Ashanti Region", "Western Region", "Eastern Region",
   "Volta Region", "Northern Region", "Upper East Region", "Upper West Region",
@@ -73,6 +49,8 @@ const RELATIONSHIP_TO_CHILD = [
 ]
 
 export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCertificateFormProps) {
+  const { birthCertificateTiers, amount } = useCompliancePricing()
+  const commissionAmount = amount(SERVICE_PRICING_KEYS.COMPLIANCE_BIRTH_COMMISSION, 50)
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCostPopup, setShowCostPopup] = useState(true)
@@ -363,7 +341,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
           <p className="text-xs sm:text-sm text-gray-700 font-medium">
             Choose your processing speed and cost:
           </p>
-          {BIRTH_CERT_COST_TIERS.map((tier) => (
+          {birthCertificateTiers.map((tier) => (
             <div
               key={tier.id}
               onClick={() => setSelectedCostTier(tier)}
@@ -384,7 +362,7 @@ export function BirthCertificateForm({ agentId, onComplete, onCancel }: BirthCer
                   <span className="text-lg sm:text-xl font-bold text-emerald-600">
                     ₵{tier.cost}
                   </span>
-                  <p className="text-xs text-gray-500">+ ₵{COMMISSION_AMOUNT} commission</p>
+                  <p className="text-xs text-gray-500">+ ₵{commissionAmount} commission</p>
                 </div>
               </div>
               <p className="text-xs text-gray-600 mt-1 line-clamp-1">{tier.delivery}</p>

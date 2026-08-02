@@ -11,9 +11,9 @@ import { VoucherProductsDisplay } from "@/components/voucher/VoucherProductsDisp
 import { VoucherOrderForm } from "@/components/voucher/VoucherOrderForm";
 
 export default function VoucherPageContent() {
-  const [preselectedProductId, setPreselectedProductId] = useState<number | null>(null);
+  const [preselectedProductId, setPreselectedProductId] = useState<string | null>(null);
 
-  const handleOrderProduct = (productId: number) => {
+  const handleOrderProduct = (productId: string) => {
     setPreselectedProductId(productId);
     document.getElementById("order-form")?.scrollIntoView({ behavior: "smooth" });
   };

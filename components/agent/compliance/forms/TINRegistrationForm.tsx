@@ -9,14 +9,19 @@ import { ChevronLeft, ChevronRight, Upload, X, CreditCard } from "lucide-react"
 import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 import { scrollToElement } from "@/lib/scroll-utils"
+import { useCompliancePricing } from "../CompliancePricingProvider"
+import { SERVICE_PRICING_KEYS } from "@/lib/service-pricing-constants"
 
 interface TINRegistrationFormProps {
   agentId: string
-  onComplete: () => void
+  onComplete: (payload?: { cost?: number; formName?: string }) => void
   onCancel: () => void
 }
 
 export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegistrationFormProps) {
+  const { amount } = useCompliancePricing()
+  const formFee = amount(SERVICE_PRICING_KEYS.COMPLIANCE_TIN, 150)
+  const commission = amount(SERVICE_PRICING_KEYS.COMPLIANCE_TIN_COMMISSION, 20)
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCostPopup, setShowCostPopup] = useState(true)
@@ -191,7 +196,7 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
           duration: 5000,
         },
       )
-      onComplete({ cost: 150, formName: "TIN Registration" })
+      onComplete({ cost: formFee, formName: "TIN Registration" })
     } catch (error) {
       console.error("Error submitting form:", error)
       toast.error("Failed to submit form. Please try again.")
@@ -217,13 +222,13 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
             <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-emerald-800">Cost:</span>
-                <span className="text-lg font-bold text-emerald-600">150 GHS</span>
+                <span className="text-lg font-bold text-emerald-600">{formFee.toLocaleString()} GHS</span>
               </div>
               
               {/* COMMISSION SECTION ADDED HERE */}
               <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
                 <span className="text-sm font-medium text-amber-700">Your Commission:</span>
-                <span className="text-lg font-bold text-amber-600">20 GHS</span>
+                <span className="text-lg font-bold text-amber-600">{commission.toLocaleString()} GHS</span>
               </div>
               
               <div className="border-t border-emerald-200 pt-2 space-y-1">
@@ -238,7 +243,7 @@ export function TINRegistrationForm({ agentId, onComplete, onCancel }: TINRegist
               </div>
             </div>
             <p className="text-xs text-gray-600">
-              TIN registration costs 150 GHS and is processed within 1 day. Your Tax Identification Number will be delivered via WhatsApp.
+              TIN registration costs {formFee.toLocaleString()} GHS and is processed within 1 day. Your Tax Identification Number will be delivered via WhatsApp.
             </p>
             <Button onClick={() => setShowCostPopup(false)} className="w-full bg-emerald-600 hover:bg-emerald-700">
               Continue

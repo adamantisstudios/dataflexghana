@@ -4,10 +4,12 @@ import { ChevronLeft, ChevronRight, Upload, AlertCircle, Users } from "lucide-re
 import { Button } from "@/components/ui/button"
 import { SignatureCanvas } from "@/components/agent/compliance/SignatureCanvas"
 import { scrollToElement } from "@/lib/scroll-utils"
+import { useCompliancePricing } from "../CompliancePricingProvider"
+import { SERVICE_PRICING_KEYS } from "@/lib/service-pricing-constants"
 
 interface AssociationFormProps {
   agentId: string
-  onComplete: () => void
+  onComplete: (payload?: { cost?: number; formName?: string }) => void
   onCancel: () => void
 }
 
@@ -74,6 +76,9 @@ const initialPersonData = (): PersonData => ({
 })
 
 export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFormProps) {
+  const { amount } = useCompliancePricing()
+  const formFee = amount(SERVICE_PRICING_KEYS.COMPLIANCE_ASSOCIATION, 1444)
+  const commission = amount(SERVICE_PRICING_KEYS.COMPLIANCE_ASSOCIATION_COMMISSION, 50)
   const [currentStep, setCurrentStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCostPopup, setShowCostPopup] = useState(true)
@@ -197,7 +202,7 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
         body: formDataToSubmit,
       })
       if (response.ok) {
-        onComplete({ cost: 1444, formName: "Association Registration" })
+        onComplete({ cost: formFee, formName: "Association Registration" })
       } else {
         alert("Error submitting form. Please try again.")
       }
@@ -765,13 +770,13 @@ export function AssociationForm({ agentId, onComplete, onCancel }: AssociationFo
           <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-emerald-800">Registration Cost:</span>
-              <span className="text-base sm:text-lg font-bold text-blue-600">1,444 GHS</span>
+              <span className="text-base sm:text-lg font-bold text-blue-600">{formFee.toLocaleString()} GHS</span>
             </div>
             
             {/* COMMISSION SECTION ADDED HERE */}
             <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
               <span className="text-sm font-medium text-amber-700">Your Commission:</span>
-              <span className="text-base sm:text-lg font-bold text-amber-600">50 GHS</span>
+              <span className="text-base sm:text-lg font-bold text-amber-600">{commission.toLocaleString()} GHS</span>
             </div>
             
             <div className="border-t border-emerald-200 pt-3 space-y-2">

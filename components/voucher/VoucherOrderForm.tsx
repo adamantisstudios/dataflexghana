@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,18 +10,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle, Loader2 } from "lucide-react";
-import { getAllProducts, getProductById } from "@/lib/voucher-products";
+import { getAllProducts, getProductById, type EProduct } from "@/lib/voucher-products";
 import { PaymentConfirmationModal } from "@/components/payment-confirmation-modal";
 
 interface VoucherOrderFormProps {
-  preselectedProductId?: number | null;
+  preselectedProductId?: string | null;
 }
 
 export function VoucherOrderForm({ preselectedProductId }: VoucherOrderFormProps) {
-  const products = getAllProducts();
+  const [products, setProducts] = useState<EProduct[]>([]);
   const [formData, setFormData] = useState({
     name: "",
-    productId: 0,
+    productId: "",
     productTitle: "",
     quantity: "1",
     deliveryMode: "whatsapp",
@@ -33,29 +33,50 @@ export function VoucherOrderForm({ preselectedProductId }: VoucherOrderFormProps
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [pendingMessage, setPendingMessage] = useState("");
 
-  // Debug: log when prop changes
   useEffect(() => {
-  }, [preselectedProductId]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/voucher-products");
+        const data = await res.json();
+        if (!cancelled && res.ok && data.products?.length) {
+          setProducts(data.products);
+          return;
+        }
+      } catch {
+        // fallback below
+      }
+      if (!cancelled) setProducts(getAllProducts());
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  // Auto‑select product
+  const productById = useMemo(() => {
+    const map = new Map<string, EProduct>();
+    for (const p of products) map.set(p.id, p);
+    return (id: string) => map.get(id) ?? getProductById(id);
+  }, [products]);
+
   useEffect(() => {
-    if (preselectedProductId && preselectedProductId > 0) {
-      const product = getProductById(preselectedProductId);
+    if (preselectedProductId) {
+      const product = productById(preselectedProductId);
       if (product) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           productId: product.id,
           productTitle: product.title,
         }));
       }
     }
-  }, [preselectedProductId]);
+  }, [preselectedProductId, productById]);
 
   const handleProductChange = (productId: string) => {
-    const product = getProductById(Number.parseInt(productId));
+    const product = productById(productId);
     setFormData({
       ...formData,
-      productId: Number.parseInt(productId),
+      productId,
       productTitle: product?.title || "",
     });
   };
@@ -63,7 +84,7 @@ export function VoucherOrderForm({ preselectedProductId }: VoucherOrderFormProps
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const selectedProduct = getProductById(formData.productId);
+    const selectedProduct = productById(formData.productId);
     const totalPrice = selectedProduct
       ? (selectedProduct.price * Number.parseInt(formData.quantity)).toFixed(2)
       : "0.00";
@@ -107,7 +128,7 @@ Alternative Payment Name: Francis Ani-Johnson
         setIsSuccess(false);
         setFormData({
           name: "",
-          productId: 0,
+          productId: "",
           productTitle: "",
           quantity: "1",
           deliveryMode: "whatsapp",
@@ -132,12 +153,16 @@ Alternative Payment Name: Francis Ani-Johnson
     );
   }
 
+  const selectedProduct = formData.productId ? productById(formData.productId) : undefined;
+  const orderTotal = selectedProduct
+    ? selectedProduct.price * Number.parseInt(formData.quantity || "1")
+    : 0;
+
   return (
     <>
       <Card className="border-blue-200">
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
               <Input
@@ -150,56 +175,48 @@ Alternative Payment Name: Francis Ani-Johnson
               />
             </div>
 
-            {/* Product Selection */}
             <div className="space-y-2">
               <Label htmlFor="product">Select Product *</Label>
-              <Select value={formData.productId.toString()} onValueChange={handleProductChange} required>
+              <Select value={formData.productId || undefined} onValueChange={handleProductChange} required>
                 <SelectTrigger className="border-blue-200 focus:border-blue-500">
                   <SelectValue placeholder="Select a product" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[60vh]">
                   {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id.toString()}>
+                    <SelectItem key={product.id} value={product.id}>
                       {product.title} - GHS {product.price.toFixed(2)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              {formData.productId > 0 &&
-                (() => {
-                  const selectedProduct = getProductById(formData.productId);
-                  const totalPrice = selectedProduct
-                    ? (selectedProduct.price * Number.parseInt(formData.quantity || "1")).toFixed(2)
-                    : "0.00";
-
-                  return selectedProduct ? (
-                    <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
-                      <h4 className="font-semibold text-blue-900">Selected Product</h4>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Product:</span>
-                          <span className="font-medium text-blue-900">{selectedProduct.title}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Unit Price:</span>
-                          <span className="font-medium text-blue-900">GHS {selectedProduct.price.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-blue-700">Quantity:</span>
-                          <span className="font-medium text-blue-900">{formData.quantity}</span>
-                        </div>
-                        <div className="flex justify-between pt-2 border-t border-blue-300">
-                          <span className="text-blue-700 font-semibold">Total Cost:</span>
-                          <span className="font-bold text-blue-900 text-lg">GHS {totalPrice}</span>
-                        </div>
-                      </div>
+              {selectedProduct ? (
+                <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                  <h4 className="font-semibold text-blue-900">Selected Product</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Product:</span>
+                      <span className="font-medium text-blue-900">{selectedProduct.title}</span>
                     </div>
-                  ) : null;
-                })()}
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Unit Price:</span>
+                      <span className="font-medium text-blue-900">GHS {selectedProduct.price.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-700">Quantity:</span>
+                      <span className="font-medium text-blue-900">{formData.quantity}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-blue-300">
+                      <span className="text-blue-700 font-semibold">Total Cost:</span>
+                      <span className="font-bold text-blue-900 text-lg">
+                        GHS {(selectedProduct.price * Number.parseInt(formData.quantity || "1")).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
-            {/* Quantity */}
             <div className="space-y-2">
               <Label htmlFor="quantity">Quantity *</Label>
               <Input
@@ -214,7 +231,6 @@ Alternative Payment Name: Francis Ani-Johnson
               />
             </div>
 
-            {/* Delivery Mode */}
             <div className="space-y-2">
               <Label>Delivery Mode *</Label>
               <RadioGroup
@@ -232,7 +248,6 @@ Alternative Payment Name: Francis Ani-Johnson
               </RadioGroup>
             </div>
 
-            {/* Contact */}
             <div className="space-y-2">
               <Label htmlFor="contact">
                 {formData.deliveryMode === "whatsapp" ? "WhatsApp Number *" : "Email Address *"}
@@ -248,7 +263,6 @@ Alternative Payment Name: Francis Ani-Johnson
               />
             </div>
 
-            {/* Additional Notes */}
             <div className="space-y-2">
               <Label htmlFor="notes">Additional Notes (Optional)</Label>
               <Textarea
@@ -261,7 +275,6 @@ Alternative Payment Name: Francis Ani-Johnson
               />
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
               disabled={isSubmitting}
@@ -290,12 +303,8 @@ Alternative Payment Name: Francis Ani-Johnson
         onConfirmPayment={handlePaymentConfirmed}
         orderSummary={{
           service: formData.productTitle || "Educational Product",
-          amount: formData.productId
-            ? getProductById(formData.productId)?.price || 0 * Number.parseInt(formData.quantity || "1")
-            : 0,
-          total: formData.productId
-            ? (getProductById(formData.productId)?.price || 0) * Number.parseInt(formData.quantity || "1")
-            : 0,
+          amount: selectedProduct?.price ?? 0,
+          total: orderTotal,
         }}
       />
     </>

@@ -2,7 +2,7 @@
 // You can easily add, update, or remove products by editing this file
 
 export interface EProduct {
-  id: number
+  id: string
   title: string
   description: string
   image_url: string
@@ -11,7 +11,9 @@ export interface EProduct {
   status: string
 }
 
-export const VOUCHER_PRODUCTS: EProduct[] = [
+type LegacyVoucherProduct = Omit<EProduct, "id"> & { id: number }
+
+export const VOUCHER_PRODUCTS: LegacyVoucherProduct[] = [
   {
     id: 1,
     title: "Buy ABCE Results Checker Card- WAEC PINs",
@@ -222,14 +224,20 @@ export const VOUCHER_PRODUCTS: EProduct[] = [
   },
 ]
 
-// Helper function to get all products
-export function getAllProducts(): EProduct[] {
-  return VOUCHER_PRODUCTS.filter((product) => product.status === "published")
+function toEProduct(product: LegacyVoucherProduct): EProduct {
+  return { ...product, id: String(product.id) }
 }
 
-// Helper function to get product by ID
-export function getProductById(id: number): EProduct | undefined {
-  return VOUCHER_PRODUCTS.find((product) => product.id === id)
+// Helper function to get all products (hardcoded fallback)
+export function getAllProducts(): EProduct[] {
+  return VOUCHER_PRODUCTS.filter((product) => product.status === "published").map(toEProduct)
+}
+
+// Helper function to get product by ID (hardcoded fallback)
+export function getProductById(id: string | number): EProduct | undefined {
+  const idStr = String(id)
+  const found = VOUCHER_PRODUCTS.find((product) => String(product.id) === idStr)
+  return found ? toEProduct(found) : undefined
 }
 
 // Helper function to categorize products

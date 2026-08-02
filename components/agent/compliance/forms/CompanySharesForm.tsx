@@ -11,10 +11,12 @@ import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 import { SignatureCanvas } from "../SignatureCanvas"
 import { scrollToElement } from "@/lib/scroll-utils"
+import { useCompliancePricing } from "../CompliancePricingProvider"
+import { SERVICE_PRICING_KEYS } from "@/lib/service-pricing-constants"
 
 interface CompanySharesFormProps {
   agentId: string
-  onComplete: () => void
+  onComplete: (payload?: { cost?: number; formName?: string }) => void
   onCancel: () => void
 }
 
@@ -131,6 +133,9 @@ const initialPersonData = (): PersonData => ({
 })
 
 export function CompanySharesForm({ agentId, onComplete, onCancel }: CompanySharesFormProps) {
+  const { amount } = useCompliancePricing()
+  const formFee = amount(SERVICE_PRICING_KEYS.COMPLIANCE_COMPANY_SHARES, 1930)
+  const commission = amount(SERVICE_PRICING_KEYS.COMPLIANCE_COMPANY_SHARES_COMMISSION, 70)
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -401,7 +406,7 @@ export function CompanySharesForm({ agentId, onComplete, onCancel }: CompanyShar
         "Form submitted successfully! Your Company Limited by Shares application will be processed within 14 working days.",
         { duration: 6000 },
       )
-      onComplete({ cost: 1930, formName: "Company Limited By Shares" })
+      onComplete({ cost: formFee, formName: "Company Limited By Shares" })
     } catch (error: any) {
       console.error("Error submitting form:", error)
       toast.error(`Failed to submit form: ${error?.message || "Unknown error"}`)
@@ -684,13 +689,13 @@ export function CompanySharesForm({ agentId, onComplete, onCancel }: CompanyShar
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-blue-800">Processing Cost:</span>
-                <span className="text-lg font-bold text-blue-600">1,930 GHS</span>
+                <span className="text-lg font-bold text-blue-600">{formFee.toLocaleString()} GHS</span>
               </div>
               
               {/* COMMISSION SECTION ADDED HERE */}
               <div className="flex items-center justify-between pt-2 border-t border-blue-200">
                 <span className="text-sm font-medium text-amber-700">Your Commission:</span>
-                <span className="text-lg font-bold text-amber-600">70 GHS</span>
+                <span className="text-lg font-bold text-amber-600">{commission.toLocaleString()} GHS</span>
               </div>
               
               <div className="border-t border-blue-200 pt-3">

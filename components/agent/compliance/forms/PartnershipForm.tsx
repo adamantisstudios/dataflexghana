@@ -12,10 +12,12 @@ import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 import { SignatureCanvas } from "../SignatureCanvas"
 import { scrollToElement } from "@/lib/scroll-utils"
+import { useCompliancePricing } from "../CompliancePricingProvider"
+import { SERVICE_PRICING_KEYS } from "@/lib/service-pricing-constants"
 
 interface PartnershipFormProps {
   agentId: string
-  onComplete: () => void
+  onComplete: (payload?: { cost?: number; formName?: string }) => void
   onCancel: () => void
 }
 
@@ -126,6 +128,9 @@ const initialPartnerData = (): PartnerData => ({
 })
 
 export function PartnershipForm({ agentId, onComplete, onCancel }: PartnershipFormProps) {
+  const { amount } = useCompliancePricing()
+  const formFee = amount(SERVICE_PRICING_KEYS.COMPLIANCE_PARTNERSHIP, 1440)
+  const commission = amount(SERVICE_PRICING_KEYS.COMPLIANCE_PARTNERSHIP_COMMISSION, 50)
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -395,7 +400,7 @@ export function PartnershipForm({ agentId, onComplete, onCancel }: PartnershipFo
         "Partnership form submitted successfully! Your application will be processed within 14 working days.",
         { duration: 6000 },
       )
-      onComplete({ cost: 1440, formName: "Partnership Registration" })
+      onComplete({ cost: formFee, formName: "Partnership Registration" })
     } catch (error: any) {
       console.error("[v0] Error submitting form:", error)
       const errorMessage = error?.message || "Unknown error occurred"
@@ -436,13 +441,13 @@ export function PartnershipForm({ agentId, onComplete, onCancel }: PartnershipFo
             <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
-                <span className="text-lg font-bold text-emerald-600">1,440 GHS</span>
+                <span className="text-lg font-bold text-emerald-600">{formFee.toLocaleString()} GHS</span>
               </div>
               
               {/* COMMISSION SECTION ADDED HERE */}
               <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
                 <span className="text-sm font-medium text-amber-700">Your Commission:</span>
-                <span className="text-lg font-bold text-amber-600">50 GHS</span>
+                <span className="text-lg font-bold text-amber-600">{commission.toLocaleString()} GHS</span>
               </div>
               
               <div className="border-t border-emerald-200 pt-3">

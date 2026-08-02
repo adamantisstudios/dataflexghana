@@ -11,10 +11,12 @@ import { ChevronLeft, ChevronRight, Upload, X, FileText } from "lucide-react"
 import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 import { scrollToElement } from "@/lib/scroll-utils"
+import { useCompliancePricing } from "../CompliancePricingProvider"
+import { SERVICE_PRICING_KEYS } from "@/lib/service-pricing-constants"
 
 interface PassportFormProps {
   agentId: string
-  onComplete: () => void
+  onComplete: (payload?: { cost?: number; formName?: string }) => void
   onCancel: () => void
 }
 
@@ -25,32 +27,6 @@ interface CostTier {
   delivery: string
   description: string
 }
-
-const PASSPORT_COST_TIERS: CostTier[] = [
-  {
-    id: "premium",
-    days: "5 Days",
-    cost: 2600,
-    delivery: "Express Nationwide Delivery",
-    description: "Premium Processing",
-  },
-  {
-    id: "express",
-    days: "3 Weeks",
-    cost: 1700,
-    delivery: "Standard Nationwide Delivery",
-    description: "Express Processing",
-  },
-  {
-    id: "standard",
-    days: "6 Weeks",
-    cost: 1100,
-    delivery: "Standard Nationwide Delivery",
-    description: "Standard Processing",
-  },
-]
-
-const COMMISSION_AMOUNT = 100
 const GHANA_REGIONS = [
   "Greater Accra Region", "Ashanti Region", "Western Region", "Eastern Region",
   "Volta Region", "Northern Region", "Upper East Region", "Upper West Region",
@@ -59,6 +35,8 @@ const GHANA_REGIONS = [
 ]
 
 export function PassportForm({ agentId, onComplete, onCancel }: PassportFormProps) {
+  const { passportTiers, amount } = useCompliancePricing()
+  const commissionAmount = amount(SERVICE_PRICING_KEYS.COMPLIANCE_PASSPORT_COMMISSION, 100)
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showCostPopup, setShowCostPopup] = useState(true)
@@ -309,7 +287,7 @@ export function PassportForm({ agentId, onComplete, onCancel }: PassportFormProp
 
       <CardContent className="space-y-3 p-3 sm:p-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-          {PASSPORT_COST_TIERS.map((tier) => (
+          {passportTiers.map((tier) => (
             <div
               key={tier.id}
               onClick={() => setSelectedCostTier(tier)}
@@ -324,7 +302,7 @@ export function PassportForm({ agentId, onComplete, onCancel }: PassportFormProp
               <p className="text-xs text-gray-500 mt-1 line-clamp-2">{tier.delivery}</p>
               <div className="mt-2 pt-2 border-t border-blue-200">
                 <span className="text-xl font-bold text-blue-600">₵{tier.cost}</span>
-                <p className="text-xs text-gray-500">+ ₵{COMMISSION_AMOUNT} commission</p>
+                <p className="text-xs text-gray-500">+ ₵{commissionAmount} commission</p>
               </div>
               {selectedCostTier?.id === tier.id && (
                 <div className="mt-2 flex items-center justify-center bg-blue-100 py-1 rounded-md">

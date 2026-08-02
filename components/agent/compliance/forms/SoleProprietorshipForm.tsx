@@ -14,10 +14,12 @@ import { toast } from "sonner"
 import { SignatureCanvas } from "../SignatureCanvas"
 import { PaymentReminderModal } from "@/components/shared/PaymentReminderModal"
 import { scrollToElement } from "@/lib/scroll-utils"
+import { useCompliancePricing } from "../CompliancePricingProvider"
+import { SERVICE_PRICING_KEYS } from "@/lib/service-pricing-constants"
 
 interface SoleProprietorshipFormProps {
   agentId: string
-  onComplete: () => void
+  onComplete: (payload?: { cost?: number; formName?: string }) => void
   onCancel: () => void
 }
 
@@ -96,6 +98,9 @@ const REVENUE_RANGES = [
 const BOP_OPTIONS = ["Apply for BOP Now", "Apply for BOP Later", "Already have a BOP", "Not Required for my business"]
 
 export function SoleProprietorshipForm({ agentId, onComplete, onCancel }: SoleProprietorshipFormProps) {
+  const { amount } = useCompliancePricing()
+  const formFee = amount(SERVICE_PRICING_KEYS.COMPLIANCE_AGENT_SOLE, 580)
+  const commission = amount(SERVICE_PRICING_KEYS.COMPLIANCE_AGENT_SOLE_COMMISSION, 50)
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -509,13 +514,13 @@ return (
             <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-emerald-800">Processing Cost:</span>
-                <span className="text-lg font-bold text-emerald-600">580 GHS</span>
+                <span className="text-lg font-bold text-emerald-600">{formFee.toLocaleString()} GHS</span>
               </div>
               
               {/* COMMISSION SECTION ADDED HERE */}
               <div className="flex items-center justify-between pt-2 border-t border-emerald-200">
                 <span className="text-sm font-medium text-amber-700">Your Commission:</span>
-                <span className="text-lg font-bold text-amber-600">50 GHS</span>
+                <span className="text-lg font-bold text-amber-600">{commission.toLocaleString()} GHS</span>
               </div>
               
               <div className="border-t border-emerald-200 pt-3 space-y-2">
@@ -544,9 +549,9 @@ return (
         isOpen={showPaymentReminder}
         onClose={() => {
           setShowPaymentReminder(false)
-          onComplete({ cost: 580, formName: "Sole Proprietorship" })
+          onComplete({ cost: formFee, formName: "Sole Proprietorship" })
         }}
-        fee="580 GHS"
+        fee={`${formFee.toLocaleString()} GHS`}
         serviceName="Sole Proprietorship Registration"
       />
 

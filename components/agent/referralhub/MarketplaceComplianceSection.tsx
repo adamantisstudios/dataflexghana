@@ -9,10 +9,9 @@ import { toast } from "sonner"
 import { getAgentAuthHeaders } from "@/lib/agent-api-headers"
 import {
   COMPLIANCE_FORM_SOLE_PROPRIETORSHIP_ITEM_ID,
-  complianceFormAdminPrice,
-  complianceFormAgentCommission,
   isComplianceFormSettingItemId,
 } from "@/lib/storefront-catalog"
+import { useServicePricing } from "@/hooks/use-service-pricing"
 import { EarningsBadge } from "@/components/agent/referralhub/EarningsBadge"
 import { FileText, Loader2 } from "lucide-react"
 
@@ -86,7 +85,8 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
     }
   }
 
-  const agentCommission = complianceFormAgentCommission()
+  const { compliancePrice, complianceCommission } = useServicePricing()
+  const agentCommission = complianceCommission
 
   return (
     <Card id="compliance-forms-section" className="rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -114,7 +114,7 @@ export function MarketplaceComplianceSection({ agentId, settings, onSettingsChan
               </Label>
               <p className="text-xs text-muted-foreground mt-1">
                 Shows under Business Services on your public store · Customer pays GH₵
-                {complianceFormAdminPrice().toFixed(0)} via Paystack
+                {compliancePrice.toFixed(0)} via Paystack
               </p>
             </div>
             <Switch id="sole-prop-toggle" checked={enabled} onCheckedChange={toggle} />

@@ -1,27 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-  import {
+import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Eye, ShoppingCart } from "lucide-react";
-import { VOUCHER_PRODUCTS, type EProduct } from "@/lib/voucher-products";
+import { Eye, Loader2, ShoppingCart } from "lucide-react";
+import { getAllProducts, type EProduct } from "@/lib/voucher-products";
 
-// ✅ Add the interface for the prop
 interface VoucherProductsDisplayProps {
-  onOrderProduct: (productId: number) => void;
+  onOrderProduct: (productId: string) => void;
 }
 
 export function VoucherProductsDisplay({ onOrderProduct }: VoucherProductsDisplayProps) {
+  const [products, setProducts] = useState<EProduct[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<EProduct | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/voucher-products");
+        const data = await res.json();
+        if (!cancelled && res.ok && data.products?.length) {
+          setProducts(data.products);
+        }
+      } catch {
+        // fall through to hardcoded catalog
+      }
+      if (!cancelled) {
+        setProducts((prev) => (prev.length ? prev : getAllProducts()));
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const openDetailsModal = (product: EProduct) => {
     setSelectedProduct(product);
@@ -41,10 +64,19 @@ export function VoucherProductsDisplay({ onOrderProduct }: VoucherProductsDispla
     return "bg-purple-100 text-purple-800";
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-gray-600">
+        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        Loading products…
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {VOUCHER_PRODUCTS.map((product) => (
+        {products.map((product) => (
           <Card
             key={product.id}
             className="hover:shadow-xl transition-all duration-300 border border-gray-200 flex flex-col"
@@ -56,10 +88,10 @@ export function VoucherProductsDisplay({ onOrderProduct }: VoucherProductsDispla
                   {product.title.toLowerCase().includes("results checker")
                     ? "Results Checker"
                     : product.title.toLowerCase().includes("admission") ||
-                      product.title.toLowerCase().includes("form") ||
-                      product.title.toLowerCase().includes("voucher")
-                    ? "School Form"
-                    : "Educational"}
+                        product.title.toLowerCase().includes("form") ||
+                        product.title.toLowerCase().includes("voucher")
+                      ? "School Form"
+                      : "Educational"}
                 </Badge>
               </div>
             </CardHeader>
@@ -78,34 +110,26 @@ export function VoucherProductsDisplay({ onOrderProduct }: VoucherProductsDispla
 
               <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                 {product.description.length > 100
-                  ? product.description.substring(0, 100) + "..."
+                  ? `${product.description.substring(0, 100)}...`
                   : product.description}
               </p>
 
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-2xl font-bold text-blue-600">₵{product.price}</span>
-                <span className="text-xs text-gray-500">Stock: {product.quantity}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold text-blue-600">GHS {product.price.toFixed(2)}</span>
+                <span className="text-sm text-gray-500">{product.quantity} in stock</span>
               </div>
             </CardContent>
 
             <CardFooter className="flex gap-2 pt-0">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => openDetailsModal(product)}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                View Details
+              <Button variant="outline" className="flex-1" onClick={() => openDetailsModal(product)}>
+                <Eye className="mr-2 h-4 w-4" />
+                Details
               </Button>
-              {/* ✅ Fixed: call onOrderProduct with product.id */}
               <Button
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-                onClick={() => {
-                  onOrderProduct(product.id);
-                  document.getElementById("order-form")?.scrollIntoView({ behavior: "smooth" });
-                }}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                onClick={() => onOrderProduct(product.id)}
               >
-                <ShoppingCart className="h-4 w-4 mr-2" />
+                <ShoppingCart className="mr-2 h-4 w-4" />
                 Order
               </Button>
             </CardFooter>
@@ -113,43 +137,39 @@ export function VoucherProductsDisplay({ onOrderProduct }: VoucherProductsDispla
         ))}
       </div>
 
-      {/* Modal – only text description, no image */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedProduct && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-2xl">{selectedProduct.title}</DialogTitle>
-                <DialogDescription className="text-base mt-4 whitespace-pre-wrap leading-relaxed">
-                  {selectedProduct.description}
-                </DialogDescription>
+                <DialogTitle>{selectedProduct.title}</DialogTitle>
+                <DialogDescription>Full product details</DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div className="flex justify-between items-center border-t pt-4">
-                  <div>
-                    <span className="text-3xl font-bold text-blue-600">₵{selectedProduct.price}</span>
-                    <span className="text-gray-500 ml-2">per item</span>
-                  </div>
-                  <Badge variant="outline" className="text-sm">
-                    Stock: {selectedProduct.quantity}
-                  </Badge>
+              <div className="space-y-4">
+                <div className="relative w-full rounded-lg overflow-hidden bg-gray-100">
+                  <img
+                    src={selectedProduct.image_url}
+                    alt={selectedProduct.title}
+                    className="w-full h-auto object-cover"
+                  />
                 </div>
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    onClick={() => {
-                      closeModal();
-                      onOrderProduct(selectedProduct.id);
-                      document.getElementById("order-form")?.scrollIntoView({ behavior: "smooth" });
-                    }}
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Order Now
-                  </Button>
-                  <Button variant="outline" className="flex-1" onClick={closeModal}>
-                    Close
-                  </Button>
+                <p className="text-gray-700">{selectedProduct.description}</p>
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                  <span className="text-2xl font-bold text-blue-600">
+                    GHS {selectedProduct.price.toFixed(2)}
+                  </span>
+                  <span className="text-sm text-gray-600">{selectedProduct.quantity} available</span>
                 </div>
+                <Button
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600"
+                  onClick={() => {
+                    onOrderProduct(selectedProduct.id);
+                    closeModal();
+                  }}
+                >
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Order This Product
+                </Button>
               </div>
             </>
           )}
