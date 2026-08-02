@@ -57,6 +57,7 @@ import { Label } from "@/components/ui/label"
   ScanFace,
   Radio,
   Heart,
+  GraduationCap,
 } from "lucide-react"
 import { logoutAdmin, clearAdminSession, getStoredAdmin } from "@/lib/auth"
 import { useUnreadMessages } from "@/hooks/use-unread-messages"
@@ -163,6 +164,8 @@ const TabLoadingSkeleton = () => (
 // Tab configuration - unified system
 const TAB_CONFIG: TabConfigItem[] = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, component: null },
+  { id: "voucher-products", label: "Voucher Products", icon: GraduationCap, component: VoucherProductsAdminTab },
+  { id: "service-pricing", label: "Service Pricing", icon: Banknote, component: ServicePricingAdminTab },
   { id: "analytics", label: "Analytics", icon: TrendingUp, component: AnalyticsDashboard },
   { id: "security-log", label: "Security Log", icon: Shield, component: SecurityLogsTab },
   { id: "storefront-manager", label: "Storefront Management", icon: ShoppingBag, component: StorefrontManagerTab },
@@ -185,8 +188,6 @@ const TAB_CONFIG: TabConfigItem[] = [
   { id: "advertising", label: "Advertising", icon: Megaphone, component: AdvertisingAdminTab },
   { id: "micro-influencers", label: "Micro-Influencers", icon: Award, component: InfluencersAdminTab },
   { id: "listing-packages", label: "Listing Packages", icon: ListChecks, component: ListingPackagesAdminTab },
-  { id: "voucher-products", label: "Voucher Products", icon: BookOpen, component: VoucherProductsAdminTab },
-  { id: "service-pricing", label: "Service Pricing", icon: Banknote, component: ServicePricingAdminTab },
   { id: "farmers-friend", label: "Farmers Friend", icon: Leaf, component: FarmersFriendAdminTab },
   { id: "wholesale", label: "Wholesale", icon: ShoppingBag, component: WholesaleTab },
   { id: "properties", label: "Properties", icon: Home, component: PropertiesTab },
@@ -840,6 +841,26 @@ export default function AdminDashboard() {
           <TabsContent value="dashboard" className="space-y-6">
             <PendingOrdersFeed onNavigateTab={loadTab} />
             <FollowUpsTodayCard />
+
+            <Card className="border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-emerald-900">Pricing management</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-3">
+                <Button asChild className="bg-emerald-600 hover:bg-emerald-700">
+                  <Link href="/admin/voucher-products">Voucher Products</Link>
+                </Button>
+                <Button asChild variant="outline" className="border-emerald-300 text-emerald-800 hover:bg-emerald-100">
+                  <Link href="/admin/service-pricing">Service &amp; Compliance Pricing</Link>
+                </Button>
+                <Button variant="ghost" className="text-emerald-700" onClick={() => loadTab("voucher-products")}>
+                  Open voucher tab
+                </Button>
+                <Button variant="ghost" className="text-emerald-700" onClick={() => loadTab("service-pricing")}>
+                  Open pricing tab
+                </Button>
+              </CardContent>
+            </Card>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-xl">
