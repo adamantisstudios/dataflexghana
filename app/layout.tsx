@@ -854,6 +854,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script src="/maintenance-gate.js?v=5" />
         <script
           dangerouslySetInnerHTML={{ __html: MAINTENANCE_INLINE_CHECK_SCRIPT }}
         />
