@@ -208,7 +208,10 @@ function isMaintenanceAssetPath(pathname) {
     pathname.endsWith('.svg') ||
     pathname.endsWith('.webp') ||
     pathname.endsWith('.css') ||
-    pathname.endsWith('.js')
+    pathname.endsWith('.js') ||
+    pathname === '/manifest.json' ||
+    pathname === '/site.webmanifest' ||
+    pathname === '/browserconfig.xml'
   )
 }
 
@@ -348,6 +351,6 @@ export async function proxy(request) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|images/|assets/|fonts/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|site.webmanifest|browserconfig.xml|robots.txt|sitemap.xml|images/|assets/|fonts/).*)',
   ],
 }
