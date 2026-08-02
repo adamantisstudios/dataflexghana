@@ -3,7 +3,6 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import {
   fetchMaintenanceStatusServer,
-  hasAdminSessionServer,
   shouldBypassMaintenanceServer,
 } from "@/lib/maintenance-server"
 
@@ -44,13 +43,5 @@ export default async function MaintenanceGate({ children }: { children: ReactNod
     return children
   }
 
-  if (!known && (await hasAdminSessionServer())) {
-    return children
-  }
-
-  if (!known || !(await shouldBypassMaintenanceServer(pathname))) {
-    redirect("/maintenance")
-  }
-
-  return children
+  redirect("/maintenance")
 }

@@ -3,6 +3,14 @@
     {
       "source": "/(.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|avif|woff2?|ttf|eot|otf|mp4|webm|ogg|mp3|wav|flac|aac|pdf|zip|tar|gz|br|docx?|xlsx?|pptx?))",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/((?!_next/static|_next/image|favicon.ico|manifest.json|site.webmanifest|browserconfig.xml|robots.txt|sitemap.xml|images/|assets/|fonts/).*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "private, no-cache, no-store, max-age=0, must-revalidate" },
+        { "key": "CDN-Cache-Control", "value": "no-store" },
+        { "key": "Vercel-CDN-Cache-Control", "value": "no-store" }
+      ]
     }
   ]
 }

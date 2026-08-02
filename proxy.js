@@ -251,28 +251,60 @@ function isMaintenanceExemptPath(pathname) {
   return isMaintenancePagePath(pathname) || isMaintenanceAssetPath(pathname)
 }
 
-async function fetchMaintenanceStatusDirect() {
+function applyNoStoreHeaders(response) {
+  response.headers.set('Cache-Control', 'private, no-cache, no-store, max-age=0, must-revalidate')
+  response.headers.set('CDN-Cache-Control', 'no-store')
+  response.headers.set('Vercel-CDN-Cache-Control', 'no-store')
+  response.headers.set('Pragma', 'no-cache')
+  response.headers.set('Expires', '0')
+  return response
+}
+
+async function fetchMaintenanceStatusDirect(request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !serviceKey) return null
 
-  const url = new URL(`${supabaseUrl}/rest/v1/maintenance_mode`)
-  url.searchParams.set('select', 'is_enabled')
-  url.searchParams.set('order', 'created_at.desc')
-  url.searchParams.set('limit', '1')
+  if (supabaseUrl && serviceKey) {
+    try {
+      const url = new URL(`${supabaseUrl}/rest/v1/maintenance_mode`)
+      url.searchParams.set('select', 'is_enabled')
+      url.searchParams.set('order', 'created_at.desc')
+      url.searchParams.set('limit', '1')
 
-  const res = await fetch(url.toString(), {
-    headers: {
-      apikey: serviceKey,
-      Authorization: `Bearer ${serviceKey}`,
-    },
-    signal: AbortSignal.timeout(4000),
-  })
+      const res = await fetch(url.toString(), {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        signal: AbortSignal.timeout(4000),
+      })
 
-  if (!res.ok) return null
-  const rows = await res.json()
-  if (!Array.isArray(rows) || rows.length === 0) return null
-  return rows[0]
+      if (res.ok) {
+        const rows = await res.json()
+        if (Array.isArray(rows) && rows.length > 0) return rows[0]
+      }
+    } catch {
+      /* fall through to API fallback */
+    }
+  }
+
+  try {
+    const apiUrl = new URL('/api/maintenance', request.nextUrl.origin)
+    apiUrl.searchParams.set('v', Date.now().toString())
+    const res = await fetch(apiUrl.toString(), {
+      headers: { 'Cache-Control': 'no-cache' },
+      signal: AbortSignal.timeout(4000),
+    })
+    if (!res.ok) return null
+    const payload = await res.json()
+    if (payload?.success && payload?.data) {
+      return { is_enabled: Boolean(payload.data.isEnabled) }
+    }
+  } catch {
+    return null
+  }
+
+  return null
 }
 
 function attachRequestPathHeader(request, response) {
@@ -299,31 +331,27 @@ function shouldAllowAdminDuringMaintenance(request) {
 
 function maintenanceBlockedResponse(request, cacheWindow) {
   if (request.nextUrl.pathname.startsWith('/api/')) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Site is currently under maintenance. Please try again later.',
-        code: 'MAINTENANCE_MODE_ENABLED',
-      },
-      {
-        status: 503,
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
-          'Retry-After': '300',
-          'X-Maintenance-Mode': 'enabled',
+    return applyNoStoreHeaders(
+      NextResponse.json(
+        {
+          success: false,
+          error: 'Site is currently under maintenance. Please try again later.',
+          code: 'MAINTENANCE_MODE_ENABLED',
         },
-      },
+        {
+          status: 503,
+          headers: {
+            'Retry-After': '300',
+            'X-Maintenance-Mode': 'enabled',
+          },
+        },
+      ),
     )
   }
 
   const maintenanceUrl = new URL('/maintenance', request.url)
   maintenanceUrl.searchParams.set('v', cacheWindow.toString())
-  const response = NextResponse.redirect(maintenanceUrl, 307)
-  response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-  response.headers.set('Pragma', 'no-cache')
-  response.headers.set('Expires', '0')
+  const response = applyNoStoreHeaders(NextResponse.redirect(maintenanceUrl, 307))
   response.headers.set('X-Maintenance-Redirect', 'true')
   return response
 }
@@ -336,13 +364,11 @@ export async function proxy(request) {
     const cacheWindow = Math.floor(now / 10000)
 
     try {
-      const maintenanceRow = await fetchMaintenanceStatusDirect()
+      const maintenanceRow = await fetchMaintenanceStatusDirect(request)
 
       if (maintenanceRow?.is_enabled) {
         if (shouldAllowAdminDuringMaintenance(request)) {
-          const response = NextResponse.next()
-          response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-          response.headers.set('Pragma', 'no-cache')
+          const response = applyNoStoreHeaders(NextResponse.next())
           response.headers.set('X-Maintenance-Admin-Bypass', 'true')
           return attachRequestPathHeader(request, response)
         }
@@ -350,9 +376,7 @@ export async function proxy(request) {
         return maintenanceBlockedResponse(request, cacheWindow)
       }
 
-      const response = NextResponse.next()
-      response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-      response.headers.set('Pragma', 'no-cache')
+      const response = applyNoStoreHeaders(NextResponse.next())
       response.headers.set('X-Maintenance-Status', 'disabled')
       return attachRequestPathHeader(request, response)
     } catch (error) {
