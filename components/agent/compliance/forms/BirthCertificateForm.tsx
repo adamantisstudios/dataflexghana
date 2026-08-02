@@ -12,7 +12,7 @@ import { ChevronLeft, ChevronRight, Upload, X, Baby } from "lucide-react"
 import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner"
 import { scrollToElement } from "@/lib/scroll-utils"
-import { useCompliancePricing } from "./CompliancePricingProvider"
+import { useCompliancePricing } from "../CompliancePricingProvider"
 import { SERVICE_PRICING_KEYS } from "@/lib/service-pricing-constants"
 
 interface BirthCertificateFormProps {
