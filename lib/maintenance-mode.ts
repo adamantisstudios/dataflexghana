@@ -127,10 +127,10 @@ export function isSpecialTestAccount(): boolean {
   }
 }
 /**
- * Check if current user should bypass maintenance mode (admin or special test account)
+ * Check if current user should bypass maintenance mode (admin only)
  */
 export function shouldBypassMaintenance(): boolean {
-  return isAdminUser() || isSpecialTestAccount()
+  return isAdminUser()
 }
 /**
  * Update maintenance mode settings (Admin only)

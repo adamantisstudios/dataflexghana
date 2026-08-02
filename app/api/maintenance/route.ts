@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase-base'
+import { authenticateAdmin } from '@/lib/auth-middleware'
 
 // GET - Check maintenance mode status
 export async function GET(request: NextRequest) {
@@ -63,8 +64,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Update maintenance mode status
+// POST - Update maintenance mode status (admin only)
 export async function POST(request: NextRequest) {
+  const auth = await authenticateAdmin(request)
+  if (!auth.success) {
+    return NextResponse.json(
+      { error: auth.error || 'Admin authentication required' },
+      { status: 401 },
+    )
+  }
+
   const supabase = getAdminClient()
   try {
     const body = await request.json()

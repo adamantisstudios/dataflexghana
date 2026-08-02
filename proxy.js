@@ -223,6 +223,40 @@ function isMaintenanceExemptPath(pathname) {
   )
 }
 
+function isAdminAuthPath(pathname) {
+  return (
+    pathname === '/admin/login' ||
+    pathname === '/api/admin/login' ||
+    pathname === '/api/admin/verify-2fa' ||
+    pathname.startsWith('/api/admin/2fa/')
+  )
+}
+
+function isAdminRequestPath(pathname) {
+  return pathname === '/admin' || pathname.startsWith('/admin/') || pathname.startsWith('/api/admin/')
+}
+
+function hasAdminSession(request) {
+  const adminCookie = request.cookies.get('admin_user')
+  if (adminCookie?.value) {
+    try {
+      const adminData = JSON.parse(decodeURIComponent(adminCookie.value))
+      if (adminData?.id) return true
+    } catch {
+      if (adminCookie.value.trim()) return true
+    }
+  }
+
+  const adminIdCookie = request.cookies.get('admin_id')
+  return Boolean(adminIdCookie?.value?.trim())
+}
+
+function shouldAllowAdminDuringMaintenance(request) {
+  const { pathname } = request.nextUrl
+  if (isAdminAuthPath(pathname)) return true
+  return isAdminRequestPath(pathname) && hasAdminSession(request)
+}
+
 function maintenanceBlockedResponse(request, cacheWindow) {
   if (request.nextUrl.pathname.startsWith('/api/')) {
     return NextResponse.json(
@@ -277,6 +311,14 @@ export async function proxy(request) {
         const maintenanceData = await maintenanceResponse.json()
 
         if (maintenanceData.success && maintenanceData.data.isEnabled) {
+          if (shouldAllowAdminDuringMaintenance(request)) {
+            const response = NextResponse.next()
+            response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+            response.headers.set('Pragma', 'no-cache')
+            response.headers.set('X-Maintenance-Admin-Bypass', 'true')
+            return response
+          }
+
           return maintenanceBlockedResponse(request, cacheWindow)
         }
 

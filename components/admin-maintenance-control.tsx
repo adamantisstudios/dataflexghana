@@ -209,7 +209,7 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
                 <span className="truncate">Maintenance Mode Control</span>
               </CardTitle>
               <CardDescription className="text-sm">
-                Control site-wide maintenance mode for all users and agents
+                Control site-wide maintenance mode for everyone except the admin
               </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
@@ -264,7 +264,7 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
                     <span className="break-words">Site is currently in maintenance mode</span>
                   </div>
                   <p className="text-xs sm:text-sm text-red-700 mb-3 break-words">
-                    All users, agents, and admin pages will be blocked until maintenance mode is disabled
+                    Public users and agents will be blocked until maintenance mode is disabled
                   </p>
                   <div className="flex items-center gap-2 text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
                     <Users className="w-3 h-3 flex-shrink-0" />
@@ -349,8 +349,8 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
                     <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-blue-800 text-sm sm:text-base">No user bypass</p>
-                    <p className="text-xs sm:text-sm text-blue-600">Admin, agent, and public pages are blocked during maintenance</p>
+                    <p className="font-semibold text-blue-800 text-sm sm:text-base">Admin-only access</p>
+                    <p className="text-xs sm:text-sm text-blue-600">Only admin login and authenticated admin pages remain available during maintenance</p>
                   </div>
                 </div>
               </div>
@@ -376,7 +376,8 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
                   <ul className="text-xs sm:text-sm text-yellow-700 space-y-1">
                     <li>After enabling maintenance mode, public pages should redirect to the maintenance page</li>
                     <li>API routes other than the maintenance endpoint should return a 503 maintenance response</li>
-                    <li>Admin and agent pages should remain blocked until maintenance mode is disabled</li>
+                    <li>Agent pages should remain blocked until maintenance mode is disabled</li>
+                    <li>Admin login and authenticated admin pages should remain available</li>
                     <li>Disable maintenance mode through the maintenance API before returning to normal site access</li>
                   </ul>
                 </div>
