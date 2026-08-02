@@ -1,24 +1,26 @@
-import { checkMaintenanceMode } from '@/lib/maintenance-mode'
-import MaintenancePage from '@/components/maintenance-page'
-import { redirect } from 'next/navigation'
+import { fetchMaintenanceStatusServer } from "@/lib/maintenance-server"
+import MaintenancePage from "@/components/maintenance-page"
+import { redirect } from "next/navigation"
+import type { MaintenanceMode } from "@/lib/maintenance-mode"
 
-export default async function Maintenance() {
-  try {
-    const maintenanceData = await checkMaintenanceMode()
-    
-    // If maintenance is not enabled, redirect to home
-    if (!maintenanceData || !maintenanceData.isEnabled) {
-      redirect('/')
-    }
-
-    return <MaintenancePage maintenanceData={maintenanceData} />
-  } catch (error) {
-    console.error('Error loading maintenance page:', error)
-    // If there's an error, redirect to home to prevent infinite loops
-    redirect('/')
-  }
+const FALLBACK_MAINTENANCE: MaintenanceMode = {
+  isEnabled: true,
+  title: "Site Under Maintenance",
+  message:
+    "We are currently performing scheduled maintenance. Please check back later.",
+  countdownEnabled: false,
+  updatedAt: new Date().toISOString(),
 }
 
-// Disable caching for this page
-export const dynamic = 'force-dynamic'
+export default async function Maintenance() {
+  const maintenanceData = await fetchMaintenanceStatusServer()
+
+  if (!maintenanceData?.isEnabled) {
+    redirect("/")
+  }
+
+  return <MaintenancePage maintenanceData={maintenanceData ?? FALLBACK_MAINTENANCE} />
+}
+
+export const dynamic = "force-dynamic"
 export const revalidate = 0
