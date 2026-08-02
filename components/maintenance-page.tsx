@@ -28,7 +28,12 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
     minutes: number
     seconds: number
     total: number
-  } | null>(null)
+  } | null>(() => {
+    if (maintenanceData.countdownEnabled && maintenanceData.countdownEndTime) {
+      return formatTimeRemaining(maintenanceData.countdownEndTime)
+    }
+    return null
+  })
   const [isMobile, setIsMobile] = useState(false)
   const [hasReloaded, setHasReloaded] = useState(false)
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
@@ -169,10 +174,10 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
             <div className="relative h-48 sm:h-64 md:h-80 lg:h-96 bg-gradient-to-r from-yellow-400 via-green-500 to-emerald-600">
               <div className="absolute inset-0 bg-black/60"></div>
               <Image
-                src="/images/hero-main-new.jpg"
+                src="/images/hero-main.jpg"
                 alt="DataFlex Ghana"
                 fill
-                className="object-cover mix-blend-overlay"
+                className="object-cover object-center"
                 priority
               />
               {/* Floating Elements */}
@@ -238,45 +243,80 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
                 </div>
               </div>
               {/* Enhanced Countdown Timer */}
-              {maintenanceData.countdownEnabled &&
-                maintenanceData.countdownEndTime &&
-                timeRemaining &&
-                timeRemaining.total > 0 && (
-                  <div className="mb-12 sm:mb-16">
-                    <div className="text-center mb-6 sm:mb-8">
-                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
-                        <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
-                        <span>Estimated Time Remaining</span>
-                      </h3>
-                      <p className="text-gray-600 text-sm sm:text-base md:text-lg px-4">
-                        We're working hard to get everything back online
-                      </p>
-                    </div>
-                    <div className="max-w-4xl mx-auto">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                        {[
-                          { label: "Days", value: timeRemaining.days, color: "from-red-500 to-pink-600" },
-                          { label: "Hours", value: timeRemaining.hours, color: "from-yellow-500 to-orange-600" },
-                          { label: "Minutes", value: timeRemaining.minutes, color: "from-green-500 to-emerald-600" },
-                          { label: "Seconds", value: timeRemaining.seconds, color: "from-blue-500 to-indigo-600" },
-                        ].map((item, index) => (
-                          <div key={index} className="group">
-                            <div
-                              className={`bg-gradient-to-br ${item.color} rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 text-white text-center shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-3xl`}
-                            >
-                              <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-1 sm:mb-2 font-mono">
-                                {item.value.toString().padStart(2, "0")}
-                              </div>
-                              <div className="text-xs sm:text-sm md:text-base font-semibold opacity-90 uppercase tracking-wider">
-                                {item.label}
+              {maintenanceData.countdownEnabled && maintenanceData.countdownEndTime && timeRemaining && (
+                <div className="mb-12 sm:mb-16">
+                  {timeRemaining.total > 0 ? (
+                    <>
+                      <div className="text-center mb-6 sm:mb-8">
+                        <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                          <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
+                          <span>Estimated Time Remaining</span>
+                        </h3>
+                        <p className="text-gray-600 text-sm sm:text-base md:text-lg px-4">
+                          We're working hard to get everything back online
+                        </p>
+                      </div>
+                      <div className="max-w-4xl mx-auto">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+                          {[
+                            { label: "Days", value: timeRemaining.days, color: "from-red-500 to-pink-600" },
+                            { label: "Hours", value: timeRemaining.hours, color: "from-yellow-500 to-orange-600" },
+                            { label: "Minutes", value: timeRemaining.minutes, color: "from-green-500 to-emerald-600" },
+                            { label: "Seconds", value: timeRemaining.seconds, color: "from-blue-500 to-indigo-600" },
+                          ].map((item, index) => (
+                            <div key={index} className="group">
+                              <div
+                                className={`bg-gradient-to-br ${item.color} rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 text-white text-center shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-3xl`}
+                              >
+                                <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-1 sm:mb-2 font-mono">
+                                  {item.value.toString().padStart(2, "0")}
+                                </div>
+                                <div className="text-xs sm:text-sm md:text-base font-semibold opacity-90 uppercase tracking-wider">
+                                  {item.label}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
+                    </>
+                  ) : (
+                    <div className="text-center">
+                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-4 flex items-center justify-center gap-2 sm:gap-3">
+                        <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
+                        <span>Estimated Completion</span>
+                      </h3>
+                      <p className="text-lg sm:text-xl md:text-2xl font-semibold text-emerald-700">
+                        {new Date(
+                          maintenanceData.estimatedCompletion || maintenanceData.countdownEndTime,
+                        ).toLocaleString("en-GB", {
+                          dateStyle: "full",
+                          timeStyle: "short",
+                          timeZone: "Africa/Accra",
+                        })}
+                      </p>
+                      <p className="text-gray-600 mt-3 text-sm sm:text-base">
+                        Maintenance is taking a little longer than expected. Thank you for your patience.
+                      </p>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              )}
+              {!maintenanceData.countdownEnabled && maintenanceData.estimatedCompletion && (
+                <div className="mb-12 sm:mb-16 text-center">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-4 flex items-center justify-center gap-2 sm:gap-3">
+                    <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
+                    <span>Estimated Completion</span>
+                  </h3>
+                  <p className="text-lg sm:text-xl md:text-2xl font-semibold text-emerald-700">
+                    {new Date(maintenanceData.estimatedCompletion).toLocaleString("en-GB", {
+                      dateStyle: "full",
+                      timeStyle: "short",
+                      timeZone: "Africa/Accra",
+                    })}
+                  </p>
+                </div>
+              )}
               {/* Enhanced Status Updates */}
               <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16">
                 <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-yellow-200/50 shadow-xl">
@@ -402,7 +442,7 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
           </div>
           {/* Footer */}
           <div className="text-center mt-6 sm:mt-8 text-gray-500">
-            <p className="text-sm sm:text-base md:text-lg">&copy; 2025 DataFlex Ghana. All rights reserved.</p>
+            <p className="text-sm sm:text-base md:text-lg">&copy; {new Date().getFullYear()} DataFlex Ghana. All rights reserved.</p>
           </div>
         </div>
       </div>
