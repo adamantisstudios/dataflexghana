@@ -215,12 +215,8 @@ function isMaintenanceAssetPath(pathname) {
   )
 }
 
-function isMaintenanceExemptPath(pathname) {
-  return (
-    pathname === '/maintenance' ||
-    pathname === '/api/maintenance' ||
-    isMaintenanceAssetPath(pathname)
-  )
+function isMaintenancePagePath(pathname) {
+  return pathname === '/maintenance' || pathname.startsWith('/api/maintenance')
 }
 
 function isAdminAuthPath(pathname) {
@@ -249,6 +245,50 @@ function hasAdminSession(request) {
 
   const adminIdCookie = request.cookies.get('admin_id')
   return Boolean(adminIdCookie?.value?.trim())
+}
+
+function isMaintenanceExemptPath(pathname) {
+  return isMaintenancePagePath(pathname) || isMaintenanceAssetPath(pathname)
+}
+
+async function fetchMaintenanceStatusDirect() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) return null
+
+  const url = new URL(`${supabaseUrl}/rest/v1/maintenance_mode`)
+  url.searchParams.set('select', 'is_enabled')
+  url.searchParams.set('order', 'created_at.desc')
+  url.searchParams.set('limit', '1')
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+    },
+    signal: AbortSignal.timeout(4000),
+  })
+
+  if (!res.ok) return null
+  const rows = await res.json()
+  if (!Array.isArray(rows) || rows.length === 0) return null
+  return rows[0]
+}
+
+function attachRequestPathHeader(request, response) {
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-url', request.url)
+  requestHeaders.set('x-pathname', request.nextUrl.pathname)
+
+  const nextResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  })
+
+  response.headers.forEach((value, key) => {
+    nextResponse.headers.set(key, value)
+  })
+
+  return nextResponse
 }
 
 function shouldAllowAdminDuringMaintenance(request) {
@@ -280,7 +320,7 @@ function maintenanceBlockedResponse(request, cacheWindow) {
 
   const maintenanceUrl = new URL('/maintenance', request.url)
   maintenanceUrl.searchParams.set('v', cacheWindow.toString())
-  const response = NextResponse.redirect(maintenanceUrl)
+  const response = NextResponse.redirect(maintenanceUrl, 307)
   response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
   response.headers.set('Pragma', 'no-cache')
   response.headers.set('Expires', '0')
@@ -296,41 +336,25 @@ export async function proxy(request) {
     const cacheWindow = Math.floor(now / 10000)
 
     try {
-      const maintenanceResponse = await fetch(`${request.nextUrl.origin}/api/maintenance?v=${cacheWindow}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
-        },
-        signal: AbortSignal.timeout(3000),
-      })
+      const maintenanceRow = await fetchMaintenanceStatusDirect()
 
-      if (maintenanceResponse.ok) {
-        const maintenanceData = await maintenanceResponse.json()
-
-        if (maintenanceData.success && maintenanceData.data.isEnabled) {
-          if (shouldAllowAdminDuringMaintenance(request)) {
-            const response = NextResponse.next()
-            response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-            response.headers.set('Pragma', 'no-cache')
-            response.headers.set('X-Maintenance-Admin-Bypass', 'true')
-            return response
-          }
-
-          return maintenanceBlockedResponse(request, cacheWindow)
+      if (maintenanceRow?.is_enabled) {
+        if (shouldAllowAdminDuringMaintenance(request)) {
+          const response = NextResponse.next()
+          response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+          response.headers.set('Pragma', 'no-cache')
+          response.headers.set('X-Maintenance-Admin-Bypass', 'true')
+          return attachRequestPathHeader(request, response)
         }
 
-        const response = NextResponse.next()
-        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-        response.headers.set('Pragma', 'no-cache')
-        response.headers.set('X-Maintenance-Status', 'disabled')
-        return response
+        return maintenanceBlockedResponse(request, cacheWindow)
       }
 
-      console.warn(`Maintenance check failed with status ${maintenanceResponse.status}`)
-      return maintenanceBlockedResponse(request, cacheWindow)
+      const response = NextResponse.next()
+      response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+      response.headers.set('Pragma', 'no-cache')
+      response.headers.set('X-Maintenance-Status', 'disabled')
+      return attachRequestPathHeader(request, response)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.warn(`Maintenance check failed closed (${message})`)
@@ -375,20 +399,16 @@ export async function proxy(request) {
     pathname.startsWith('/images') ||
     pathname.startsWith('/public') ||
     pathname === '/maintenance' ||
-    pathname === '/agent/login' ||
-    pathname === '/agent/register' ||
-    pathname === '/agent/registration-payment' ||
-    pathname === '/agent/registration-complete' ||
     pathname.endsWith('.ico') ||
     pathname.endsWith('.png') ||
     pathname.endsWith('.jpg') ||
     pathname.endsWith('.jpeg') ||
     pathname.endsWith('.svg')
   ) {
-    return NextResponse.next()
+    return attachRequestPathHeader(request, NextResponse.next())
   }
 
-  return NextResponse.next()
+  return attachRequestPathHeader(request, NextResponse.next())
 }
 
 export const config = {
