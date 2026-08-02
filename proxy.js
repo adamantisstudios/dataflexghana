@@ -326,10 +326,16 @@ function attachRequestPathHeader(request, response) {
 function shouldAllowAdminDuringMaintenance(request) {
   const { pathname } = request.nextUrl
   if (isAdminAuthPath(pathname)) return true
-  return isAdminRequestPath(pathname) && hasAdminSession(request)
+  if (!hasAdminSession(request)) return false
+
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/')) {
+    return true
+  }
+
+  return false
 }
 
-function maintenanceBlockedResponse(request, cacheWindow) {
+function maintenanceBlockedResponse(request) {
   if (request.nextUrl.pathname.startsWith('/api/')) {
     return applyNoStoreHeaders(
       NextResponse.json(
@@ -350,7 +356,6 @@ function maintenanceBlockedResponse(request, cacheWindow) {
   }
 
   const maintenanceUrl = new URL('/maintenance', request.url)
-  maintenanceUrl.searchParams.set('v', cacheWindow.toString())
   const response = applyNoStoreHeaders(NextResponse.redirect(maintenanceUrl, 307))
   response.headers.set('X-Maintenance-Redirect', 'true')
   return response
@@ -360,9 +365,6 @@ export async function proxy(request) {
   const { pathname } = request.nextUrl
 
   if (!isMaintenanceExemptPath(pathname)) {
-    const now = Date.now()
-    const cacheWindow = Math.floor(now / 10000)
-
     try {
       const maintenanceRow = await fetchMaintenanceStatusDirect(request)
 
@@ -374,7 +376,7 @@ export async function proxy(request) {
           return attachRequestPathHeader(request, response)
         }
 
-        return maintenanceBlockedResponse(request, cacheWindow)
+        return maintenanceBlockedResponse(request)
       }
 
       const response = applyNoStoreHeaders(NextResponse.next())
@@ -384,7 +386,7 @@ export async function proxy(request) {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.warn(`Maintenance check failed closed (${message})`)
-      return maintenanceBlockedResponse(request, cacheWindow)
+      return maintenanceBlockedResponse(request)
     }
   }
 

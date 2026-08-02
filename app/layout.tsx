@@ -1,15 +1,9 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import { Toaster as SonnerToaster } from "sonner"
-import { DevConsoleDetector } from "@/components/dev-console-detector"
-import { DisableGlobalLinkPrefetch } from "@/components/disable-global-link-prefetch"
-import { MenuScrollHandler } from "@/components/menu-scroll-handler"
-import { AnalyticsRoot } from "@/components/analytics/AnalyticsRoot"
 import MaintenanceGate from "@/components/maintenance-gate"
-import { MaintenanceRedirectClient } from "@/components/maintenance-redirect-client"
 import { MAINTENANCE_INLINE_CHECK_SCRIPT } from "@/lib/maintenance-inline-check"
+import { RootLayoutBody } from "@/components/root-layout-body"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -1199,14 +1193,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           disableTransitionOnChange
           suppressHydrationWarning
         >
-          <DisableGlobalLinkPrefetch />
-          <MenuScrollHandler />
-          <AnalyticsRoot />
-          <MaintenanceRedirectClient />
-          <MaintenanceGate>{children}</MaintenanceGate>
-          <Toaster />
-          <SonnerToaster position="top-right" richColors closeButton />
-          <DevConsoleDetector />
+          <RootLayoutBody>
+            <MaintenanceGate>{children}</MaintenanceGate>
+          </RootLayoutBody>
         </ThemeProvider>
       </body>
     </html>

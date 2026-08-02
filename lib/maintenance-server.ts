@@ -101,5 +101,9 @@ export async function shouldBypassMaintenanceServer(pathname: string): Promise<b
     return true
   }
 
+  if ((await hasAdminSessionServer()) && pathname.startsWith("/api/")) {
+    return true
+  }
+
   return false
 }

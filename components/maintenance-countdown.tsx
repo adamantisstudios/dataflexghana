@@ -61,6 +61,22 @@ export default function MaintenanceCountdown({ maintenanceData }: MaintenanceCou
   }
 
   if (!timeRemaining || timeRemaining.total <= 0) {
+    const fallbackDate =
+      maintenanceData.estimatedCompletion || maintenanceData.countdownEndTime
+    if (fallbackDate) {
+      const label = new Date(fallbackDate).toLocaleString("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Africa/Accra",
+      })
+      return (
+        <div className="mt-8 rounded-lg border border-white/10 bg-white/10 px-5 py-4">
+          <p className="text-sm uppercase tracking-wider text-slate-300">Estimated completion</p>
+          <p className="mt-1 text-xl font-semibold text-white">{label}</p>
+        </div>
+      )
+    }
+
     return (
       <div className="mt-8 rounded-lg border border-white/10 bg-white/10 px-5 py-4">
         <p className="text-sm uppercase tracking-wider text-slate-300">Estimated completion</p>
