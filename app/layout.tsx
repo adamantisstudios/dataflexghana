@@ -9,6 +9,7 @@ import { MenuScrollHandler } from "@/components/menu-scroll-handler"
 import { AnalyticsRoot } from "@/components/analytics/AnalyticsRoot"
 import MaintenanceGate from "@/components/maintenance-gate"
 import { MaintenanceRedirectClient } from "@/components/maintenance-redirect-client"
+import { MAINTENANCE_INLINE_CHECK_SCRIPT } from "@/lib/maintenance-inline-check"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -853,6 +854,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{ __html: MAINTENANCE_INLINE_CHECK_SCRIPT }}
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noai, noimageai" />
         <meta name="theme-color" content="#059669" />

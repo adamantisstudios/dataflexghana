@@ -370,6 +370,7 @@ export async function proxy(request) {
         if (shouldAllowAdminDuringMaintenance(request)) {
           const response = applyNoStoreHeaders(NextResponse.next())
           response.headers.set('X-Maintenance-Admin-Bypass', 'true')
+          response.headers.set('X-Proxy-Executed', 'true')
           return attachRequestPathHeader(request, response)
         }
 
@@ -378,6 +379,7 @@ export async function proxy(request) {
 
       const response = applyNoStoreHeaders(NextResponse.next())
       response.headers.set('X-Maintenance-Status', 'disabled')
+      response.headers.set('X-Proxy-Executed', 'true')
       return attachRequestPathHeader(request, response)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -386,9 +388,18 @@ export async function proxy(request) {
     }
   }
 
+  const passthrough = attachRequestPathHeader(
+    request,
+    applyNoStoreHeaders(NextResponse.next()),
+  )
+  passthrough.headers.set('X-Proxy-Executed', 'true')
+
   try {
     const photoGateResponse = await enforceAgentPhotoVerification(request)
-    if (photoGateResponse) return photoGateResponse
+    if (photoGateResponse) {
+      photoGateResponse.headers.set('X-Proxy-Executed', 'true')
+      return photoGateResponse
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.warn(`Agent photo verification gate skipped (${message})`)
@@ -399,7 +410,11 @@ export async function proxy(request) {
 
   if (isStorefrontDomain) {
     if (pathname === '/' || pathname.startsWith('/admin') || pathname.startsWith('/agent')) {
-      return NextResponse.redirect(new URL('/store/invalid-agent', request.url))
+      const redirect = applyNoStoreHeaders(
+        NextResponse.redirect(new URL('/store/invalid-agent', request.url)),
+      )
+      redirect.headers.set('X-Proxy-Executed', 'true')
+      return redirect
     }
 
     const storefrontMatch = pathname.match(/^\/store\/([^/]+)/)
@@ -407,32 +422,14 @@ export async function proxy(request) {
       const segment = storefrontMatch[1]
 
       if (RESERVED_STORE_SEGMENTS.has(segment)) {
-        return NextResponse.next()
+        return passthrough
       }
 
-      // app/store/[segment]/page.tsx resolves slugs server-side (no edge fetch / rewrite)
-      return NextResponse.next()
+      return passthrough
     }
   }
 
-  if (
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon') ||
-    pathname.startsWith('/images') ||
-    pathname.startsWith('/public') ||
-    pathname === '/maintenance' ||
-    pathname.endsWith('.ico') ||
-    pathname.endsWith('.png') ||
-    pathname.endsWith('.jpg') ||
-    pathname.endsWith('.jpeg') ||
-    pathname.endsWith('.svg')
-  ) {
-    return attachRequestPathHeader(request, NextResponse.next())
-  }
-
-  return attachRequestPathHeader(request, NextResponse.next())
+  return passthrough
 }
 
 export const config = {
