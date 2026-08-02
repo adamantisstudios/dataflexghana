@@ -33,7 +33,6 @@ import {
   updateMaintenanceMode,
   getMaintenanceLogs,
   formatTimeRemaining,
-  SPECIAL_TEST_PHONE,
   type MaintenanceMode,
   type MaintenanceLog,
 } from '@/lib/maintenance-mode'
@@ -210,7 +209,7 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
                 <span className="truncate">Maintenance Mode Control</span>
               </CardTitle>
               <CardDescription className="text-sm">
-                Control site-wide maintenance mode for all users except admins and special test accounts
+                Control site-wide maintenance mode for all users and agents
               </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
@@ -265,7 +264,7 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
                     <span className="break-words">Site is currently in maintenance mode</span>
                   </div>
                   <p className="text-xs sm:text-sm text-red-700 mb-3 break-words">
-                    All users (except admins and special test accounts) will see the maintenance page
+                    All users, agents, and admin pages will be blocked until maintenance mode is disabled
                   </p>
                   <div className="flex items-center gap-2 text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
                     <Users className="w-3 h-3 flex-shrink-0" />
@@ -317,17 +316,17 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
         </CardContent>
       </Card>
 
-      {/* Special Test Account Information */}
+      {/* Maintenance Lockout Information */}
       <Card>
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-2">
               <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                Bypass Accounts Information
+                Maintenance Lockout Information
               </CardTitle>
               <CardDescription className="text-sm">
-                Accounts that can access the site during maintenance mode
+                Access behavior while maintenance mode is enabled
               </CardDescription>
             </div>
             <Button
@@ -350,8 +349,8 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
                     <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-blue-800 text-sm sm:text-base">Admin Accounts</p>
-                    <p className="text-xs sm:text-sm text-blue-600">All admin users bypass maintenance mode automatically</p>
+                    <p className="font-semibold text-blue-800 text-sm sm:text-base">No user bypass</p>
+                    <p className="text-xs sm:text-sm text-blue-600">Admin, agent, and public pages are blocked during maintenance</p>
                   </div>
                 </div>
               </div>
@@ -362,9 +361,8 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
                     <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-green-800 text-sm sm:text-base">Special Test Account</p>
-                    <p className="text-xs sm:text-sm text-green-600 font-mono break-all">{SPECIAL_TEST_PHONE}</p>
-                    <p className="text-xs text-green-500 mt-1">This agent can login and test during maintenance</p>
+                    <p className="font-semibold text-green-800 text-sm sm:text-base">Disable endpoint remains available</p>
+                    <p className="text-xs text-green-500 mt-1">The maintenance API stays reachable so maintenance mode can be turned off</p>
                   </div>
                 </div>
               </div>
@@ -376,10 +374,10 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
                 <div className="min-w-0">
                   <p className="font-medium text-yellow-800 mb-2 text-sm sm:text-base">Testing Instructions:</p>
                   <ul className="text-xs sm:text-sm text-yellow-700 space-y-1">
-                    <li>• The special test account ({SPECIAL_TEST_PHONE}) can login as an agent during maintenance</li>
-                    <li>• This account will bypass maintenance mode and access all agent features</li>
-                    <li>• Use this account to test functionality while maintenance mode is active</li>
-                    <li>• All other users and agents will see the maintenance page</li>
+                    <li>After enabling maintenance mode, public pages should redirect to the maintenance page</li>
+                    <li>API routes other than the maintenance endpoint should return a 503 maintenance response</li>
+                    <li>Admin and agent pages should remain blocked until maintenance mode is disabled</li>
+                    <li>Disable maintenance mode through the maintenance API before returning to normal site access</li>
                   </ul>
                 </div>
               </div>

@@ -194,8 +194,104 @@ function isUuid(value) {
   return UUID_RE.test(value)
 }
 
+function isMaintenanceAssetPath(pathname) {
+  return (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/images') ||
+    pathname.startsWith('/assets') ||
+    pathname.startsWith('/fonts') ||
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.jpg') ||
+    pathname.endsWith('.jpeg') ||
+    pathname.endsWith('.svg') ||
+    pathname.endsWith('.webp') ||
+    pathname.endsWith('.css') ||
+    pathname.endsWith('.js')
+  )
+}
+
+function isMaintenanceExemptPath(pathname) {
+  return (
+    pathname === '/maintenance' ||
+    pathname === '/api/maintenance' ||
+    isMaintenanceAssetPath(pathname)
+  )
+}
+
+function maintenanceBlockedResponse(request, cacheWindow) {
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Site is currently under maintenance. Please try again later.',
+        code: 'MAINTENANCE_MODE_ENABLED',
+      },
+      {
+        status: 503,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+          'Retry-After': '300',
+          'X-Maintenance-Mode': 'enabled',
+        },
+      },
+    )
+  }
+
+  const maintenanceUrl = new URL('/maintenance', request.url)
+  maintenanceUrl.searchParams.set('v', cacheWindow.toString())
+  const response = NextResponse.redirect(maintenanceUrl)
+  response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+  response.headers.set('Pragma', 'no-cache')
+  response.headers.set('Expires', '0')
+  response.headers.set('X-Maintenance-Redirect', 'true')
+  return response
+}
+
 export async function proxy(request) {
   const { pathname } = request.nextUrl
+
+  if (!isMaintenanceExemptPath(pathname)) {
+    const now = Date.now()
+    const cacheWindow = Math.floor(now / 10000)
+
+    try {
+      const maintenanceResponse = await fetch(`${request.nextUrl.origin}/api/maintenance?v=${cacheWindow}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+        signal: AbortSignal.timeout(3000),
+      })
+
+      if (maintenanceResponse.ok) {
+        const maintenanceData = await maintenanceResponse.json()
+
+        if (maintenanceData.success && maintenanceData.data.isEnabled) {
+          return maintenanceBlockedResponse(request, cacheWindow)
+        }
+
+        const response = NextResponse.next()
+        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+        response.headers.set('Pragma', 'no-cache')
+        response.headers.set('X-Maintenance-Status', 'disabled')
+        return response
+      }
+
+      console.warn(`Maintenance check failed with status ${maintenanceResponse.status}`)
+      return maintenanceBlockedResponse(request, cacheWindow)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(`Maintenance check failed closed (${message})`)
+      return maintenanceBlockedResponse(request, cacheWindow)
+    }
+  }
 
   try {
     const photoGateResponse = await enforceAgentPhotoVerification(request)
@@ -245,100 +341,6 @@ export async function proxy(request) {
     pathname.endsWith('.svg')
   ) {
     return NextResponse.next()
-  }
-
-  if (!request.nextUrl.origin || request.nextUrl.origin === 'http://localhost:3000') {
-    try {
-      const baseUrl = request.nextUrl.origin
-      const now = Date.now()
-      const cacheWindow = Math.floor(now / 10000)
-
-      const maintenanceResponse = await fetch(`${baseUrl}/api/maintenance?v=${cacheWindow}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          Pragma: 'no-cache',
-          Expires: '0',
-        },
-        signal: AbortSignal.timeout(3000),
-      })
-
-      if (maintenanceResponse.ok) {
-        const maintenanceData = await maintenanceResponse.json()
-
-        if (maintenanceData.success && maintenanceData.data.isEnabled) {
-          const adminCookie = request.cookies.get('admin_user')
-          if (adminCookie) {
-            return NextResponse.next()
-          }
-
-          const specialAgentCookie = request.cookies.get('special_agent')
-          const agentPhoneCookie = request.cookies.get('agent_phone')
-          if (specialAgentCookie && agentPhoneCookie) {
-            const phoneNumber = decodeURIComponent(agentPhoneCookie.value)
-            if (phoneNumber === '+233546460945') {
-              return NextResponse.next()
-            }
-          }
-
-          const agentCookie = request.cookies.get('agent')
-          if (agentCookie) {
-            try {
-              const agentData = JSON.parse(agentCookie.value)
-              if (agentData.phone_number === '+233546460945' || agentData.phone === '+233546460945') {
-                return NextResponse.next()
-              }
-            } catch {
-              /* ignore */
-            }
-          }
-
-          const agentAuth = request.cookies.get('agent_auth')
-          if (agentAuth) {
-            try {
-              const authData = JSON.parse(agentAuth.value)
-              if (authData.phone_number === '+233546460945' || authData.phone === '+233546460945') {
-                return NextResponse.next()
-              }
-            } catch {
-              /* ignore */
-            }
-          }
-
-          const userSession = request.cookies.get('user_session')
-          if (userSession) {
-            try {
-              const sessionData = JSON.parse(userSession.value)
-              if (sessionData.phone_number === '+233546460945' || sessionData.phone === '+233546460945') {
-                return NextResponse.next()
-              }
-            } catch {
-              /* ignore */
-            }
-          }
-
-          const maintenanceUrl = new URL('/maintenance', request.url)
-          maintenanceUrl.searchParams.set('v', cacheWindow.toString())
-          const response = NextResponse.redirect(maintenanceUrl)
-          response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-          response.headers.set('Pragma', 'no-cache')
-          response.headers.set('Expires', '0')
-          response.headers.set('X-Maintenance-Redirect', 'true')
-          return response
-        }
-
-        const response = NextResponse.next()
-        response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-        response.headers.set('Pragma', 'no-cache')
-        response.headers.set('X-Maintenance-Status', 'disabled')
-        return response
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.warn(`Middleware maintenance check skipped (${message})`)
-      return NextResponse.next()
-    }
   }
 
   return NextResponse.next()
