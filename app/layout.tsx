@@ -8,6 +8,7 @@ import { DisableGlobalLinkPrefetch } from "@/components/disable-global-link-pref
 import { MenuScrollHandler } from "@/components/menu-scroll-handler"
 import { AnalyticsRoot } from "@/components/analytics/AnalyticsRoot"
 import MaintenanceGate from "@/components/maintenance-gate"
+import { MaintenanceRedirectClient } from "@/components/maintenance-redirect-client"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -1196,6 +1197,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <DisableGlobalLinkPrefetch />
           <MenuScrollHandler />
           <AnalyticsRoot />
+          <MaintenanceRedirectClient />
           <MaintenanceGate>{children}</MaintenanceGate>
           <Toaster />
           <SonnerToaster position="top-right" richColors closeButton />
