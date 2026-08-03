@@ -1,5 +1,6 @@
 ﻿"use client"
-import { useState, useEffect } from "react"
+
+import { useCallback, useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import {
   Clock,
@@ -14,302 +15,258 @@ import {
   Monitor,
   Phone,
   Mail,
+  MessageCircle,
 } from "lucide-react"
 import { formatTimeRemaining, type MaintenanceMode } from "@/lib/maintenance-mode"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+const SUPPORT_PHONE_E164 = "233246827049"
+const SUPPORT_PHONE_DISPLAY = "+233 24 682 7049"
+const SUPPORT_EMAIL = "sales.dataflex@gmail.com"
 
 interface MaintenancePageProps {
   maintenanceData: MaintenanceMode
 }
 
+type TimeParts = {
+  days: number
+  hours: number
+  minutes: number
+  seconds: number
+  total: number
+}
+
+function emptyTime(): TimeParts {
+  return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 }
+}
+
 export default function MaintenancePage({ maintenanceData }: MaintenancePageProps) {
-  const [timeRemaining, setTimeRemaining] = useState<{
-    days: number
-    hours: number
-    minutes: number
-    seconds: number
-    total: number
-  } | null>(() => {
-    if (maintenanceData.countdownEnabled && maintenanceData.countdownEndTime) {
-      return formatTimeRemaining(maintenanceData.countdownEndTime)
-    }
-    return null
-  })
-  const [isMobile, setIsMobile] = useState(false)
+  const [endTime, setEndTime] = useState<string | null>(
+    maintenanceData.countdownEnabled ? maintenanceData.countdownEndTime ?? null : null,
+  )
+  const [countdownEnabled, setCountdownEnabled] = useState(Boolean(maintenanceData.countdownEnabled))
+  const [estimatedCompletion, setEstimatedCompletion] = useState(
+    maintenanceData.estimatedCompletion ?? null,
+  )
+  const [timeRemaining, setTimeRemaining] = useState<TimeParts>(() =>
+    maintenanceData.countdownEnabled && maintenanceData.countdownEndTime
+      ? formatTimeRemaining(maintenanceData.countdownEndTime)
+      : emptyTime(),
+  )
+  const [contactOpen, setContactOpen] = useState(false)
   const [hasReloaded, setHasReloaded] = useState(false)
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false)
+  const checkingRef = useRef(false)
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
+  const tick = useCallback(() => {
+    if (!countdownEnabled || !endTime) {
+      setTimeRemaining(emptyTime())
+      return
     }
-    checkMobile()
-    window.addEventListener("resize", checkMobile)
-    return () => window.removeEventListener("resize", checkMobile)
-  }, [])
+    setTimeRemaining(formatTimeRemaining(endTime))
+  }, [countdownEnabled, endTime])
 
-  // Separate effect for maintenance status checking
+  // Live second-by-second countdown — deps only on the timer source
   useEffect(() => {
-    let statusCheckInterval: NodeJS.Timeout
+    tick()
+    const interval = setInterval(tick, 1000)
+    return () => clearInterval(interval)
+  }, [tick])
 
-    const checkMaintenanceStatus = async () => {
-      if (isCheckingStatus || hasReloaded) return
-
+  // Poll maintenance status + refreshed admin countdown end time
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (checkingRef.current || hasReloaded) return
+      checkingRef.current = true
       try {
-        setIsCheckingStatus(true)
-        const response = await fetch("/api/maintenance", {
+        const response = await fetch(`/api/maintenance?t=${Date.now()}`, {
           method: "GET",
+          cache: "no-store",
           headers: {
-            "Content-Type": "application/json",
             "Cache-Control": "no-cache, no-store, must-revalidate",
             Pragma: "no-cache",
           },
         })
+        if (!response.ok) return
+        const data = await response.json()
+        if (!data.success || !data.data) return
 
-        if (response.ok) {
-          const data = await response.json()
-
-          // If maintenance is disabled, reload the page
-          if (data.success && !data.data.isEnabled) {
-            setHasReloaded(true)
-
-            // Clear any cached data
-            if ("caches" in window) {
-              caches.delete("maintenance-cache").catch(() => {})
-            }
-
-            // Add a small delay to prevent rapid reloads
-            setTimeout(() => {
-              window.location.href = "/"
-            }, 1000)
+        if (!data.data.isEnabled) {
+          setHasReloaded(true)
+          if ("caches" in window) {
+            caches.delete("maintenance-cache").catch(() => {})
           }
+          setTimeout(() => {
+            window.location.href = "/"
+          }, 800)
+          return
+        }
+
+        setCountdownEnabled(Boolean(data.data.countdownEnabled))
+        setEstimatedCompletion(data.data.estimatedCompletion ?? null)
+        if (data.data.countdownEnabled && data.data.countdownEndTime) {
+          setEndTime(data.data.countdownEndTime)
         }
       } catch (error) {
         console.error("Error checking maintenance status:", error)
       } finally {
-        setIsCheckingStatus(false)
+        checkingRef.current = false
       }
     }
 
-    // Check maintenance status every 30 seconds
-    statusCheckInterval = setInterval(checkMaintenanceStatus, 30000)
-
-    // Initial check after 5 seconds
-    const initialCheck = setTimeout(checkMaintenanceStatus, 5000)
-
+    const initial = setTimeout(checkStatus, 3000)
+    const interval = setInterval(checkStatus, 20000)
     return () => {
-      clearInterval(statusCheckInterval)
-      clearTimeout(initialCheck)
+      clearTimeout(initial)
+      clearInterval(interval)
     }
-  }, [isCheckingStatus, hasReloaded])
+  }, [hasReloaded])
 
-  // Countdown effect
-  useEffect(() => {
-    if (!maintenanceData.countdownEnabled || !maintenanceData.countdownEndTime) {
-      return
-    }
+  const showLiveCountdown = countdownEnabled && Boolean(endTime)
+  const isLive = showLiveCountdown && timeRemaining.total > 0
 
-    const updateCountdown = () => {
-      const remaining = formatTimeRemaining(maintenanceData.countdownEndTime!)
-      setTimeRemaining(remaining)
-
-      // If countdown is finished, check maintenance status
-      if (remaining.total <= 0 && !hasReloaded && !isCheckingStatus) {
-        setIsCheckingStatus(true)
-
-        // Check maintenance status after countdown ends
-        fetch("/api/maintenance", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            Pragma: "no-cache",
-          },
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success && !data.data.isEnabled) {
-              setHasReloaded(true)
-
-              // Clear caches
-              if ("caches" in window) {
-                caches.delete("maintenance-cache").catch(() => {})
-              }
-
-              setTimeout(() => {
-                window.location.href = "/"
-              }, 2000)
-            } else {
-              setIsCheckingStatus(false)
-            }
-          })
-          .catch((error) => {
-            console.error("Error checking maintenance after countdown:", error)
-            setIsCheckingStatus(false)
-          })
-      }
-    }
-
-    // Update immediately
-    updateCountdown()
-
-    // Update every second
-    const interval = setInterval(updateCountdown, 1000)
-
-    return () => clearInterval(interval)
-  }, [maintenanceData.countdownEnabled, maintenanceData.countdownEndTime, hasReloaded, isCheckingStatus])
+  const units = [
+    { label: "Days", value: timeRemaining.days },
+    { label: "Hours", value: timeRemaining.hours },
+    { label: "Minutes", value: timeRemaining.minutes },
+    { label: "Seconds", value: timeRemaining.seconds },
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-green-50 to-emerald-50 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-60 h-60 md:w-80 md:h-80 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-60 h-60 md:w-80 md:h-80 bg-green-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 md:w-96 md:h-96 bg-emerald-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-4000"></div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-zinc-100 to-stone-200 relative overflow-hidden">
       <div className="relative z-10 flex items-center justify-center min-h-screen p-2 sm:p-4">
         <div className="max-w-6xl w-full">
-          {/* Main Content Card */}
-          <div className="bg-white/90 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
-            {/* Header Section with Hero Image */}
-            <div className="relative h-48 sm:h-64 md:h-80 lg:h-96 bg-gradient-to-r from-yellow-400 via-green-500 to-emerald-600">
-              <div className="absolute inset-0 bg-black/60"></div>
-              <Image
-                src="/images/hero-main.jpg"
-                alt="DataFlex Ghana"
-                fill
-                className="object-cover object-center"
-                priority
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden">
+            {/* Dark hero — no photo, no white-on-white */}
+            <div className="relative min-h-[14rem] sm:min-h-[18rem] md:min-h-[22rem] bg-gradient-to-br from-zinc-900 via-slate-800 to-zinc-900">
+              <div
+                className="absolute inset-0 opacity-[0.12]"
+                style={{
+                  backgroundImage:
+                    "radial-gradient(circle at 20% 20%, #94a3b8 0%, transparent 40%), radial-gradient(circle at 80% 60%, #64748b 0%, transparent 35%)",
+                }}
               />
-              {/* Floating Elements */}
-              <div className="absolute top-3 left-3 sm:top-6 sm:left-6 w-12 h-12 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-sm rounded-xl sm:rounded-2xl flex items-center justify-center animate-bounce">
-                <Wrench className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+              <div className="absolute top-3 left-3 sm:top-6 sm:left-6 w-12 h-12 sm:w-14 sm:h-14 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/15">
+                <Wrench className="w-6 h-6 sm:w-7 sm:h-7 text-amber-300" />
               </div>
-              <div className="absolute top-3 right-3 sm:top-6 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl flex items-center justify-center animate-pulse">
-                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="absolute top-3 right-3 sm:top-6 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/15">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-300" />
               </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white max-w-4xl px-3 sm:px-6">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 border-2 border-white/40 shadow-2xl">
-                    <Wrench className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16 text-white animate-pulse" />
+              <div className="relative flex items-center justify-center px-4 py-10 sm:py-14 md:py-16">
+                <div className="text-center max-w-4xl">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 border border-white/20 shadow-xl">
+                    <Wrench className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-amber-300" />
                   </div>
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl xl:text-7xl font-bold mb-2 sm:mb-4 drop-shadow-2xl tracking-tight leading-tight text-white">
+                  <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-3 tracking-tight leading-tight text-white drop-shadow-lg">
                     {maintenanceData.title}
                   </h1>
-                  <p className="text-sm sm:text-lg md:text-xl lg:text-2xl text-white font-medium mb-2 sm:mb-4 drop-shadow-lg">
+                  <p className="text-sm sm:text-lg md:text-xl text-slate-200 font-medium mb-4">
                     DataFlex Ghana Platform
                   </p>
-                  <div className="inline-flex items-center gap-2 sm:gap-3 bg-white/20 backdrop-blur-sm px-3 sm:px-6 py-2 sm:py-3 rounded-full border border-white/30">
-                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 animate-pulse" />
-                    <span className="text-sm sm:text-lg font-semibold text-white drop-shadow-md">
+                  <div className="inline-flex items-center gap-2 sm:gap-3 bg-black/30 backdrop-blur-sm px-3 sm:px-5 py-2 sm:py-2.5 rounded-full border border-white/15">
+                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+                    <span className="text-sm sm:text-base font-semibold text-white">
                       Scheduled Maintenance in Progress
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-            {/* Content Section */}
+
             <div className="p-4 sm:p-6 md:p-8 lg:p-12 xl:p-16">
-              {/* Logo Section */}
               <div className="flex justify-center mb-8 sm:mb-12">
-                <div className="relative group">
-                  <div className="absolute -inset-2 bg-gradient-to-r from-yellow-400 to-green-500 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-                  <div className="relative bg-white p-3 sm:p-4 rounded-2xl shadow-xl">
-                    <Image
-                      src="/images/logo-new.png"
-                      alt="DataFlex Ghana Logo"
-                      width={160}
-                      height={50}
-                      className="h-8 sm:h-10 md:h-12 w-auto"
-                    />
-                  </div>
+                <div className="relative bg-white p-3 sm:p-4 rounded-2xl shadow-lg border border-slate-100">
+                  <Image
+                    src="/images/logo-new.png"
+                    alt="DataFlex Ghana Logo"
+                    width={160}
+                    height={50}
+                    className="h-8 sm:h-10 md:h-12 w-auto"
+                  />
                 </div>
               </div>
-              {/* Main Message */}
+
               <div className="text-center mb-8 sm:mb-12">
                 <div className="max-w-4xl mx-auto">
-                  <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-700 leading-relaxed mb-6 sm:mb-8 font-light px-2">
+                  <p className="text-base sm:text-lg md:text-xl text-slate-700 leading-relaxed mb-6 sm:mb-8 font-light px-2">
                     {maintenanceData.message}
                   </p>
                   <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-6 sm:mb-8">
-                    <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium">
+                    <div className="flex items-center gap-2 bg-amber-100 text-amber-900 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium">
                       <Monitor className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="whitespace-nowrap">Desktop & Mobile</span>
+                      <span>Desktop &amp; Mobile</span>
                     </div>
-                    <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium">
+                    <div className="flex items-center gap-2 bg-emerald-100 text-emerald-900 px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium">
                       <Smartphone className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="whitespace-nowrap">All Platforms Affected</span>
+                      <span>All Platforms Affected</span>
                     </div>
                   </div>
                 </div>
               </div>
-              {/* Enhanced Countdown Timer */}
-              {maintenanceData.countdownEnabled && maintenanceData.countdownEndTime && timeRemaining && (
+
+              {/* Live countdown */}
+              {showLiveCountdown && (
                 <div className="mb-12 sm:mb-16">
-                  {timeRemaining.total > 0 ? (
-                    <>
-                      <div className="text-center mb-6 sm:mb-8">
-                        <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-3 sm:mb-4 flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
-                          <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
-                          <span>Estimated Time Remaining</span>
-                        </h3>
-                        <p className="text-gray-600 text-sm sm:text-base md:text-lg px-4">
-                          We're working hard to get everything back online
-                        </p>
-                      </div>
-                      <div className="max-w-4xl mx-auto">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                          {[
-                            { label: "Days", value: timeRemaining.days, color: "from-red-500 to-pink-600" },
-                            { label: "Hours", value: timeRemaining.hours, color: "from-yellow-500 to-orange-600" },
-                            { label: "Minutes", value: timeRemaining.minutes, color: "from-green-500 to-emerald-600" },
-                            { label: "Seconds", value: timeRemaining.seconds, color: "from-blue-500 to-indigo-600" },
-                          ].map((item, index) => (
-                            <div key={index} className="group">
-                              <div
-                                className={`bg-gradient-to-br ${item.color} rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 text-white text-center shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-3xl`}
-                              >
-                                <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-1 sm:mb-2 font-mono">
-                                  {item.value.toString().padStart(2, "0")}
-                                </div>
-                                <div className="text-xs sm:text-sm md:text-base font-semibold opacity-90 uppercase tracking-wider">
-                                  {item.label}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                  <div className="text-center mb-6 sm:mb-8">
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 mb-2 flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                      <Clock className="w-6 h-6 sm:w-7 sm:h-7 text-slate-600" />
+                      <span>{isLive ? "Time Remaining" : "Estimated Completion"}</span>
+                    </h3>
+                    <p className="text-slate-500 text-sm sm:text-base">
+                      {isLive
+                        ? "Live countdown · updates every second"
+                        : "Maintenance is taking a little longer than expected. Thank you for your patience."}
+                    </p>
+                  </div>
+
+                  <div className="max-w-3xl mx-auto">
+                    <div className="grid grid-cols-4 gap-2 sm:gap-4">
+                      {units.map((item) => (
+                        <div
+                          key={item.label}
+                          className="rounded-2xl border border-slate-200 bg-slate-900 text-center px-2 py-4 sm:px-4 sm:py-6 shadow-lg"
+                        >
+                          <div
+                            className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-white tabular-nums font-mono transition-opacity duration-200"
+                            key={`${item.label}-${item.value}`}
+                          >
+                            {item.value.toString().padStart(2, "0")}
+                          </div>
+                          <div className="mt-2 text-[10px] sm:text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
+                            {item.label}
+                          </div>
                         </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center">
-                      <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-4 flex items-center justify-center gap-2 sm:gap-3">
-                        <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
-                        <span>Estimated Completion</span>
-                      </h3>
-                      <p className="text-lg sm:text-xl md:text-2xl font-semibold text-emerald-700">
-                        {new Date(
-                          maintenanceData.estimatedCompletion || maintenanceData.countdownEndTime,
-                        ).toLocaleString("en-GB", {
-                          dateStyle: "full",
-                          timeStyle: "short",
-                          timeZone: "Africa/Accra",
-                        })}
-                      </p>
-                      <p className="text-gray-600 mt-3 text-sm sm:text-base">
-                        Maintenance is taking a little longer than expected. Thank you for your patience.
-                      </p>
+                      ))}
                     </div>
-                  )}
+                    {!isLive && (estimatedCompletion || endTime) && (
+                      <p className="mt-5 text-center text-sm sm:text-base text-slate-600">
+                        Target:{" "}
+                        <span className="font-semibold text-slate-800">
+                          {new Date(estimatedCompletion || endTime!).toLocaleString("en-GB", {
+                            dateStyle: "full",
+                            timeStyle: "short",
+                            timeZone: "Africa/Accra",
+                          })}
+                        </span>
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
-              {!maintenanceData.countdownEnabled && maintenanceData.estimatedCompletion && (
+
+              {!showLiveCountdown && estimatedCompletion && (
                 <div className="mb-12 sm:mb-16 text-center">
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-4 flex items-center justify-center gap-2 sm:gap-3">
-                    <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 mb-4 flex items-center justify-center gap-2 sm:gap-3">
+                    <Clock className="w-6 h-6 sm:w-7 sm:h-7 text-slate-600" />
                     <span>Estimated Completion</span>
                   </h3>
-                  <p className="text-lg sm:text-xl md:text-2xl font-semibold text-emerald-700">
-                    {new Date(maintenanceData.estimatedCompletion).toLocaleString("en-GB", {
+                  <p className="text-lg sm:text-xl md:text-2xl font-semibold text-slate-800">
+                    {new Date(estimatedCompletion).toLocaleString("en-GB", {
                       dateStyle: "full",
                       timeStyle: "short",
                       timeZone: "Africa/Accra",
@@ -317,12 +274,12 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
                   </p>
                 </div>
               )}
-              {/* Enhanced Status Updates */}
+
               <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 mb-12 sm:mb-16">
-                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-yellow-200/50 shadow-xl">
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 flex-wrap">
-                    <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
-                    <span>What We're Working On</span>
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-amber-200/50 shadow-lg">
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                    <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
+                    <span>What We&apos;re Working On</span>
                   </h3>
                   <div className="space-y-3 sm:space-y-4">
                     {[
@@ -332,29 +289,33 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
                         desc: "Improving platform performance and speed",
                       },
                       { icon: Shield, title: "Security Updates", desc: "Enhancing platform security measures" },
-                      { icon: Database, title: "Database Maintenance", desc: "Optimizing data storage and retrieval" },
+                      {
+                        icon: Database,
+                        title: "Database Maintenance",
+                        desc: "Optimizing data storage and retrieval",
+                      },
                       {
                         icon: Zap,
                         title: "Feature Enhancements",
                         desc: "Adding new capabilities for better experience",
                       },
-                    ].map((item, index) => (
-                      <div key={index} className="flex items-start gap-3 sm:gap-4 group">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-200 transition-colors">
-                          <item.icon className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
+                    ].map((item) => (
+                      <div key={item.title} className="flex items-start gap-3 sm:gap-4">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                          <item.icon className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-gray-800 mb-1 text-sm sm:text-base">{item.title}</p>
-                          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{item.desc}</p>
+                          <p className="font-semibold text-slate-800 mb-1 text-sm sm:text-base">{item.title}</p>
+                          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{item.desc}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-green-200/50 shadow-xl">
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3 flex-wrap">
-                    <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                    <span>Your Data & Orders Are Safe</span>
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-emerald-200/50 shadow-lg">
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+                    <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+                    <span>Your Data &amp; Orders Are Safe</span>
                   </h3>
                   <div className="space-y-4 sm:space-y-6">
                     {[
@@ -362,76 +323,76 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
                         icon: CheckCircle,
                         title: "Pending Orders",
                         desc: "All pending orders will be processed once maintenance is complete",
-                        color: "blue",
                       },
                       {
                         icon: Shield,
                         title: "Account Data",
                         desc: "Your account information and earnings are completely secure",
-                        color: "green",
                       },
                       {
                         icon: Database,
                         title: "Transactions",
                         desc: "All financial transactions will resume automatically",
-                        color: "purple",
                       },
-                    ].map((item, index) => (
-                      <div key={index} className="text-center group">
-                        <div
-                          className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-${item.color}-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-3 group-hover:bg-${item.color}-200 transition-colors shadow-lg`}
-                        >
-                          <item.icon className={`w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-${item.color}-600`} />
+                    ].map((item) => (
+                      <div key={item.title} className="text-center">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-sm">
+                          <item.icon className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-700" />
                         </div>
-                        <p className="font-semibold text-gray-800 mb-1 sm:mb-2 text-sm sm:text-base">{item.title}</p>
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed px-2">{item.desc}</p>
+                        <p className="font-semibold text-slate-800 mb-1 sm:mb-2 text-sm sm:text-base">{item.title}</p>
+                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed px-2">{item.desc}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-              {/* Enhanced Contact Information */}
-              <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 mb-8 sm:mb-12 border border-gray-200/50 shadow-xl">
+
+              {/* Contact */}
+              <div className="bg-gradient-to-r from-slate-50 to-zinc-50 rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 mb-8 sm:mb-12 border border-slate-200/60 shadow-lg">
                 <div className="text-center mb-6 sm:mb-8">
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-3 sm:mb-4">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-800 mb-3 sm:mb-4">
                     Need Urgent Assistance?
                   </h3>
-                  <p className="text-gray-600 text-sm sm:text-base md:text-lg px-4">
+                  <p className="text-slate-600 text-sm sm:text-base md:text-lg px-4">
                     Our support team is standing by to help you
                   </p>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 max-w-2xl mx-auto">
-                  <a
-                    href="tel:+233246827049"
-                    className="flex items-center justify-center gap-3 sm:gap-4 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-gray-100 group"
+                  <button
+                    type="button"
+                    onClick={() => setContactOpen(true)}
+                    className="flex items-center justify-center gap-3 sm:gap-4 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border border-slate-100 group text-left"
                   >
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                      <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-100 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                      <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-700" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-800 text-sm sm:text-base">Call or WhatsApp</p>
+                      <p className="text-emerald-700 font-medium text-sm sm:text-base truncate">
+                        {SUPPORT_PHONE_DISPLAY}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">Tap to choose</p>
+                    </div>
+                  </button>
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}`}
+                    className="flex items-center justify-center gap-3 sm:gap-4 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border border-slate-100 group"
+                  >
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-sky-100 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:bg-sky-200 transition-colors">
+                      <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-sky-700" />
                     </div>
                     <div className="text-left min-w-0 flex-1">
-                      <p className="font-semibold text-gray-800 text-sm sm:text-base">Call Us</p>
-                      <p className="text-green-600 font-medium text-sm sm:text-base truncate">+233-24-279-9990</p>
-                    </div>
-                  </a>
-                  <a
-                    href="mailto:support@dataflexghana.com"
-                    className="flex items-center justify-center gap-3 sm:gap-4 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border border-gray-100 group"
-                  >
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                      <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                    </div>
-                    <div className="text-left min-w-0 flex-1">
-                      <p className="font-semibold text-gray-800 text-sm sm:text-base">Email Us</p>
-                      <p className="text-blue-600 font-medium text-xs sm:text-sm md:text-base truncate">
-                        support@dataflexghana.com
+                      <p className="font-semibold text-slate-800 text-sm sm:text-base">Email Us</p>
+                      <p className="text-sky-700 font-medium text-xs sm:text-sm md:text-base truncate">
+                        {SUPPORT_EMAIL}
                       </p>
                     </div>
                   </a>
                 </div>
               </div>
-              {/* Auto-refresh Notice */}
+
               <div className="text-center">
-                <div className="inline-flex items-center gap-2 sm:gap-3 text-gray-500 bg-gray-100/80 backdrop-blur-sm px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border border-gray-200/50 shadow-lg">
+                <div className="inline-flex items-center gap-2 sm:gap-3 text-slate-500 bg-slate-100/90 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl border border-slate-200/60 shadow-sm">
                   <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                   <span className="font-medium text-xs sm:text-sm md:text-base text-center">
                     This page will automatically refresh when maintenance is complete
@@ -440,12 +401,53 @@ export default function MaintenancePage({ maintenanceData }: MaintenancePageProp
               </div>
             </div>
           </div>
-          {/* Footer */}
-          <div className="text-center mt-6 sm:mt-8 text-gray-500">
-            <p className="text-sm sm:text-base md:text-lg">&copy; {new Date().getFullYear()} DataFlex Ghana. All rights reserved.</p>
+
+          <div className="text-center mt-6 sm:mt-8 text-slate-500">
+            <p className="text-sm sm:text-base md:text-lg">
+              &copy; {new Date().getFullYear()} DataFlex Ghana. All rights reserved.
+            </p>
           </div>
         </div>
       </div>
+
+      <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Contact us</DialogTitle>
+            <DialogDescription>
+              Choose how you want to reach {SUPPORT_PHONE_DISPLAY}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 pt-2">
+            <a
+              href={`https://wa.me/${SUPPORT_PHONE_E164}?text=${encodeURIComponent(
+                "Hello DataFlex Ghana, I need assistance during maintenance.",
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-emerald-900 hover:bg-emerald-100 transition-colors"
+              onClick={() => setContactOpen(false)}
+            >
+              <MessageCircle className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">WhatsApp</p>
+                <p className="text-xs text-emerald-800/80">Send a message</p>
+              </div>
+            </a>
+            <a
+              href={`tel:+${SUPPORT_PHONE_E164}`}
+              className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-900 hover:bg-slate-100 transition-colors"
+              onClick={() => setContactOpen(false)}
+            >
+              <Phone className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Call</p>
+                <p className="text-xs text-slate-600">Phone dialer</p>
+              </div>
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

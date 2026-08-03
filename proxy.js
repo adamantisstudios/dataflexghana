@@ -376,6 +376,7 @@ export async function proxy(request) {
           return attachRequestPathHeader(request, response)
         }
 
+        // Explicitly lock referral hub, public storefronts, and referral domain paths
         return maintenanceBlockedResponse(request)
       }
 

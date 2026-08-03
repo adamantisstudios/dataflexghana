@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
+import { redirect } from "next/navigation"
 import { getStorefrontPageMetadata, resolveStoreSegmentToAgentId } from "@/lib/storefront-server"
 import { buildStorefrontPageMetadata } from "@/lib/storefront-pwa-metadata"
 import { buildStorefrontPathUrl, getStorefrontOrigin } from "@/lib/storefront-utils"
+import { fetchMaintenanceStatusServer } from "@/lib/maintenance-server"
 
 const RESERVED_SEGMENTS = new Set(["not-available", "payment-failed", "invalid-agent"])
 
@@ -42,6 +44,10 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
   )
 }
 
-export default function StoreSegmentLayout({ children }: { children: ReactNode }) {
+export default async function StoreSegmentLayout({ children }: { children: ReactNode }) {
+  const maintenance = await fetchMaintenanceStatusServer()
+  if (maintenance?.isEnabled) {
+    redirect("/maintenance")
+  }
   return children
 }

@@ -51,15 +51,21 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
   const [showTestInfo, setShowTestInfo] = useState(false)
 
   // Form state
+  const toLocalInput = (iso?: string | null) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
   const [formData, setFormData] = useState({
     isEnabled: initialData.isEnabled,
     title: initialData.title,
     message: initialData.message,
     countdownEnabled: initialData.countdownEnabled,
-    countdownEndTime: initialData.countdownEndTime ?
-      new Date(initialData.countdownEndTime).toISOString().slice(0, 16) : '',
-    estimatedCompletion: initialData.estimatedCompletion ?
-      new Date(initialData.estimatedCompletion).toISOString().slice(0, 16) : ''
+    countdownEndTime: toLocalInput(initialData.countdownEndTime),
+    estimatedCompletion: toLocalInput(initialData.estimatedCompletion),
   })
 
   const [timeRemaining, setTimeRemaining] = useState<{
@@ -133,13 +139,19 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
   const handleSaveSettings = async () => {
     setIsLoading(true)
     try {
+      const toIso = (localValue: string) => {
+        if (!localValue) return null
+        const parsed = new Date(localValue)
+        return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString()
+      }
+
       const result = await updateMaintenanceMode({
         isEnabled: formData.isEnabled,
         title: formData.title || 'Site Under Maintenance',
         message: formData.message || 'We are currently performing scheduled maintenance to improve your experience. All pending orders and transactions will be processed once maintenance is complete. Thank you for your patience.',
         countdownEnabled: formData.countdownEnabled,
-        countdownEndTime: formData.countdownEndTime || null,
-        estimatedCompletion: formData.estimatedCompletion || null
+        countdownEndTime: formData.countdownEnabled ? toIso(formData.countdownEndTime) : null,
+        estimatedCompletion: toIso(formData.estimatedCompletion)
       })
 
       if (result.success && result.data) {
@@ -193,7 +205,9 @@ export default function AdminMaintenanceControl({ initialData }: AdminMaintenanc
   const setQuickCountdown = (hours: number) => {
     const endTime = new Date()
     endTime.setHours(endTime.getHours() + hours)
-    handleInputChange('countdownEndTime', endTime.toISOString().slice(0, 16))
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const localValue = `${endTime.getFullYear()}-${pad(endTime.getMonth() + 1)}-${pad(endTime.getDate())}T${pad(endTime.getHours())}:${pad(endTime.getMinutes())}`
+    handleInputChange('countdownEndTime', localValue)
     handleInputChange('countdownEnabled', true)
   }
 

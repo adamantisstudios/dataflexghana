@@ -67,7 +67,9 @@ export default async function MaintenanceGate({ children }: { children: ReactNod
     return children
   }
 
-  if (known && !(await shouldBypassMaintenanceServer(pathname))) {
+  // Fail closed: if maintenance is on and this path is not an explicit bypass, block.
+  // Also block when pathname cannot be determined (prevents storefront/referral leaks).
+  if (!known || !(await shouldBypassMaintenanceServer(pathname))) {
     redirect("/maintenance")
   }
 
