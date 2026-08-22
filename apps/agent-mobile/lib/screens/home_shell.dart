@@ -27,11 +27,21 @@ class _HomeShellState extends State<HomeShell> {
   int _notifCount = 0;
   bool _loading = true;
   String? _error;
+  final _bundlesKey = GlobalKey<DataBundlesScreenState>();
+  final _ordersKey = GlobalKey<OrdersScreenState>();
+  final _walletKey = GlobalKey<WalletScreenState>();
 
   @override
   void initState() {
     super.initState();
     _bootstrap();
+  }
+
+  void _onTab(int i) {
+    setState(() => _tab = i);
+    if (i == 1) _bundlesKey.currentState?.reload(force: true);
+    if (i == 2) _ordersKey.currentState?.reload();
+    if (i == 3) _walletKey.currentState?.reload();
   }
 
   Future<void> _bootstrap() async {
@@ -73,7 +83,7 @@ class _HomeShellState extends State<HomeShell> {
   void _openMenu(MenuCardData item) {
     switch (item.kind) {
       case MenuKind.nativeData:
-        setState(() => _tab = 1);
+        _onTab(1);
         break;
       case MenuKind.nativeCompliance:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComplianceScreen()));
@@ -157,7 +167,7 @@ class _HomeShellState extends State<HomeShell> {
                         ],
                       ),
                     ),
-                    Image.asset('assets/images/logo.png', height: 36),
+                    Image.asset('assets/images/dataflex_logo.png', height: 40),
                   ],
                 ),
               ),
@@ -255,16 +265,16 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final pages = [
       _homeTab(),
-      const DataBundlesScreen(embedded: true),
-      const OrdersScreen(embedded: true),
-      const WalletScreen(embedded: true),
+      DataBundlesScreen(key: _bundlesKey, embedded: true),
+      OrdersScreen(key: _ordersKey, embedded: true),
+      WalletScreen(key: _walletKey, embedded: true),
     ];
 
     return Scaffold(
       body: IndexedStack(index: _tab, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
+        onDestinationSelected: _onTab,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
           NavigationDestination(

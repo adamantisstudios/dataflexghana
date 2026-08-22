@@ -73,6 +73,14 @@ export const COMPLIANCE_FORMS = [
   },
 ] as const
 
+function normalizeBundleNetwork(provider: string | null | undefined): "MTN" | "AirtelTigo" | "Telecel" | "Other" {
+  const u = String(provider || "").toUpperCase()
+  if (u.includes("MTN")) return "MTN"
+  if (u.includes("TELECEL") || u.includes("VODAFONE")) return "Telecel"
+  if (u.includes("AIRTEL") || u.includes("TIGO") || u === "AT") return "AirtelTigo"
+  return "Other"
+}
+
 export async function listActiveDataBundles() {
   const db = getAdminClient()
   const { data, error } = await db
@@ -83,12 +91,23 @@ export async function listActiveDataBundles() {
     .order("size_gb", { ascending: true })
 
   if (error) throw new Error(error.message)
-  const bundles = data || []
-  const byProvider: Record<string, typeof bundles> = {}
+
+  const raw = data || []
+  const bundles = raw.map((b) => ({
+    ...b,
+    network: normalizeBundleNetwork(b.provider),
+    provider_label: normalizeBundleNetwork(b.provider) === "Other" ? String(b.provider || "Other") : normalizeBundleNetwork(b.provider),
+  }))
+
+  const byProvider: Record<string, typeof bundles> = {
+    MTN: [],
+    AirtelTigo: [],
+    Telecel: [],
+  }
   for (const b of bundles) {
-    const key = String(b.provider || "Other")
-    if (!byProvider[key]) byProvider[key] = []
-    byProvider[key].push(b)
+    if (b.network === "MTN" || b.network === "AirtelTigo" || b.network === "Telecel") {
+      byProvider[b.network].push(b)
+    }
   }
   return { bundles, byProvider }
 }

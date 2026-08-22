@@ -91,7 +91,7 @@ class ApiClient {
       headers: await SessionStore.instance.authHeaders(),
     );
     final data = await _decode(res);
-    await CacheStore.instance.putJson('bundles', data, ttl: const Duration(hours: 2));
+    await CacheStore.instance.putJson('bundles', data, ttl: const Duration(minutes: 5));
     return data;
   }
 
@@ -111,8 +111,9 @@ class ApiClient {
     );
     final data = await _decode(res);
     await CacheStore.instance.invalidate('home');
-    await CacheStore.instance.invalidate('orders');
+    await CacheStore.instance.invalidatePrefix('orders');
     await CacheStore.instance.invalidate('wallet');
+    await CacheStore.instance.invalidate('bundles');
     return data;
   }
 

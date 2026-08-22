@@ -11,10 +11,10 @@ class WalletScreen extends StatefulWidget {
   final bool embedded;
 
   @override
-  State<WalletScreen> createState() => _WalletScreenState();
+  State<WalletScreen> createState() => WalletScreenState();
 }
 
-class _WalletScreenState extends State<WalletScreen> {
+class WalletScreenState extends State<WalletScreen> {
   Map<String, dynamic>? _data;
   bool _loading = true;
   String? _error;
@@ -34,6 +34,8 @@ class _WalletScreenState extends State<WalletScreen> {
     _ref.dispose();
     super.dispose();
   }
+
+  Future<void> reload({bool force = true}) => _load(force: force);
 
   Future<void> _load({bool force = true}) async {
     setState(() {

@@ -10,10 +10,10 @@ class DataBundlesScreen extends StatefulWidget {
   final bool embedded;
 
   @override
-  State<DataBundlesScreen> createState() => _DataBundlesScreenState();
+  State<DataBundlesScreen> createState() => DataBundlesScreenState();
 }
 
-class _DataBundlesScreenState extends State<DataBundlesScreen> {
+class DataBundlesScreenState extends State<DataBundlesScreen> {
   static const providers = ['MTN', 'AirtelTigo', 'Telecel'];
   static const logos = {
     'MTN': 'assets/images/mtn.jpg',
@@ -25,44 +25,71 @@ class _DataBundlesScreenState extends State<DataBundlesScreen> {
   Map<String, dynamic>? _payload;
   bool _loading = true;
   String? _error;
+  double _walletBalance = 0;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    reload(force: true);
   }
 
-  Future<void> _load({bool force = false}) async {
+  /// Called from HomeShell when Buy tab is opened.
+  Future<void> reload({bool force = true}) => _load(force: force);
+
+  Future<void> _load({bool force = true}) async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final data = await ApiClient.instance.dataBundles(forceRefresh: force);
-      setState(() => _payload = data);
+      if (!mounted) return;
+      final wb = data['wallet_balance'];
+      setState(() {
+        _payload = data;
+        _walletBalance = wb is num ? wb.toDouble() : double.tryParse('$wb') ?? 0;
+      });
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.message);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
+  String _normProvider(String? raw) {
+    final u = (raw ?? '').toUpperCase();
+    if (u.contains('MTN')) return 'MTN';
+    if (u.contains('TELECEL') || u.contains('VODAFONE')) return 'Telecel';
+    if (u.contains('AIRTEL') || u.contains('TIGO') || u == 'AT') return 'AirtelTigo';
+    return raw?.trim() ?? '';
+  }
+
+  List<Map<String, dynamic>> get _allBundles {
+    final all = _payload?['bundles'];
+    if (all is! List) return [];
+    return all.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
   List<Map<String, dynamic>> get _bundles {
+    // Prefer normalized network field from API, then by_provider, then raw provider.
     final by = _payload?['by_provider'];
     if (by is Map && by[_provider] is List) {
-      return (by[_provider] as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-    }
-    final all = _payload?['bundles'];
-    if (all is List) {
-      return all
+      final list = (by[_provider] as List)
           .whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e))
-          .where((b) => b['provider']?.toString() == _provider)
           .toList();
+      if (list.isNotEmpty) return list;
     }
-    return [];
+    return _allBundles.where((b) {
+      final network = b['network']?.toString();
+      if (network != null && network.isNotEmpty) return network == _provider;
+      return _normProvider(b['provider']?.toString()) == _provider;
+    }).toList();
   }
 
   double _num(Object? v) {
@@ -82,6 +109,7 @@ class _DataBundlesScreenState extends State<DataBundlesScreen> {
   @override
   Widget build(BuildContext context) {
     final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.embedded)
           SafeArea(
@@ -90,24 +118,53 @@ class _DataBundlesScreenState extends State<DataBundlesScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
                 children: [
+                  Image.asset('assets/images/dataflex_logo.png', height: 28),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Buy data',
                       style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800),
                     ),
                   ),
-                  IconButton(onPressed: () => _load(force: true), icon: const Icon(Icons.refresh)),
+                  IconButton(onPressed: () => reload(force: true), icon: const Icon(Icons.refresh)),
                 ],
               ),
             ),
           ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: DfColors.brand.withValues(alpha: 0.15)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.account_balance_wallet, color: DfColors.brandDark, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Wallet  GHS ${_walletBalance.toStringAsFixed(2)}',
+                    style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Text(
+                  '${_bundles.length} packs',
+                  style: const TextStyle(color: DfColors.muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
         SizedBox(
           height: 96,
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
             scrollDirection: Axis.horizontal,
             itemCount: providers.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
             itemBuilder: (context, i) {
               final p = providers[i];
               final selected = p == _provider;
@@ -150,22 +207,57 @@ class _DataBundlesScreenState extends State<DataBundlesScreen> {
         ),
         if (_loading) const Expanded(child: Center(child: CircularProgressIndicator(color: DfColors.brand))),
         if (!_loading && _error != null)
-          Expanded(child: Center(child: Text(_error!, style: const TextStyle(color: DfColors.danger)))),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: DfColors.danger)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: () => reload(force: true), child: const Text('Retry')),
+                ],
+              ),
+            ),
+          ),
         if (!_loading && _error == null)
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => _load(force: true),
+              onRefresh: () => reload(force: true),
+              color: DfColors.brand,
               child: _bundles.isEmpty
                   ? ListView(
-                      children: const [
-                        SizedBox(height: 80),
-                        Center(child: Text('No bundles for this network', style: TextStyle(color: DfColors.muted))),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        const SizedBox(height: 60),
+                        const Icon(Icons.sim_card_alert_outlined, size: 48, color: DfColors.muted),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No $_provider bundles loaded',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: DfColors.muted, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Total from server: ${_allBundles.length}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: DfColors.muted, fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: () => reload(force: true),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Reload packs'),
+                          ),
+                        ),
                       ],
                     )
                   : ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       itemCount: _bundles.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (context, index) => const SizedBox(height: 10),
                       itemBuilder: (context, i) {
                         final b = _bundles[i];
                         final price = _num(b['price']);
@@ -176,10 +268,16 @@ class _DataBundlesScreenState extends State<DataBundlesScreen> {
                           borderRadius: BorderRadius.circular(18),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(18),
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => OrderBundleScreen(bundle: b)),
+                            onTap: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => OrderBundleScreen(
+                                    bundle: b,
+                                    walletBalance: _walletBalance,
+                                  ),
+                                ),
                               );
+                              reload(force: true);
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(16),
@@ -218,12 +316,25 @@ class _DataBundlesScreenState extends State<DataBundlesScreen> {
                                       ],
                                     ),
                                   ),
-                                  Text(
-                                    'GHS ${price.toStringAsFixed(2)}',
-                                    style: GoogleFonts.outfit(
-                                      fontWeight: FontWeight.w800,
-                                      color: DfColors.brandDark,
-                                    ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        'GHS ${price.toStringAsFixed(2)}',
+                                        style: GoogleFonts.outfit(
+                                          fontWeight: FontWeight.w800,
+                                          color: DfColors.brandDark,
+                                        ),
+                                      ),
+                                      const Text(
+                                        'Order',
+                                        style: TextStyle(
+                                          color: DfColors.brand,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -237,12 +348,20 @@ class _DataBundlesScreenState extends State<DataBundlesScreen> {
       ],
     );
 
-    if (widget.embedded) return body;
+    if (widget.embedded) {
+      return ColoredBox(color: DfColors.sand, child: body);
+    }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Data Bundles'),
+        title: Row(
+          children: [
+            Image.asset('assets/images/dataflex_logo.png', height: 28),
+            const SizedBox(width: 10),
+            const Text('Data Bundles'),
+          ],
+        ),
         actions: [
-          IconButton(onPressed: () => _load(force: true), icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: () => reload(force: true), icon: const Icon(Icons.refresh)),
         ],
       ),
       body: body,

@@ -52,9 +52,16 @@ class SessionStore {
     if (agent == null || agent['id'] == null) {
       return {'Content-Type': 'application/json'};
     }
-    final bearer = base64Encode(utf8.encode(jsonEncode(agent)));
+    // Slim token — avoids atob/UTF-8 issues with large agent payloads.
+    final slim = <String, dynamic>{
+      'id': agent['id'],
+      'phone_number': agent['phone_number'],
+      'full_name': agent['full_name'],
+    };
+    final bearer = base64Encode(utf8.encode(jsonEncode(slim)));
     final headers = <String, String>{
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'Authorization': 'Bearer $bearer',
       'x-agent-id': agent['id'].toString(),
     };

@@ -10,10 +10,10 @@ class OrdersScreen extends StatefulWidget {
   final bool embedded;
 
   @override
-  State<OrdersScreen> createState() => _OrdersScreenState();
+  State<OrdersScreen> createState() => OrdersScreenState();
 }
 
-class _OrdersScreenState extends State<OrdersScreen> {
+class OrdersScreenState extends State<OrdersScreen> {
   String _status = 'all';
   String _provider = 'all';
   final _search = TextEditingController();
@@ -35,6 +35,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
     _search.dispose();
     super.dispose();
   }
+
+  Future<void> reload({bool force = true}) => _load(force: force);
 
   Future<void> _load({bool force = true}) async {
     setState(() {
