@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_client.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
-import '../widgets/agent_avatar.dart';
+import '../widgets/agent_header.dart';
 import '../widgets/menu_card.dart';
 import 'compliance_screen.dart';
 import 'data_bundles_screen.dart';
@@ -50,10 +50,8 @@ class _HomeShellState extends State<HomeShell> {
       _error = null;
     });
     try {
-      final local = await SessionStore.instance.getAgent();
-      if (local != null) setState(() => _agent = local);
-      final home = await ApiClient.instance.home(forceRefresh: true);
-      final agent = home['agent'];
+      final refreshed = await ApiClient.instance.refreshAgentProfile(forceRefresh: true);
+      final agent = refreshed['agent'];
       if (agent is Map<String, dynamic>) {
         setState(() => _agent = agent);
       }
@@ -95,7 +93,7 @@ class _HomeShellState extends State<HomeShell> {
               title: item.title,
               webPath: item.webPath ?? '/agent/dashboard',
               blurb:
-                  'This feature is under construction in the app. Open it on the DataFlex website for the full experience.',
+                  'This section is under development in the app. Use the DataFlex website for the full experience today.',
             ),
           ),
         );
@@ -103,157 +101,136 @@ class _HomeShellState extends State<HomeShell> {
     }
   }
 
+  double _balance(Object? v) {
+    if (v is num) return v.toDouble();
+    return double.tryParse(v?.toString() ?? '') ?? 0;
+  }
+
   Widget _homeTab() {
     final name = _agent?['full_name']?.toString() ?? 'Agent';
     final phone = _agent?['phone_number']?.toString() ?? '';
     final photo = _agent?['profile_image_url']?.toString();
-    final wallet = _agent?['wallet_balance'];
-    final commission = _agent?['commission_balance'];
+    final wallet = _balance(_agent?['wallet_balance']);
+    final commission = _balance(_agent?['commission_balance']);
 
-    return RefreshIndicator(
-      onRefresh: _bootstrap,
-      color: DfColors.brand,
-      child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 168,
-            pinned: true,
-            actions: [
-              IconButton(
-                onPressed: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-                  );
-                  _bootstrap();
-                },
-                icon: Badge(
-                  isLabelVisible: _notifCount > 0,
-                  label: Text('$_notifCount'),
-                  child: const Icon(Icons.notifications_outlined),
-                ),
-              ),
-              IconButton(onPressed: _logout, icon: const Icon(Icons.logout)),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [DfColors.brandDark, DfColors.brand],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+    return ColoredBox(
+      color: const Color(0xFFF9FAFB),
+      child: Column(
+        children: [
+          AgentDashboardHeader(
+            name: name,
+            phone: phone,
+            photoUrl: photo,
+            walletBalance: wallet,
+            notifCount: _notifCount,
+            onWalletTap: () => _onTab(3),
+            onNotificationsTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+              _bootstrap();
+            },
+            onSettingsTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const PlaceholderFeatureScreen(
+                    title: 'Profile Settings',
+                    webPath: '/agent/settings',
+                    blurb: 'Open profile settings on the DataFlex website until the native screen ships.',
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(20, 56, 20, 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    AgentAvatar(imageUrl: photo, name: name, size: 64),
-                    const SizedBox(width: 14),
-                    Expanded(
+              );
+            },
+            onLogout: _logout,
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _bootstrap,
+              color: DfColors.brand,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            name,
-                            style: GoogleFonts.outfit(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            'DataFlex Agent',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 20),
                           ),
-                          Text(phone, style: const TextStyle(color: Colors.white70)),
+                          const Text(
+                            'Order data, track deliveries, manage wallet — full menus below.',
+                            style: TextStyle(color: DfColors.muted, fontSize: 13),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              _BalanceChip(label: 'Wallet', value: wallet, onTap: () => _onTab(3)),
+                              const SizedBox(width: 10),
+                              _BalanceChip(label: 'Commission', value: commission),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _QuickAction(
+                                  icon: Icons.shopping_bag_outlined,
+                                  label: 'Buy data',
+                                  onTap: () => _onTab(1),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _QuickAction(
+                                  icon: Icons.receipt_long_outlined,
+                                  label: 'My orders',
+                                  onTap: () => _onTab(2),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _QuickAction(
+                                  icon: Icons.account_balance_wallet_outlined,
+                                  label: 'Wallet',
+                                  onTap: () => _onTab(3),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
-                    Image.asset('assets/images/dataflex_logo.png', height: 40),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'DataFlex Agent',
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 20),
                   ),
-                  const Text(
-                    'Order data, track deliveries, manage wallet — full menus below.',
-                    style: TextStyle(color: DfColors.muted, fontSize: 13),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _BalanceChip(
-                        label: 'Wallet',
-                        value: wallet,
-                        onTap: () => setState(() => _tab = 3),
+                  if (_loading)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Center(child: CircularProgressIndicator(color: DfColors.brand)),
                       ),
-                      const SizedBox(width: 10),
-                      _BalanceChip(label: 'Commission', value: commission),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _QuickAction(
-                          icon: Icons.shopping_bag_outlined,
-                          label: 'Buy data',
-                          onTap: () => setState(() => _tab = 1),
-                        ),
+                    ),
+                  if (_error != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(_error!, style: const TextStyle(color: DfColors.danger)),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _QuickAction(
-                          icon: Icons.receipt_long_outlined,
-                          label: 'My orders',
-                          onTap: () => setState(() => _tab = 2),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _QuickAction(
-                          icon: Icons.account_balance_wallet_outlined,
-                          label: 'Wallet',
-                          onTap: () => setState(() => _tab = 3),
-                        ),
-                      ),
-                    ],
+                    ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                    sliver: SliverList.separated(
+                      itemCount: agentMenus.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      itemBuilder: (context, i) {
+                        final item = agentMenus[i];
+                        return AgentMenuCard(data: item, onTap: () => _openMenu(item));
+                      },
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
-          if (_loading)
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator(color: DfColors.brand)),
-              ),
-            ),
-          if (_error != null)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(_error!, style: const TextStyle(color: DfColors.danger)),
-              ),
-            ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-            sliver: SliverList.separated(
-              itemCount: agentMenus.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 14),
-              itemBuilder: (context, i) {
-                final item = agentMenus[i];
-                return AgentMenuCard(data: item, onTap: () => _openMenu(item));
-              },
             ),
           ),
         ],
@@ -277,21 +254,9 @@ class _HomeShellState extends State<HomeShell> {
         onDestinationSelected: _onTab,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(
-            icon: Icon(Icons.sim_card_outlined),
-            selectedIcon: Icon(Icons.sim_card),
-            label: 'Buy',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Orders',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(Icons.account_balance_wallet),
-            label: 'Wallet',
-          ),
+          NavigationDestination(icon: Icon(Icons.sim_card_outlined), selectedIcon: Icon(Icons.sim_card), label: 'Buy'),
+          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
         ],
       ),
     );
@@ -301,12 +266,11 @@ class _HomeShellState extends State<HomeShell> {
 class _BalanceChip extends StatelessWidget {
   const _BalanceChip({required this.label, required this.value, this.onTap});
   final String label;
-  final Object? value;
+  final double value;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final n = value is num ? value as num : num.tryParse(value?.toString() ?? '') ?? 0;
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -317,6 +281,7 @@ class _BalanceChip extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: DfColors.brand.withValues(alpha: 0.15)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,7 +289,7 @@ class _BalanceChip extends StatelessWidget {
               Text(label, style: const TextStyle(color: DfColors.muted, fontSize: 12)),
               const SizedBox(height: 4),
               Text(
-                'GHS ${n.toStringAsFixed(2)}',
+                'GHS ${value.toStringAsFixed(2)}',
                 style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16),
               ),
             ],

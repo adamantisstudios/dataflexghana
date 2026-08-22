@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'cache_store.dart';
 import 'session_store.dart';
@@ -74,11 +76,82 @@ class ApiClient {
     }
     final res = await http.get(await _uri('/api/agent/mobile/home'), headers: await SessionStore.instance.authHeaders());
     final data = await _decode(res);
-    await CacheStore.instance.putJson('home', data, ttl: const Duration(minutes: 10));
+    await CacheStore.instance.putJson('home', data, ttl: const Duration(minutes: 5));
     if (data['agent'] is Map<String, dynamic>) {
       await SessionStore.instance.saveAgent(Map<String, dynamic>.from(data['agent'] as Map));
     }
     return data;
+  }
+
+  /// Wallet + commission — same logic as admin Agents tab and /agent/wallet.
+  Future<Map<String, dynamic>> displayBalances({String? agentId, bool forceRefresh = false}) async {
+    if (!forceRefresh) {
+      final cached = await CacheStore.instance.getJson<Map<String, dynamic>>('display_balances');
+      if (cached != null) return cached;
+    }
+
+    Map<String, dynamic>? data;
+    try {
+      final res = await http.get(
+        await _uri('/api/agent/mobile/display-balances'),
+        headers: await SessionStore.instance.authHeaders(),
+      );
+      data = await _decode(res);
+    } catch (_) {
+      final id = agentId ?? (await SessionStore.instance.getAgent())?['id']?.toString();
+      if (id != null && id.isNotEmpty) {
+        final res = await http.get(await _uri('/api/agent/display-balances', {'agentId': id}));
+        data = await _decode(res);
+      } else {
+        rethrow;
+      }
+    }
+
+    await CacheStore.instance.putJson('display_balances', data, ttl: const Duration(minutes: 2));
+    return data;
+  }
+
+  Future<Map<String, dynamic>> refreshAgentProfile({bool forceRefresh = true}) async {
+    final local = await SessionStore.instance.getAgent();
+    final agentId = local?['id']?.toString();
+
+    Map<String, dynamic>? agent = local != null ? Map<String, dynamic>.from(local) : null;
+    Map<String, dynamic>? balances;
+
+    try {
+      balances = await displayBalances(agentId: agentId, forceRefresh: forceRefresh);
+    } catch (_) {}
+
+    try {
+      final homeData = await ApiClient.instance.home(forceRefresh: forceRefresh);
+      if (homeData['agent'] is Map<String, dynamic>) {
+        agent = Map<String, dynamic>.from(homeData['agent'] as Map);
+      }
+      if (homeData['balances'] is Map<String, dynamic>) {
+        balances = Map<String, dynamic>.from(homeData['balances'] as Map);
+      }
+    } catch (_) {
+      try {
+        final walletData = await ApiClient.instance.wallet(forceRefresh: forceRefresh);
+        balances ??= {
+          'wallet_balance': walletData['wallet_balance'],
+          'commission_balance': walletData['commission_balance'],
+          'available_balance': walletData['available_balance'],
+        };
+      } catch (_) {}
+    }
+
+    if (agent != null && balances != null) {
+      agent = {
+        ...agent,
+        'wallet_balance': balances['wallet_balance'],
+        'commission_balance': balances['commission_balance'],
+        if (balances['available_balance'] != null) 'available_balance': balances['available_balance'],
+      };
+      await SessionStore.instance.saveAgent(agent);
+    }
+
+    return {'agent': agent, 'balances': balances};
   }
 
   Future<Map<String, dynamic>> dataBundles({bool forceRefresh = false}) async {
@@ -220,20 +293,47 @@ class ApiClient {
     return data;
   }
 
-  Future<Map<String, dynamic>> submitCompliance({
+  Future<Map<String, dynamic>> complianceForm(String formId) async {
+    final res = await http.get(
+      await _uri('/api/agent/mobile/compliance', {'form_id': formId}),
+      headers: await SessionStore.instance.authHeaders(),
+    );
+    return _decode(res);
+  }
+
+  Future<String> uploadComplianceImage(XFile file, String imageType) async {
+    final uri = await _uri('/api/agent/mobile/compliance/upload');
+    final req = http.MultipartRequest('POST', uri);
+    final headers = await SessionStore.instance.authHeaders();
+    req.headers.addAll(headers);
+    req.fields['image_type'] = imageType;
+    req.files.add(await http.MultipartFile.fromPath(
+      'file',
+      file.path,
+      contentType: MediaType('image', file.path.split('.').last),
+    ));
+    final streamed = await req.send();
+    final res = await http.Response.fromStream(streamed);
+    final data = await _decode(res);
+    return data['image_url']?.toString() ?? '';
+  }
+
+  Future<Map<String, dynamic>> submitComplianceForm({
     required String formId,
-    required String clientName,
-    required String clientPhone,
-    String? notes,
+    required Map<String, dynamic> formData,
+    required List<Map<String, String>> images,
+    double? selectedCost,
+    String? selectedCostTier,
   }) async {
     final res = await http.post(
       await _uri('/api/agent/mobile/compliance'),
       headers: await SessionStore.instance.authHeaders(),
       body: jsonEncode({
         'form_id': formId,
-        'client_name': clientName,
-        'client_phone': clientPhone,
-        'notes': notes,
+        'form_data': formData,
+        'images': images,
+        if (selectedCost != null) 'selected_cost': selectedCost,
+        if (selectedCostTier != null) 'selected_cost_tier': selectedCostTier,
       }),
     );
     final data = await _decode(res);

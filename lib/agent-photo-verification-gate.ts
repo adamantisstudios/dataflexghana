@@ -16,11 +16,13 @@ export const AGENT_PHOTO_VERIFICATION_EXEMPT_API_PATHS = [
   "/api/agent/profile-photo/verify",
   "/api/upload/image",
   "/api/agent/mobile/home",
+  "/api/agent/mobile/display-balances",
   "/api/agent/mobile/data-bundles",
   "/api/agent/mobile/data-orders",
   "/api/agent/mobile/wallet",
   "/api/agent/mobile/notifications",
   "/api/agent/mobile/compliance",
+  "/api/agent/mobile/compliance/upload",
   "/api/agent/login",
   "/api/agent/verify-2fa",
 ] as const

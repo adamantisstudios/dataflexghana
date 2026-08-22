@@ -30,12 +30,42 @@ class MenuCardData {
   final String? networkImage;
 }
 
-/// Full agent menu set — data + compliance native; rest open website / under construction.
+/// Menu order matches web `AgentMenuCards.tsx`.
 const agentMenus = <MenuCardData>[
+  MenuCardData(
+    id: 'tutorials',
+    title: 'Video Tutorials',
+    subtitle: 'Learn how to use the platform',
+    asset: 'assets/images/tutorial.png',
+    gradient: [Color(0xFF6366F1), Color(0xFF4338CA)],
+    cta: 'WATCH NOW',
+    kind: MenuKind.underConstruction,
+    webPath: '/agent/tutorials',
+  ),
+  MenuCardData(
+    id: 'referral-hub',
+    title: 'Referral Hub',
+    subtitle: 'Your white-label storefront & QR',
+    asset: 'assets/images/referral-hub.png',
+    gradient: [Color(0xFF0EA5E9), Color(0xFF0369A1)],
+    cta: 'OPEN HUB',
+    kind: MenuKind.underConstruction,
+    webPath: '/agent/referralhub',
+  ),
+  MenuCardData(
+    id: 'voice-conference',
+    title: 'Agent Conference',
+    subtitle: 'Join live audio & video sessions',
+    asset: 'assets/images/voice-conference.png',
+    gradient: [DfColors.brand, DfColors.brandLight],
+    cta: 'JOIN MEETING',
+    kind: MenuKind.underConstruction,
+    webPath: '/agent/voice-rooms',
+  ),
   MenuCardData(
     id: 'data-bundles',
     title: 'Data Bundles',
-    subtitle: 'MTN · AirtelTigo · Telecel',
+    subtitle: 'Order Data Bundles',
     asset: 'assets/images/data-bundles.png',
     gradient: [Color(0xFF8E24AA), Color(0xFF5E35B1)],
     cta: 'BUY DATA',
@@ -44,41 +74,11 @@ const agentMenus = <MenuCardData>[
   MenuCardData(
     id: 'compliance',
     title: 'Compliance',
-    subtitle: 'Birth cert, passport, business forms',
+    subtitle: 'Business Registration Etc',
     asset: 'assets/images/compliance.png',
     gradient: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
-    cta: 'FORMS',
+    cta: 'MANAGE FORMS',
     kind: MenuKind.nativeCompliance,
-  ),
-  MenuCardData(
-    id: 'tutorials',
-    title: 'Video Tutorials',
-    subtitle: 'Learn the platform fast',
-    asset: 'assets/images/tutorial.png',
-    gradient: [Color(0xFF6366F1), Color(0xFF4338CA)],
-    cta: 'WATCH',
-    kind: MenuKind.underConstruction,
-    webPath: '/agent/tutorials',
-  ),
-  MenuCardData(
-    id: 'referral-hub',
-    title: 'Referral Hub',
-    subtitle: 'Your storefront & marketplace',
-    asset: 'assets/images/referral-hub.png',
-    gradient: [Color(0xFF0EA5E9), Color(0xFF0369A1)],
-    cta: 'OPEN',
-    kind: MenuKind.underConstruction,
-    webPath: '/agent/referralhub',
-  ),
-  MenuCardData(
-    id: 'voice-conference',
-    title: 'Agent Conference',
-    subtitle: 'Join live agent meetings',
-    asset: 'assets/images/voice-conference.png',
-    gradient: [DfColors.brand, DfColors.brandLight],
-    cta: 'JOIN',
-    kind: MenuKind.underConstruction,
-    webPath: '/agent/voice-rooms',
   ),
   MenuCardData(
     id: 'services',
@@ -87,7 +87,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/data-bundles.png',
     networkImage: 'https://www.dataflexghana.com/images/referral-services.png',
     gradient: [Color(0xFF26A69A), Color(0xFF1565C0)],
-    cta: 'REFER',
+    cta: 'REFER NOW',
     kind: MenuKind.underConstruction,
     webPath: '/agent/dashboard?tab=services',
   ),
@@ -109,7 +109,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/compliance.png',
     networkImage: 'https://www.dataflexghana.com/images/professional-writing.preview.png',
     gradient: [Color(0xFFEC4899), Color(0xFFBE185D)],
-    cta: 'WRITING',
+    cta: 'WRITING SERVICES',
     kind: MenuKind.underConstruction,
     webPath: '/agent/dashboard?tab=professional-writing',
   ),
@@ -120,7 +120,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/tutorial.png',
     networkImage: 'https://www.dataflexghana.com/images/online-courses.png',
     gradient: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-    cta: 'SIGN UP',
+    cta: 'SIGN UP NOW',
     kind: MenuKind.underConstruction,
     webPath: '/agent/dashboard?tab=online-courses',
   ),
@@ -131,7 +131,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/tutorial.png',
     networkImage: 'https://www.dataflexghana.com/images/teaching-platform.png',
     gradient: [DfColors.brand, DfColors.brandLight],
-    cta: 'EXPLORE',
+    cta: 'EXPLORE CHANNELS',
     kind: MenuKind.underConstruction,
     webPath: '/agent/teaching',
   ),
@@ -142,7 +142,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/data-bundles.png',
     networkImage: 'https://www.dataflexghana.com/images/voucher.png',
     gradient: [Color(0xFFF97316), Color(0xFFEA580C)],
-    cta: 'OPEN',
+    cta: 'OPEN VOUCHER',
     kind: MenuKind.underConstruction,
     webPath: '/voucher',
   ),
@@ -153,7 +153,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/referral-hub.png',
     networkImage: 'https://www.dataflexghana.com/images/referral-program.png',
     gradient: [Color(0xFFF59E0B), Color(0xFFD97706)],
-    cta: 'INVITE',
+    cta: 'INVITE NOW',
     kind: MenuKind.underConstruction,
     webPath: '/agent/dashboard?tab=referral-program',
   ),
@@ -175,7 +175,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/data-bundles.png',
     networkImage: 'https://www.dataflexghana.com/images/savings-plans.png',
     gradient: [Color(0xFFFF7043), Color(0xFFD84315)],
-    cta: 'SAVE',
+    cta: 'SAVE NOW',
     kind: MenuKind.underConstruction,
     webPath: '/agent/savings',
   ),
@@ -197,7 +197,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/data-bundles.png',
     networkImage: 'https://www.dataflexghana.com/images/publish-products.png',
     gradient: [Color(0xFF1976D2), Color(0xFF1565C0)],
-    cta: 'PUBLISH',
+    cta: 'PUBLISH NOW',
     kind: MenuKind.underConstruction,
     webPath: '/agent/publish-products',
   ),
@@ -208,7 +208,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/data-bundles.png',
     networkImage: 'https://www.dataflexghana.com/images/publish-properties.png',
     gradient: [Color(0xFFD97706), Color(0xFFB45309)],
-    cta: 'PUBLISH',
+    cta: 'PUBLISH NOW',
     kind: MenuKind.underConstruction,
     webPath: '/agent/publish-properties',
   ),
@@ -230,7 +230,7 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/data-bundles.png',
     networkImage: 'https://www.dataflexghana.com/images/fashion-avenue.png',
     gradient: [Color(0xFFD946A6), Color(0xFF9D174D)],
-    cta: 'VISIT',
+    cta: 'VISIT FASHION',
     kind: MenuKind.underConstruction,
     webPath: '/fashion-avenue',
   ),
@@ -344,7 +344,7 @@ class AgentMenuCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text(
-                                'SOON',
+                                'DEV',
                                 style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800),
                               ),
                             ),
@@ -382,5 +382,149 @@ class AgentMenuCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Horizontal scroll menu — matches web mobile `AgentMenuCards`.
+class AgentMenuCarousel extends StatelessWidget {
+  const AgentMenuCarousel({super.key, required this.onTap});
+
+  final ValueChanged<MenuCardData> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 220,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        itemCount: agentMenus.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 14),
+        itemBuilder: (context, i) => AgentMenuHorizontalCard(data: agentMenus[i], onTap: () => onTap(agentMenus[i])),
+      ),
+    );
+  }
+}
+
+class AgentMenuHorizontalCard extends StatelessWidget {
+  const AgentMenuHorizontalCard({super.key, required this.data, required this.onTap});
+
+  final MenuCardData data;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 288,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                colors: data.gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: data.gradient.last.withValues(alpha: 0.35),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                data.title,
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (data.kind == MenuKind.underConstruction)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.black26,
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                                child: const Text('DEV', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          data.subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.2),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            data.cta,
+                            style: const TextStyle(
+                              color: Color(0xFF111827),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 96,
+                    height: 96,
+                    child: _MenuImage(data: data),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuImage extends StatelessWidget {
+  const _MenuImage({required this.data});
+  final MenuCardData data;
+
+  @override
+  Widget build(BuildContext context) {
+    if (data.networkImage != null) {
+      return CachedNetworkImage(
+        imageUrl: data.networkImage!,
+        fit: BoxFit.contain,
+        errorWidget: (context, url, error) => Image.asset(data.asset, fit: BoxFit.contain),
+      );
+    }
+    return Image.asset(data.asset, fit: BoxFit.contain);
   }
 }
