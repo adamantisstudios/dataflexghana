@@ -90,13 +90,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Create admin notification
+    const bulkPreview = `Bulk Order with ${validatedRows.length} items from agent - PIN: ${paymentPin}`
     await supabase.from("admin_notifications").insert({
       type: "bulk_order_submission",
       agent_id,
       submission_id: orderId,
-      preview: `Bulk Order with ${validatedRows.length} items from agent - PIN: ${paymentPin}`,
+      preview: bulkPreview,
       created_at: new Date().toISOString(),
     })
+    try {
+      const { notifyAdminOpsFromAdminNotification } = await import("@/lib/ops/notify-admin-ops")
+      await notifyAdminOpsFromAdminNotification({
+        type: "bulk_order_submission",
+        preview: bulkPreview,
+        agentId: agent_id,
+        submissionId: orderId,
+      })
+    } catch (e) {
+      console.warn("[bulk-orders] ops inbox mirror failed:", e)
+    }
 
     await logNewOrderAudit({
       orderId,

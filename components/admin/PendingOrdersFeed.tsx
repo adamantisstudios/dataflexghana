@@ -34,6 +34,7 @@ type CategoryCard = {
 
 const CATEGORIES: CategoryCard[] = [
   { key: "data_orders", label: "Data Orders", hrefTab: "orders", icon: Database },
+  { key: "guest_data_orders", label: "Guest / No-Reg Orders", hrefTab: "data-orders-log", icon: Database },
   { key: "storefront_orders", label: "Storefront Orders", hrefTab: "storefront-manager", icon: ShoppingBag },
   { key: "grocery_requests", label: "Grocery Requests", hrefTab: "grocery-requests", icon: ShoppingBasket },
   { key: "ad_orders", label: "Advertising", hrefTab: "advertising", icon: Megaphone },

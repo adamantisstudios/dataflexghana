@@ -209,12 +209,13 @@ export const POST = withUnifiedAuth(async (request: NextRequest, user: any) => {
       actorType: user.role === "admin" ? "admin" : "agent",
       action:
         withdrawalAmount > 500 ? "large_withdrawal_requested" : "withdrawal_requested",
-      severity: withdrawalAmount > 500 ? "info" : "info",
+      severity: withdrawalAmount > 500 ? "critical" : "warning",
       targetTable: "withdrawals",
       targetId: withdrawalRequest.id,
       newData: {
         amount: withdrawalAmount,
         momo_number,
+        href_tab: "withdrawals",
       },
     })
 

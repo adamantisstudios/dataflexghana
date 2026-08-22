@@ -21,3 +21,14 @@ node_modules
 !.env.example
 *.pem
 *.key
+
+# Ops secrets / local device keys (never commit plaintext API keys)
+**/DEVICE_KEY.txt
+**/DEVICE_KEY*.txt
+apps/admin-ops-mobile/android/local-maven/
+apps/admin-ops-mobile/android/.gradle/
+apps/admin-ops-mobile/android/local.properties
+apps/admin-ops-mobile/build/
+*.apk
+**/build-log.txt
+tsconfig.tsbuildinfo

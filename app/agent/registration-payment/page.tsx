@@ -113,9 +113,25 @@ function RegistrationPaymentContent() {
     setCurrentVideo(null);
   };
 
-  const handleManualStart = () => {
-    setManualCode(generateCode());
+  const handleManualStart = async () => {
+    const code = generateCode();
+    setManualCode(code);
     setShowManualDialog(true);
+    // Persist intent so MoMo SMS on the ops phone can match this registration payment
+    try {
+      await fetch("/api/ops/registration-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reference_code: code,
+          amount: REGISTRATION_FEE_MANUAL,
+          agent_name: agentName,
+          agent_email: agentEmail || null,
+        }),
+      });
+    } catch {
+      // Non-blocking — WhatsApp flow still works if persistence fails
+    }
   };
 
   const handleManualComplete = async () => {

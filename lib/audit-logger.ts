@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server"
 import { getAdminClient } from "@/lib/supabase-base"
 import { enrichAuditEvent, maskIpAddress, type SessionEnrichment } from "@/lib/security-enrichment"
+import { mapAuditActionToOps, notifyAdminOps } from "@/lib/ops/notify-admin-ops"
 
 export type AuditSeverity = "info" | "warning" | "critical"
 
@@ -133,10 +134,85 @@ export async function logAudit(params: AuditLogParams): Promise<void> {
     })
     if (error) {
       console.error("[audit-logger] failed to write audit_log:", error)
+    } else {
+      // Additive fan-out to admin ops inbox (Android app). Never throws / never blocks primary flow.
+      try {
+        const mapped = mapAuditActionToOps(params.action)
+        if (mapped) {
+          const href =
+            (new_data && typeof new_data === "object" && "href_tab" in new_data
+              ? String((new_data as Record<string, unknown>).href_tab ?? "")
+              : "") || mapped.deeplinkTab
+          const amount =
+            new_data && typeof new_data === "object" && "amount" in new_data
+              ? (new_data as Record<string, unknown>).amount
+              : null
+          const orderType =
+            new_data && typeof new_data === "object" && "order_type" in new_data
+              ? String((new_data as Record<string, unknown>).order_type ?? "")
+              : params.action
+          await notifyAdminOps({
+            category: mapped.category,
+            severity: mapped.severity === "info" && severity !== "info" ? severity : mapped.severity,
+            title: titleForAuditAction(params.action, orderType, amount),
+            body: bodyForAuditAction(params.action, new_data),
+            deeplinkTab: href || mapped.deeplinkTab,
+            entityType: params.targetTable ?? null,
+            entityId: params.targetId ?? null,
+            requiresAck: mapped.requiresAck,
+            source: "audit_log",
+            payload: {
+              action: params.action,
+              ...(new_data && typeof new_data === "object" ? new_data : {}),
+            },
+          })
+        } else if (severity === "critical" || severity === "warning") {
+          await notifyAdminOps({
+            category: "security",
+            severity,
+            title: `Admin alert: ${params.action}`,
+            body: params.targetTable
+              ? `${params.targetTable}${params.targetId ? ` #${String(params.targetId).slice(0, 8)}` : ""}`
+              : null,
+            deeplinkTab: "security-log",
+            entityType: params.targetTable ?? null,
+            entityId: params.targetId ?? null,
+            requiresAck: severity === "critical",
+            source: "audit_log",
+            payload: { action: params.action, ...(new_data && typeof new_data === "object" ? new_data : {}) },
+          })
+        }
+      } catch (fanoutErr) {
+        console.error("[audit-logger] ops inbox fan-out failed:", fanoutErr)
+      }
     }
   } catch (err) {
     console.error("[audit-logger] unexpected error:", err)
   }
+}
+
+function titleForAuditAction(action: string, orderType: string, amount: unknown): string {
+  if (action === "new_order") {
+    const amt = typeof amount === "number" ? ` GHS ${amount.toFixed(2)}` : ""
+    return `New order: ${orderType || "order"}${amt}`
+  }
+  if (action === "manual_wallet_topup") {
+    const amt = typeof amount === "number" ? ` GHS ${amount.toFixed(2)}` : ""
+    return `URGENT: Manual wallet top-up${amt}`
+  }
+  if (action === "agent_registered") return "New agent registered — review in Agents tab"
+  if (action === "profile_photo_auto_verified") return "Agent photo auto-verified"
+  if (action === "withdrawal_request") return "New withdrawal request"
+  return `Admin alert: ${action}`
+}
+
+function bodyForAuditAction(action: string, newData: Record<string, unknown> | null): string | null {
+  if (!newData) return null
+  const parts: string[] = []
+  if (typeof newData.agent_name === "string") parts.push(newData.agent_name)
+  if (typeof newData.payment_reference === "string") parts.push(`ref ${newData.payment_reference}`)
+  if (typeof newData.order_type === "string" && action !== "new_order") parts.push(newData.order_type)
+  return parts.length ? parts.join(" · ") : null
 }
 
 export async function logAuditFromRequest(

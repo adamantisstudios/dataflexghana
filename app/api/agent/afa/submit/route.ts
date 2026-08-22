@@ -85,12 +85,20 @@ export async function POST(request: NextRequest) {
 
     // Create admin notification - wrapped in try-catch since this is non-critical
     try {
+      const preview = `MTN AFA Registration from ${full_name} (${normalizedPhone}) - PIN: ${paymentPin}`
       await supabase.from("admin_notifications").insert({
         type: "afa_submission",
         agent_id: agent_id || null,
         submission_id: submission.id,
-        preview: `MTN AFA Registration from ${full_name} (${normalizedPhone}) - PIN: ${paymentPin}`,
+        preview,
         created_at: new Date().toISOString(),
+      })
+      const { notifyAdminOpsFromAdminNotification } = await import("@/lib/ops/notify-admin-ops")
+      await notifyAdminOpsFromAdminNotification({
+        type: "afa_submission",
+        preview,
+        agentId: agent_id || null,
+        submissionId: submission.id,
       })
     } catch (notificationError) {
       console.warn("[v0] Failed to create notification, but registration was successful:", notificationError)

@@ -1,5 +1,6 @@
 import { logAudit } from "@/lib/audit-logger"
 import { getAdminClient } from "@/lib/supabase-base"
+import { notifyAdminOps } from "@/lib/ops/notify-admin-ops"
 
 export async function notifyAdminManualWalletTopup(params: {
   topupId: string
@@ -48,5 +49,25 @@ export async function notifyAdminManualWalletTopup(params: {
     },
     ipAddress: params.ipAddress ?? null,
     userAgent: params.userAgent ?? null,
+  })
+
+  // Explicit sticky ops alert (in addition to audit fan-out) so the payment phone never misses it
+  await notifyAdminOps({
+    category: "wallets",
+    severity: "critical",
+    title: `URGENT: Manual wallet top-up GH₵${amount.toFixed(2)}`,
+    body: `${agentLabel} — MoMo ref: ${ref}. Approve on Wallets tab (no auto-credit).`,
+    deeplinkTab: "wallets",
+    entityType: "wallet_topups",
+    entityId: params.topupId,
+    requiresAck: true,
+    source: "pending",
+    payload: {
+      topup_id: params.topupId,
+      agent_id: params.agentId,
+      agent_name: agentLabel,
+      amount,
+      payment_reference: ref,
+    },
   })
 }

@@ -13,6 +13,7 @@ export type PendingOrderItem = {
 
 export type PendingOrdersCategoryKey =
   | "data_orders"
+  | "guest_data_orders"
   | "storefront_orders"
   | "grocery_requests"
   | "ad_orders"
@@ -32,6 +33,7 @@ export type PendingOrdersCategoryKey =
 
 export type PendingOrdersPayload = {
   data_orders: PendingOrderItem[]
+  guest_data_orders: PendingOrderItem[]
   storefront_orders: PendingOrderItem[]
   grocery_requests: PendingOrderItem[]
   ad_orders: PendingOrderItem[]
@@ -85,6 +87,7 @@ async function countRows(
 export async function fetchPendingOrders(db: SupabaseClient): Promise<PendingOrdersPayload> {
   const [
     dataOrdersRes,
+    guestDataOrdersRes,
     storefrontOrdersRes,
     groceryRes,
     adOrdersRes,
@@ -113,6 +116,14 @@ export async function fetchPendingOrders(db: SupabaseClient): Promise<PendingOrd
       `,
       )
       .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(LIST_LIMIT),
+
+    // No-registration / guest MoMo orders (admin Data Bundle Orders Log)
+    db
+      .from("data_orders_log")
+      .select("id, created_at, phone_number, network, data_bundle, amount, reference_code, payment_method, admin_reviewed_at")
+      .is("admin_reviewed_at", null)
       .order("created_at", { ascending: false })
       .limit(LIST_LIMIT),
 
@@ -302,6 +313,7 @@ export async function fetchPendingOrders(db: SupabaseClient): Promise<PendingOrd
 
     Promise.all([
       countRows(db, "data_orders", (q) => q.eq("status", "pending")),
+      countRows(db, "data_orders_log", (q) => q.is("admin_reviewed_at", null)),
       countRows(db, "storefront_orders", (q) => q.in("status", ["Pending", "pending"])),
       countRows(db, "grocery_requests", (q) => q.eq("status", "new_request")),
       countRows(db, "ad_orders", (q) => q.eq("status", "pending")),
@@ -343,6 +355,11 @@ export async function fetchPendingOrders(db: SupabaseClient): Promise<PendingOrd
     legacyWritingRes.error,
   ].filter(Boolean)
 
+  // guestDataOrdersRes may fail before SQL 092 adds admin_reviewed_at — treat as empty
+  if (guestDataOrdersRes.error) {
+    console.warn("[pending-orders] guest_data_orders:", guestDataOrdersRes.error.message)
+  }
+
   if (queryErrors.length > 0) {
     console.error("[pending-orders] query errors:", queryErrors.map((e) => e?.message))
   }
@@ -360,6 +377,19 @@ export async function fetchPendingOrders(db: SupabaseClient): Promise<PendingOrd
       href_tab: "orders",
     }
   })
+
+  const guest_data_orders: PendingOrderItem[] = (guestDataOrdersRes.data || []).map((o) => ({
+    id: o.id,
+    type: "guest_data_order",
+    created_at: o.created_at,
+    customer_phone: o.phone_number,
+    agent_name: "Guest / no-registration",
+    product: o.network
+      ? `${o.network} ${o.data_bundle || "bundle"}${o.reference_code ? ` · ref ${o.reference_code}` : ""}`
+      : o.data_bundle || "Guest data order",
+    amount: o.amount,
+    href_tab: "data-orders-log",
+  }))
 
   const storefront_orders: PendingOrderItem[] = (storefrontOrdersRes.data || []).map((o) => ({
     id: o.id,
@@ -537,26 +567,28 @@ export async function fetchPendingOrders(db: SupabaseClient): Promise<PendingOrd
 
   const counts: PendingOrdersPayload["counts"] = {
     data_orders: countResults[0],
-    storefront_orders: countResults[1],
-    grocery_requests: countResults[2],
-    ad_orders: countResults[3],
-    influencer_orders: countResults[4],
-    farm_orders: countResults[5],
-    writing_orders: countResults[6],
-    compliance_orders: countResults[7],
-    form_submissions: countResults[8],
-    withdrawals: countResults[9],
-    bulk_orders: countResults[10],
-    mtnafa_registrations: countResults[11],
-    wholesale_orders: countResults[12],
-    property_requests: countResults[13],
-    referrals: countResults[14],
-    wallet_topups: countResults[15],
-    professional_writing_submissions: countResults[16],
+    guest_data_orders: countResults[1],
+    storefront_orders: countResults[2],
+    grocery_requests: countResults[3],
+    ad_orders: countResults[4],
+    influencer_orders: countResults[5],
+    farm_orders: countResults[6],
+    writing_orders: countResults[7],
+    compliance_orders: countResults[8],
+    form_submissions: countResults[9],
+    withdrawals: countResults[10],
+    bulk_orders: countResults[11],
+    mtnafa_registrations: countResults[12],
+    wholesale_orders: countResults[13],
+    property_requests: countResults[14],
+    referrals: countResults[15],
+    wallet_topups: countResults[16],
+    professional_writing_submissions: countResults[17],
   }
 
   const unified = [
     ...data_orders,
+    ...guest_data_orders,
     ...storefront_orders,
     ...grocery_requests,
     ...ad_orders,
@@ -579,6 +611,7 @@ export async function fetchPendingOrders(db: SupabaseClient): Promise<PendingOrd
 
   return {
     data_orders,
+    guest_data_orders,
     storefront_orders,
     grocery_requests,
     ad_orders,

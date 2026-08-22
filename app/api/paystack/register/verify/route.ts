@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { setPaymentVerified } from "@/lib/payment-gate"
+import { notifyAdminOps } from "@/lib/ops/notify-admin-ops"
+import { getAdminClient } from "@/lib/supabase-base"
 
 interface PaystackVerifyResponse {
   status: boolean
@@ -80,6 +81,41 @@ export async function POST(request: NextRequest) {
 
     // Payment verification successful - no database updates required
     // Agent will see payment-success page and can contact admin via WhatsApp
+    const agentName = paystackData.data.metadata?.agent_name || "New agent"
+    const amountGhs = Math.round((paystackData.data.amount || 0) / 100 * 100) / 100
+
+    try {
+      const db = getAdminClient()
+      await db.from("registration_payment_intents").insert({
+        reference_code: `PS${String(paystackData.data.reference).slice(-5).toUpperCase()}`,
+        amount: amountGhs || 50,
+        agent_name: agentName,
+        payment_method: "paystack",
+        status: "matched",
+        paystack_reference: paystackData.data.reference,
+        matched_at: new Date().toISOString(),
+      })
+    } catch (e) {
+      console.error("[paystack/register/verify] registration_payment_intents:", e)
+    }
+
+    await notifyAdminOps({
+      category: "agents",
+      severity: "critical",
+      title: "New agent paid via Paystack — review/approve",
+      body: `${agentName} paid GHS ${amountGhs.toFixed(2)} (ref ${paystackData.data.reference}). Complete registration / approve in Agents tab.`,
+      deeplinkTab: "agents",
+      entityType: "registration_payment_intents",
+      entityId: paystackData.data.reference,
+      requiresAck: true,
+      source: "registration",
+      payload: {
+        paystack_reference: paystackData.data.reference,
+        amount: amountGhs,
+        agent_name: agentName,
+      },
+    })
+
     return NextResponse.json({
       success: true,
       message: "Payment verified successfully. Please register and contact admin via WhatsApp to complete setup.",

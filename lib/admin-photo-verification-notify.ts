@@ -1,5 +1,6 @@
 import { logAudit } from "@/lib/audit-logger"
 import { getAdminClient } from "@/lib/supabase-base"
+import { notifyAdminOps } from "@/lib/ops/notify-admin-ops"
 
 /** Alert admin that a new agent was auto-verified and should be spot-checked. */
 export async function notifyAdminPhotoVerification(params: {
@@ -45,5 +46,22 @@ export async function notifyAdminPhotoVerification(params: {
     },
     ipAddress: params.ipAddress ?? null,
     userAgent: params.userAgent ?? null,
+  })
+
+  await notifyAdminOps({
+    category: "photo_verification",
+    severity: "warning",
+    title: `Photo auto-verified: ${agentLabel}`,
+    body: preview,
+    deeplinkTab: "photo-verification",
+    entityType: "agents",
+    entityId: params.agentId,
+    requiresAck: false,
+    source: "audit_log",
+    payload: {
+      agent_id: params.agentId,
+      agent_name: agentLabel,
+      profile_image_url: params.profileImageUrl ?? null,
+    },
   })
 }

@@ -157,11 +157,14 @@ export async function POST(request: NextRequest) {
       actorId: newAgent.id,
       actorType: "agent",
       action: "agent_registered",
+      severity: "warning",
       targetTable: "agents",
       targetId: newAgent.id,
       newData: {
         phone_number: normalizedPhone,
         region: region.trim(),
+        agent_name: newAgent.full_name,
+        href_tab: "agents",
       },
     })
 
