@@ -1,0 +1,8 @@
+# Agent mobile
+*.apk
+DEVICE_KEY.txt
+android/.gradle/
+android/local.properties
+/build/
+.dart_tool/
+.flutter-plugins-dependencies

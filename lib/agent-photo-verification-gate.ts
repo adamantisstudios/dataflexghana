@@ -15,6 +15,10 @@ export const AGENT_PHOTO_VERIFICATION_HOLD_PATH = "/agent/dashboard"
 export const AGENT_PHOTO_VERIFICATION_EXEMPT_API_PATHS = [
   "/api/agent/profile-photo/verify",
   "/api/upload/image",
+  "/api/agent/mobile/home",
+  "/api/agent/mobile/data-bundles",
+  "/api/agent/login",
+  "/api/agent/verify-2fa",
 ] as const
 
 export const PHOTO_VERIFICATION_REQUIRED_ERROR =
