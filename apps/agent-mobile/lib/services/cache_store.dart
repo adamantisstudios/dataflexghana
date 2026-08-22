@@ -37,4 +37,12 @@ class CacheStore {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('cache_$key');
   }
+
+  Future<void> invalidatePrefix(String prefix) async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) => k.startsWith('cache_$prefix')).toList();
+    for (final k in keys) {
+      await prefs.remove(k);
+    }
+  }
 }

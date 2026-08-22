@@ -36,6 +36,20 @@ class PlaceholderFeatureScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(blurb, textAlign: TextAlign.center, style: const TextStyle(color: DfColors.muted)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: DfColors.brand.withValues(alpha: 0.2)),
+              ),
+              child: const Text(
+                'Under construction in the app. Use the website for this menu until the native version ships.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
             const Spacer(),
             ElevatedButton.icon(
               onPressed: () async {
