@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_theme.dart';
 
-enum MenuKind { nativeData, nativeCompliance, underConstruction }
+enum MenuKind { nativeData, nativeCompliance, nativeJobs, nativeFashion, underConstruction }
 
 class MenuCardData {
   const MenuCardData({
@@ -99,8 +99,7 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/job-opportunities.png',
     gradient: [Color(0xFF1E88E5), Color(0xFF1565C0)],
     cta: 'FIND JOBS',
-    kind: MenuKind.underConstruction,
-    webPath: '/agent/dashboard?tab=jobs',
+    kind: MenuKind.nativeJobs,
   ),
   MenuCardData(
     id: 'professional-writing',
@@ -231,8 +230,7 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/fashion-avenue.png',
     gradient: [Color(0xFFD946A6), Color(0xFF9D174D)],
     cta: 'VISIT FASHION',
-    kind: MenuKind.underConstruction,
-    webPath: '/fashion-avenue',
+    kind: MenuKind.nativeFashion,
   ),
   MenuCardData(
     id: 'find-a-date',

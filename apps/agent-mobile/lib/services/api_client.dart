@@ -340,4 +340,137 @@ class ApiClient {
     await CacheStore.instance.invalidate('compliance');
     return data;
   }
+
+  Future<Map<String, dynamic>> _cachedGet({
+    required String cacheKey,
+    required Future<Map<String, dynamic>> Function() network,
+    Duration ttl = const Duration(minutes: 15),
+    bool forceRefresh = false,
+    void Function(Map<String, dynamic> fresh)? onUpdated,
+  }) async {
+    if (!forceRefresh) {
+      final cached = await CacheStore.instance.getJson<Map<String, dynamic>>(cacheKey);
+      if (cached != null) {
+        network().then((fresh) async {
+          try {
+            final changed = jsonEncode(cached) != jsonEncode(fresh);
+            await CacheStore.instance.putJson(cacheKey, fresh, ttl: ttl);
+            if (changed) onUpdated?.call(fresh);
+          } catch (_) {}
+        }).catchError((_) {});
+        return cached;
+      }
+    }
+    final fresh = await network();
+    await CacheStore.instance.putJson(cacheKey, fresh, ttl: ttl);
+    return fresh;
+  }
+
+  Future<Map<String, dynamic>> jobs({
+    String search = '',
+    String industry = '',
+    bool featured = false,
+    int page = 1,
+    bool forceRefresh = false,
+    void Function(Map<String, dynamic> fresh)? onUpdated,
+  }) {
+    final key = 'jobs_${search.trim()}_${industry.trim()}_${featured}_$page';
+    return _cachedGet(
+      cacheKey: key,
+      ttl: const Duration(minutes: 15),
+      forceRefresh: forceRefresh,
+      onUpdated: onUpdated,
+      network: () async {
+        final query = <String, String>{
+          'page': '$page',
+          'limit': '20',
+        };
+        if (search.trim().isNotEmpty) query['search'] = search.trim();
+        if (industry.trim().isNotEmpty && industry != 'all') query['industry'] = industry.trim();
+        if (featured) query['featured'] = 'true';
+        final res = await http.get(
+          await _uri('/api/agent/mobile/jobs', query),
+          headers: await SessionStore.instance.authHeaders(),
+        );
+        return _decode(res);
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> jobDetail(String id, {bool forceRefresh = false}) {
+    final key = 'job_$id';
+    return _cachedGet(
+      cacheKey: key,
+      ttl: const Duration(minutes: 30),
+      forceRefresh: forceRefresh,
+      network: () async {
+        final res = await http.get(
+          await _uri('/api/agent/mobile/jobs/$id'),
+          headers: await SessionStore.instance.authHeaders(),
+        );
+        return _decode(res);
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> fashionCategories({
+    bool forceRefresh = false,
+    void Function(Map<String, dynamic> fresh)? onUpdated,
+  }) {
+    return _cachedGet(
+      cacheKey: 'fashion_categories',
+      ttl: const Duration(hours: 1),
+      forceRefresh: forceRefresh,
+      onUpdated: onUpdated,
+      network: () async {
+        final res = await http.get(
+          await _uri('/api/agent/mobile/fashion/categories'),
+          headers: await SessionStore.instance.authHeaders(),
+        );
+        return _decode(res);
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> fashionProducts({
+    String search = '',
+    String categoryId = '',
+    int page = 1,
+    bool forceRefresh = false,
+    void Function(Map<String, dynamic> fresh)? onUpdated,
+  }) {
+    final key = 'fashion_products_${search.trim()}_${categoryId}_$page';
+    return _cachedGet(
+      cacheKey: key,
+      ttl: const Duration(minutes: 15),
+      forceRefresh: forceRefresh,
+      onUpdated: onUpdated,
+      network: () async {
+        final query = <String, String>{'page': '$page', 'limit': '12'};
+        if (search.trim().isNotEmpty) query['search'] = search.trim();
+        if (categoryId.isNotEmpty) query['category'] = categoryId;
+        final res = await http.get(
+          await _uri('/api/agent/mobile/fashion/products', query),
+          headers: await SessionStore.instance.authHeaders(),
+        );
+        return _decode(res);
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> fashionProduct(String id, {bool forceRefresh = false}) {
+    final key = 'fashion_product_$id';
+    return _cachedGet(
+      cacheKey: key,
+      ttl: const Duration(minutes: 30),
+      forceRefresh: forceRefresh,
+      network: () async {
+        final res = await http.get(
+          await _uri('/api/agent/mobile/fashion/products', {'id': id}),
+          headers: await SessionStore.instance.authHeaders(),
+        );
+        return _decode(res);
+      },
+    );
+  }
 }

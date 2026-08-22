@@ -8,6 +8,8 @@ import '../widgets/agent_header.dart';
 import '../widgets/menu_card.dart';
 import 'compliance_screen.dart';
 import 'data_bundles_screen.dart';
+import 'fashion_screen.dart';
+import 'jobs_screen.dart';
 import 'login_screen.dart';
 import 'notifications_screen.dart';
 import 'orders_screen.dart';
@@ -85,6 +87,12 @@ class _HomeShellState extends State<HomeShell> {
         break;
       case MenuKind.nativeCompliance:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ComplianceScreen()));
+        break;
+      case MenuKind.nativeJobs:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JobsScreen()));
+        break;
+      case MenuKind.nativeFashion:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FashionScreen()));
         break;
       case MenuKind.underConstruction:
         Navigator.of(context).push(

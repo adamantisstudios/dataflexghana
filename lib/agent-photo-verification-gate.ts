@@ -23,6 +23,9 @@ export const AGENT_PHOTO_VERIFICATION_EXEMPT_API_PATHS = [
   "/api/agent/mobile/notifications",
   "/api/agent/mobile/compliance",
   "/api/agent/mobile/compliance/upload",
+  "/api/agent/mobile/jobs",
+  "/api/agent/mobile/fashion/categories",
+  "/api/agent/mobile/fashion/products",
   "/api/agent/login",
   "/api/agent/verify-2fa",
 ] as const
