@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/api_client.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
+import '../widgets/publish_permission_gate.dart';
 
 class PublishPropertiesScreen extends StatefulWidget {
   const PublishPropertiesScreen({super.key});
@@ -28,8 +29,33 @@ class _PublishPropertiesScreenState extends State<PublishPropertiesScreen> {
   final _images = <String>[];
   bool _uploading = false;
   bool _submitting = false;
+  bool _checkingPermission = true;
+  bool _canPublish = false;
+  bool _canUpdate = false;
 
   static const _categories = ['For Sale', 'For Rent', 'Land', 'Commercial', 'Other'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    try {
+      final data = await ApiClient.instance.getMyProperties();
+      if (!mounted) return;
+      setState(() {
+        _canPublish = data['can_publish_properties'] == true;
+        _canUpdate = data['can_update_properties'] == true;
+      });
+    } catch (_) {
+      // Leave both false so the agent sees the activation screen rather than a
+      // form that will be rejected by the API.
+    } finally {
+      if (mounted) setState(() => _checkingPermission = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -61,6 +87,10 @@ class _PublishPropertiesScreenState extends State<PublishPropertiesScreen> {
   }
 
   Future<void> _submit() async {
+    if (!_canPublish) {
+      await PublishPermissionGate.showDialogFor(context, PublishPermissionGate.properties());
+      return;
+    }
     final agent = await SessionStore.instance.getAgent();
     if (!mounted) return;
     final agentId = agent?['id']?.toString() ?? '';
@@ -107,6 +137,15 @@ class _PublishPropertiesScreenState extends State<PublishPropertiesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingPermission) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: DfColors.brand)),
+      );
+    }
+    if (!_canPublish && !_canUpdate) {
+      return PublishPermissionGate.properties();
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Publish Properties')),
       body: ListView(

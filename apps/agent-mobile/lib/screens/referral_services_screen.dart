@@ -141,7 +141,18 @@ class _ReferralServicesScreenState extends State<ReferralServicesScreen>
                     child: Center(child: Text('No referral services found', style: TextStyle(color: DfColors.muted))),
                   )
                 else
-                  ..._services.map(_serviceCard),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _services.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 268,
+                    ),
+                    itemBuilder: (_, i) => _serviceCard(_services[i]),
+                  ),
               ],
             ),
           ),
@@ -213,87 +224,111 @@ class _ReferralServicesScreenState extends State<ReferralServicesScreen>
             ? (s['product_cost'] as num).toDouble()
             : 0.0;
     final materials = s['materials_link']?.toString();
+    final description = _plainText(s['description']?.toString() ?? '');
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (images.isNotEmpty)
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () => _openRefer(s),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             SizedBox(
-              height: 160,
-              child: PageView.builder(
-                itemCount: images.length,
-                itemBuilder: (_, i) => CachedNetworkImage(
-                  imageUrl: images[i],
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(color: DfColors.sand),
-                  errorWidget: (_, __, ___) => Container(
-                    color: DfColors.sand,
-                    child: const Icon(Icons.image_not_supported_outlined),
-                  ),
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s['title']?.toString() ?? 'Service',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 17),
-                ),
-                if ((s['description']?.toString() ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    s['description'].toString(),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: DfColors.muted, fontSize: 13, height: 1.35),
-                  ),
-                ],
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _chip('Earn ${DisplayFormat.money(commission)}', DfColors.brand),
-                    _chip('Cost ${DisplayFormat.money(cost)}', Colors.blueGrey),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    if (materials != null && materials.isNotEmpty)
-                      TextButton(
-                        onPressed: () => launchUrl(Uri.parse(materials), mode: LaunchMode.externalApplication),
-                        child: const Text('Materials'),
+              height: 104,
+              child: images.isEmpty
+                  ? Container(
+                      color: DfColors.sand,
+                      child: const Icon(Icons.handshake_outlined, size: 34, color: DfColors.muted),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: images.first,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => Container(color: DfColors.sand),
+                      errorWidget: (_, _, _) => Container(
+                        color: DfColors.sand,
+                        child: const Icon(Icons.image_not_supported_outlined),
                       ),
+                    ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s['title']?.toString() ?? 'Service',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 14, height: 1.2),
+                    ),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: DfColors.muted, fontSize: 11, height: 1.3),
+                      ),
+                    ],
                     const Spacer(),
-                    ElevatedButton(
-                      onPressed: () => _openRefer(s),
-                      child: const Text('Refer'),
+                    _chip('Earn ${DisplayFormat.money(commission)}', DfColors.brand),
+                    const SizedBox(height: 4),
+                    _chip('Cost ${DisplayFormat.money(cost)}', Colors.blueGrey),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 34,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _openRefer(s),
+                              icon: const Icon(Icons.person_add_alt_1, size: 15),
+                              label: const Text('Refer', style: TextStyle(fontSize: 13)),
+                              style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
+                            ),
+                          ),
+                        ),
+                        if (materials != null && materials.isNotEmpty)
+                          IconButton(
+                            tooltip: 'Materials',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () =>
+                                launchUrl(Uri.parse(materials), mode: LaunchMode.externalApplication),
+                            icon: const Icon(Icons.link, size: 18),
+                          ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  /// Service descriptions come back as rich text/HTML from the web editor.
+  String _plainText(String input) =>
+      input.replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+
   Widget _chip(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12)),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 11),
+      ),
     );
   }
 }

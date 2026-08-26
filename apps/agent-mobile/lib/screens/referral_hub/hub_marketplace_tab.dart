@@ -30,6 +30,9 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
 
   int _section = 0;
   String _provider = 'MTN';
+  int _bundlePage = 1;
+  int _bundleTotalPages = 1;
+  int _bundleTotal = 0;
   bool _loading = true;
   String? _error;
   final Set<String> _busy = {};
@@ -147,17 +150,26 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
       await _loadSettings(force: force);
       switch (_section) {
         case 0:
-          final cacheKey = 'hub_bundles_$_provider';
+          // The API hard-caps limit at 20, so paginate rather than over-requesting.
+          final cacheKey = 'hub_bundles_${_provider}_p$_bundlePage';
           Map<String, dynamic>? data;
           if (!force) {
             data = await CacheStore.instance.getJson<Map<String, dynamic>>(cacheKey);
           }
-          data ??= await ApiClient.instance.getStoreBundles(provider: _provider, limit: 50);
-          await CacheStore.instance.putJson(cacheKey, data, ttl: const Duration(hours: 2));
+          data ??= await ApiClient.instance.getStoreBundles(
+            provider: _provider,
+            page: _bundlePage,
+            limit: 20,
+          );
+          await CacheStore.instance.putJson(cacheKey, data, ttl: const Duration(minutes: 15));
           final list = data['bundles'];
           _bundles = list is List
               ? list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
               : [];
+          _bundleTotalPages = (data['totalPages'] is num)
+              ? (data['totalPages'] as num).toInt().clamp(1, 9999)
+              : 1;
+          _bundleTotal = (data['total'] is num) ? (data['total'] as num).toInt() : _bundles.length;
           break;
         case 1:
           final q = _serviceSearch.text.trim();
@@ -243,6 +255,7 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
     required String itemId,
     required bool visible,
     double? customMargin,
+    String? successMessage,
   }) async {
     final key = '$itemType:$itemId';
     setState(() => _busy.add(key));
@@ -256,7 +269,7 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
       await CacheStore.instance.invalidate('hub_store_settings');
       await _loadSettings(force: true);
       setState(() {});
-      _snack(visible ? 'Enabled on storefront' : 'Hidden from storefront');
+      _snack(successMessage ?? (visible ? 'Enabled on storefront' : 'Hidden from storefront'));
     } on ApiException catch (e) {
       _snack(e.message, error: true);
     } catch (e) {
@@ -279,17 +292,23 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
       itemId: id,
       visible: true,
       customMargin: margin,
+      successMessage: 'Added to store',
     );
   }
 
   Future<void> _updateBundleMargin(String id) async {
     final raw = _marginCtrl(id).text.trim();
     final margin = double.tryParse(raw) ?? 0;
+    if (margin < 0) {
+      _snack('Margin cannot be negative', error: true);
+      return;
+    }
     await _setVisible(
       itemType: 'data_bundle',
       itemId: id,
       visible: true,
       customMargin: margin,
+      successMessage: 'Margin updated',
     );
   }
 
@@ -449,7 +468,10 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
             selectedColor: DfColors.brand.withValues(alpha: 0.2),
             onSelected: (_) {
               if (_provider == p) return;
-              setState(() => _provider = p);
+              setState(() {
+                _provider = p;
+                _bundlePage = 1;
+              });
               _loadSection();
             },
           );
@@ -467,9 +489,14 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
                       orElse: () => null,
                     ),
               );
-          final base = (bundle?['price'] is num) ? (bundle!['price'] as num).toDouble() : 0.0;
+          final knownPrice = bundle?['price'];
+          final base = (knownPrice is num) ? knownPrice.toDouble() : null;
           final margin = _marginFor(id) ?? 0;
           final busy = _busy.contains('data_bundle:$id');
+          final label = bundle?['name']?.toString() ??
+              'Bundle ${id.length > 8 ? id.substring(0, 8) : id}';
+          final provider = bundle?['provider']?.toString();
+          final sizeGb = bundle?['size_gb'];
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             child: Padding(
@@ -477,9 +504,14 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(bundle?['name']?.toString() ?? 'Bundle $id', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                  Text(label, style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                  // Base price is unknown when the bundle is no longer in the
+                  // catalog; show only the margin rather than a bogus retail.
                   Text(
-                    'Base ${_fmtPrice(base)} · Margin ${_fmtPrice(margin)} · Retail ${_fmtPrice(base + margin)}',
+                    base == null
+                        ? 'Margin ${_fmtPrice(margin)}'
+                        : '${provider ?? _provider} · ${sizeGb ?? '?'}GB · Base ${_fmtPrice(base)} '
+                            '· Margin ${_fmtPrice(margin)} · Sell ${_fmtPrice(base + margin)}',
                     style: const TextStyle(fontSize: 12, color: DfColors.muted),
                   ),
                   const SizedBox(height: 8),
@@ -513,10 +545,20 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
         Text('Add more bundles', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
       ],
+      if (_bundleTotal > 0)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            '$_bundleTotal $_provider bundles available · page $_bundlePage of $_bundleTotalPages',
+            style: const TextStyle(fontSize: 11.5, color: DfColors.muted),
+          ),
+        ),
       if (_bundles.isEmpty)
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(child: Text('No bundles', style: TextStyle(color: DfColors.muted))),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: Text('No bundles for $_provider.', style: const TextStyle(color: DfColors.muted)),
+          ),
         )
       else
         ..._bundles.where((b) => !savedIds.contains(b['id']?.toString())).map((b) {
@@ -587,7 +629,36 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
             ),
           );
         }),
+      if (_bundleTotalPages > 1)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _bundlePage <= 1 ? null : () => _goToBundlePage(_bundlePage - 1),
+                icon: const Icon(Icons.chevron_left, size: 18),
+                label: const Text('Previous'),
+              ),
+              Text(
+                'Page $_bundlePage / $_bundleTotalPages',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              OutlinedButton.icon(
+                onPressed:
+                    _bundlePage >= _bundleTotalPages ? null : () => _goToBundlePage(_bundlePage + 1),
+                icon: const Icon(Icons.chevron_right, size: 18),
+                label: const Text('Next'),
+              ),
+            ],
+          ),
+        ),
     ];
+  }
+
+  void _goToBundlePage(int page) {
+    setState(() => _bundlePage = page.clamp(1, _bundleTotalPages));
+    _loadSection();
   }
 
   List<Widget> _buildServices() {

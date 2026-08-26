@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/api_client.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
+import '../widgets/publish_permission_gate.dart';
 
 class PublishProductsScreen extends StatefulWidget {
   const PublishProductsScreen({super.key});
@@ -28,6 +29,9 @@ class _PublishProductsScreenState extends State<PublishProductsScreen> with Sing
   bool _submitting = false;
   List<Map<String, dynamic>> _mine = [];
   bool _loadingMine = true;
+  bool _checkingPermission = true;
+  bool _canPublish = false;
+  bool _canUpdate = false;
 
   static const _categories = [
     'Electronics',
@@ -62,15 +66,25 @@ class _PublishProductsScreenState extends State<PublishProductsScreen> with Sing
     setState(() => _loadingMine = true);
     try {
       final data = await ApiClient.instance.getMyWholesaleProducts();
+      final perms = data['permissions'];
       setState(() {
         _mine = (data['products'] is List)
             ? (data['products'] as List).whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
             : [];
+        if (perms is Map) {
+          _canPublish = perms['can_publish_products'] == true;
+          _canUpdate = perms['can_update_products'] == true;
+        }
       });
     } catch (_) {
       setState(() => _mine = []);
     } finally {
-      if (mounted) setState(() => _loadingMine = false);
+      if (mounted) {
+        setState(() {
+          _loadingMine = false;
+          _checkingPermission = false;
+        });
+      }
     }
   }
 
@@ -91,17 +105,37 @@ class _PublishProductsScreenState extends State<PublishProductsScreen> with Sing
     }
   }
 
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _submit() async {
+    if (!_canPublish) {
+      await PublishPermissionGate.showDialogFor(context, PublishPermissionGate.products());
+      return;
+    }
     final agent = await SessionStore.instance.getAgent();
     if (!mounted) return;
     final agentId = agent?['id']?.toString() ?? '';
     if (agentId.isEmpty) return;
-    if (_name.text.trim().isEmpty || _price.text.trim().isEmpty || _qty.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name, price and quantity are required')));
+    if (_name.text.trim().isEmpty) {
+      _toast('Product name is required');
+      return;
+    }
+    if (_category.trim().isEmpty) {
+      _toast('Please select a category');
+      return;
+    }
+    if ((double.tryParse(_price.text.trim()) ?? 0) <= 0) {
+      _toast('Valid price is required');
+      return;
+    }
+    if ((int.tryParse(_qty.text.trim()) ?? 0) <= 0) {
+      _toast('Valid quantity is required');
       return;
     }
     if (_images.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add at least one product image')));
+      _toast('At least one product image is required');
       return;
     }
     setState(() => _submitting = true);
@@ -118,9 +152,32 @@ class _PublishProductsScreenState extends State<PublishProductsScreen> with Sing
         'agent_id': agentId,
       });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product submitted for review')),
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          icon: const Icon(Icons.check_circle_rounded, color: DfColors.brand, size: 44),
+          title: Text(
+            'Product Submitted!',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 20),
+          ),
+          content: const Text(
+            'Your product has been successfully submitted for admin review. Once the admin '
+            'approves it, it will be listed on the Wholesale page where other agents can '
+            'view and purchase your products.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: DfColors.muted, height: 1.5, fontSize: 13.5),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Got It!'),
+            ),
+          ],
+        ),
       );
+      if (!mounted) return;
       _name.clear();
       _description.clear();
       _price.clear();
@@ -138,10 +195,37 @@ class _PublishProductsScreenState extends State<PublishProductsScreen> with Sing
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingPermission) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: DfColors.brand)),
+      );
+    }
+    if (!_canPublish && !_canUpdate) {
+      return PublishPermissionGate.products();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Publish Products'),
-        bottom: TabBar(controller: _tabs, tabs: const [Tab(text: 'Submit'), Tab(text: 'My products')]),
+        bottom: TabBar(
+          controller: _tabs,
+          tabs: [
+            const Tab(text: 'Submit'),
+            Tab(text: _canUpdate ? 'My products' : 'Your products'),
+          ],
+        ),
+        actions: [
+          if (_canPublish)
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: Center(
+                child: Chip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text('Approved Publisher', style: TextStyle(fontSize: 11)),
+                ),
+              ),
+            ),
+        ],
       ),
       body: TabBarView(
         controller: _tabs,

@@ -10,8 +10,6 @@ class AgentDashboardHeader extends StatelessWidget {
     required this.name,
     required this.phone,
     this.photoUrl,
-    required this.walletBalance,
-    required this.onWalletTap,
     required this.onNotificationsTap,
     required this.onSettingsTap,
     required this.onLogout,
@@ -21,16 +19,14 @@ class AgentDashboardHeader extends StatelessWidget {
   final String name;
   final String phone;
   final String? photoUrl;
-  final double walletBalance;
-  final VoidCallback onWalletTap;
   final VoidCallback onNotificationsTap;
   final VoidCallback onSettingsTap;
   final VoidCallback onLogout;
   final int notifCount;
 
-  String get _shortName {
-    final first = name.trim().split(RegExp(r'\s+')).firstOrNull ?? 'Agent';
-    return first.length > 12 ? '${first.substring(0, 11)}…' : first;
+  String get _displayName {
+    final trimmed = name.trim();
+    return trimmed.isEmpty ? 'Agent' : trimmed;
   }
 
   @override
@@ -62,28 +58,23 @@ class AgentDashboardHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _shortName,
+                          _displayName,
                           style: GoogleFonts.outfit(
                             color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
                           ),
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          'DataFlex Agent Dashboard',
+                          'DataFlex Ghana Agent',
                           style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 11),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  _HeaderBtn(
-                    icon: Icons.account_balance_wallet_outlined,
-                    label: 'GHS ${walletBalance.toStringAsFixed(2)}',
-                    onTap: onWalletTap,
-                  ),
-                  const SizedBox(width: 4),
                   _HeaderIconBtn(icon: Icons.settings_outlined, onTap: onSettingsTap, tooltip: 'Settings'),
                   _HeaderIconBtn(
                     icon: Icons.notifications_outlined,
@@ -95,40 +86,6 @@ class AgentDashboardHeader extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeaderBtn extends StatelessWidget {
-  const _HeaderBtn({required this.icon, required this.label, required this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.15),
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 16),
-              const SizedBox(width: 4),
-              Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-            ],
           ),
         ),
       ),

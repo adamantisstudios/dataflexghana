@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await db
     .from("professional_writing_submissions")
     .select(
-      "id, agent_id, service_type, service_name, cv_type, status, form_data, document_url, image_url, submitted_at, created_at, updated_at",
+      "id, agent_id, service_type, cv_type, status, form_data, document_url, image_url, submitted_at, created_at, updated_at",
     )
     .eq("agent_id", agent.id)
     .order("submitted_at", { ascending: false })
@@ -58,7 +58,10 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    submissions: data || [],
+    submissions: (data || []).map((row) => ({
+      ...row,
+      service_label: SERVICE_LABELS[String(row.service_type)] || row.service_type,
+    })),
   })
 }
 
@@ -174,7 +177,6 @@ export async function POST(request: NextRequest) {
   const row: Record<string, unknown> = {
     agent_id: agent.id,
     service_type,
-    service_name: SERVICE_LABELS[service_type],
     status: "pending",
     form_data,
     document_url,
@@ -187,7 +189,7 @@ export async function POST(request: NextRequest) {
     .from("professional_writing_submissions")
     .insert([row])
     .select(
-      "id, agent_id, service_type, service_name, cv_type, status, form_data, document_url, image_url, submitted_at",
+      "id, agent_id, service_type, cv_type, status, form_data, document_url, image_url, submitted_at",
     )
     .maybeSingle()
 
@@ -196,5 +198,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ success: true, submission: data })
+  return NextResponse.json({
+    success: true,
+    submission: data ? { ...data, service_label: SERVICE_LABELS[service_type] } : data,
+  })
 }

@@ -190,43 +190,62 @@ Please assist. Thank you.''';
               children: [
                 const SizedBox(height: 12),
                 Center(
-                  child: Image.asset(
-                    'assets/images/dataflex_logo.png',
-                    height: 88,
-                    errorBuilder: (_, _, _) => Text(
-                      'DataFlex',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 40,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
+                  child: Container(
+                    width: 108,
+                    height: 108,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.28),
+                          blurRadius: 28,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/images/app_logo.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const Icon(
+                          Icons.bolt_rounded,
+                          size: 56,
+                          color: DfColors.brand,
+                        ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 Text(
-                  'DataFlex',
+                  'DataFlex Ghana',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.outfit(
                     color: Colors.white,
-                    fontSize: 42,
+                    fontSize: 36,
                     fontWeight: FontWeight.w800,
                     height: 1.05,
                     letterSpacing: -1,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
-                  needs2fa ? 'Enter your authenticator code' : 'Sell data. Grow your hustle.',
+                  needs2fa
+                      ? 'Enter your authenticator code'
+                      : 'All the Data you need to start earning online.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    fontSize: 16,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 15,
+                    height: 1.35,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 32),
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
                   decoration: BoxDecoration(

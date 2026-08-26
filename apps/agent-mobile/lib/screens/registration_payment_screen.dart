@@ -17,6 +17,31 @@ const _manualFee = 47.0;
 const _paystackFeeGhs = 50;
 const _paystackFeePesewas = 5000;
 const _walletTopup = 5;
+const _termsUrl = 'https://www.dataflexghana.com/terms';
+const _faqUrl = 'https://www.dataflexghana.com/faq';
+
+class _LegalLink extends StatelessWidget {
+  const _LegalLink({required this.label, required this.url});
+
+  final String label;
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+      child: Text(
+        label,
+        style: GoogleFonts.dmSans(
+          fontSize: 13,
+          color: DfColors.brandDark,
+          fontWeight: FontWeight.w700,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    );
+  }
+}
 
 class RegistrationPaymentScreen extends StatefulWidget {
   const RegistrationPaymentScreen({super.key});
@@ -261,8 +286,25 @@ Thank you!''';
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'STEP 1 OF 2 · REGISTRATION FEE',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Text(
-                  'Join DataFlex',
+                  'Join DataFlex Ghana',
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontSize: 28,
@@ -271,8 +313,25 @@ Thank you!''';
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Pay once, then complete your agent profile. Manual MoMo is ₵$_manualFee; Paystack is ₵$_paystackFeeGhs.',
+                  'All the Data you need to start earning online. Manual MoMo is ₵$_manualFee (recommended, instant activation); Paystack is ₵$_paystackFeeGhs.',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.9), height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    'After payment, Step 2 collects your full agent details: full name, region, '
+                    'agent number, payment (MoMo) line and password — exactly like the website registration.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      fontSize: 12.5,
+                      height: 1.4,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -303,9 +362,23 @@ Thank you!''';
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             activeColor: DfColors.brand,
-            title: Text(
-              'I have read and agree to the DataFlex Terms & Conditions and FAQ.',
-              style: GoogleFonts.dmSans(fontSize: 13, color: DfColors.ink),
+            title: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('I have read and agree to the ',
+                    style: GoogleFonts.dmSans(fontSize: 13, color: DfColors.ink)),
+                _LegalLink(label: 'Terms & Conditions', url: _termsUrl),
+                Text(' and ', style: GoogleFonts.dmSans(fontSize: 13, color: DfColors.ink)),
+                _LegalLink(label: 'FAQ', url: _faqUrl),
+                Text('.', style: GoogleFonts.dmSans(fontSize: 13, color: DfColors.ink)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 4),
+            child: Text(
+              'Tap the links above to read them before you continue.',
+              style: GoogleFonts.dmSans(fontSize: 11.5, color: DfColors.muted),
             ),
           ),
           const SizedBox(height: 8),

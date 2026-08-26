@@ -221,7 +221,7 @@ class _ProfessionalWritingScreenState extends State<ProfessionalWritingScreen> {
             else
               ..._submissions.map((sub) {
                 final status = sub['status']?.toString() ?? 'pending';
-                final type = sub['service_name']?.toString() ??
+                final type = sub['service_label']?.toString() ??
                     sub['service_type']?.toString() ??
                     'Writing';
                 return Container(

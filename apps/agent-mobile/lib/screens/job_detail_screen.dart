@@ -47,9 +47,138 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   Future<void> _openUrl(String? url) async {
     if (url == null || url.trim().isEmpty) return;
-    final uri = Uri.tryParse(url.trim());
+    var raw = url.trim();
+    if (!raw.contains(':')) raw = 'https://$raw';
+    final uri = Uri.tryParse(raw);
     if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    await _launch(uri);
+  }
+
+  Future<void> _launch(Uri uri) async {
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok) throw Exception('no handler');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No app available to open ${uri.scheme}')),
+      );
+    }
+  }
+
+  String? _text(Object? value) {
+    final s = value?.toString().trim() ?? '';
+    return s.isEmpty || s == 'null' ? null : s;
+  }
+
+  Future<void> _applyByEmail(String email) async {
+    final title = _text(_job?['job_title']) ?? 'your vacancy';
+    final employer = _text(_job?['employer_name']);
+    final body = '''Dear ${employer ?? 'Hiring Manager'},
+
+I would like to apply for the $title position advertised on DataFlex Ghana.
+
+Please find my details below. I have attached my CV for your consideration.
+
+Kind regards,''';
+    await _launch(
+      Uri(
+        scheme: 'mailto',
+        path: email,
+        query: Uri(queryParameters: {
+          'subject': 'Application for $title',
+          'body': body,
+        }).query,
+      ),
+    );
+  }
+
+  Widget _buildApplyCard() {
+    final job = _job!;
+    final method = _text(job['application_method'])?.toLowerCase();
+    final url = _text(job['application_url']);
+    final email = _text(job['contact_email']);
+    final phone = _text(job['contact_phone']);
+
+    if (url == null && email == null && phone == null && method == null) {
+      return const SizedBox.shrink();
+    }
+
+    // Website prefers the declared method, but falls back to whatever contact
+    // details exist so an agent is never left with a dead end.
+    final actions = <Widget>[];
+    if (url != null && (method == 'hyperlink' || method == 'website' || method == null || email == null)) {
+      actions.add(_ApplyButton(
+        icon: Icons.public,
+        label: 'Apply on Company Website',
+        onTap: () => _openUrl(url),
+        primary: true,
+      ));
+    }
+    if (email != null) {
+      actions.add(_ApplyButton(
+        icon: Icons.mail_outline,
+        label: 'Send Email Application',
+        sublabel: email,
+        onTap: () => _applyByEmail(email),
+        primary: actions.isEmpty,
+      ));
+    }
+    if (phone != null) {
+      actions.add(_ApplyButton(
+        icon: Icons.call_outlined,
+        label: 'Call Employer',
+        sublabel: phone,
+        onTap: () => _launch(Uri(scheme: 'tel', path: phone)),
+        primary: actions.isEmpty,
+      ));
+      actions.add(_ApplyButton(
+        icon: Icons.chat_bubble_outline,
+        label: 'WhatsApp Employer',
+        onTap: () => _openUrl('https://wa.me/${phone.replaceAll(RegExp(r'\D'), '')}'),
+        primary: false,
+      ));
+    }
+    if (actions.isEmpty) {
+      actions.add(
+        Text(
+          method ?? 'Contact the employer directly using the information above.',
+          style: const TextStyle(color: DfColors.muted, height: 1.4),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [DfColors.brand.withValues(alpha: 0.10), const Color(0xFF3B82F6).withValues(alpha: 0.10)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: DfColors.brand.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.bolt, color: DfColors.brand),
+              const SizedBox(width: 8),
+              Text('How to Apply', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 18)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Tap an option below to start your application right away.',
+            style: TextStyle(color: DfColors.muted, fontSize: 12.5, height: 1.35),
+          ),
+          const SizedBox(height: 14),
+          for (final a in actions) Padding(padding: const EdgeInsets.only(bottom: 10), child: a),
+        ],
+      ),
+    );
   }
 
   @override
@@ -81,18 +210,9 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                           const SizedBox(height: 12),
                           _Section(title: 'Description', body: _job!['description']?.toString()),
                           _Section(title: 'Requirements', body: _job!['requirements']?.toString()),
-                          const SizedBox(height: 16),
-                          if (_job!['contact_email'] != null)
-                            _InfoTile(icon: Icons.email_outlined, label: 'Email', value: _job!['contact_email']?.toString() ?? ''),
-                          if (_job!['contact_phone'] != null)
-                            _InfoTile(icon: Icons.phone_outlined, label: 'Phone', value: _job!['contact_phone']?.toString() ?? ''),
-                          const SizedBox(height: 20),
-                          if (_job!['application_url'] != null)
-                            ElevatedButton.icon(
-                              onPressed: () => _openUrl(_job!['application_url']?.toString()),
-                              icon: const Icon(Icons.open_in_new),
-                              label: const Text('Apply on website'),
-                            ),
+                          const SizedBox(height: 8),
+                          _buildApplyCard(),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -141,6 +261,73 @@ class _Header extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ApplyButton extends StatelessWidget {
+  const _ApplyButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.primary,
+    this.sublabel,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? sublabel;
+  final VoidCallback onTap;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = primary ? Colors.white : DfColors.brandDark;
+    return Material(
+      color: primary ? DfColors.brand : Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      elevation: primary ? 2 : 0,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: primary ? Colors.transparent : DfColors.brand.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: fg),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
+                    if (sublabel != null)
+                      Text(
+                        sublabel!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: fg.withValues(alpha: 0.8),
+                          fontSize: 11.5,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_rounded, size: 18, color: fg.withValues(alpha: 0.9)),
+            ],
+          ),
+        ),
       ),
     );
   }

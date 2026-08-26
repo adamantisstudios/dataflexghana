@@ -219,9 +219,7 @@ class _HomeShellState extends State<HomeShell> {
             name: name,
             phone: phone,
             photoUrl: photo,
-            walletBalance: wallet,
             notifCount: _notifCount,
-            onWalletTap: () => _onTab(3),
             onNotificationsTap: () async {
               await Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
