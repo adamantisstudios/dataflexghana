@@ -9,6 +9,8 @@ import '../theme/app_theme.dart';
 import 'login_screen.dart';
 
 const _adminWhatsApp = '233246827049';
+const _termsUrl = 'https://www.dataflexghana.com/terms';
+const _faqUrl = 'https://www.dataflexghana.com/faq';
 
 const _regions = [
   'Greater Accra',
@@ -325,6 +327,20 @@ Please mark my account as APPROVED so I can sign in. Thank you!''';
             ),
           ],
           const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7ED),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFDBA74)),
+            ),
+            child: const Text(
+              'Important: DataFlex is a multi-service earning platform — not only data bundles. '
+              'After approval you must complete photo verification (selfie) before using the app, same as the website.',
+              style: TextStyle(fontSize: 12.5, height: 1.4, color: Color(0xFF9A3412)),
+            ),
+          ),
+          const SizedBox(height: 14),
           TextField(
             controller: _fullName,
             textCapitalization: TextCapitalization.words,
@@ -414,9 +430,36 @@ Please mark my account as APPROVED so I can sign in. Thank you!''';
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             activeColor: DfColors.brand,
-            title: Text(
-              'I agree to the Terms & Conditions and FAQ',
-              style: GoogleFonts.dmSans(fontSize: 13, color: DfColors.ink),
+            title: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('I agree to the ', style: GoogleFonts.dmSans(fontSize: 13, color: DfColors.ink)),
+                GestureDetector(
+                  onTap: () => launchUrl(Uri.parse(_termsUrl), mode: LaunchMode.externalApplication),
+                  child: Text(
+                    'Terms & Conditions',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13,
+                      color: DfColors.brandDark,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                Text(' and ', style: GoogleFonts.dmSans(fontSize: 13, color: DfColors.ink)),
+                GestureDetector(
+                  onTap: () => launchUrl(Uri.parse(_faqUrl), mode: LaunchMode.externalApplication),
+                  child: Text(
+                    'FAQ',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13,
+                      color: DfColors.brandDark,
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           if (_error != null) ...[

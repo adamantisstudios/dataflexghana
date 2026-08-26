@@ -9,6 +9,50 @@ import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import 'compliance_signature_pad.dart';
 
+/// Turns `a.b.0.c` keys into nested maps/lists for website-compatible form_data.
+Map<String, dynamic> unflattenFormData(Map<String, dynamic> flat) {
+  final root = <String, dynamic>{};
+  for (final entry in flat.entries) {
+    final key = entry.key;
+    final value = entry.value;
+    if (!key.contains('.')) {
+      root[key] = value;
+      continue;
+    }
+    final parts = key.split('.');
+    dynamic cursor = root;
+    for (var i = 0; i < parts.length; i++) {
+      final part = parts[i];
+      final last = i == parts.length - 1;
+      final index = int.tryParse(part);
+      if (index != null) {
+        if (cursor is! List) break;
+        while (cursor.length <= index) {
+          cursor.add(<String, dynamic>{});
+        }
+        if (last) {
+          cursor[index] = value;
+        } else {
+          final nextIsIndex = int.tryParse(parts[i + 1]) != null;
+          if (cursor[index] == null || cursor[index] is! Map && !nextIsIndex) {
+            cursor[index] = nextIsIndex ? <dynamic>[] : <String, dynamic>{};
+          }
+          cursor = cursor[index];
+        }
+      } else if (cursor is Map) {
+        if (last) {
+          cursor[part] = value;
+        } else {
+          final nextIsIndex = int.tryParse(parts[i + 1]) != null;
+          cursor.putIfAbsent(part, () => nextIsIndex ? <dynamic>[] : <String, dynamic>{});
+          cursor = cursor[part];
+        }
+      }
+    }
+  }
+  return root;
+}
+
 class ComplianceFormScreen extends StatefulWidget {
   const ComplianceFormScreen({super.key, required this.formSummary});
   final Map<String, dynamic> formSummary;
@@ -225,18 +269,24 @@ class _ComplianceFormScreenState extends State<ComplianceFormScreen> {
       }
     }
 
-    final formData = <String, dynamic>{};
+    final flat = <String, dynamic>{};
     for (final step in _steps) {
       for (final raw in (step['fields'] as List?) ?? []) {
         if (raw is! Map) continue;
         final field = Map<String, dynamic>.from(raw);
         final key = field['key']?.toString() ?? '';
-        if (field['type']?.toString() == 'tier') continue;
-        formData[key] = _ctrl(key).text.trim();
+        if (key.isEmpty || field['type']?.toString() == 'tier') continue;
+        // Selects may live in _values rather than controllers.
+        final fromValues = _values[key];
+        final text = _ctrl(key).text.trim();
+        flat[key] = (fromValues != null && fromValues.isNotEmpty) ? fromValues : text;
       }
     }
-    if (_selectedTier != null) formData['selected_cost_tier'] = _selectedTier;
-    if (_selectedCost != null) formData['selected_cost'] = _selectedCost;
+    if (_selectedTier != null) flat['selected_cost_tier'] = _selectedTier;
+    if (_selectedCost != null) flat['selected_cost'] = _selectedCost;
+
+    // Expand dotted keys (e.g. director1.first_name) into nested maps for website parity.
+    final formData = unflattenFormData(flat);
 
     setState(() => _submitting = true);
     try {

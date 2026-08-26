@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_client.dart';
 import '../../theme/app_theme.dart';
@@ -33,6 +34,8 @@ class _HubListingsTabState extends State<HubListingsTab> {
   bool _creating = false;
   String? _error;
   bool _showForm = false;
+
+  bool _buyingPackage = false;
 
   final _money = NumberFormat.currency(symbol: 'GHS ', decimalDigits: 2);
 
@@ -209,6 +212,40 @@ class _HubListingsTabState extends State<HubListingsTab> {
     );
   }
 
+  Future<void> _buyPackage(Map package) async {
+    final id = package['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Buy listing package'),
+        content: Text(
+          'Purchase "${package['name'] ?? 'package'}" for ${_money.format(package['price'] is num ? package['price'] : 0)} via Paystack?\n\n'
+          'You confirm you accept DataFlex listing terms.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Continue to Paystack')),
+        ],
+      ),
+    );
+    if (accepted != true) return;
+    setState(() => _buyingPackage = true);
+    try {
+      final res = await ApiClient.instance.initializeListingPackage(packageId: id, termsAccepted: true);
+      final url = res['authorization_url']?.toString();
+      if (url == null || url.isEmpty) throw ApiException('No Paystack URL returned');
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      _snack('Complete payment in the browser, then pull to refresh this tab.');
+    } on ApiException catch (e) {
+      _snack(e.message, error: true);
+    } catch (e) {
+      _snack(e.toString(), error: true);
+    } finally {
+      if (mounted) setState(() => _buyingPackage = false);
+    }
+  }
+
   Widget _buildPackagesCard() {
     final info = _packagesInfo;
     final packages = info?['packages'];
@@ -216,6 +253,8 @@ class _HubListingsTabState extends State<HubListingsTab> {
     final max = info?['max_listings'];
     final canList = info?['can_list_products'] != false;
     final days = info?['days_remaining'];
+    final sub = info?['subscription'];
+    final features = info?['features'];
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -235,20 +274,58 @@ class _HubListingsTabState extends State<HubListingsTab> {
           Text(
             canList
                 ? 'Used $used / $max listings${days != null ? ' · $days days left' : ''}'
-                : 'Listing section disabled by admin',
+                : 'Buy a package below to list products on your storefront',
             style: const TextStyle(color: DfColors.muted, fontSize: 13),
           ),
+          if (sub is Map) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Subscription: ${sub['status'] ?? '—'}'
+              '${sub['expires_at'] != null ? ' · expires ${sub['expires_at']}' : ''}',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: DfColors.brandDark),
+            ),
+          ],
+          if (features is List && features.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Includes: ${features.map((e) => e.toString()).join(', ')}',
+              style: const TextStyle(fontSize: 11, color: DfColors.muted),
+            ),
+          ],
           if (packages is List && packages.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            ...packages.whereType<Map>().take(4).map((p) {
+            const SizedBox(height: 12),
+            ...packages.whereType<Map>().map((p) {
               final name = p['name']?.toString() ?? p['package_name']?.toString() ?? 'Package';
               final price = p['price'];
               final priceStr = price is num ? _money.format(price) : (price?.toString() ?? '');
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  '• $name${priceStr.isNotEmpty ? ' — $priceStr' : ''}',
-                  style: const TextStyle(fontSize: 12),
+              final maxListings = p['max_listings'];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: DfColors.brand.withValues(alpha: 0.15)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                          Text(
+                            '$priceStr${maxListings != null ? ' · up to $maxListings listings' : ''}',
+                            style: const TextStyle(fontSize: 12, color: DfColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: _buyingPackage ? null : () => _buyPackage(p),
+                      child: const Text('Buy'),
+                    ),
+                  ],
                 ),
               );
             }),

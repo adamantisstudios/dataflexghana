@@ -1,9 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../services/api_client.dart';
+import '../../services/cache_store.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/display_format.dart';
 
 class HubMarketplaceTab extends StatefulWidget {
   const HubMarketplaceTab({super.key});
@@ -28,9 +32,12 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
   String _provider = 'MTN';
   bool _loading = true;
   String? _error;
-  final Set<String> _toggling = {};
+  final Set<String> _busy = {};
+  final Map<String, TextEditingController> _marginCtrls = {};
+  final _serviceSearch = TextEditingController();
 
   List<Map<String, dynamic>> _settings = [];
+  List<Map<String, dynamic>> _savedBundles = [];
   List<Map<String, dynamic>> _bundles = [];
   List<Map<String, dynamic>> _services = [];
   List<Map<String, dynamic>> _wholesale = [];
@@ -52,11 +59,38 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
     _loadSection();
   }
 
+  @override
+  void dispose() {
+    for (final c in _marginCtrls.values) {
+      c.dispose();
+    }
+    _serviceSearch.dispose();
+    super.dispose();
+  }
+
+  TextEditingController _marginCtrl(String id, [double? initial]) {
+    return _marginCtrls.putIfAbsent(id, () {
+      final v = initial ?? _marginFor(id) ?? 0;
+      return TextEditingController(text: v == 0 ? '' : v.toString());
+    });
+  }
+
   void _snack(String msg, {bool error = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: error ? DfColors.danger : null),
     );
+  }
+
+  double? _marginFor(String itemId, [String itemType = 'data_bundle']) {
+    for (final s in _settings) {
+      if (s['item_type']?.toString() == itemType && s['item_id']?.toString() == itemId) {
+        final m = s['custom_margin'];
+        if (m is num) return m.toDouble();
+        return double.tryParse(m?.toString() ?? '');
+      }
+    }
+    return null;
   }
 
   bool _isVisible(String itemType, String itemId) {
@@ -70,43 +104,77 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
 
   bool _isComplianceVisible() {
     for (final s in _settings) {
-      if (s['item_type']?.toString() == 'compliance_form' && s['is_visible'] == true) {
-        return true;
-      }
+      if (s['item_type']?.toString() == 'compliance_form' && s['is_visible'] == true) return true;
     }
     return false;
   }
 
-  Future<void> _loadSettings() async {
+  Future<void> _loadSettings({bool force = false}) async {
+    if (!force) {
+      final cached = await CacheStore.instance.getJson<Map<String, dynamic>>('hub_store_settings');
+      if (cached != null) {
+        final list = cached['settings'];
+        _settings = list is List
+            ? list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+            : [];
+        final saved = cached['savedBundles'];
+        _savedBundles = saved is List
+            ? saved.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+            : [];
+        _complianceVisible = _isComplianceVisible();
+        return;
+      }
+    }
     final data = await ApiClient.instance.getStoreSettings();
+    await CacheStore.instance.putJson('hub_store_settings', data, ttl: const Duration(minutes: 30));
     final list = data['settings'];
     _settings = list is List
         ? list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
         : [];
+    final saved = data['savedBundles'];
+    _savedBundles = saved is List
+        ? saved.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+        : [];
     _complianceVisible = _isComplianceVisible();
   }
 
-  Future<void> _loadSection() async {
+  Future<void> _loadSection({bool force = false}) async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      await _loadSettings();
+      await _loadSettings(force: force);
       switch (_section) {
         case 0:
-          final data = await ApiClient.instance.getStoreBundles(provider: _provider, limit: 50);
+          final cacheKey = 'hub_bundles_$_provider';
+          Map<String, dynamic>? data;
+          if (!force) {
+            data = await CacheStore.instance.getJson<Map<String, dynamic>>(cacheKey);
+          }
+          data ??= await ApiClient.instance.getStoreBundles(provider: _provider, limit: 50);
+          await CacheStore.instance.putJson(cacheKey, data, ttl: const Duration(hours: 2));
           final list = data['bundles'];
           _bundles = list is List
               ? list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
               : [];
           break;
         case 1:
+          final q = _serviceSearch.text.trim();
           final data = await ApiClient.instance.getStoreServices(limit: 50);
           final list = data['services'];
-          _services = list is List
+          var services = list is List
               ? list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
-              : [];
+              : <Map<String, dynamic>>[];
+          if (q.isNotEmpty) {
+            final lq = q.toLowerCase();
+            services = services
+                .where((s) =>
+                    (s['title']?.toString().toLowerCase().contains(lq) ?? false) ||
+                    (s['description']?.toString().toLowerCase().contains(lq) ?? false))
+                .toList();
+          }
+          _services = services;
           break;
         case 2:
           final data = await ApiClient.instance.getStoreWholesale(limit: 50);
@@ -121,7 +189,6 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
           _complianceSubs = list is List
               ? list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
               : [];
-          _complianceVisible = _isComplianceVisible();
           break;
         case 4:
           final data = await ApiClient.instance.getAdvertisingPackages();
@@ -171,30 +238,74 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
     }
   }
 
-  Future<void> _toggleVisibility({
+  Future<void> _setVisible({
     required String itemType,
     required String itemId,
-    required bool nextVisible,
+    required bool visible,
     double? customMargin,
   }) async {
     final key = '$itemType:$itemId';
-    setState(() => _toggling.add(key));
+    setState(() => _busy.add(key));
     try {
       await ApiClient.instance.upsertStoreSetting(
         itemType: itemType,
         itemId: itemId,
-        isVisible: nextVisible,
+        isVisible: visible,
         customMargin: customMargin,
       );
-      await _loadSettings();
+      await CacheStore.instance.invalidate('hub_store_settings');
+      await _loadSettings(force: true);
       setState(() {});
-      _snack(nextVisible ? 'Enabled on storefront' : 'Hidden from storefront');
+      _snack(visible ? 'Enabled on storefront' : 'Hidden from storefront');
     } on ApiException catch (e) {
       _snack(e.message, error: true);
     } catch (e) {
       _snack(e.toString(), error: true);
     } finally {
-      if (mounted) setState(() => _toggling.remove(key));
+      if (mounted) setState(() => _busy.remove(key));
+    }
+  }
+
+  Future<void> _addBundleWithMargin(Map<String, dynamic> bundle) async {
+    final id = bundle['id']?.toString() ?? '';
+    final raw = _marginCtrl(id).text.trim();
+    final margin = double.tryParse(raw) ?? 0;
+    if (margin < 0) {
+      _snack('Margin cannot be negative', error: true);
+      return;
+    }
+    await _setVisible(
+      itemType: 'data_bundle',
+      itemId: id,
+      visible: true,
+      customMargin: margin,
+    );
+  }
+
+  Future<void> _updateBundleMargin(String id) async {
+    final raw = _marginCtrl(id).text.trim();
+    final margin = double.tryParse(raw) ?? 0;
+    await _setVisible(
+      itemType: 'data_bundle',
+      itemId: id,
+      visible: true,
+      customMargin: margin,
+    );
+  }
+
+  Future<void> _removeBundle(String id) async {
+    final key = 'data_bundle:$id';
+    setState(() => _busy.add(key));
+    try {
+      await ApiClient.instance.deleteStoreSetting(itemType: 'data_bundle', itemId: id);
+      await CacheStore.instance.invalidate('hub_store_settings');
+      await _loadSettings(force: true);
+      setState(() {});
+      _snack('Removed from store');
+    } on ApiException catch (e) {
+      _snack(e.message, error: true);
+    } finally {
+      if (mounted) setState(() => _busy.remove(key));
     }
   }
 
@@ -202,6 +313,13 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
     if (v is num) return _money.format(v);
     final n = double.tryParse(v?.toString() ?? '');
     return n != null ? _money.format(n) : '—';
+  }
+
+  String _networkAsset(String provider) {
+    final p = provider.toLowerCase();
+    if (p.contains('telecel')) return 'assets/images/telecel.jpg';
+    if (p.contains('airtel') || p.contains('tigo')) return 'assets/images/airteltigo.jpg';
+    return 'assets/images/mtn.jpg';
   }
 
   @override
@@ -238,7 +356,7 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
         Expanded(
           child: RefreshIndicator(
             color: DfColors.brand,
-            onRefresh: _loadSection,
+            onRefresh: () => _loadSection(force: true),
             child: _loading
                 ? ListView(
                     children: const [
@@ -252,7 +370,7 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
                         children: [
                           Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: DfColors.danger)),
                           const SizedBox(height: 12),
-                          Center(child: ElevatedButton(onPressed: _loadSection, child: const Text('Retry'))),
+                          Center(child: ElevatedButton(onPressed: () => _loadSection(force: true), child: const Text('Retry'))),
                         ],
                       )
                     : ListView(
@@ -270,43 +388,29 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
       case 0:
         return _buildBundles();
       case 1:
-        return _buildToggleList(
-          title: 'Referral services',
-          items: _services,
-          nameKey: 'title',
-          priceKey: 'cost',
-          itemType: 'referral_service',
-        );
+        return _buildServices();
       case 2:
-        return _buildToggleList(
-          title: 'Wholesale products',
-          items: _wholesale,
-          nameKey: 'name',
-          priceKey: 'price',
-          itemType: 'wholesale_product',
-          allowMargin: true,
-        );
+        return _buildWholesale();
       case 3:
         return _buildCompliance();
       case 4:
-        return _buildToggleList(
+        return _buildSimpleToggleCards(
           title: 'Advertising packages',
           items: _adPackages,
           nameKey: 'package_name',
           priceKey: 'price',
           itemType: 'ad_package',
-          visibleOverride: (p) => p['is_on_storefront'] == true || _isVisible('ad_package', p['id']?.toString() ?? ''),
+          imageKey: 'image_url',
         );
-        case 5:
-          return _buildToggleList(
-            title: 'Writing services',
-            items: _writing,
-            nameKey: 'service_name',
-            priceKey: 'price',
-            itemType: 'writing_service',
-            visibleOverride: (p) =>
-                p['is_on_storefront'] == true || _isVisible('writing_service', p['id']?.toString() ?? ''),
-          );
+      case 5:
+        return _buildSimpleToggleCards(
+          title: 'Writing services',
+          items: _writing,
+          nameKey: 'service_name',
+          priceKey: 'price',
+          itemType: 'writing_service',
+          imageKey: 'image_url',
+        );
       case 6:
         return _buildRealEstate();
       case 7:
@@ -317,12 +421,18 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
   }
 
   List<Widget> _buildBundles() {
+    final savedIds = _settings
+        .where((s) => s['item_type'] == 'data_bundle' && s['is_visible'] == true)
+        .map((s) => s['item_id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
     return [
       Text('Data bundles', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700)),
       const SizedBox(height: 4),
       const Text(
-        'Toggle which bundles appear on your storefront. Optional custom margin adds to the retail price.',
-        style: TextStyle(color: DfColors.muted, fontSize: 12),
+        'Pick a network, set your profit margin, then add to your store — same as the website Referral Hub.',
+        style: TextStyle(color: DfColors.muted, fontSize: 12, height: 1.35),
       ),
       const SizedBox(height: 10),
       Wrap(
@@ -330,6 +440,10 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
         children: ['MTN', 'Telecel', 'AirtelTigo'].map((p) {
           final selected = _provider == p;
           return ChoiceChip(
+            avatar: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Image.asset(_networkAsset(p), width: 18, height: 18, fit: BoxFit.cover),
+            ),
             label: Text(p),
             selected: selected,
             selectedColor: DfColors.brand.withValues(alpha: 0.2),
@@ -341,41 +455,347 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
           );
         }).toList(),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 16),
+      if (savedIds.isNotEmpty) ...[
+        Text('Your store bundles', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        ...savedIds.map((id) {
+          final bundle = _savedBundles.cast<Map<String, dynamic>?>().firstWhere(
+                (b) => b?['id']?.toString() == id,
+                orElse: () => _bundles.cast<Map<String, dynamic>?>().firstWhere(
+                      (b) => b?['id']?.toString() == id,
+                      orElse: () => null,
+                    ),
+              );
+          final base = (bundle?['price'] is num) ? (bundle!['price'] as num).toDouble() : 0.0;
+          final margin = _marginFor(id) ?? 0;
+          final busy = _busy.contains('data_bundle:$id');
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(bundle?['name']?.toString() ?? 'Bundle $id', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                  Text(
+                    'Base ${_fmtPrice(base)} · Margin ${_fmtPrice(margin)} · Retail ${_fmtPrice(base + margin)}',
+                    style: const TextStyle(fontSize: 12, color: DfColors.muted),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _marginCtrl(id, margin),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                          decoration: const InputDecoration(labelText: 'Your margin (GHS)', isDense: true),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: busy ? null : () => _updateBundleMargin(id),
+                        child: const Text('Update'),
+                      ),
+                      IconButton(
+                        onPressed: busy ? null : () => _removeBundle(id),
+                        icon: const Icon(Icons.delete_outline, color: DfColors.danger),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        const SizedBox(height: 12),
+        Text('Add more bundles', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+      ],
       if (_bundles.isEmpty)
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 40),
           child: Center(child: Text('No bundles', style: TextStyle(color: DfColors.muted))),
         )
       else
-        ..._bundles.map((b) {
+        ..._bundles.where((b) => !savedIds.contains(b['id']?.toString())).map((b) {
           final id = b['id']?.toString() ?? '';
-          final visible = _isVisible('data_bundle', id);
-          final busy = _toggling.contains('data_bundle:$id');
-          final size = b['size_gb'];
-          return _toggleTile(
-            title: b['name']?.toString() ?? 'Bundle',
-            subtitle: '${size ?? '?'} GB · ${_fmtPrice(b['price'])}',
-            value: visible,
-            busy: busy,
-            onChanged: (v) => _toggleVisibility(
-              itemType: 'data_bundle',
-              itemId: id,
-              nextVisible: v,
+          final busy = _busy.contains('data_bundle:$id');
+          final base = (b['price'] is num) ? (b['price'] as num).toDouble() : 0.0;
+          final img = b['image_url']?.toString();
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: img != null && img.isNotEmpty
+                          ? CachedNetworkImage(imageUrl: img, fit: BoxFit.cover)
+                          : Image.asset(_networkAsset(_provider), fit: BoxFit.cover),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(b['name']?.toString() ?? 'Bundle', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                        Text(
+                          '${b['size_gb'] ?? '?'} GB · Base ${_fmtPrice(base)}',
+                          style: const TextStyle(fontSize: 12, color: DfColors.muted),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _marginCtrl(id),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                                decoration: const InputDecoration(
+                                  labelText: 'Your margin (GHS)',
+                                  isDense: true,
+                                  hintText: 'e.g. 2',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: busy ? null : () => _addBundleWithMargin(b),
+                              child: busy
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                    )
+                                  : const Text('Add'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }),
     ];
   }
 
-  List<Widget> _buildToggleList({
+  List<Widget> _buildServices() {
+    return [
+      Text('Referral services', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 4),
+      const Text(
+        'Toggle which services appear on your storefront. Images and commissions match the website.',
+        style: TextStyle(color: DfColors.muted, fontSize: 12),
+      ),
+      const SizedBox(height: 10),
+      TextField(
+        controller: _serviceSearch,
+        decoration: InputDecoration(
+          hintText: 'Search services…',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: IconButton(icon: const Icon(Icons.arrow_forward), onPressed: () => _loadSection(force: true)),
+        ),
+        onSubmitted: (_) => _loadSection(force: true),
+      ),
+      const SizedBox(height: 12),
+      if (_services.isEmpty)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 40),
+          child: Center(child: Text('No services found', style: TextStyle(color: DfColors.muted))),
+        )
+      else
+        ..._services.map((svc) {
+          final id = svc['id']?.toString() ?? '';
+          final visible = _isVisible('referral_service', id);
+          final busy = _busy.contains('referral_service:$id');
+          final img = svc['image_url']?.toString();
+          final commission = svc['agent_commission'] ?? svc['commission_amount'] ?? 0;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: img != null && img.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: img,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => Container(color: DfColors.sand, child: const Icon(Icons.handshake_outlined)),
+                            )
+                          : Container(color: DfColors.sand, child: const Icon(Icons.handshake_outlined)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(svc['title']?.toString() ?? 'Service', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                        if ((svc['description']?.toString() ?? '').isNotEmpty)
+                          Text(
+                            svc['description'].toString(),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, color: DfColors.muted),
+                          ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_fmtPrice(svc['cost'] ?? svc['product_cost'])} · Earn ${DisplayFormat.money(commission is num ? commission.toDouble() : 0)}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: DfColors.brandDark),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      Text(visible ? 'Visible' : 'Hidden', style: const TextStyle(fontSize: 11, color: DfColors.muted)),
+                      Switch(
+                        value: visible,
+                        activeThumbColor: DfColors.brand,
+                        onChanged: busy
+                            ? null
+                            : (v) => _setVisible(
+                                  itemType: 'referral_service',
+                                  itemId: id,
+                                  visible: v,
+                                  customMargin: 0,
+                                ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+    ];
+  }
+
+  List<Widget> _buildWholesale() {
+    return [
+      Text('Wholesale products', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700)),
+      const SizedBox(height: 4),
+      const Text(
+        'Set your margin and toggle products onto your storefront.',
+        style: TextStyle(color: DfColors.muted, fontSize: 12),
+      ),
+      const SizedBox(height: 12),
+      ..._wholesale.map((p) {
+        final id = p['id']?.toString() ?? '';
+        final visible = _isVisible('wholesale_product', id);
+        final busy = _busy.contains('wholesale_product:$id');
+        final images = p['image_urls'];
+        final img = images is List && images.isNotEmpty
+            ? images.first.toString()
+            : p['image_url']?.toString();
+        final base = (p['price'] is num) ? (p['price'] as num).toDouble() : 0.0;
+        final margin = _marginFor(id, 'wholesale_product') ?? 0;
+        return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: img != null && img.isNotEmpty
+                            ? CachedNetworkImage(imageUrl: img, fit: BoxFit.cover)
+                            : Container(color: DfColors.sand, child: const Icon(Icons.inventory_2_outlined)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(p['name']?.toString() ?? 'Product', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+                          Text(
+                            'Base ${_fmtPrice(base)}${visible ? ' · Retail ${_fmtPrice(base + margin)}' : ''}',
+                            style: const TextStyle(fontSize: 12, color: DfColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: visible,
+                      activeThumbColor: DfColors.brand,
+                      onChanged: busy
+                          ? null
+                          : (v) {
+                              final m = double.tryParse(_marginCtrl('w_$id', margin).text.trim()) ?? margin;
+                              _setVisible(
+                                itemType: 'wholesale_product',
+                                itemId: id,
+                                visible: v,
+                                customMargin: m,
+                              );
+                            },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _marginCtrl('w_$id', margin),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Your margin (GHS)', isDense: true),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: busy
+                          ? null
+                          : () {
+                              final m = double.tryParse(_marginCtrl('w_$id').text.trim()) ?? 0;
+                              _setVisible(
+                                itemType: 'wholesale_product',
+                                itemId: id,
+                                visible: true,
+                                customMargin: m,
+                              );
+                            },
+                      child: const Text('Save margin'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    ];
+  }
+
+  List<Widget> _buildSimpleToggleCards({
     required String title,
     required List<Map<String, dynamic>> items,
     required String nameKey,
     required String priceKey,
     required String itemType,
-    bool allowMargin = false,
-    bool Function(Map<String, dynamic>)? visibleOverride,
+    String? imageKey,
   }) {
     return [
       Text(title, style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700)),
@@ -388,22 +808,31 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
       else
         ...items.map((item) {
           final id = item['id']?.toString() ?? '';
-          final visible = visibleOverride?.call(item) ?? _isVisible(itemType, id);
-          final busy = _toggling.contains('$itemType:$id');
-          final name = item[nameKey]?.toString() ??
-              item['title']?.toString() ??
-              item['name']?.toString() ??
-              'Item';
-          return _toggleTile(
-            title: name,
-            subtitle: _fmtPrice(item[priceKey] ?? item['price'] ?? item['cost']),
-            value: visible,
-            busy: busy,
-            onChanged: (v) => _toggleVisibility(
-              itemType: itemType,
-              itemId: id,
-              nextVisible: v,
-              customMargin: allowMargin ? 0 : null,
+          final visible = item['is_on_storefront'] == true || _isVisible(itemType, id);
+          final busy = _busy.contains('$itemType:$id');
+          final img = imageKey != null ? item[imageKey]?.toString() : null;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: img != null && img.isNotEmpty
+                      ? CachedNetworkImage(imageUrl: img, fit: BoxFit.cover)
+                      : Container(color: DfColors.sand, child: const Icon(Icons.layers_outlined)),
+                ),
+              ),
+              title: Text(item[nameKey]?.toString() ?? 'Item', style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+              subtitle: Text(_fmtPrice(item[priceKey]), style: const TextStyle(fontSize: 12)),
+              trailing: Switch(
+                value: visible,
+                activeThumbColor: DfColors.brand,
+                onChanged: busy
+                    ? null
+                    : (v) => _setVisible(itemType: itemType, itemId: id, visible: v, customMargin: 0),
+              ),
             ),
           );
         }),
@@ -414,16 +843,16 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
     return [
       Text('Compliance', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700)),
       const SizedBox(height: 8),
-      _toggleTile(
-        title: 'Sole Proprietorship form',
-        subtitle: 'Show compliance form on your storefront',
+      SwitchListTile(
+        title: const Text('Sole Proprietorship form'),
+        subtitle: const Text('Show compliance form on your storefront'),
         value: _complianceVisible,
-        busy: _toggling.contains('compliance_form:sole_proprietorship'),
+        activeThumbColor: DfColors.brand,
         onChanged: (v) async {
-          await _toggleVisibility(
+          await _setVisible(
             itemType: 'compliance_form',
             itemId: 'sole_proprietorship',
-            nextVisible: v,
+            visible: v,
           );
           setState(() => _complianceVisible = _isComplianceVisible());
         },
@@ -441,10 +870,6 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
             subtitle: Text(
               '${s['status'] ?? '—'} · ${_fmtPrice(s['amount_paid'])}',
               style: const TextStyle(fontSize: 12, color: DfColors.muted),
-            ),
-            trailing: Text(
-              _shortDate(s['created_at']),
-              style: const TextStyle(fontSize: 11, color: DfColors.muted),
             ),
           );
         }),
@@ -476,18 +901,35 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
         ...all.map((p) {
           final id = p['id']?.toString() ?? '';
           final visible = _isVisible('property', id);
-          final busy = _toggling.contains('property:$id');
+          final busy = _busy.contains('property:$id');
           final title = p['title']?.toString() ?? p['name']?.toString() ?? 'Property';
           final price = p['price'] ?? p['asking_price'] ?? p['rent_amount'];
-          return _toggleTile(
-            title: title,
-            subtitle: '${p['_source']} · ${_fmtPrice(price)}',
-            value: visible,
-            busy: busy,
-            onChanged: (v) => _toggleVisibility(
-              itemType: 'property',
-              itemId: id,
-              nextVisible: v,
+          final images = p['image_urls'] ?? p['images'];
+          final img = images is List && images.isNotEmpty
+              ? images.first.toString()
+              : p['image_url']?.toString() ?? p['cover_image']?.toString();
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: img != null && img.isNotEmpty
+                      ? CachedNetworkImage(imageUrl: img, fit: BoxFit.cover)
+                      : Container(color: DfColors.sand, child: const Icon(Icons.home_work_outlined)),
+                ),
+              ),
+              title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+              subtitle: Text('${p['_source']} · ${_fmtPrice(price)}', style: const TextStyle(fontSize: 12, color: DfColors.muted)),
+              trailing: Switch(
+                value: visible,
+                activeThumbColor: DfColors.brand,
+                onChanged: busy
+                    ? null
+                    : (v) => _setVisible(itemType: 'property', itemId: id, visible: v),
+              ),
             ),
           );
         }),
@@ -509,7 +951,7 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
         ),
         child: profile == null
             ? const Text(
-                'No influencer profile yet. Apply from the website Referral Hub to get approved.',
+                'No influencer profile yet. Apply from Referral Hub on the website to get approved, then manage packages here.',
                 style: TextStyle(color: DfColors.muted, fontSize: 13),
               )
             : Column(
@@ -525,10 +967,7 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
                   ],
                   if (profile['audience_size'] != null) ...[
                     const SizedBox(height: 2),
-                    Text(
-                      'Audience: ${profile['audience_size']}',
-                      style: const TextStyle(fontSize: 13, color: DfColors.muted),
-                    ),
+                    Text('Audience: ${profile['audience_size']}', style: const TextStyle(fontSize: 13, color: DfColors.muted)),
                   ],
                   if (profile['bio'] != null) ...[
                     const SizedBox(height: 8),
@@ -547,49 +986,9 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
           return ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(p['title']?.toString() ?? 'Package'),
-            subtitle: Text(
-              _fmtPrice(p['price']),
-              style: const TextStyle(color: DfColors.muted, fontSize: 12),
-            ),
+            subtitle: Text(_fmtPrice(p['price']), style: const TextStyle(color: DfColors.muted, fontSize: 12)),
           );
         }),
     ];
-  }
-
-  Widget _toggleTile({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required bool busy,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: SwitchListTile(
-        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: DfColors.muted)),
-        value: value,
-        activeThumbColor: DfColors.brand,
-        onChanged: busy ? null : onChanged,
-        secondary: busy
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: DfColors.brand),
-              )
-            : null,
-      ),
-    );
-  }
-
-  String _shortDate(Object? raw) {
-    if (raw == null) return '';
-    final dt = DateTime.tryParse(raw.toString());
-    if (dt == null) return '';
-    return DateFormat('dd MMM').format(dt.toLocal());
   }
 }

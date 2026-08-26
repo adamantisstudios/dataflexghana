@@ -31,6 +31,7 @@ export const AGENT_PHOTO_VERIFICATION_EXEMPT_API_PATHS = [
   "/api/agent/mobile/wholesale",
   "/api/agent/mobile/properties",
   "/api/agent/mobile/domestic-workers",
+  "/api/agent/mobile/referral-services",
   "/api/agent/login",
   "/api/agent/verify-2fa",
   "/api/agent/2fa/status",

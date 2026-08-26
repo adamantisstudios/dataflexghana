@@ -11,6 +11,22 @@ import { notifyAdminOps } from "@/lib/ops/notify-admin-ops"
 
 export const dynamic = "force-dynamic"
 
+function getByPath(obj: Record<string, unknown>, path: string): unknown {
+  if (!path.includes(".")) return obj[path]
+  const parts = path.split(".")
+  let cur: unknown = obj
+  for (const part of parts) {
+    if (cur == null || typeof cur !== "object") return undefined
+    const idx = Number.isInteger(Number(part)) ? Number(part) : null
+    if (idx != null && Array.isArray(cur)) {
+      cur = cur[idx]
+    } else {
+      cur = (cur as Record<string, unknown>)[part]
+    }
+  }
+  return cur
+}
+
 export async function GET(request: NextRequest) {
   const auth = await authenticateAgent(request, undefined, { allowUnverifiedPhoto: true })
   if (!auth.success || !auth.user) {
@@ -84,7 +100,7 @@ export async function POST(request: NextRequest) {
   for (const step of schema.steps) {
     for (const field of step.fields) {
       if (!field.required) continue
-      const val = formData[field.key]
+      const val = getByPath(formData, field.key)
       if (val == null || String(val).trim() === "") {
         return NextResponse.json({ error: `${field.label} is required` }, { status: 400 })
       }

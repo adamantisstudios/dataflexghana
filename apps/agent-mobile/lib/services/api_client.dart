@@ -858,10 +858,29 @@ class ApiClient {
         'item_type': itemType,
         'item_id': itemId,
         'is_visible': isVisible,
-        'custom_margin': ?customMargin,
+        if (customMargin != null) 'custom_margin': customMargin,
       }),
     );
-    return _decode(res);
+    final data = await _decode(res);
+    await CacheStore.instance.invalidatePrefix('hub_');
+    return data;
+  }
+
+  Future<Map<String, dynamic>> deleteStoreSetting({
+    required String itemType,
+    required String itemId,
+  }) async {
+    final res = await http.delete(
+      await _uri('/api/agent/store-settings'),
+      headers: await SessionStore.instance.authHeaders(),
+      body: jsonEncode({
+        'item_type': itemType,
+        'item_id': itemId,
+      }),
+    );
+    final data = await _decode(res);
+    await CacheStore.instance.invalidatePrefix('hub_');
+    return data;
   }
 
   Future<Map<String, dynamic>> getStoreBundles({
@@ -1449,10 +1468,114 @@ class ApiClient {
 
   // ── Tutorials / courses / vouchers ────────────────────────────────────────
 
-  Future<Map<String, dynamic>> getTutorials() async {
+  Future<Map<String, dynamic>> getTutorials({bool forceRefresh = false}) async {
+    if (!forceRefresh) {
+      final cached = await CacheStore.instance.getJson<Map<String, dynamic>>('tutorials');
+      if (cached != null) return cached;
+    }
     final res = await http.get(
       await _uri('/api/agent/tutorials'),
       headers: await SessionStore.instance.authHeaders(),
+    );
+    final data = await _decode(res);
+    await CacheStore.instance.putJson('tutorials', data, ttl: const Duration(hours: 6));
+    return data;
+  }
+
+  Future<Map<String, dynamic>> getTutorialComments(String videoId) async {
+    final res = await http.get(
+      await _uri('/api/agent/tutorial-comments', {'videoId': videoId}),
+      headers: await SessionStore.instance.authHeaders(),
+    );
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> postTutorialComment({
+    required String videoId,
+    required String content,
+  }) async {
+    final res = await http.post(
+      await _uri('/api/agent/tutorial-comments'),
+      headers: await SessionStore.instance.authHeaders(),
+      body: jsonEncode({'videoId': videoId, 'content': content.trim()}),
+    );
+    return _decode(res);
+  }
+
+  Future<Map<String, dynamic>> getReferralServicesCatalog({
+    String? search,
+    int page = 1,
+    int limit = 30,
+    bool forceRefresh = false,
+  }) async {
+    final cacheKey = 'hub_referral_services_${search ?? ''}_$page';
+    if (!forceRefresh) {
+      final cached = await CacheStore.instance.getJson<Map<String, dynamic>>(cacheKey);
+      if (cached != null) return cached;
+    }
+    final res = await http.get(
+      await _uri('/api/agent/mobile/referral-services', {
+        'page': '$page',
+        'limit': '$limit',
+        if (search != null && search.isNotEmpty) 'search': search,
+      }),
+      headers: await SessionStore.instance.authHeaders(),
+    );
+    final data = await _decode(res);
+    await CacheStore.instance.putJson(cacheKey, data, ttl: const Duration(hours: 2));
+    return data;
+  }
+
+  Future<Map<String, dynamic>> getMyReferrals({bool forceRefresh = false}) async {
+    if (!forceRefresh) {
+      final cached = await CacheStore.instance.getJson<Map<String, dynamic>>('my_referrals');
+      if (cached != null) return cached;
+    }
+    final res = await http.get(
+      await _uri('/api/agent/mobile/referral-services', {'history': '1'}),
+      headers: await SessionStore.instance.authHeaders(),
+    );
+    final data = await _decode(res);
+    await CacheStore.instance.putJson('my_referrals', data, ttl: const Duration(minutes: 10));
+    return data;
+  }
+
+  Future<Map<String, dynamic>> submitReferral({
+    required String serviceId,
+    required String clientName,
+    required String clientPhone,
+    required String description,
+    bool allowDirectContact = true,
+  }) async {
+    final res = await http.post(
+      await _uri('/api/agent/mobile/referral-services'),
+      headers: await SessionStore.instance.authHeaders(),
+      body: jsonEncode({
+        'service_id': serviceId,
+        'client_name': clientName,
+        'client_phone': clientPhone,
+        'description': description,
+        'allow_direct_contact': allowDirectContact,
+      }),
+    );
+    final data = await _decode(res);
+    await CacheStore.instance.invalidate('my_referrals');
+    return data;
+  }
+
+  Future<Map<String, dynamic>> initializeListingPackage({
+    required String packageId,
+    String? email,
+    bool termsAccepted = true,
+  }) async {
+    final res = await http.post(
+      await _uri('/api/paystack/listing-package/initialize'),
+      headers: await SessionStore.instance.authHeaders(),
+      body: jsonEncode({
+        'package_id': packageId,
+        'terms_accepted': termsAccepted,
+        if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
+      }),
     );
     return _decode(res);
   }

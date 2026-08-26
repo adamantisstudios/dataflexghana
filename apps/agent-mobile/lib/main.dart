@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
+import 'screens/photo_verification_gate.dart';
 import 'services/session_store.dart';
 import 'theme/app_theme.dart';
 
@@ -44,7 +45,9 @@ class _BootGateState extends State<_BootGate> {
     final agent = await SessionStore.instance.getAgent();
     if (!mounted) return;
     setState(() {
-      _home = agent == null ? const LoginScreen() : const HomeShell();
+      _home = agent == null
+          ? const LoginScreen()
+          : const PhotoVerificationGate(child: HomeShell());
     });
   }
 

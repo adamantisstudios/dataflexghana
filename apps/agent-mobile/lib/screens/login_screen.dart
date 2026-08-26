@@ -6,6 +6,7 @@ import '../services/api_client.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
 import 'home_shell.dart';
+import 'photo_verification_gate.dart';
 import 'registration_payment_screen.dart';
 
 const _adminWhatsApp = '233246827049';
@@ -93,7 +94,9 @@ Please assist. Thank you.''';
       if (agent is! Map) throw ApiException('Invalid login response');
       await SessionStore.instance.saveAgent(Map<String, dynamic>.from(agent));
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeShell()));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const PhotoVerificationGate(child: HomeShell())),
+      );
     } on ApiException catch (e) {
       final contact = _isContactAdminFailure(e);
       setState(() {
@@ -121,7 +124,9 @@ Please assist. Thank you.''';
       if (agent is! Map) throw ApiException('Invalid 2FA response');
       await SessionStore.instance.saveAgent(Map<String, dynamic>.from(agent));
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeShell()));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const PhotoVerificationGate(child: HomeShell())),
+      );
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
