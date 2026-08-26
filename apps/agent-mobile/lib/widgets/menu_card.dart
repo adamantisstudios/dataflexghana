@@ -4,7 +4,62 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_theme.dart';
 
-enum MenuKind { nativeData, nativeCompliance, nativeJobs, nativeFashion, underConstruction }
+enum MenuKind {
+  nativeData,
+  nativeCompliance,
+  nativeJobs,
+  nativeFashion,
+  nativeWriting,
+  nativeSettings,
+  nativeAppleService,
+  nativeGroceries,
+  nativeReferralHub,
+  nativeWithdrawals,
+  nativeReferralProgram,
+  nativeWholesale,
+  nativeSavings,
+  nativeTutorials,
+  nativePublishProducts,
+  nativePublishProperties,
+  nativeServices,
+  nativeVoucher,
+  nativeOnlineCourses,
+  nativeDating,
+  nativeVoiceConference,
+  nativeChannels,
+  nativeDomesticWorkers,
+  underConstruction,
+}
+
+/// Home menu filter groups — overview (balances) stays untouched; chips filter the list below.
+enum MenuCategory {
+  all,
+  earn,
+  services,
+  sell,
+  learn,
+  account,
+}
+
+extension MenuCategoryX on MenuCategory {
+  String get label => switch (this) {
+        MenuCategory.all => 'All',
+        MenuCategory.earn => 'Earn',
+        MenuCategory.services => 'Services',
+        MenuCategory.sell => 'Sell',
+        MenuCategory.learn => 'Learn',
+        MenuCategory.account => 'Account',
+      };
+
+  IconData get icon => switch (this) {
+        MenuCategory.all => Icons.apps,
+        MenuCategory.earn => Icons.payments_outlined,
+        MenuCategory.services => Icons.handshake_outlined,
+        MenuCategory.sell => Icons.storefront_outlined,
+        MenuCategory.learn => Icons.school_outlined,
+        MenuCategory.account => Icons.person_outline,
+      };
+}
 
 class MenuCardData {
   const MenuCardData({
@@ -15,6 +70,7 @@ class MenuCardData {
     required this.gradient,
     required this.cta,
     required this.kind,
+    required this.category,
     this.webPath,
     this.networkImage,
   });
@@ -26,11 +82,12 @@ class MenuCardData {
   final List<Color> gradient;
   final String cta;
   final MenuKind kind;
+  final MenuCategory category;
   final String? webPath;
   final String? networkImage;
 }
 
-/// Menu order matches web `AgentMenuCards.tsx`.
+/// Menu order matches web `AgentMenuCards.tsx`, plus Domestic Workers.
 const agentMenus = <MenuCardData>[
   MenuCardData(
     id: 'tutorials',
@@ -39,7 +96,8 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/tutorial.png',
     gradient: [Color(0xFF6366F1), Color(0xFF4338CA)],
     cta: 'WATCH NOW',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeTutorials,
+    category: MenuCategory.learn,
     webPath: '/agent/tutorials',
   ),
   MenuCardData(
@@ -49,7 +107,8 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/referral-hub.png',
     gradient: [Color(0xFF0EA5E9), Color(0xFF0369A1)],
     cta: 'OPEN HUB',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeReferralHub,
+    category: MenuCategory.earn,
     webPath: '/agent/referralhub',
   ),
   MenuCardData(
@@ -59,7 +118,8 @@ const agentMenus = <MenuCardData>[
     asset: 'assets/images/voice-conference.png',
     gradient: [DfColors.brand, DfColors.brandLight],
     cta: 'JOIN MEETING',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeVoiceConference,
+    category: MenuCategory.learn,
     webPath: '/agent/voice-rooms',
   ),
   MenuCardData(
@@ -70,6 +130,7 @@ const agentMenus = <MenuCardData>[
     gradient: [Color(0xFF8E24AA), Color(0xFF5E35B1)],
     cta: 'BUY DATA',
     kind: MenuKind.nativeData,
+    category: MenuCategory.earn,
   ),
   MenuCardData(
     id: 'compliance',
@@ -79,6 +140,7 @@ const agentMenus = <MenuCardData>[
     gradient: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
     cta: 'MANAGE FORMS',
     kind: MenuKind.nativeCompliance,
+    category: MenuCategory.services,
   ),
   MenuCardData(
     id: 'services',
@@ -88,7 +150,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/referral-services.png',
     gradient: [Color(0xFF26A69A), Color(0xFF1565C0)],
     cta: 'REFER NOW',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeServices,
+    category: MenuCategory.earn,
     webPath: '/agent/dashboard?tab=services',
   ),
   MenuCardData(
@@ -100,6 +163,19 @@ const agentMenus = <MenuCardData>[
     gradient: [Color(0xFF1E88E5), Color(0xFF1565C0)],
     cta: 'FIND JOBS',
     kind: MenuKind.nativeJobs,
+    category: MenuCategory.services,
+  ),
+  MenuCardData(
+    id: 'domestic-workers',
+    title: 'Domestic Workers',
+    subtitle: 'Browse, hire & register home help',
+    asset: 'assets/images/data-bundles.png',
+    networkImage: 'https://www.dataflexghana.com/professional-african-woman-domestic-worker.jpg',
+    gradient: [Color(0xFF0D9488), Color(0xFF0F766E)],
+    cta: 'OPEN',
+    kind: MenuKind.nativeDomesticWorkers,
+    category: MenuCategory.services,
+    webPath: '/domestic-workers',
   ),
   MenuCardData(
     id: 'professional-writing',
@@ -109,8 +185,32 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/professional-writing.preview.png',
     gradient: [Color(0xFFEC4899), Color(0xFFBE185D)],
     cta: 'WRITING SERVICES',
-    kind: MenuKind.underConstruction,
-    webPath: '/agent/dashboard?tab=professional-writing',
+    kind: MenuKind.nativeWriting,
+    category: MenuCategory.services,
+  ),
+  MenuCardData(
+    id: 'apple-service',
+    title: 'Apple Service Center',
+    subtitle: 'Device repair requests via WhatsApp',
+    asset: 'assets/images/compliance.png',
+    networkImage: 'https://www.dataflexghana.com/images/apple-service.png',
+    gradient: [Color(0xFF64748B), Color(0xFF334155)],
+    cta: 'REQUEST REPAIR',
+    kind: MenuKind.nativeAppleService,
+    category: MenuCategory.services,
+    webPath: '/appleservicecenter',
+  ),
+  MenuCardData(
+    id: 'groceries',
+    title: 'Food & Groceries',
+    subtitle: 'Concierge shopping — GHS 20 commitment',
+    asset: 'assets/images/data-bundles.png',
+    networkImage: 'https://www.dataflexghana.com/images/grocery-hero-4/grocery-hero-4.jpg',
+    gradient: [Color(0xFF0E8F3D), Color(0xFF0A5C2A)],
+    cta: 'ORDER GROCERIES',
+    kind: MenuKind.nativeGroceries,
+    category: MenuCategory.services,
+    webPath: '/foodandGroceries',
   ),
   MenuCardData(
     id: 'online-courses',
@@ -120,7 +220,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/online-courses.png',
     gradient: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
     cta: 'SIGN UP NOW',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeOnlineCourses,
+    category: MenuCategory.learn,
     webPath: '/agent/dashboard?tab=online-courses',
   ),
   MenuCardData(
@@ -131,7 +232,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/teaching-platform.png',
     gradient: [DfColors.brand, DfColors.brandLight],
     cta: 'EXPLORE CHANNELS',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeChannels,
+    category: MenuCategory.learn,
     webPath: '/agent/teaching',
   ),
   MenuCardData(
@@ -142,7 +244,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/voucher.png',
     gradient: [Color(0xFFF97316), Color(0xFFEA580C)],
     cta: 'OPEN VOUCHER',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeVoucher,
+    category: MenuCategory.earn,
     webPath: '/voucher',
   ),
   MenuCardData(
@@ -153,7 +256,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/referral-program.png',
     gradient: [Color(0xFFF59E0B), Color(0xFFD97706)],
     cta: 'INVITE NOW',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeReferralProgram,
+    category: MenuCategory.earn,
     webPath: '/agent/dashboard?tab=referral-program',
   ),
   MenuCardData(
@@ -164,7 +268,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/withdrawals.png',
     gradient: [Color(0xFFE53935), Color(0xFFB71C1C)],
     cta: 'WITHDRAW',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeWithdrawals,
+    category: MenuCategory.earn,
     webPath: '/agent/withdraw',
   ),
   MenuCardData(
@@ -175,7 +280,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/savings-plans.png',
     gradient: [Color(0xFFFF7043), Color(0xFFD84315)],
     cta: 'SAVE NOW',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeSavings,
+    category: MenuCategory.earn,
     webPath: '/agent/savings',
   ),
   MenuCardData(
@@ -186,7 +292,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/wholesale.png',
     gradient: [Color(0xFF43A047), Color(0xFF2E7D32)],
     cta: 'SHOP BULK',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeWholesale,
+    category: MenuCategory.earn,
     webPath: '/agent/wholesale',
   ),
   MenuCardData(
@@ -197,7 +304,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/publish-products.png',
     gradient: [Color(0xFF1976D2), Color(0xFF1565C0)],
     cta: 'PUBLISH NOW',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativePublishProducts,
+    category: MenuCategory.sell,
     webPath: '/agent/publish-products',
   ),
   MenuCardData(
@@ -208,7 +316,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/publish-properties.png',
     gradient: [Color(0xFFD97706), Color(0xFFB45309)],
     cta: 'PUBLISH NOW',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativePublishProperties,
+    category: MenuCategory.sell,
     webPath: '/agent/publish-properties',
   ),
   MenuCardData(
@@ -219,7 +328,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/promote-listings.png',
     gradient: [Color(0xFFF59E0B), Color(0xFFD97706)],
     cta: 'OPEN HUB',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeReferralHub,
+    category: MenuCategory.sell,
     webPath: '/agent/referralhub?hubTab=marketplace&marketplaceTab=real-estate',
   ),
   MenuCardData(
@@ -231,6 +341,7 @@ const agentMenus = <MenuCardData>[
     gradient: [Color(0xFFD946A6), Color(0xFF9D174D)],
     cta: 'VISIT FASHION',
     kind: MenuKind.nativeFashion,
+    category: MenuCategory.services,
   ),
   MenuCardData(
     id: 'find-a-date',
@@ -240,7 +351,8 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/find_a_date.png',
     gradient: [Color(0xFFE11D48), Color(0xFFBE123C)],
     cta: 'OPEN',
-    kind: MenuKind.underConstruction,
+    kind: MenuKind.nativeDating,
+    category: MenuCategory.account,
     webPath: '/agent/dating',
   ),
   MenuCardData(
@@ -251,10 +363,26 @@ const agentMenus = <MenuCardData>[
     networkImage: 'https://www.dataflexghana.com/images/profile-settings.png',
     gradient: [Color(0xFF546E7A), Color(0xFF37474F)],
     cta: 'SETTINGS',
-    kind: MenuKind.underConstruction,
-    webPath: '/agent/settings',
+    kind: MenuKind.nativeSettings,
+    category: MenuCategory.account,
   ),
 ];
+
+List<MenuCardData> filterAgentMenus({
+  required MenuCategory category,
+  required String query,
+}) {
+  final q = query.trim().toLowerCase();
+  return agentMenus.where((m) {
+    final catOk = category == MenuCategory.all || m.category == category;
+    if (!catOk) return false;
+    if (q.isEmpty) return true;
+    return m.title.toLowerCase().contains(q) ||
+        m.subtitle.toLowerCase().contains(q) ||
+        m.cta.toLowerCase().contains(q) ||
+        m.id.toLowerCase().contains(q);
+  }).toList();
+}
 
 class AgentMenuCard extends StatelessWidget {
   const AgentMenuCard({super.key, required this.data, required this.onTap});
@@ -298,10 +426,10 @@ class AgentMenuCard extends StatelessWidget {
                         ? CachedNetworkImage(
                             imageUrl: data.networkImage!,
                             fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => Image.asset(
+                            errorWidget: (_, _, _) => Image.asset(
                               data.asset,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              errorBuilder: (_, _, _) => Container(
                                 color: Colors.white24,
                                 child: const Icon(Icons.apps, color: Colors.white),
                               ),
@@ -310,7 +438,7 @@ class AgentMenuCard extends StatelessWidget {
                         : Image.asset(
                             data.asset,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorBuilder: (_, _, _) => Container(
                               color: Colors.white24,
                               child: const Icon(Icons.apps, color: Colors.white),
                             ),
@@ -322,31 +450,13 @@ class AgentMenuCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              data.title,
-                              style: GoogleFonts.outfit(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 17,
-                              ),
-                            ),
-                          ),
-                          if (data.kind == MenuKind.underConstruction)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.black26,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'DEV',
-                                style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                        ],
+                      Text(
+                        data.title,
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 17,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -385,20 +495,22 @@ class AgentMenuCard extends StatelessWidget {
 
 /// Horizontal scroll menu — matches web mobile `AgentMenuCards`.
 class AgentMenuCarousel extends StatelessWidget {
-  const AgentMenuCarousel({super.key, required this.onTap});
+  const AgentMenuCarousel({super.key, required this.onTap, this.menus});
 
   final ValueChanged<MenuCardData> onTap;
+  final List<MenuCardData>? menus;
 
   @override
   Widget build(BuildContext context) {
+    final items = menus ?? agentMenus;
     return SizedBox(
       height: 220,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        itemCount: agentMenus.length,
+        itemCount: items.length,
         separatorBuilder: (context, index) => const SizedBox(width: 14),
-        itemBuilder: (context, i) => AgentMenuHorizontalCard(data: agentMenus[i], onTap: () => onTap(agentMenus[i])),
+        itemBuilder: (context, i) => AgentMenuHorizontalCard(data: items[i], onTap: () => onTap(items[i])),
       ),
     );
   }
@@ -443,30 +555,15 @@ class AgentMenuHorizontalCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                data.title,
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (data.kind == MenuKind.underConstruction)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.black26,
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: const Text('DEV', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
-                              ),
-                          ],
+                        Text(
+                          data.title,
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(

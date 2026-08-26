@@ -26,8 +26,18 @@ export const AGENT_PHOTO_VERIFICATION_EXEMPT_API_PATHS = [
   "/api/agent/mobile/jobs",
   "/api/agent/mobile/fashion/categories",
   "/api/agent/mobile/fashion/products",
+  "/api/agent/mobile/settings",
+  "/api/agent/mobile/writing",
+  "/api/agent/mobile/wholesale",
+  "/api/agent/mobile/properties",
+  "/api/agent/mobile/domestic-workers",
   "/api/agent/login",
   "/api/agent/verify-2fa",
+  "/api/agent/2fa/status",
+  "/api/agent/2fa/setup",
+  "/api/agent/2fa/confirm",
+  "/api/agent/2fa/disable",
+  "/api/agent/account/delete",
 ] as const
 
 export const PHOTO_VERIFICATION_REQUIRED_ERROR =

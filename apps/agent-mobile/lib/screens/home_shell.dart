@@ -5,16 +5,36 @@ import '../services/api_client.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/agent_header.dart';
+import '../widgets/agent_notification_popup.dart';
 import '../widgets/menu_card.dart';
+import 'apple_service_screen.dart';
+import 'channels_screen.dart';
 import 'compliance_screen.dart';
 import 'data_bundles_screen.dart';
+import 'dating_screen.dart';
+import 'domestic_workers_screen.dart';
 import 'fashion_screen.dart';
+import 'groceries_screen.dart';
 import 'jobs_screen.dart';
 import 'login_screen.dart';
 import 'notifications_screen.dart';
+import 'online_courses_screen.dart';
 import 'orders_screen.dart';
 import 'placeholder_feature_screen.dart';
+import 'professional_writing_screen.dart';
+import 'publish_products_screen.dart';
+import 'publish_properties_screen.dart';
+import 'referral_hub/referral_hub_screen.dart';
+import 'referral_program_screen.dart';
+import 'referral_services_screen.dart';
+import 'savings_screen.dart';
+import 'settings_screen.dart';
+import 'tutorials_screen.dart';
+import 'voice_conference_screen.dart';
+import 'voucher_screen.dart';
 import 'wallet_screen.dart';
+import 'wholesale_screen.dart';
+import 'withdrawals_screen.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -32,11 +52,19 @@ class _HomeShellState extends State<HomeShell> {
   final _bundlesKey = GlobalKey<DataBundlesScreenState>();
   final _ordersKey = GlobalKey<OrdersScreenState>();
   final _walletKey = GlobalKey<WalletScreenState>();
+  final _menuSearch = TextEditingController();
+  MenuCategory _menuCategory = MenuCategory.all;
 
   @override
   void initState() {
     super.initState();
     _bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _menuSearch.dispose();
+    super.dispose();
   }
 
   void _onTab(int i) {
@@ -91,8 +119,70 @@ class _HomeShellState extends State<HomeShell> {
       case MenuKind.nativeJobs:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const JobsScreen()));
         break;
+      case MenuKind.nativeDomesticWorkers:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DomesticWorkersScreen()));
+        break;
       case MenuKind.nativeFashion:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FashionScreen()));
+        break;
+      case MenuKind.nativeWriting:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfessionalWritingScreen()));
+        break;
+      case MenuKind.nativeSettings:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+        break;
+      case MenuKind.nativeAppleService:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AppleServiceScreen()));
+        break;
+      case MenuKind.nativeGroceries:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GroceriesScreen()));
+        break;
+      case MenuKind.nativeReferralHub:
+        final openMarketplace = item.id == 'real-estate-store';
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ReferralHubScreen(initialTab: openMarketplace ? 2 : 0),
+          ),
+        );
+        break;
+      case MenuKind.nativeWithdrawals:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WithdrawalsScreen()));
+        break;
+      case MenuKind.nativeReferralProgram:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReferralProgramScreen()));
+        break;
+      case MenuKind.nativeWholesale:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WholesaleScreen()));
+        break;
+      case MenuKind.nativeSavings:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SavingsScreen()));
+        break;
+      case MenuKind.nativeTutorials:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TutorialsScreen()));
+        break;
+      case MenuKind.nativePublishProducts:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PublishProductsScreen()));
+        break;
+      case MenuKind.nativePublishProperties:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PublishPropertiesScreen()));
+        break;
+      case MenuKind.nativeServices:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReferralServicesScreen()));
+        break;
+      case MenuKind.nativeVoucher:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoucherScreen()));
+        break;
+      case MenuKind.nativeOnlineCourses:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OnlineCoursesScreen()));
+        break;
+      case MenuKind.nativeDating:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DatingScreen()));
+        break;
+      case MenuKind.nativeVoiceConference:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoiceConferenceScreen()));
+        break;
+      case MenuKind.nativeChannels:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChannelsScreen()));
         break;
       case MenuKind.underConstruction:
         Navigator.of(context).push(
@@ -140,13 +230,7 @@ class _HomeShellState extends State<HomeShell> {
             },
             onSettingsTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const PlaceholderFeatureScreen(
-                    title: 'Profile Settings',
-                    webPath: '/agent/settings',
-                    blurb: 'Open profile settings on the DataFlex website until the native screen ships.',
-                  ),
-                ),
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
             onLogout: _logout,
@@ -212,6 +296,72 @@ class _HomeShellState extends State<HomeShell> {
                       ),
                     ),
                   ),
+                  // Menu finder — does NOT touch balances / overview above.
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Menus',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _menuSearch,
+                            onChanged: (_) => setState(() {}),
+                            decoration: InputDecoration(
+                              hintText: 'Search menus…',
+                              prefixIcon: const Icon(Icons.search),
+                              suffixIcon: _menuSearch.text.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        _menuSearch.clear();
+                                        setState(() {});
+                                      },
+                                    ),
+                              isDense: true,
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 40,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: MenuCategory.values.length,
+                              separatorBuilder: (_, _) => const SizedBox(width: 8),
+                              itemBuilder: (context, i) {
+                                final cat = MenuCategory.values[i];
+                                final selected = _menuCategory == cat;
+                                return FilterChip(
+                                  selected: selected,
+                                  showCheckmark: false,
+                                  avatar: Icon(cat.icon, size: 16, color: selected ? Colors.white : DfColors.brandDark),
+                                  label: Text(cat.label),
+                                  labelStyle: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                    color: selected ? Colors.white : DfColors.ink,
+                                  ),
+                                  selectedColor: DfColors.brand,
+                                  backgroundColor: Colors.white,
+                                  side: BorderSide(
+                                    color: selected ? DfColors.brand : DfColors.brand.withValues(alpha: 0.25),
+                                  ),
+                                  onSelected: (_) => setState(() => _menuCategory = cat),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   if (_loading)
                     const SliverToBoxAdapter(
                       child: Padding(
@@ -226,16 +376,38 @@ class _HomeShellState extends State<HomeShell> {
                         child: Text(_error!, style: const TextStyle(color: DfColors.danger)),
                       ),
                     ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-                    sliver: SliverList.separated(
-                      itemCount: agentMenus.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 14),
-                      itemBuilder: (context, i) {
-                        final item = agentMenus[i];
-                        return AgentMenuCard(data: item, onTap: () => _openMenu(item));
-                      },
-                    ),
+                  Builder(
+                    builder: (context) {
+                      final filtered = filterAgentMenus(
+                        category: _menuCategory,
+                        query: _menuSearch.text,
+                      );
+                      if (filtered.isEmpty) {
+                        return const SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(16, 28, 16, 40),
+                            child: Center(
+                              child: Text(
+                                'No menus match your search.\nTry another category or keyword.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: DfColors.muted),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      return SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                        sliver: SliverList.separated(
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 14),
+                          itemBuilder: (context, i) {
+                            final item = filtered[i];
+                            return AgentMenuCard(data: item, onTap: () => _openMenu(item));
+                          },
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -255,17 +427,23 @@ class _HomeShellState extends State<HomeShell> {
       WalletScreen(key: _walletKey, embedded: true),
     ];
 
-    return Scaffold(
-      body: IndexedStack(index: _tab, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: _onTab,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.sim_card_outlined), selectedIcon: Icon(Icons.sim_card), label: 'Buy'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
-          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
-        ],
+    return AgentNotificationHost(
+      child: Scaffold(
+        body: IndexedStack(index: _tab, children: pages),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: _onTab,
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+            NavigationDestination(icon: Icon(Icons.sim_card_outlined), selectedIcon: Icon(Icons.sim_card), label: 'Buy'),
+            NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+            NavigationDestination(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              selectedIcon: Icon(Icons.account_balance_wallet),
+              label: 'Wallet',
+            ),
+          ],
+        ),
       ),
     );
   }

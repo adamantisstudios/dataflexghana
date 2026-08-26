@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase-client";
 export async function GET(request: NextRequest) {
   try {
     const timestamp = new Date().toISOString()
+    const rawLimit = Number(request.nextUrl.searchParams.get("limit") || 4)
+    const limit = Math.min(Math.max(1, Number.isFinite(rawLimit) ? rawLimit : 4), 100)
 
     const { data: products, error } = await supabase
       .from("wholesale_products")
@@ -11,7 +13,7 @@ export async function GET(request: NextRequest) {
       .eq("is_active", true)
       .gt("quantity", 0)
       .order("created_at", { ascending: false })
-      .limit(4) // Increase limit to 4 products for 2x2 grid display
+      .limit(limit)
 
     if (error) {
       console.error(`[v0] API Error at ${timestamp}:`, error)

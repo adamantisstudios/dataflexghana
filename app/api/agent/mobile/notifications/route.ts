@@ -4,6 +4,11 @@ import { getAdminClient } from "@/lib/supabase-base"
 
 export const dynamic = "force-dynamic"
 
+/**
+ * Returns active agent notifications + dismissals.
+ * Frequency (once_per_day / once_per_session / always) is applied on the client
+ * so "always" and daily re-shows work the same as the website.
+ */
 export async function GET(request: NextRequest) {
   const auth = await authenticateAgent(request, undefined, { allowUnverifiedPhoto: true })
   if (!auth.success || !auth.user) {
@@ -45,12 +50,9 @@ export async function GET(request: NextRequest) {
     .select("notification_id, dismissed_at")
     .eq("agent_id", agent.id)
 
-  const dismissed = new Set((dismissals || []).map((d) => d.notification_id))
-  const visible = (notifications || []).filter((n) => !dismissed.has(n.id))
-
   return NextResponse.json({
     success: true,
-    notifications: visible,
+    notifications: notifications || [],
     dismissals: dismissals || [],
   })
 }
