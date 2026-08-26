@@ -20,8 +20,25 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: "/app/:path*.apk",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/vnd.android.package-archive",
+          },
+          {
+            key: "Content-Disposition",
+            value: 'attachment; filename="dataflex-agent.apk"',
+          },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=3600",
+          },
+        ],
+      },
+      {
         source:
-          "/((?!_next/static|_next/image|favicon.ico|images/|assets/|fonts/|api/maintenance|maintenance).*)",
+          "/((?!_next/static|_next/image|favicon.ico|images/|assets/|fonts/|app/|api/maintenance|maintenance).*)",
         headers: [
           {
             key: "Cache-Control",

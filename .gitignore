@@ -30,5 +30,6 @@ apps/admin-ops-mobile/android/.gradle/
 apps/admin-ops-mobile/android/local.properties
 apps/admin-ops-mobile/build/
 *.apk
+!public/app/*.apk
 **/build-log.txt
 tsconfig.tsbuildinfo

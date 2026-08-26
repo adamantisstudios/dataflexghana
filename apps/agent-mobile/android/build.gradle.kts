@@ -15,6 +15,19 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+
+// Force plugin modules onto compileSdk 36 (file_picker etc. ship with 34).
+subprojects {
+    afterEvaluate {
+        if (!plugins.hasPlugin("com.android.library") && !plugins.hasPlugin("com.android.application")) {
+            return@afterEvaluate
+        }
+        extensions.configure<com.android.build.gradle.BaseExtension>("android") {
+            compileSdkVersion(36)
+        }
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(":app")
 }

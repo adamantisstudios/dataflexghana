@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import AppInstallBanner from "@/components/appinstall/app-install-banner"
 
 const regions = [
   "Greater Accra",
@@ -306,6 +307,9 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50">
+      <div className="sticky top-0 z-40">
+        <AppInstallBanner />
+      </div>
       {/* Audio Player and Warning Popup remain the same... */}
       {showAudioPlayer && (
         <FloatingAudioPlayer

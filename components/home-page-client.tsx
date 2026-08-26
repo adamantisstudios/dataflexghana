@@ -165,6 +165,8 @@ const ViewChannelsSection = () => {
 }
 
 import AppleServiceFeature from "@/components/homepage/apple-service-feature"
+import AppDownloadCta from "@/components/appinstall/app-download-cta"
+import { APP_RELEASE } from "@/lib/app-release"
 
 export default function HomePage() {
   const [services, setServices] = useState<Service[]>([])
@@ -408,6 +410,13 @@ export default function HomePage() {
                 asChild
                 className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent"
               >
+                <Link href={APP_RELEASE.installPagePath}>Get the App</Link>
+              </Button>
+              <Button
+                variant="outline"
+                asChild
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent"
+              >
                 <Link href="/agent/login">Agent Login</Link>
               </Button>
               <Button
@@ -465,6 +474,13 @@ export default function HomePage() {
                     asChild
                     className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent"
                   >
+                    <Link href={APP_RELEASE.installPagePath}>Get the App</Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-transparent"
+                  >
                     <Link href="/agent/login">Agent Login</Link>
                   </Button>
                   <Button
@@ -482,6 +498,8 @@ export default function HomePage() {
 
       {/* Hero Section with 4 Sliders */}
       <HeroSlider />
+
+      <AppDownloadCta />
 
       <section id="features" className="py-14 bg-gradient-to-br from-emerald-50 to-green-50">
         <div className="container mx-auto px-4">

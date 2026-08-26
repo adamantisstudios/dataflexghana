@@ -26,6 +26,8 @@ import { supabase } from "@/lib/supabase-client";
 import { toast } from "sonner";
 import Link from "next/link";
 import { ExploreServicesSection } from "@/components/marketing/ExploreServicesSection";
+import AppInstallBanner from "@/components/appinstall/app-install-banner";
+import { APP_RELEASE } from "@/lib/app-release";
 
 const REGISTRATION_FEE = 50;
 const REGISTRATION_FEE_MANUAL = 47;
@@ -303,6 +305,7 @@ Thank you!`;
         </div>
       ) : (
         <>
+          <AppInstallBanner />
           {/* Hero section with square image */}
           <section className="bg-white border-b border-slate-100">
             <div className="max-w-5xl mx-auto px-4 py-8 md:py-16 flex flex-col md:flex-row items-center gap-8 md:gap-12">
@@ -331,6 +334,13 @@ Thank you!`;
                     micro-influencers
                   </Link>{" "}
                   to promote your business on your storefront and Referral Hub.
+                </p>
+                <p className="text-slate-600 mt-3 max-w-md text-sm">
+                  Or skip the browser —{" "}
+                  <Link href={APP_RELEASE.installPagePath} className="font-semibold text-emerald-700 hover:underline">
+                    download the Android app
+                  </Link>{" "}
+                  and complete registration on your phone.
                 </p>
               </div>
             </div>
