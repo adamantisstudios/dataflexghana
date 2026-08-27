@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
@@ -26,20 +27,26 @@ String? tutorialPlayUrl(String? embedOrUrl, {bool autoplayMuted = true}) {
   if (raw == null) return null;
   final uri = Uri.tryParse(raw);
   if (uri == null) return raw;
+  // Mirrors prepareAgentFeedEmbed() in lib/tutorial-embed.ts so the app feed
+  // behaves like the website's. `autoplayMuted` false means the agent has opted
+  // into sound, so the player starts unmuted rather than not autoplaying.
   final q = Map<String, String>.from(uri.queryParameters);
   if (uri.host.contains('vimeo')) {
     q['playsinline'] = '1';
-    q['autoplay'] = autoplayMuted ? '1' : '0';
+    q['autoplay'] = '1';
     q['muted'] = autoplayMuted ? '1' : '0';
     q['loop'] = '1';
+    q['controls'] = '1';
     q['title'] = '0';
     q['byline'] = '0';
     q['portrait'] = '0';
     q['dnt'] = '1';
+    q['transparent'] = '0';
   } else if (uri.host.contains('youtube')) {
-    q['autoplay'] = autoplayMuted ? '1' : '0';
+    q['autoplay'] = '1';
     q['mute'] = autoplayMuted ? '1' : '0';
     q['playsinline'] = '1';
+    q['controls'] = '1';
     q['rel'] = '0';
     q['modestbranding'] = '1';
   }
@@ -216,14 +223,12 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
                 return const ColoredBox(color: Colors.black);
               }
               final video = _videos[index];
-              final url = tutorialPlayUrl(
-                video['embed_code']?.toString(),
-                autoplayMuted: index == _active,
-              );
               return _TutorialSlide(
                 key: ValueKey('${video['id']}_$index$_soundEnabled'),
                 title: video['title']?.toString() ?? 'Tutorial',
-                playUrl: url,
+                // Raw embed: the slide resolves it once, using the live sound
+                // preference, so mute state can't disagree between the two.
+                embedCode: video['embed_code']?.toString(),
                 active: index == _active,
                 soundEnabled: _soundEnabled,
                 onOpenComments: _openComments,
@@ -363,14 +368,14 @@ class _TutorialSlide extends StatefulWidget {
   const _TutorialSlide({
     super.key,
     required this.title,
-    required this.playUrl,
+    required this.embedCode,
     required this.active,
     required this.soundEnabled,
     required this.onOpenComments,
   });
 
   final String title;
-  final String? playUrl;
+  final String? embedCode;
   final bool active;
   final bool soundEnabled;
   final VoidCallback onOpenComments;
@@ -391,18 +396,21 @@ class _TutorialSlideState extends State<_TutorialSlide> {
   @override
   void didUpdateWidget(covariant _TutorialSlide oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.soundEnabled != widget.soundEnabled || oldWidget.playUrl != widget.playUrl) {
+    if (oldWidget.soundEnabled != widget.soundEnabled ||
+        oldWidget.embedCode != widget.embedCode) {
       _initWeb();
     }
   }
 
   void _initWeb() {
-    final url = widget.playUrl;
-    if (url == null) {
+    final playUrl = tutorialPlayUrl(
+      widget.embedCode,
+      autoplayMuted: !widget.soundEnabled,
+    );
+    if (playUrl == null) {
       _controller = null;
       return;
     }
-    final playUrl = tutorialPlayUrl(url, autoplayMuted: !widget.soundEnabled) ?? url;
     final html = '''
 <!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -413,10 +421,21 @@ iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 <iframe src="$playUrl" allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
  allowfullscreen></iframe>
 </body></html>''';
-    _controller = WebViewController()
+    final controller = WebViewController();
+    // Android blocks *all* media until a user gesture, so an embedded player
+    // renders its poster frame and never starts. This is why tutorials showed a
+    // thumbnail but never played; browsers have no such restriction.
+    final platform = controller.platform;
+    if (platform is AndroidWebViewController) {
+      platform.setMediaPlaybackRequiresUserGesture(false);
+    }
+    controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
+      // baseUrl gives the frame a real origin so Vimeo/YouTube domain
+      // restrictions and referrer checks resolve the same way as on the site.
       ..loadHtmlString(html, baseUrl: 'https://www.dataflexghana.com');
+    _controller = controller;
   }
 
   @override

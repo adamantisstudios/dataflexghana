@@ -159,7 +159,7 @@ class DataBundlesScreenState extends State<DataBundlesScreen> {
           ),
         ),
         SizedBox(
-          height: 96,
+          height: 78,
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
             scrollDirection: Axis.horizontal,
@@ -168,37 +168,35 @@ class DataBundlesScreenState extends State<DataBundlesScreen> {
             itemBuilder: (context, i) {
               final p = providers[i];
               final selected = p == _provider;
-              return GestureDetector(
-                onTap: () => setState(() => _provider = p),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 108,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: selected ? DfColors.brand : Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: selected ? DfColors.brandDark : DfColors.brand.withValues(alpha: 0.2),
+              // The logo artwork already carries the network name, so no text
+              // label — Semantics keeps it announced for screen readers.
+              return Semantics(
+                label: p,
+                selected: selected,
+                button: true,
+                child: GestureDetector(
+                  onTap: () => setState(() => _provider = p),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 108,
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: selected ? DfColors.brand : Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        width: selected ? 2 : 1,
+                        color: selected ? DfColors.brandDark : DfColors.brand.withValues(alpha: 0.2),
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.asset(logos[p]!, fit: BoxFit.cover, width: double.infinity),
-                        ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: Image.asset(
+                        logos[p]!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        p,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: selected ? Colors.white : DfColors.ink,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               );
