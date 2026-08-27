@@ -1,12 +1,19 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_client.dart';
+import '../../services/listings_api.dart';
+import '../../services/session_store.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/display_format.dart';
+import '../../widgets/image_viewer.dart';
+import 'listings/listing_form_sheet.dart';
 
+/// Storefront "My Listings" — full parity with
+/// `components/agent/referralhub/MarketplaceMyListingsSection.tsx`.
 class HubListingsTab extends StatefulWidget {
   const HubListingsTab({super.key});
 
@@ -14,46 +21,53 @@ class HubListingsTab extends StatefulWidget {
   State<HubListingsTab> createState() => _HubListingsTabState();
 }
 
+class _PackageCopy {
+  const _PackageCopy(this.tagline, {this.highlight = false});
+  final String tagline;
+  final bool highlight;
+}
+
+const _packageCopy = <String, _PackageCopy>{
+  'Starter': _PackageCopy('Perfect for getting started'),
+  'Growth': _PackageCopy('Best value for growing sellers', highlight: true),
+  'Ultimate': _PackageCopy('For serious sellers who want insights'),
+};
+
+const _fallbackCopy = _PackageCopy('Sell on your own storefront');
+
+const _planColors = <String, Color>{
+  'Free': Color(0xFF475569),
+  'Starter': Color(0xFFB45309),
+  'Growth': Color(0xFF047857),
+  'Ultimate': Color(0xFF6D28D9),
+};
+
 class _HubListingsTabState extends State<HubListingsTab> {
-  final _title = TextEditingController();
-  final _price = TextEditingController();
-  final _category = TextEditingController();
-  final _description = TextEditingController();
-  final _momoNumber = TextEditingController();
-  final _momoName = TextEditingController();
-  final _picker = ImagePicker();
-
-  String _listingType = 'product';
-  bool _acceptedTerms = false;
-  final List<String> _imageUrls = [];
-  bool _uploadingImage = false;
-
   List<Map<String, dynamic>> _products = [];
-  Map<String, dynamic>? _packagesInfo;
-  bool _loading = true;
-  bool _creating = false;
-  String? _error;
-  bool _showForm = false;
+  List<Map<String, dynamic>> _packages = [];
+  Map<String, dynamic>? _subscription;
 
-  bool _buyingPackage = false;
+  int _listingsUsed = 0;
+  int _maxListings = 0;
+  int _daysRemaining = 0;
+  bool _canList = true;
+  ListingFeatures _features = ListingFeatures.free;
+
+  bool _loading = true;
+  bool _paying = false;
+  bool _termsAccepted = false;
+  bool _packagesOpen = true;
+  bool _showAnalytics = false;
+  String? _error;
+  bool _photoGated = false;
 
   final _money = NumberFormat.currency(symbol: 'GHS ', decimalDigits: 2);
+  final _date = DateFormat('d MMM yyyy');
 
   @override
   void initState() {
     super.initState();
     _load();
-  }
-
-  @override
-  void dispose() {
-    _title.dispose();
-    _price.dispose();
-    _category.dispose();
-    _description.dispose();
-    _momoNumber.dispose();
-    _momoName.dispose();
-    super.dispose();
   }
 
   void _snack(String msg, {bool error = false}) {
@@ -63,431 +77,1046 @@ class _HubListingsTabState extends State<HubListingsTab> {
     );
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final results = await Future.wait([
-        ApiClient.instance.getListingProducts(),
-        ApiClient.instance.getListingPackages(),
-      ]);
-      final productsRaw = results[0]['products'];
+  static const _photoGateMessage =
+      'Your photo verification is still pending. Verify your account photo in Profile to manage your storefront listings.';
+
+  void _handleError(Object e) {
+    if (e is ApiException) {
+      if (!mounted) return;
       setState(() {
-        _products = productsRaw is List
-            ? productsRaw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
-            : [];
-        _packagesInfo = results[1];
+        _photoGated = e.photoGate;
+        _error = e.photoGate ? _photoGateMessage : e.message;
       });
-    } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _photoGated = false;
+      _error = 'Failed to load listings';
+    });
+  }
+
+  Future<void> _load({bool forceRefresh = false}) async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final packagesData = await ListingsApi.instance.packages(forceRefresh: forceRefresh);
+      final products = await ListingsApi.instance.products(forceRefresh: forceRefresh);
+      if (!mounted) return;
+
+      final rawPackages = packagesData['packages'];
+      final rawFeatures = packagesData['features'];
+      setState(() {
+        _packages = rawPackages is List
+            ? rawPackages.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+            : [];
+        _subscription = packagesData['subscription'] is Map
+            ? Map<String, dynamic>.from(packagesData['subscription'] as Map)
+            : null;
+        _listingsUsed = _int(packagesData['listings_used']);
+        _maxListings = _int(packagesData['max_listings']);
+        _daysRemaining = _int(packagesData['days_remaining']);
+        _canList = packagesData['can_list_products'] != false;
+        _features = rawFeatures is Map
+            ? ListingFeatures.fromJson(Map<String, dynamic>.from(rawFeatures))
+            : ListingFeatures.free;
+        _products = products;
+        _photoGated = false;
+      });
     } catch (e) {
-      setState(() => _error = e.toString());
+      _handleError(e);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _pickImages() async {
+  Future<void> _refresh() => _load(forceRefresh: true);
+
+  int _int(Object? v) {
+    if (v is num) return v.toInt();
+    return int.tryParse(v?.toString() ?? '') ?? 0;
+  }
+
+  double _double(Object? v) {
+    if (v is num) return v.toDouble();
+    return double.tryParse(v?.toString() ?? '') ?? 0;
+  }
+
+  Map<String, dynamic>? get _subPackage {
+    final p = _subscription?['package'];
+    return p is Map ? Map<String, dynamic>.from(p) : null;
+  }
+
+  bool get _isActive => _subscription?['status'] == 'active' && _daysRemaining > 0;
+  bool get _isExpired =>
+      _subscription != null && _subscription?['status'] == 'active' && _daysRemaining <= 0;
+  String get _planName => _subPackage?['name']?.toString() ?? 'Free';
+  String get _nextTierName =>
+      _planName == 'Free' ? 'Starter' : (_planName == 'Starter' ? 'Growth' : 'Ultimate');
+  int get _maxImages => _features.maxImages < 1 ? 1 : _features.maxImages;
+  bool get _hasListingAccess => _maxListings > 0;
+  bool get _isOnBestPlan => _isActive && _planName == 'Ultimate';
+  bool get _showUpgradeCta => !_isOnBestPlan;
+  bool get _limitReached => _hasListingAccess && _listingsUsed >= _maxListings;
+
+  bool _isCurrentPackage(String id) {
+    if (!_isActive) return false;
+    return _subscription?['package_id']?.toString() == id || _subPackage?['id']?.toString() == id;
+  }
+
+  // ---------------------------------------------------------------- actions
+
+  Future<void> _purchase(Map<String, dynamic> package) async {
+    if (!_termsAccepted) {
+      _snack('Accept the Listing Terms before payment', error: true);
+      return;
+    }
+    final id = package['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+
+    setState(() => _paying = true);
     try {
-      final files = await _picker.pickMultiImage(imageQuality: 85);
-      if (files.isEmpty) return;
-      setState(() => _uploadingImage = true);
-      for (final file in files) {
-        final url = await ApiClient.instance.uploadListingImage(file);
-        if (url.isNotEmpty) {
-          setState(() => _imageUrls.add(url));
-        }
-      }
+      final agent = await SessionStore.instance.getAgent();
+      final res = await ApiClient.instance.initializeListingPackage(
+        packageId: id,
+        email: agent?['email']?.toString(),
+        termsAccepted: true,
+      );
+      final url = res['authorization_url']?.toString() ?? '';
+      if (url.isEmpty) throw ApiException('Payment failed');
+      final launched = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      if (!launched) throw ApiException('Could not open Paystack');
+      _snack('Complete payment in your browser, then pull down to refresh.');
     } on ApiException catch (e) {
-      _snack(e.message, error: true);
+      _snack(e.photoGate ? _photoGateMessage : e.message, error: true);
     } catch (e) {
-      _snack(e.toString(), error: true);
+      _snack('Payment failed', error: true);
     } finally {
-      if (mounted) setState(() => _uploadingImage = false);
+      if (mounted) setState(() => _paying = false);
     }
   }
 
-  Future<void> _create() async {
-    final title = _title.text.trim();
-    final price = double.tryParse(_price.text.trim());
-    if (title.isEmpty || price == null || price <= 0) {
-      _snack('Title and valid price are required', error: true);
+  Future<void> _openForm({Map<String, dynamic>? product}) async {
+    if (product == null && _limitReached) {
+      _snack('Maximum $_maxListings active listings for your package', error: true);
       return;
     }
-    if (_momoNumber.text.trim().isEmpty || _momoName.text.trim().isEmpty) {
-      _snack('MoMo number and name are required', error: true);
-      return;
-    }
-    if (_imageUrls.isEmpty) {
-      _snack('Add at least one image', error: true);
-      return;
-    }
-    if (!_acceptedTerms) {
-      _snack('Accept the listing terms to continue', error: true);
-      return;
-    }
+    final saved = await ListingFormSheet.open(
+      context,
+      maxImages: _maxImages,
+      product: product,
+    );
+    if (saved == true) await _load(forceRefresh: true);
+  }
 
-    setState(() => _creating = true);
+  Future<void> _togglePublished(Map<String, dynamic> product) async {
+    final id = product['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    final next = product['is_active'] == false;
     try {
-      await ApiClient.instance.createListingProduct({
-        'listing_type': _listingType,
-        'title': title,
-        'price': price,
-        'category': _category.text.trim().isEmpty ? null : _category.text.trim(),
-        'description': _description.text.trim().isEmpty ? null : _description.text.trim(),
-        'momo_number': _momoNumber.text.trim(),
-        'momo_name': _momoName.text.trim(),
-        'images': _imageUrls,
-      });
-      _snack('Listing created');
-      _title.clear();
-      _price.clear();
-      _category.clear();
-      _description.clear();
-      _imageUrls.clear();
-      _acceptedTerms = false;
-      setState(() => _showForm = false);
-      await _load();
+      await ListingsApi.instance.updateProduct(id, {'is_active': next});
+      _snack(next ? 'Listing published' : 'Listing hidden from your storefront');
+      await _load(forceRefresh: true);
     } on ApiException catch (e) {
-      _snack(e.message, error: true);
+      _snack(e.photoGate ? _photoGateMessage : e.message, error: true);
     } catch (e) {
-      _snack(e.toString(), error: true);
-    } finally {
-      if (mounted) setState(() => _creating = false);
+      _snack('Update failed', error: true);
     }
   }
+
+  Future<void> _delete(Map<String, dynamic> product) async {
+    final id = product['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete listing'),
+        content: Text('Delete "${product['title'] ?? 'this listing'}"? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: DfColors.danger),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ListingsApi.instance.deleteProduct(id);
+      _snack('Listing deleted');
+      await _load(forceRefresh: true);
+    } on ApiException catch (e) {
+      _snack(e.photoGate ? _photoGateMessage : e.message, error: true);
+    } catch (e) {
+      _snack('Delete failed', error: true);
+    }
+  }
+
+  Future<void> _openTerms() async {
+    final base = await SessionStore.instance.getBaseUrl();
+    await launchUrl(Uri.parse('$base/listing-terms'), mode: LaunchMode.externalApplication);
+  }
+
+  // ------------------------------------------------------------------ build
 
   @override
   Widget build(BuildContext context) {
-    if (_loading && _products.isEmpty) {
+    if (_loading && _products.isEmpty && _packages.isEmpty && _error == null) {
       return const Center(child: CircularProgressIndicator(color: DfColors.brand));
     }
 
     return RefreshIndicator(
       color: DfColors.brand,
-      onRefresh: _load,
+      onRefresh: _refresh,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(_error!, style: const TextStyle(color: DfColors.danger)),
-            ),
-          _buildPackagesCard(),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Your listings',
-                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () => setState(() => _showForm = !_showForm),
-                icon: Icon(_showForm ? Icons.close : Icons.add),
-                label: Text(_showForm ? 'Cancel' : 'Add'),
-              ),
-            ],
+          Text(
+            'My Listings',
+            style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w700),
           ),
-          if (_showForm) ...[
-            const SizedBox(height: 8),
-            _buildCreateForm(),
+          const SizedBox(height: 4),
+          const Text(
+            'Manage your storefront products and services. Customers pay you directly via MoMo.',
+            style: TextStyle(fontSize: 13, color: DfColors.muted, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          if (_error != null) ...[
+            _errorCard(),
             const SizedBox(height: 16),
           ],
-          if (_products.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(
-                child: Text('No listings yet', style: TextStyle(color: DfColors.muted)),
-              ),
-            )
-          else
-            ..._products.map(_productTile),
+          if (!_canList)
+            _disabledByAdminCard()
+          else ...[
+            _subscriptionCard(),
+            if (_showUpgradeCta && _packages.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _packagesSection(),
+            ],
+            const SizedBox(height: 16),
+            if (_hasListingAccess) ...[
+              if (_features.analytics) _sectionSwitcher(),
+              if (_features.analytics) const SizedBox(height: 14),
+              if (_showAnalytics) ..._analyticsSection() else ..._productsSection(),
+            ] else
+              _noAccessCard(),
+          ],
         ],
       ),
     );
   }
 
-  Future<void> _buyPackage(Map package) async {
-    final id = package['id']?.toString() ?? '';
-    if (id.isEmpty) return;
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Buy listing package'),
-        content: Text(
-          'Purchase "${package['name'] ?? 'package'}" for ${_money.format(package['price'] is num ? package['price'] : 0)} via Paystack?\n\n'
-          'You confirm you accept DataFlex listing terms.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Continue to Paystack')),
-        ],
-      ),
-    );
-    if (accepted != true) return;
-    setState(() => _buyingPackage = true);
-    try {
-      final res = await ApiClient.instance.initializeListingPackage(packageId: id, termsAccepted: true);
-      final url = res['authorization_url']?.toString();
-      if (url == null || url.isEmpty) throw ApiException('No Paystack URL returned');
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      _snack('Complete payment in the browser, then pull to refresh this tab.');
-    } on ApiException catch (e) {
-      _snack(e.message, error: true);
-    } catch (e) {
-      _snack(e.toString(), error: true);
-    } finally {
-      if (mounted) setState(() => _buyingPackage = false);
-    }
-  }
-
-  Widget _buildPackagesCard() {
-    final info = _packagesInfo;
-    final packages = info?['packages'];
-    final used = info?['listings_used'];
-    final max = info?['max_listings'];
-    final canList = info?['can_list_products'] != false;
-    final days = info?['days_remaining'];
-    final sub = info?['subscription'];
-    final features = info?['features'];
-
+  Widget _errorCard() {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: DfColors.card,
+        color: _photoGated ? const Color(0xFFFFF7E6) : const Color(0xFFFDECEC),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _photoGated ? const Color(0xFFF0C36D) : DfColors.danger.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            _photoGated ? Icons.verified_user_outlined : Icons.error_outline,
+            size: 20,
+            color: _photoGated ? const Color(0xFF8A6100) : DfColors.danger,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _error!,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: _photoGated ? const Color(0xFF8A6100) : DfColors.danger,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _disabledByAdminCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 28),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDECEC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: DfColors.danger.withValues(alpha: 0.35)),
+      ),
+      child: const Text(
+        'Your product listing section has been disabled by admin. Contact support if you believe this is an error.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF8C1D18)),
+      ),
+    );
+  }
+
+  Widget _noAccessCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: DfColors.muted.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Listing slots are currently unavailable on your plan.',
+            style: TextStyle(fontSize: 13, color: DfColors.muted, height: 1.4),
+          ),
+          const SizedBox(height: 8),
+          if (_showUpgradeCta)
+            TextButton(
+              onPressed: () => setState(() => _packagesOpen = true),
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              child: const Text('Upgrade to start listing'),
+            )
+          else
+            const Text(
+              'Contact support for assistance.',
+              style: TextStyle(fontSize: 13, color: DfColors.muted),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------------------------------------------------- subscription
+
+  Widget _subscriptionCard() {
+    final planColor = _planColors[_planName] ?? _planColors['Free']!;
+    final status = _subscription?['status']?.toString();
+    final expiresAt = DateTime.tryParse(_subscription?['expires_at']?.toString() ?? '');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: DfColors.card,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: DfColors.brand.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Listing package',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const Icon(Icons.inventory_2_outlined, size: 20, color: DfColors.brand),
+              Text(
+                'Subscription status',
+                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: planColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: planColor.withValues(alpha: 0.35)),
+                ),
+                child: Text(
+                  '$_planName Plan',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: planColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (status == 'pending') ...[
+            _noticeBox(
+              'Payment received — awaiting admin activation. You can list products once approved.',
+              const Color(0xFFFFF7E6),
+              const Color(0xFF8A6100),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (_isExpired) ...[
+            _noticeBox(
+              'Your package has expired. Renew below to keep your storefront listings visible.',
+              const Color(0xFFFDECEC),
+              const Color(0xFF8C1D18),
+            ),
+            const SizedBox(height: 10),
+          ],
+          RichText(
+            text: TextSpan(
+              style: const TextStyle(fontSize: 13.5, color: DfColors.ink, height: 1.4),
+              children: [
+                const TextSpan(text: 'You have used '),
+                TextSpan(
+                  text: '$_listingsUsed',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const TextSpan(text: ' of '),
+                TextSpan(
+                  text: '$_maxListings',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const TextSpan(text: ' listings.'),
+              ],
+            ),
           ),
           const SizedBox(height: 6),
-          Text(
-            canList
-                ? 'Used $used / $max listings${days != null ? ' · $days days left' : ''}'
-                : 'Buy a package below to list products on your storefront',
-            style: const TextStyle(color: DfColors.muted, fontSize: 13),
-          ),
-          if (sub is Map) ...[
-            const SizedBox(height: 6),
+          if (_isActive) ...[
             Text(
-              'Subscription: ${sub['status'] ?? '—'}'
-              '${sub['expires_at'] != null ? ' · expires ${sub['expires_at']}' : ''}',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: DfColors.brandDark),
+              '$_planName — $_listingsUsed/$_maxListings listings · $_daysRemaining days left',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: DfColors.brandDark),
             ),
-          ],
-          if (features is List && features.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Includes: ${features.map((e) => e.toString()).join(', ')}',
-              style: const TextStyle(fontSize: 11, color: DfColors.muted),
+            if (expiresAt != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Expires ${_date.format(expiresAt)}',
+                style: const TextStyle(fontSize: 12, color: DfColors.muted),
+              ),
+            ],
+          ] else
+            const Text(
+              'You are on the free listing tier. Choose a package below to unlock more listings and premium tools.',
+              style: TextStyle(fontSize: 13, color: DfColors.muted, height: 1.4),
             ),
-          ],
-          if (packages is List && packages.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ...packages.whereType<Map>().map((p) {
-              final name = p['name']?.toString() ?? p['package_name']?.toString() ?? 'Package';
-              final price = p['price'];
-              final priceStr = price is num ? _money.format(price) : (price?.toString() ?? '');
-              final maxListings = p['max_listings'];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: DfColors.brand.withValues(alpha: 0.15)),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(name, style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-                          Text(
-                            '$priceStr${maxListings != null ? ' · up to $maxListings listings' : ''}',
-                            style: const TextStyle(fontSize: 12, color: DfColors.muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _buyingPackage ? null : () => _buyPackage(p),
-                      child: const Text('Buy'),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
+          const SizedBox(height: 12),
+          if (_isOnBestPlan)
+            _noticeBox(
+              "You're on the best plan — enjoy all premium features.",
+              const Color(0xFFF3EEFF),
+              const Color(0xFF5B21B6),
+              icon: Icons.auto_awesome,
+            )
+          else
+            SizedBox(
+              height: 44,
+              child: ElevatedButton(
+                onPressed: () => setState(() => _packagesOpen = true),
+                child: Text(_subscription == null ? 'Upgrade plan' : 'Renew or upgrade plan'),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildCreateForm() {
+  Widget _noticeBox(String text, Color bg, Color fg, {IconData? icon}) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: fg.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 16, color: fg),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Text(text, style: TextStyle(fontSize: 12.5, height: 1.4, color: fg)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --------------------------------------------------------------- packages
+
+  Widget _packagesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _packagesOpen = !_packagesOpen),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [DfColors.brand, DfColors.brandLight],
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Available packages',
+                        style: GoogleFonts.outfit(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Compare plans and subscribe with Paystack — activated for 30 days.',
+                        style: TextStyle(fontSize: 12.5, color: Colors.white70, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+                AnimatedRotation(
+                  turns: _packagesOpen ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_packagesOpen) ...[
+          const SizedBox(height: 12),
+          ..._packages.map(_packageCard),
+          _termsCard(),
+        ],
+      ],
+    );
+  }
+
+  Widget _packageCard(Map<String, dynamic> pkg) {
+    final name = pkg['name']?.toString() ?? 'Package';
+    final meta = _packageCopy[name] ?? _fallbackCopy;
+    final features = ListingFeatures.forPackage(pkg);
+    final groups = features.enabledGroups();
+    final isCurrent = _isCurrentPackage(pkg['id']?.toString() ?? '');
+    final maxListings = _int(pkg['max_listings']);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: DfColors.brand.withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isCurrent
+              ? DfColors.brand
+              : (meta.highlight ? DfColors.brand : DfColors.muted.withValues(alpha: 0.18)),
+          width: meta.highlight || isCurrent ? 2 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('New listing', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'product', label: Text('Product')),
-              ButtonSegment(value: 'service', label: Text('Service')),
-            ],
-            selected: {_listingType},
-            onSelectionChanged: (s) => setState(() => _listingType = s.first),
-          ),
-          const SizedBox(height: 12),
-          TextField(controller: _title, decoration: const InputDecoration(labelText: 'Title *')),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _price,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Price (GHS) *'),
-          ),
-          const SizedBox(height: 10),
-          TextField(controller: _category, decoration: const InputDecoration(labelText: 'Category')),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _description,
-            maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Description', alignLabelWithHint: true),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _momoNumber,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'MoMo number *'),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _momoName,
-            decoration: const InputDecoration(labelText: 'MoMo account name *'),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ..._imageUrls.map((url) {
-                return Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(url, width: 72, height: 72, fit: BoxFit.cover),
-                    ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: InkWell(
-                        onTap: () => setState(() => _imageUrls.remove(url)),
-                        child: const CircleAvatar(
-                          radius: 10,
-                          backgroundColor: Colors.black54,
-                          child: Icon(Icons.close, size: 12, color: Colors.white),
+          if (meta.highlight)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              decoration: const BoxDecoration(
+                color: DfColors.brand,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+              ),
+              child: const Text(
+                'MOST POPULAR',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(
+                  meta.tagline,
+                  style: const TextStyle(fontSize: 13, color: DfColors.muted),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _money.format(_double(pkg['price'])),
+                  style: GoogleFonts.outfit(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: DfColors.brand,
+                  ),
+                ),
+                const Text(
+                  'One-time · 30 days after activation',
+                  style: TextStyle(fontSize: 11.5, color: DfColors.muted),
+                ),
+                const SizedBox(height: 12),
+                _featureLine('$maxListings product listings', bold: true),
+                const SizedBox(height: 10),
+                const Divider(height: 1),
+                const SizedBox(height: 10),
+                ...groups.map(
+                  (g) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        g.label.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                          color: DfColors.muted,
                         ),
                       ),
-                    ),
-                  ],
-                );
-              }),
-              OutlinedButton.icon(
-                onPressed: _uploadingImage ? null : _pickImages,
-                icon: _uploadingImage
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: DfColors.brand),
-                      )
-                    : const Icon(Icons.add_photo_alternate_outlined),
-                label: const Text('Images'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _acceptedTerms,
-            onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
-            controlAffinity: ListTileControlAffinity.leading,
-            title: const Text(
-              'I confirm this listing is accurate and I accept DataFlex listing terms',
-              style: TextStyle(fontSize: 13),
+                      const SizedBox(height: 4),
+                      ...g.items.map((i) => _featureLine(i)),
+                      const SizedBox(height: 10),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  height: 46,
+                  child: isCurrent
+                      ? OutlinedButton(onPressed: null, child: const Text('Current plan'))
+                      : ElevatedButton(
+                          onPressed: _paying || !_termsAccepted ? null : () => _purchase(pkg),
+                          child: _paying
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Choose plan · Paystack'),
+                        ),
+                ),
+              ],
             ),
-          ),
-          ElevatedButton(
-            onPressed: _creating ? null : _create,
-            child: _creating
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Text('Create listing'),
           ),
         ],
       ),
     );
   }
 
-  Widget _productTile(Map<String, dynamic> p) {
-    final images = p['images'];
-    final firstImage = images is List && images.isNotEmpty ? images.first.toString() : null;
-    final price = p['price'];
-    final priceNum = price is num ? price.toDouble() : double.tryParse(price?.toString() ?? '') ?? 0;
-    final active = p['is_active'] != false;
-
+  Widget _featureLine(String text, {bool bold = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: SizedBox(
-              width: 52,
-              height: 52,
-              child: firstImage != null
-                  ? Image.network(firstImage, fit: BoxFit.cover, errorBuilder: (_, _, _) => _imgFallback())
-                  : _imgFallback(),
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.check, size: 14, color: DfColors.brand),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: bold ? 13 : 12.5,
+                height: 1.35,
+                fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
+                color: bold ? DfColors.ink : DfColors.muted,
+              ),
             ),
           ),
-          title: Text(
-            p['title']?.toString() ?? 'Listing',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
-          ),
-          subtitle: Text(
-            '${p['listing_type'] ?? 'product'} · ${_money.format(priceNum)}${active ? '' : ' · inactive'}',
-            style: const TextStyle(fontSize: 12, color: DfColors.muted),
-          ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _imgFallback() => Container(
+  Widget _termsCard() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: DfColors.brand.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: DfColors.brand.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            value: _termsAccepted,
+            activeColor: DfColors.brand,
+            onChanged: (v) => setState(() => _termsAccepted = v ?? false),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Text('I agree to the ', style: TextStyle(fontSize: 13)),
+                  GestureDetector(
+                    onTap: _openTerms,
+                    child: const Text(
+                      'Listing Terms and Conditions',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: DfColors.brand,
+                        decoration: TextDecoration.underline,
+                        decorationColor: DfColors.brand,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --------------------------------------------------------------- products
+
+  Widget _sectionSwitcher() {
+    return SegmentedButton<bool>(
+      segments: const [
+        ButtonSegment(value: false, label: Text('Products'), icon: Icon(Icons.shopping_bag_outlined)),
+        ButtonSegment(value: true, label: Text('Analytics'), icon: Icon(Icons.bar_chart)),
+      ],
+      selected: {_showAnalytics},
+      showSelectedIcon: false,
+      onSelectionChanged: (s) => setState(() => _showAnalytics = s.first),
+    );
+  }
+
+  List<Widget> _productsSection() {
+    return [
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Your listings',
+              style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: _limitReached ? null : () => _openForm(),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Add listing'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      if (_limitReached)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _noticeBox(
+            'Maximum $_maxListings active listings for your package. Delete a listing or upgrade to add more.',
+            const Color(0xFFFFF7E6),
+            const Color(0xFF8A6100),
+          ),
+        ),
+      if (_maxImages <= 2 && _showUpgradeCta)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _noticeBox(
+            'Upgrade to $_nextTierName for more images and premium tools.',
+            const Color(0xFFFFF7E6),
+            const Color(0xFF8A6100),
+          ),
+        ),
+      if (_products.isEmpty)
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Column(
+            children: [
+              Icon(Icons.storefront_outlined, size: 34, color: DfColors.muted),
+              SizedBox(height: 10),
+              Text(
+                'No listings yet',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Add your first product or service to start selling on your storefront.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12.5, color: DfColors.muted, height: 1.4),
+              ),
+            ],
+          ),
+        )
+      else
+        ..._products.map(_productCard),
+    ];
+  }
+
+  Widget _productCard(Map<String, dynamic> p) {
+    final rawImages = p['images'];
+    final images = rawImages is List
+        ? rawImages
+            .map((e) => DisplayFormat.resolveImageUrl(e?.toString()))
+            .where((e) => e.isNotEmpty)
+            .toList()
+        : <String>[];
+    final title = p['title']?.toString() ?? 'Listing';
+    final active = p['is_active'] != false;
+    final type = p['listing_type']?.toString() == 'service' ? 'Service' : 'Product';
+    final views = _int(p['view_count']);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: DfColors.muted.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: images.isEmpty
+                    ? null
+                    : () => FullScreenImageViewer.open(context, images: images, title: title),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: images.isEmpty
+                        ? _imageFallback()
+                        : CachedNetworkImage(
+                            imageUrl: images.first,
+                            fit: BoxFit.cover,
+                            placeholder: (_, _) => Container(color: DfColors.sand),
+                            errorWidget: (_, _, _) => _imageFallback(),
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        _chip(type, DfColors.muted),
+                        _chip(
+                          active ? 'Active' : 'Hidden',
+                          active ? DfColors.brand : const Color(0xFF8A6100),
+                        ),
+                        if ((p['category']?.toString() ?? '').isNotEmpty)
+                          _chip(p['category'].toString(), DfColors.muted),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _money.format(_double(p['price'])),
+                      style: GoogleFonts.outfit(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: DfColors.brand,
+                      ),
+                    ),
+                    Text(
+                      '$views view${views == 1 ? '' : 's'}',
+                      style: const TextStyle(fontSize: 12, color: DfColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _openForm(product: p),
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('Edit'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _togglePublished(p),
+                  icon: Icon(
+                    active ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    size: 16,
+                  ),
+                  label: Text(active ? 'Hide' : 'Publish'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => _delete(p),
+                icon: const Icon(Icons.delete_outline),
+                color: DfColors.danger,
+                tooltip: 'Delete listing',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: color),
+      ),
+    );
+  }
+
+  Widget _imageFallback() => Container(
         color: DfColors.sand,
         child: const Icon(Icons.inventory_2_outlined, color: DfColors.muted),
       );
+
+  // -------------------------------------------------------------- analytics
+
+  List<Widget> _analyticsSection() {
+    final totalViews = _products.fold<int>(0, (s, p) => s + _int(p['view_count']));
+    final activeCount = _products.where((p) => p['is_active'] != false).length;
+    final sorted = [..._products]
+      ..sort((a, b) => _int(b['view_count']).compareTo(_int(a['view_count'])));
+    final top = sorted.isEmpty ? null : sorted.first;
+
+    return [
+      Row(
+        children: [
+          Expanded(
+            child: _statCard(
+              icon: Icons.visibility_outlined,
+              value: '$totalViews',
+              label: 'Total product views',
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _statCard(
+              icon: Icons.inventory_2_outlined,
+              value: '${_products.length}',
+              label: 'Total listings',
+              footnote: '$activeCount active',
+            ),
+          ),
+        ],
+      ),
+      if (top != null) ...[
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F3FF),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF6D28D9).withValues(alpha: 0.25)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.trending_up, size: 16, color: Color(0xFF5B21B6)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Top performing product',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF5B21B6),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                top['title']?.toString() ?? 'Listing',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${_int(top['view_count'])} views · ${_money.format(_double(top['price']))}',
+                style: const TextStyle(fontSize: 12.5, color: DfColors.muted),
+              ),
+            ],
+          ),
+        ),
+      ],
+      const SizedBox(height: 14),
+      const Text(
+        'Analytics update as customers view your storefront listings.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 12, color: DfColors.muted),
+      ),
+    ];
+  }
+
+  Widget _statCard({
+    required IconData icon,
+    required String value,
+    required String label,
+    String? footnote,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: DfColors.muted.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: DfColors.brand.withValues(alpha: 0.12),
+            child: Icon(icon, size: 16, color: DfColors.brand),
+          ),
+          const SizedBox(height: 8),
+          Text(value, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800)),
+          Text(label, style: const TextStyle(fontSize: 11.5, color: DfColors.muted)),
+          if (footnote != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                footnote,
+                style: const TextStyle(fontSize: 11, color: DfColors.brandDark),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

@@ -9,6 +9,7 @@ import '../services/channels_api.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
 import '../utils/display_format.dart';
+import 'channels/channel_host_dashboard_screen.dart';
 
 /// In-app member view of a DataFlex teaching channel: feed, Q&A, videos, audio.
 /// Backed by /api/agent/mobile/channels/[channelId]/feed.
@@ -208,6 +209,28 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
+  /// `is_host` is authoritative — the feed derives it from the same check the
+  /// host endpoints enforce, so it also covers a channel owner or platform
+  /// admin who has no `channel_members` row. The role test is a fallback for
+  /// older API responses that predate the flag.
+  bool get _isHost {
+    if (_membership['is_host'] == true) return true;
+    final role = _membership['role']?.toString();
+    return role == 'teacher' || role == 'admin';
+  }
+
+  Future<void> _openHostConsole() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChannelHostDashboardScreen(
+          channelId: widget.channelId,
+          channelName: _channel['name']?.toString() ?? widget.channelName,
+        ),
+      ),
+    );
+    if (mounted) await _load(forceRefresh: true);
+  }
+
   String _when(Object? raw) {
     final parsed = DateTime.tryParse(raw?.toString() ?? '');
     if (parsed == null) return 'Recently';
@@ -220,6 +243,14 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
     return Scaffold(
       appBar: AppBar(
         title: Text(name, overflow: TextOverflow.ellipsis),
+        actions: [
+          if (!_loading && !_needsJoin && _isHost)
+            IconButton(
+              tooltip: 'Host tools',
+              onPressed: _openHostConsole,
+              icon: const Icon(Icons.tune),
+            ),
+        ],
         bottom: _needsJoin || _loading
             ? null
             : TabBar(
@@ -366,54 +397,70 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
         color: DfColors.card,
         border: Border(bottom: BorderSide(color: Color(0x14000000))),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _channelAvatar(),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _channel['name']?.toString() ?? 'Channel',
-                  style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.w700),
-                ),
-                if ((_channel['description']?.toString() ?? '').isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(
-                      _channel['description'].toString(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: DfColors.muted),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _channelAvatar(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _pill('$memberCount members', Icons.group_outlined),
-                    _pill(
-                      status == 'active' ? 'Active member' : status,
-                      status == 'active' ? Icons.verified_outlined : Icons.info_outline,
-                      color: status == 'active' ? DfColors.brand : DfColors.danger,
+                    Text(
+                      _channel['name']?.toString() ?? 'Channel',
+                      style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.w700),
                     ),
-                    if (_channel['is_official'] == true) _pill('Official', Icons.workspace_premium_outlined),
-                    if (expiresAt != null)
-                      _pill(
-                        days is num && days <= 7
-                            ? 'Expires in ${days.toInt()} days'
-                            : 'Renews ${DateFormat('d MMM').format(expiresAt.toLocal())}',
-                        Icons.event_outlined,
-                        color: days is num && days <= 7 ? DfColors.danger : null,
+                    if ((_channel['description']?.toString() ?? '').isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          _channel['description'].toString(),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, color: DfColors.muted),
+                        ),
                       ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _pill('$memberCount members', Icons.group_outlined),
+                        _pill(
+                          status == 'active' ? 'Active member' : status,
+                          status == 'active' ? Icons.verified_outlined : Icons.info_outline,
+                          color: status == 'active' ? DfColors.brand : DfColors.danger,
+                        ),
+                        if (_channel['is_official'] == true)
+                          _pill('Official', Icons.workspace_premium_outlined),
+                        if (_isHost) _pill('You host this', Icons.school_outlined, color: DfColors.brandDark),
+                        if (expiresAt != null)
+                          _pill(
+                            days is num && days <= 7
+                                ? 'Expires in ${days.toInt()} days'
+                                : 'Renews ${DateFormat('d MMM').format(expiresAt.toLocal())}',
+                            Icons.event_outlined,
+                            color: days is num && days <= 7 ? DfColors.danger : null,
+                          ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          if (_isHost) ...[
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _openHostConsole,
+              icon: const Icon(Icons.tune, size: 18),
+              label: const Text('Open host tools'),
+              style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
+            ),
+          ],
         ],
       ),
     );
@@ -460,7 +507,7 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
               itemCount: items.length + (_pinned.isNotEmpty ? 1 : 0) + (_hasMore ? 1 : 0),
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 var i = index;
                 if (_pinned.isNotEmpty) {
@@ -526,7 +573,7 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
               itemCount: _qa.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, i) => _buildQaCard(_qa[i]),
             ),
     );
@@ -541,7 +588,7 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
               itemCount: _videos.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, i) => _buildVideoCard(_videos[i]),
             ),
     );
@@ -556,7 +603,7 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
               itemCount: _audio.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final a = _audio[i];
                 final duration = a['duration'];
@@ -722,7 +769,7 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: images.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) => _galleryImage(images[i], height: 140, width: 180),
       ),
     );
@@ -740,7 +787,7 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
           height: height,
           width: width,
           fit: BoxFit.cover,
-          errorWidget: (_, __, ___) => Container(
+          errorWidget: (_, _, _) => Container(
             height: height,
             width: width == double.infinity ? null : width,
             color: DfColors.sand,
@@ -786,7 +833,7 @@ class _ChannelDetailScreenState extends State<ChannelDetailScreen> with SingleTi
                           height: 170,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) =>
+                          errorWidget: (_, _, _) =>
                               Container(height: 170, color: Colors.black87),
                         ),
                 ),

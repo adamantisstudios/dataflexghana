@@ -109,6 +109,13 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
+  /// Pushes [screen] and, for sections that can move money, re-reads the
+  /// balances on the way back so the header figure isn't left stale.
+  Future<void> _pushThenRefresh(Widget screen) async {
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    if (mounted) await _bootstrap();
+  }
+
   void _openMenu(MenuCardData item) {
     switch (item.kind) {
       case MenuKind.nativeData:
@@ -139,24 +146,32 @@ class _HomeShellState extends State<HomeShell> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GroceriesScreen()));
         break;
       case MenuKind.nativeReferralHub:
-        final openMarketplace = item.id == 'real-estate-store';
+        // Menu shortcuts that should land on a specific marketplace section
+        // rather than the hub's default tab.
+        const marketplaceShortcuts = <String, String>{
+          'real-estate-store': 'real-estate',
+        };
+        final section = marketplaceShortcuts[item.id];
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => ReferralHubScreen(initialTab: openMarketplace ? 2 : 0),
+            builder: (_) => ReferralHubScreen(
+              initialTab: section == null ? 0 : ReferralHubScreen.marketplaceTabIndex,
+              initialMarketplaceSection: section,
+            ),
           ),
         );
         break;
       case MenuKind.nativeWithdrawals:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WithdrawalsScreen()));
+        _pushThenRefresh(const WithdrawalsScreen());
         break;
       case MenuKind.nativeReferralProgram:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReferralProgramScreen()));
         break;
       case MenuKind.nativeWholesale:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WholesaleScreen()));
+        _pushThenRefresh(const WholesaleScreen());
         break;
       case MenuKind.nativeSavings:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SavingsScreen()));
+        _pushThenRefresh(const SavingsScreen());
         break;
       case MenuKind.nativeTutorials:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TutorialsScreen()));
@@ -174,7 +189,7 @@ class _HomeShellState extends State<HomeShell> {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReferralServicesScreen()));
         break;
       case MenuKind.nativeVoucher:
-        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VoucherScreen()));
+        _pushThenRefresh(const VoucherScreen());
         break;
       case MenuKind.nativeOnlineCourses:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OnlineCoursesScreen()));

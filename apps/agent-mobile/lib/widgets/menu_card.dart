@@ -105,7 +105,7 @@ const agentMenus = <MenuCardData>[
     id: 'blog',
     title: 'Platform Blog',
     subtitle: 'News, guides and updates from DataFlex Ghana',
-    asset: 'assets/images/tutorial.png',
+    asset: 'assets/images/blogs.png',
     gradient: [Color(0xFF14B8A6), Color(0xFF0F766E)],
     cta: 'READ ARTICLES',
     kind: MenuKind.nativeBlog,

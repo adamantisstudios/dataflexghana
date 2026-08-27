@@ -7,6 +7,7 @@ import '../services/api_client.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
 import '../utils/display_format.dart';
+import '../widgets/image_viewer.dart';
 
 /// Mirrors the website /agent/wholesale experience: Browse, Cart, Orders with
 /// search + category + price filters, image galleries and wallet checkout.
@@ -433,28 +434,48 @@ class _WholesaleScreenState extends State<WholesaleScreen> with SingleTickerProv
                           color: DfColors.sand,
                           child: const Icon(Icons.inventory_2_outlined, color: DfColors.muted, size: 32),
                         )
-                      : CachedNetworkImage(
-                          imageUrl: images.first,
-                          fit: BoxFit.cover,
-                          placeholder: (_, _) => Container(color: DfColors.sand),
-                          errorWidget: (_, _, _) => Container(
-                            color: DfColors.sand,
-                            child: const Icon(Icons.image_not_supported_outlined),
+                      // Tapping the photo inspects it; tapping anywhere else on
+                      // the card still opens the product.
+                      : GestureDetector(
+                          onTap: () => FullScreenImageViewer.open(
+                            context,
+                            images: images,
+                            title: p['name']?.toString(),
+                          ),
+                          child: CachedNetworkImage(
+                            imageUrl: images.first,
+                            fit: BoxFit.cover,
+                            placeholder: (_, _) => Container(color: DfColors.sand),
+                            errorWidget: (_, _, _) => Container(
+                              color: DfColors.sand,
+                              child: const Icon(Icons.image_not_supported_outlined),
+                            ),
                           ),
                         ),
                 ),
-                if (images.length > 1)
+                if (images.isNotEmpty)
                   Positioned(
                     right: 6,
                     top: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(12),
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.zoom_out_map, color: Colors.white, size: 11),
+                            if (images.length > 1) ...[
+                              const SizedBox(width: 3),
+                              Text('+${images.length - 1}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 10.5)),
+                            ],
+                          ],
+                        ),
                       ),
-                      child: Text('+${images.length - 1}',
-                          style: const TextStyle(color: Colors.white, fontSize: 10.5)),
                     ),
                   ),
                 if (stock <= 0)
@@ -559,9 +580,17 @@ class _WholesaleScreenState extends State<WholesaleScreen> with SingleTickerProv
                   height: 210,
                   child: PageView.builder(
                     itemCount: images.length,
-                    itemBuilder: (_, i) => ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: CachedNetworkImage(imageUrl: images[i], fit: BoxFit.cover),
+                    itemBuilder: (_, i) => GestureDetector(
+                      onTap: () => FullScreenImageViewer.open(
+                        context,
+                        images: images,
+                        initialIndex: i,
+                        title: p['name']?.toString(),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: CachedNetworkImage(imageUrl: images[i], fit: BoxFit.cover),
+                      ),
                     ),
                   ),
                 ),

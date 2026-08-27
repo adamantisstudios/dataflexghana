@@ -3,6 +3,7 @@ import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
 import { hasActiveChannelSubscription } from "@/lib/ensure-channel-member-active"
 import { computeMembershipUiStatus } from "@/lib/channel-membership-lifecycle"
+import { assertChannelAdmin } from "@/lib/channel-audio-auth"
 import { getAudioStreamPath, repairChannelAudioPublicUrl } from "@/lib/channel-audio-playback"
 
 export const dynamic = "force-dynamic"
@@ -151,10 +152,17 @@ export async function GET(request: NextRequest, context: RouteContext) {
       .eq("channel_id", channelId)
       .eq("status", "active")
 
+    // Delegated to the same check the host endpoints use, so the app's host
+    // affordances can never disagree with what the API will authorise. This
+    // also covers an owner or platform admin with no channel_members row.
+    const hostAccess = await assertChannelAdmin(db, channelId, agentId, auth.user)
+
     const membership = {
       status: membershipStatus,
       is_member: Boolean(member),
       is_active_member: Boolean(isActiveMember),
+      is_host: hostAccess.ok,
+      host_role: hostAccess.ok ? hostAccess.role : null,
       role: member?.role ?? null,
       joined_at: member?.joined_at ?? null,
       join_request_status: joinRequest?.status ?? null,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'screens/home_shell.dart';
@@ -8,7 +9,32 @@ import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // A single bad row — most often an image URL a screen forgot to resolve —
+  // must degrade to a placeholder rather than taking down the whole screen.
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    if (kDebugMode) {
+      return ErrorWidget(details.exception);
+    }
+    return const _ContentUnavailable();
+  };
+
   runApp(const DataFlexAgentApp());
+}
+
+class _ContentUnavailable extends StatelessWidget {
+  const _ContentUnavailable();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 40),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(8),
+      color: DfColors.sand,
+      child: const Icon(Icons.image_not_supported_outlined, size: 18, color: DfColors.muted),
+    );
+  }
 }
 
 class DataFlexAgentApp extends StatelessWidget {
