@@ -9,6 +9,47 @@ class SettingsStore {
   static const _kApiKey = 'ops_api_key';
   static const _kBaseUrl = 'ops_base_url';
   static const _kMomoNumber = 'ops_momo_number';
+  static const _kVibration = 'ops_vibration_enabled';
+  static const _kPesterVibration = 'ops_pester_vibration_enabled';
+
+  /// Cached so the notification path can check it without an await race.
+  bool _vibrationEnabled = true;
+  bool _pesterVibrationEnabled = true;
+
+  bool get vibrationEnabledSync => _vibrationEnabled;
+  bool get pesterVibrationEnabledSync => _pesterVibrationEnabled && _vibrationEnabled;
+
+  Future<void> loadVibrationPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    _vibrationEnabled = prefs.getBool(_kVibration) ?? true;
+    _pesterVibrationEnabled = prefs.getBool(_kPesterVibration) ?? true;
+  }
+
+  Future<bool> getVibrationEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    _vibrationEnabled = prefs.getBool(_kVibration) ?? true;
+    return _vibrationEnabled;
+  }
+
+  Future<void> setVibrationEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kVibration, value);
+    _vibrationEnabled = value;
+  }
+
+  /// The repeating "pester" buzz for unattended alerts, separate from the
+  /// single buzz on arrival so a quieter middle ground is possible.
+  Future<bool> getPesterVibrationEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    _pesterVibrationEnabled = prefs.getBool(_kPesterVibration) ?? true;
+    return _pesterVibrationEnabled;
+  }
+
+  Future<void> setPesterVibrationEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kPesterVibration, value);
+    _pesterVibrationEnabled = value;
+  }
 
   Future<String> getBaseUrl() async {
     final prefs = await SharedPreferences.getInstance();

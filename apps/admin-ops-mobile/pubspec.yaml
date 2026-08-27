@@ -1,7 +1,7 @@
 name: admin_ops_mobile
 description: DataFlex Ghana admin ops phone — MoMo SMS capture + admin alert mirror.
 publish_to: "none"
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.12.2
@@ -13,12 +13,16 @@ dependencies:
   http: ^1.2.2
   flutter_secure_storage: ^9.2.4
   shared_preferences: ^2.3.3
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.0
   flutter_local_notifications: ^18.0.1
   telephony: ^0.2.0
   intl: ^0.19.0
-  vibration: ^2.0.1
+  # 3.x required for a device_info_plus range compatible with livekit_client.
+  vibration: ^3.2.0
   uuid: ^4.5.1
+  # Admin side of the agent->admin voice call, mirroring apps/agent-mobile.
+  livekit_client: ^2.11.0
+  wakelock_plus: ^1.5.2
 
 dev_dependencies:
   flutter_test:

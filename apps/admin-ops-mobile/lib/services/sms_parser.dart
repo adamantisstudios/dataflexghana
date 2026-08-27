@@ -1,4 +1,4 @@
-/// MoMo payment SMS parser (mirrors lib/ops/parse-momo-sms.ts)
+// MoMo payment SMS parser (mirrors lib/ops/parse-momo-sms.ts)
 
 class ParsedMomoSms {
   final double? amount;

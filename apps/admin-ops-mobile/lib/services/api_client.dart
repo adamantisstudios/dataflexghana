@@ -59,7 +59,7 @@ class OpsApiClient {
   }) async {
     final query = <String, String>{
       'limit': '$limit',
-      if (since != null) 'since': since,
+      'since': ?since,
       if (unackedOnly) 'unacked_only': '1',
     };
     final res = await http.get(await _uri('/api/ops/inbox', query), headers: await _headers());

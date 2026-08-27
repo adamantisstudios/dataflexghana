@@ -26,9 +26,9 @@ subprojects {
         val android = extensions.findByName("android") ?: return@afterEvaluate
         try {
             val setCompileSdk = android.javaClass.methods.find { it.name == "setCompileSdkVersion" && it.parameterCount == 1 }
-            setCompileSdk?.invoke(android, 35)
+            setCompileSdk?.invoke(android, 36)
             val setCompileSdkInt = android.javaClass.methods.find { it.name == "setCompileSdk" && it.parameterTypes.contentEquals(arrayOf(Int::class.javaPrimitiveType)) }
-            setCompileSdkInt?.invoke(android, 35)
+            setCompileSdkInt?.invoke(android, 36)
             val getNs = android.javaClass.methods.find { it.name == "getNamespace" && it.parameterCount == 0 }
             val ns = getNs?.invoke(android) as String?
             if (ns.isNullOrBlank()) {

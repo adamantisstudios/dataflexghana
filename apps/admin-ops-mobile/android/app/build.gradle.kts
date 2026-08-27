@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.dataflexghana.admin_ops_mobile"
-    compileSdk = maxOf(35, flutter.compileSdkVersion)
+    // 36 required by permission_handler 12+ and the LiveKit/WebRTC plugins.
+    compileSdk = maxOf(36, flutter.compileSdkVersion)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

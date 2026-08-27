@@ -1,30 +1,63 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin_ops_mobile/main.dart';
+import 'package:admin_ops_mobile/widgets/ops_widgets.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('OpsSection', () {
+    test('resolves known section keys used by dashboard quick actions', () {
+      expect(OpsSection.fromKey('wallet'), OpsSection.wallet);
+      expect(OpsSection.fromKey('bundle_orders'), OpsSection.bundleOrders);
+      expect(OpsSection.fromKey('agent_notifications'), OpsSection.agentNotifications);
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('falls back to home for an unknown key', () {
+      expect(OpsSection.fromKey('nope'), OpsSection.home);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('primary sections line up with the five bottom nav slots', () {
+      final primary = OpsSection.values.where((s) => s.isPrimary).toList();
+      expect(primary.length, 5);
+      expect(primary.first, OpsSection.home);
+      expect(primary.last, OpsSection.more);
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('money-touching sections require an admin session', () {
+      expect(OpsSection.wallet.needsAdmin, isTrue);
+      expect(OpsSection.orders.needsAdmin, isTrue);
+      // Ops-device features must keep working without an admin sign-in.
+      expect(OpsSection.smsLog.needsAdmin, isFalse);
+      expect(OpsSection.settings.needsAdmin, isFalse);
+    });
+  });
+
+  group('pick', () {
+    test('returns the first non-empty candidate', () {
+      final row = {'a': '', 'b': 'value'};
+      expect(pick(row, ['a', 'b']), 'value');
+    });
+
+    test('resolves dotted paths into nested maps', () {
+      final row = {
+        'agents': {'full_name': 'Ama Mensah'},
+      };
+      expect(pick(row, ['agent_name', 'agents.full_name']), 'Ama Mensah');
+    });
+
+    test('falls back when nothing matches', () {
+      expect(pick(const {}, ['missing'], fallback: 'n/a'), 'n/a');
+    });
+  });
+
+  group('formatMoney', () {
+    test('formats numbers and numeric strings alike', () {
+      expect(formatMoney(12.5), 'GHS 12.50');
+      expect(formatMoney('12.5'), 'GHS 12.50');
+    });
+
+    test('treats null and junk as zero rather than throwing', () {
+      expect(formatMoney(null), 'GHS 0.00');
+      expect(formatMoney('abc'), 'GHS 0.00');
+    });
   });
 }

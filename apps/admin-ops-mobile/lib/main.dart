@@ -1,19 +1,32 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'screens/calls/calls_page.dart';
+import 'screens/dashboard_page.dart';
+import 'screens/inbox_page.dart';
+import 'screens/notifications/agent_notifications_page.dart';
+import 'screens/orders/bundle_orders_page.dart';
+import 'screens/orders/orders_page.dart';
+import 'screens/settings_page.dart';
+import 'screens/sms_log_page.dart';
+import 'screens/storefront/storefront_page.dart';
+import 'screens/wallet/wallet_page.dart';
+import 'services/admin_session.dart';
 import 'services/api_client.dart';
+import 'services/call_service.dart';
 import 'services/settings_store.dart';
-import 'services/sms_parser.dart';
 import 'services/sms_pipeline.dart';
 import 'services/sticky_alerts.dart';
+import 'theme.dart';
+import 'widgets/admin_gate.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SettingsStore.instance.loadVibrationPrefs();
   await StickyAlertService.instance.init();
+  await AdminSession.instance.restore();
   runApp(const DataFlexOpsApp());
 }
 
@@ -25,19 +38,45 @@ class DataFlexOpsApp extends StatelessWidget {
     return MaterialApp(
       title: 'DataFlex Ops',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0D9488),
-          brightness: Brightness.dark,
-        ),
-        scaffoldBackgroundColor: const Color(0xFF0B1220),
-        fontFamily: 'Roboto',
-      ),
+      theme: buildOpsTheme(),
       home: const ShellScreen(),
     );
   }
+}
+
+/// Sections reachable from the shell. Primary ones sit in the bottom bar; the
+/// rest are opened from "More" or the dashboard's quick actions.
+enum OpsSection {
+  home('home', 'Home', Icons.dashboard_outlined),
+  calls('calls', 'Calls', Icons.phone_in_talk_outlined),
+  orders('orders', 'Orders', Icons.receipt_long_outlined),
+  wallet('wallet', 'Wallet', Icons.account_balance_wallet_outlined),
+  more('more', 'More', Icons.grid_view_outlined),
+  storefront('storefront', 'Storefront', Icons.storefront_outlined),
+  bundleOrders('bundle_orders', 'Data bundle orders', Icons.sim_card_download_outlined),
+  agentNotifications('agent_notifications', 'Agent notifications', Icons.campaign_outlined),
+  inbox('inbox', 'Admin inbox', Icons.notifications_active_outlined),
+  smsLog('sms_log', 'SMS log', Icons.sms_outlined),
+  settings('settings', 'Settings', Icons.settings_outlined);
+
+  const OpsSection(this.key, this.label, this.icon);
+
+  final String key;
+  final String label;
+  final IconData icon;
+
+  static OpsSection fromKey(String key) =>
+      OpsSection.values.firstWhere((s) => s.key == key, orElse: () => OpsSection.home);
+
+  bool get isPrimary => index <= OpsSection.more.index;
+  bool get needsAdmin => const {
+        OpsSection.calls,
+        OpsSection.orders,
+        OpsSection.wallet,
+        OpsSection.storefront,
+        OpsSection.bundleOrders,
+        OpsSection.agentNotifications,
+      }.contains(this);
 }
 
 class ShellScreen extends StatefulWidget {
@@ -48,7 +87,7 @@ class ShellScreen extends StatefulWidget {
 }
 
 class _ShellScreenState extends State<ShellScreen> {
-  int _index = 0;
+  OpsSection _section = OpsSection.home;
   String _smsStatus = 'Starting…';
   Timer? _pollTimer;
   List<Map<String, dynamic>> _inbox = [];
@@ -64,7 +103,32 @@ class _ShellScreenState extends State<ShellScreen> {
     SmsPipeline.instance.onLogChanged = () {
       if (mounted) setState(() {});
     };
+    AdminSession.instance.addListener(_onSessionChanged);
+    CallService.instance.addListener(_onCallsChanged);
     _bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    AdminSession.instance.removeListener(_onSessionChanged);
+    CallService.instance.removeListener(_onCallsChanged);
+    CallService.instance.stop();
+    super.dispose();
+  }
+
+  void _onCallsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onSessionChanged() {
+    if (!mounted) return;
+    if (AdminSession.instance.isSignedIn) {
+      CallService.instance.start();
+    } else {
+      CallService.instance.stop();
+    }
+    setState(() {});
   }
 
   Future<void> _bootstrap() async {
@@ -72,20 +136,16 @@ class _ShellScreenState extends State<ShellScreen> {
     await Permission.notification.request();
     await SmsPipeline.instance.init();
     await _refreshInbox();
+    if (AdminSession.instance.isSignedIn) CallService.instance.start();
     _pollTimer = Timer.periodic(const Duration(seconds: 12), (_) {
       _refreshInbox();
       SmsPipeline.instance.flushQueue();
     });
   }
 
-  @override
-  void dispose() {
-    _pollTimer?.cancel();
-    super.dispose();
-  }
-
   Future<void> _refreshInbox() async {
     if (!await SettingsStore.instance.isConfigured()) return;
+    if (!mounted) return;
     setState(() {
       _loadingInbox = true;
       _inboxError = null;
@@ -93,18 +153,24 @@ class _ShellScreenState extends State<ShellScreen> {
     try {
       final items = await OpsApiClient.instance.fetchInbox(limit: 150);
       if (!mounted) return;
+      // Alerts the operator explicitly cleared stay cleared even though the
+      // server still reports them as unacked.
+      final visible = items
+          .where((e) => !StickyAlertService.instance.isDismissed('${e['id']}'))
+          .toList();
       setState(() {
-        _inbox = items;
+        _inbox = visible;
         _loadingInbox = false;
       });
-      for (final item in items) {
+      for (final item in visible) {
         final requiresAck = item['requires_ack'] == true;
         final acked = item['acked_at'] != null;
         if (requiresAck && !acked) {
-          final id = item['id'] as String;
-          final title = item['title'] as String? ?? 'Ops alert';
-          final body = item['body'] as String? ?? '';
-          await StickyAlertService.instance.showSticky(id: id, title: title, body: body);
+          await StickyAlertService.instance.showSticky(
+            id: item['id'] as String,
+            title: item['title'] as String? ?? 'Ops alert',
+            body: item['body'] as String? ?? '',
+          );
         }
       }
     } catch (e) {
@@ -121,472 +187,228 @@ class _ShellScreenState extends State<ShellScreen> {
       await OpsApiClient.instance.ackInbox(id);
       await StickyAlertService.instance.clearSticky(id);
       await _refreshInbox();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Acknowledged — sticky alert cleared')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ack failed: $e')),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final pages = [
-      DashboardPage(
-        smsStatus: _smsStatus,
-        inbox: _inbox,
-        loading: _loadingInbox,
-        error: _inboxError,
-        onRefresh: _refreshInbox,
-        onAck: _ack,
-      ),
-      InboxPage(
-        inbox: _inbox,
-        loading: _loadingInbox,
-        error: _inboxError,
-        onRefresh: _refreshInbox,
-        onAck: _ack,
-      ),
-      SmsLogPage(logs: SmsPipeline.instance.logs),
-      const SettingsPage(),
-    ];
-
-    return Scaffold(
-      body: SafeArea(child: pages[_index]),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
-          const NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Home'),
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: _inbox.any((e) => e['requires_ack'] == true && e['acked_at'] == null),
-              label: Text(
-                '${_inbox.where((e) => e['requires_ack'] == true && e['acked_at'] == null).length}',
-              ),
-              child: const Icon(Icons.notifications_active_outlined),
-            ),
-            label: 'Inbox',
-          ),
-          const NavigationDestination(icon: Icon(Icons.sms_outlined), label: 'SMS'),
-          const NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'Settings'),
-        ],
-      ),
-    );
-  }
-}
-
-class DashboardPage extends StatelessWidget {
-  const DashboardPage({
-    super.key,
-    required this.smsStatus,
-    required this.inbox,
-    required this.loading,
-    required this.error,
-    required this.onRefresh,
-    required this.onAck,
-  });
-
-  final String smsStatus;
-  final List<Map<String, dynamic>> inbox;
-  final bool loading;
-  final String? error;
-  final Future<void> Function() onRefresh;
-  final Future<void> Function(String id) onAck;
-
-  @override
-  Widget build(BuildContext context) {
-    final sticky = inbox.where((e) => e['requires_ack'] == true && e['acked_at'] == null).toList();
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            'DataFlex Ops',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Payment SIM · MoMo capture · Admin alerts',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-          ),
-          const SizedBox(height: 20),
-          _StatusCard(smsStatus: smsStatus, stickyCount: sticky.length),
-          const SizedBox(height: 16),
-          if (error != null)
-            Card(
-              color: Colors.red.shade900.withValues(alpha: 0.4),
-              child: ListTile(
-                leading: const Icon(Icons.error_outline),
-                title: Text(error!),
-              ),
-            ),
-          Text('Needs attention', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (loading && sticky.isEmpty) const LinearProgressIndicator(),
-          if (sticky.isEmpty && !loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Text('All clear — no sticky alerts.', style: TextStyle(color: Colors.white54)),
-            ),
-          ...sticky.take(8).map((item) => InboxTile(item: item, onAck: onAck)),
-          const SizedBox(height: 24),
-          FilledButton.tonalIcon(
-            onPressed: () async {
-              const sample =
-                  'Payment received for GHS 47.50 from PHILIP AKUTSE AGBAVITOR Current Balance: GHS 131.47 . Available Balance: GHS 131.47. Reference: 71788. Transaction ID: 84157189921. TRANSACTION FEE: 0.00';
-              final parsed = parseMomoPaymentSms(sample);
-              await showDialog(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Parser test'),
-                  content: Text(
-                    'Amount: ${parsed.amount}\n'
-                    'Reference: ${parsed.reference}\n'
-                    'TXN: ${parsed.transactionId}\n'
-                    'Payer: ${parsed.payerName}',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Close'),
-                    ),
-                    FilledButton(
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        await SmsPipeline.instance.processRawSms(sample);
-                      },
-                      child: const Text('Send to API'),
-                    ),
-                  ],
-                ),
-              );
-            },
-            icon: const Icon(Icons.science_outlined),
-            label: const Text('Test sample SMS parser'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.smsStatus, required this.stickyCount});
-  final String smsStatus;
-  final int stickyCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF134E4A), Color(0xFF0F172A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: Colors.tealAccent.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.cell_tower, color: Colors.tealAccent),
-              const SizedBox(width: 10),
-              Expanded(child: Text(smsStatus, style: const TextStyle(fontWeight: FontWeight.w600))),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            stickyCount == 0
-                ? 'No pestering alerts active'
-                : '$stickyCount sticky alert(s) — will keep buzzing until Attend',
-            style: TextStyle(
-              color: stickyCount == 0 ? Colors.white60 : Colors.amberAccent,
-              fontWeight: stickyCount == 0 ? FontWeight.w400 : FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class InboxPage extends StatelessWidget {
-  const InboxPage({
-    super.key,
-    required this.inbox,
-    required this.loading,
-    required this.error,
-    required this.onRefresh,
-    required this.onAck,
-  });
-
-  final List<Map<String, dynamic>> inbox;
-  final bool loading;
-  final String? error;
-  final Future<void> Function() onRefresh;
-  final Future<void> Function(String id) onAck;
-
-  @override
-  Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text('Admin inbox', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 4),
-          Text(
-            'Mirrors dashboard alerts. Sticky items require Attend.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60),
-          ),
-          const SizedBox(height: 12),
-          if (loading) const LinearProgressIndicator(),
-          if (error != null) Text(error!, style: const TextStyle(color: Colors.redAccent)),
-          if (inbox.isEmpty && !loading)
-            const Padding(
-              padding: EdgeInsets.all(32),
-              child: Text('Inbox empty', textAlign: TextAlign.center),
-            ),
-          ...inbox.map((item) => InboxTile(item: item, onAck: onAck)),
-        ],
-      ),
-    );
-  }
-}
-
-class InboxTile extends StatelessWidget {
-  const InboxTile({super.key, required this.item, required this.onAck});
-  final Map<String, dynamic> item;
-  final Future<void> Function(String id) onAck;
-
-  Color _sevColor(String? s) {
-    switch (s) {
-      case 'critical':
-        return Colors.redAccent;
-      case 'warning':
-        return Colors.amber;
-      default:
-        return Colors.tealAccent;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final id = item['id'] as String;
-    final title = item['title'] as String? ?? 'Alert';
-    final body = item['body'] as String? ?? '';
-    final category = item['category'] as String? ?? '';
-    final severity = item['severity'] as String? ?? 'info';
-    final requiresAck = item['requires_ack'] == true;
-    final acked = item['acked_at'] != null;
-    final created = item['created_at'] != null
-        ? DateTime.tryParse(item['created_at'] as String)?.toLocal()
-        : null;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      color: requiresAck && !acked
-          ? Colors.red.shade900.withValues(alpha: 0.35)
-          : const Color(0xFF111827),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(color: _sevColor(severity), shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                ),
-                Text(category, style: const TextStyle(fontSize: 11, color: Colors.white54)),
-              ],
-            ),
-            if (body.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(body, style: const TextStyle(color: Colors.white70, height: 1.35)),
-            ],
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                if (created != null)
-                  Text(
-                    DateFormat('dd MMM HH:mm').format(created),
-                    style: const TextStyle(fontSize: 11, color: Colors.white38),
-                  ),
-                const Spacer(),
-                if (requiresAck && !acked)
-                  FilledButton(
-                    onPressed: () => onAck(id),
-                    style: FilledButton.styleFrom(backgroundColor: Colors.amber.shade700),
-                    child: const Text('Attend'),
-                  )
-                else if (acked)
-                  const Text('Attended', style: TextStyle(color: Colors.tealAccent, fontSize: 12)),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class SmsLogPage extends StatelessWidget {
-  const SmsLogPage({super.key, required this.logs});
-  final List logs;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text('SMS log', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 8),
-        if (logs.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(32),
-            child: Text('No MoMo SMS processed yet', textAlign: TextAlign.center),
-          ),
-        ...logs.map((e) {
-          return Card(
-            child: ListTile(
-              title: Text(e.matchStatus ?? 'unknown', style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text(
-                '${e.message ?? ""}\n${e.raw.length > 120 ? "${e.raw.substring(0, 120)}…" : e.raw}',
-              ),
-              isThreeLine: true,
-              trailing: Icon(
-                e.success ? Icons.check_circle : Icons.error_outline,
-                color: e.success ? Colors.tealAccent : Colors.redAccent,
-              ),
-            ),
-          );
-        }),
-      ],
-    );
-  }
-}
-
-class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
-
-  @override
-  State<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends State<SettingsPage> {
-  final _urlCtrl = TextEditingController();
-  final _keyCtrl = TextEditingController();
-  final _momoCtrl = TextEditingController();
-  bool _obscure = true;
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    _urlCtrl.text = await SettingsStore.instance.getBaseUrl();
-    _keyCtrl.text = await SettingsStore.instance.getApiKey() ?? '';
-    _momoCtrl.text = await SettingsStore.instance.getMomoNumber();
-    setState(() {});
-  }
-
-  Future<void> _save() async {
-    setState(() => _saving = true);
-    await SettingsStore.instance.setBaseUrl(_urlCtrl.text);
-    await SettingsStore.instance.setApiKey(_keyCtrl.text);
-    await SettingsStore.instance.setMomoNumber(_momoCtrl.text);
-    await SmsPipeline.instance.init();
-    setState(() => _saving = false);
-    if (mounted) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved — SMS listener restarted')),
+        const SnackBar(content: Text('Acknowledged — sticky alert cleared')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ack failed: $e')),
       );
     }
   }
 
+  Future<void> _clearAllNotifications() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear all notifications?'),
+        content: const Text(
+          'Removes every alert and notification on this phone, including sticky ones you '
+          'have not attended. Nothing is deleted on the server.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: OpsColors.danger),
+            child: const Text('Clear all'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await StickyAlertService.instance.clearAll();
+    if (!mounted) return;
+    setState(() => _inbox = []);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('All notifications and alerts cleared')),
+    );
+  }
+
+  void _openSection(String key) {
+    setState(() => _section = OpsSection.fromKey(key));
+  }
+
+  int get _unacked =>
+      _inbox.where((e) => e['requires_ack'] == true && e['acked_at'] == null).length;
+
+  Widget _bodyFor(OpsSection section) {
+    switch (section) {
+      case OpsSection.home:
+        return DashboardPage(
+          smsStatus: _smsStatus,
+          inbox: _inbox,
+          loading: _loadingInbox,
+          error: _inboxError,
+          onRefresh: _refreshInbox,
+          onAck: _ack,
+          ringingCalls: CallService.instance.ringingCount,
+          onOpenSection: _openSection,
+        );
+      case OpsSection.calls:
+        return const AdminGate(title: 'Agent calls', builder: _buildCalls);
+      case OpsSection.orders:
+        return const AdminGate(title: 'Orders', builder: _buildOrders);
+      case OpsSection.wallet:
+        return const AdminGate(title: 'Wallet', builder: _buildWallet);
+      case OpsSection.storefront:
+        return const AdminGate(title: 'Storefront management', builder: _buildStorefront);
+      case OpsSection.bundleOrders:
+        return const AdminGate(title: 'Data bundle orders', builder: _buildBundleOrders);
+      case OpsSection.agentNotifications:
+        return const AdminGate(title: 'Agent notifications', builder: _buildAgentNotifications);
+      case OpsSection.inbox:
+        return InboxPage(
+          inbox: _inbox,
+          loading: _loadingInbox,
+          error: _inboxError,
+          onRefresh: _refreshInbox,
+          onAck: _ack,
+          onClearAll: _clearAllNotifications,
+        );
+      case OpsSection.smsLog:
+        return SmsLogPage(logs: SmsPipeline.instance.logs);
+      case OpsSection.settings:
+        return SettingsPage(
+          onNotificationsCleared: () {
+            if (mounted) setState(() => _inbox = []);
+          },
+        );
+      case OpsSection.more:
+        return _MorePage(
+          unacked: _unacked,
+          ringing: CallService.instance.ringingCount,
+          onOpen: _openSection,
+        );
+    }
+  }
+
+  // Torn off as top-level builders so the AdminGate instances stay const.
+  static Widget _buildCalls(BuildContext _) => const CallsPage();
+  static Widget _buildOrders(BuildContext _) => const OrdersPage();
+  static Widget _buildWallet(BuildContext _) => const WalletPage();
+  static Widget _buildStorefront(BuildContext _) => const StorefrontPage();
+  static Widget _buildBundleOrders(BuildContext _) => const BundleOrdersPage();
+  static Widget _buildAgentNotifications(BuildContext _) => const AgentNotificationsPage();
+
   @override
   Widget build(BuildContext context) {
+    final isSecondary = !_section.isPrimary;
+    final ringing = CallService.instance.ringingCount;
+
+    return Scaffold(
+      appBar: isSecondary
+          ? AppBar(
+              title: Text(_section.label),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => setState(() => _section = OpsSection.more),
+              ),
+            )
+          : null,
+      body: SafeArea(child: _bodyFor(_section)),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _section.isPrimary ? _section.index : OpsSection.more.index,
+        onDestinationSelected: (i) =>
+            setState(() => _section = OpsSection.values[i]),
+        destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: ringing > 0,
+              label: Text('$ringing'),
+              child: const Icon(Icons.phone_in_talk_outlined),
+            ),
+            selectedIcon: const Icon(Icons.phone_in_talk),
+            label: 'Calls',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Orders',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet),
+            label: 'Wallet',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: _unacked > 0,
+              label: Text('$_unacked'),
+              child: const Icon(Icons.grid_view_outlined),
+            ),
+            selectedIcon: const Icon(Icons.grid_view),
+            label: 'More',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MorePage extends StatelessWidget {
+  const _MorePage({
+    required this.unacked,
+    required this.ringing,
+    required this.onOpen,
+  });
+
+  final int unacked;
+  final int ringing;
+  final void Function(String key) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final admin = AdminSession.instance.admin;
+    final entries = <OpsSection>[
+      OpsSection.storefront,
+      OpsSection.bundleOrders,
+      OpsSection.agentNotifications,
+      OpsSection.inbox,
+      OpsSection.smsLog,
+      OpsSection.settings,
+    ];
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text('Settings', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _urlCtrl,
-          decoration: const InputDecoration(
-            labelText: 'API base URL',
-            hintText: 'https://www.dataflexghana.com',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _keyCtrl,
-          obscureText: _obscure,
-          decoration: InputDecoration(
-            labelText: 'Ops API key (ops_…)',
-            border: const OutlineInputBorder(),
-            suffixIcon: IconButton(
-              icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
-              onPressed: () => setState(() => _obscure = !_obscure),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _momoCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Expected MoMo number',
-            hintText: '0557943392',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 8),
+        Text('More', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 4),
         Text(
-          'Create a device key via POST /api/admin/ops/devices (admin session). '
-          'Paste the plaintext key here once. Sideload this APK on the payment SIM phone.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white54),
+          admin == null ? 'Ops device mode' : 'Admin: ${admin.displayName}',
+          style: const TextStyle(color: Colors.white54, fontSize: 13),
         ),
-        const SizedBox(height: 20),
-        FilledButton(
-          onPressed: _saving ? null : _save,
-          child: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Save'),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: _urlCtrl.text));
-          },
-          icon: const Icon(Icons.copy),
-          label: const Text('Copy base URL'),
-        ),
+        const SizedBox(height: 18),
+        ...entries.map((s) {
+          final badge = switch (s) {
+            OpsSection.inbox => unacked,
+            OpsSection.calls => ringing,
+            _ => 0,
+          };
+          final locked = s.needsAdmin && admin == null;
+          return Card(
+            child: ListTile(
+              leading: Badge(
+                isLabelVisible: badge > 0,
+                label: Text('$badge'),
+                child: Icon(s.icon, color: locked ? Colors.white24 : OpsColors.brand),
+              ),
+              title: Text(s.label),
+              subtitle: locked
+                  ? const Text('Admin sign-in required', style: TextStyle(fontSize: 12))
+                  : null,
+              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              onTap: () => onOpen(s.key),
+            ),
+          );
+        }),
       ],
     );
   }
