@@ -37,6 +37,20 @@ kotlin {
     }
 }
 
+// google_mlkit_face_detection depends on com.google.mlkit:face-detection, which
+// bundles the ~16MB model into the APK. The Play Services build exposes the same
+// com.google.mlkit.vision.face API but fetches the model on demand, so the APK
+// stays small. This app is sideloaded, which is unaffected: the unbundled model
+// needs Play Services on the device, not Play Store distribution. Devices without
+// Play Services simply fail detection, and the selfie falls back to admin review.
+configurations.configureEach {
+    exclude(group = "com.google.mlkit", module = "face-detection")
+}
+
+dependencies {
+    implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
+}
+
 flutter {
     source = "../.."
 }

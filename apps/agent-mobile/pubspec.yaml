@@ -1,7 +1,7 @@
 name: agent_mobile
 description: DataFlex Ghana agent Android app — login, data bundles, compliance.
 publish_to: "none"
-version: 1.0.5+6
+version: 1.0.6+7
 
 environment:
   sdk: ^3.12.2
@@ -19,6 +19,11 @@ dependencies:
   intl: ^0.19.0
   url_launcher: ^6.3.1
   image_picker: ^1.1.2
+  # Selfie auto-approval: face box/count from ML Kit, pixel maths from `image`.
+  # See android/app/build.gradle.kts — the bundled ML Kit model is swapped for
+  # the thin Play Services variant to keep the APK small.
+  google_mlkit_face_detection: ^0.13.1
+  image: ^4.3.0
   file_picker: ^8.1.4
   http_parser: ^4.0.2
   path_provider: ^2.1.5

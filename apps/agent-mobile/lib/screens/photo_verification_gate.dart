@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/api_client.dart';
+import '../services/face_photo_validation.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
@@ -104,9 +106,28 @@ class _PhotoVerificationGateState extends State<PhotoVerificationGate> {
         setState(() => _uploading = false);
         return;
       }
+
+      // Same quality gate the website runs, so a good selfie is approved
+      // instantly here too instead of always queuing for admin review.
+      final check = await validateFacePhoto(File(file.path));
+      if (!check.ok && !check.detectorUnavailable) {
+        // Website behaviour: a failed photo is not uploaded at all — retake it.
+        setState(() {
+          _error = check.error;
+          _uploading = false;
+        });
+        return;
+      }
+      // Detection unavailable (e.g. no Play Services) falls through with
+      // autoApproved false, so the agent is reviewed rather than blocked.
+      final autoApproved = check.ok;
+
       final url = await ApiClient.instance.uploadAgentImage(file);
       if (url.isEmpty) throw ApiException('Upload failed — empty URL');
-      final verified = await ApiClient.instance.verifyProfilePhoto(url);
+      final verified = await ApiClient.instance.verifyProfilePhoto(
+        url,
+        autoApproved: autoApproved,
+      );
       final agent = await SessionStore.instance.getAgent() ?? {};
       await SessionStore.instance.saveAgent({
         ...agent,

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/api_client.dart';
+import '../services/face_photo_validation.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
@@ -127,9 +128,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _uploadingPhoto = true;
     });
     try {
+      // Auto-approve when the photo passes the same checks the website runs.
+      // Unlike the verification gate, a failure still uploads for admin review
+      // here — the agent isn't locked out, so refusing outright would be harsh.
+      final check = await validateFacePhoto(File(file.path));
+
       final url = await ApiClient.instance.uploadAgentImage(file);
       if (url.isEmpty) throw ApiException('Upload failed');
-      final verified = await ApiClient.instance.verifyProfilePhoto(url);
+      final verified = await ApiClient.instance.verifyProfilePhoto(
+        url,
+        autoApproved: check.ok,
+      );
       setState(() {
         _profileImageUrl = url;
         if (_agent != null) {
@@ -142,7 +151,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
       final msg = verified['profile_verified'] == true
           ? 'Photo verified. Save profile to apply other fields.'
-          : 'Photo submitted for review. Save profile to apply other fields.';
+          : check.error != null
+              ? '${check.error} Photo submitted for review instead.'
+              : 'Photo submitted for review. Save profile to apply other fields.';
       _snack(msg);
     } on ApiException catch (e) {
       _snack(e.message, error: true);

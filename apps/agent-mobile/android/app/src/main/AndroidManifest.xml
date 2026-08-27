@@ -36,6 +36,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Tells Play Services to fetch the face detection model when the app
+             is installed rather than on first use, so an agent's first selfie
+             isn't downgraded to admin review just because the network was slow
+             at that moment. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="face" />
     </application>
     <queries>
         <intent>
