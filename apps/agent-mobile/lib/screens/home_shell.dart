@@ -8,6 +8,7 @@ import '../widgets/agent_header.dart';
 import '../widgets/agent_notification_popup.dart';
 import '../widgets/menu_card.dart';
 import 'apple_service_screen.dart';
+import 'blog_screen.dart';
 import 'channels_screen.dart';
 import 'compliance_screen.dart';
 import 'data_bundles_screen.dart';
@@ -159,6 +160,9 @@ class _HomeShellState extends State<HomeShell> {
         break;
       case MenuKind.nativeTutorials:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TutorialsScreen()));
+        break;
+      case MenuKind.nativeBlog:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BlogScreen()));
         break;
       case MenuKind.nativePublishProducts:
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PublishProductsScreen()));

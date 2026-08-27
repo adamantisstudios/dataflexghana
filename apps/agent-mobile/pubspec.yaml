@@ -1,7 +1,7 @@
 name: agent_mobile
 description: DataFlex Ghana agent Android app — login, data bundles, compliance.
 publish_to: "none"
-version: 1.0.2+3
+version: 1.0.3+4
 
 environment:
   sdk: ^3.12.2
@@ -23,6 +23,9 @@ dependencies:
   http_parser: ^4.0.2
   path_provider: ^2.1.5
   webview_flutter: ^4.14.1
+  livekit_client: ^2.11.0
+  permission_handler: 12.0.0
+  wakelock_plus: ^1.5.2
 
 dev_dependencies:
   flutter_test:

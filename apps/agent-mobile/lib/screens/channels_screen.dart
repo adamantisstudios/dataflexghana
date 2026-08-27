@@ -7,6 +7,7 @@ import '../services/api_client.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
 import '../utils/display_format.dart';
+import 'channel_detail_screen.dart';
 
 class ChannelsScreen extends StatefulWidget {
   const ChannelsScreen({super.key});
@@ -105,6 +106,24 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     } finally {
       if (mounted) setState(() => _joining = null);
     }
+  }
+
+  Future<void> _openChannel(Map<String, dynamic> channel) async {
+    final id = channel['id']?.toString() ?? '';
+    if (id.isEmpty) return;
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChannelDetailScreen(
+          channelId: id,
+          channelName: channel['name']?.toString(),
+          imageUrl: channel['image_url']?.toString(),
+          onJoinRequested: () => _join(channel),
+        ),
+      ),
+    );
+    if (result == 'join' && mounted) await _join(channel);
+    if (mounted) await _load();
   }
 
   Future<void> _openWeb(String? channelId) async {
@@ -208,7 +227,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                                                 )
                                               else
                                                 OutlinedButton(
-                                                  onPressed: () => _openWeb(id),
+                                                  onPressed: () => _openChannel(c),
                                                   style: OutlinedButton.styleFrom(minimumSize: const Size(88, 36)),
                                                   child: Text(isMember ? 'Open' : 'View'),
                                                 ),

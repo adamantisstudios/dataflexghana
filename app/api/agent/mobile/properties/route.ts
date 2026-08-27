@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
+import { sanitizeSearchTerm } from "@/lib/postgrest-search"
 
 export const dynamic = "force-dynamic"
 
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
     can_update_properties?: boolean
   }
   const db = getAdminClient()
-  const search = (request.nextUrl.searchParams.get("search") || "").trim()
+  const search = sanitizeSearchTerm(request.nextUrl.searchParams.get("search"))
   const category = (request.nextUrl.searchParams.get("category") || "").trim()
   const status = (request.nextUrl.searchParams.get("status") || "").trim()
 

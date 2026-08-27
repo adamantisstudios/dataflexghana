@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
 import { referralServiceAgentCommission } from "@/lib/referral-service-commission"
+import { sanitizeSearchTerm } from "@/lib/postgrest-search"
 
 export const dynamic = "force-dynamic"
 
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url)
-    const search = (searchParams.get("search") || "").trim()
+    const search = sanitizeSearchTerm(searchParams.get("search"))
     const historyOnly = searchParams.get("history") === "1"
     const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1)
     const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "30", 10), 1), 100)

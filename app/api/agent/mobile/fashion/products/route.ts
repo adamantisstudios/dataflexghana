@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { FASHION_ASSET_BASE, formatFashionProduct } from "@/lib/fashion-catalog"
 import { getAdminClient } from "@/lib/supabase-base"
+import { sanitizeSearchTerm } from "@/lib/postgrest-search"
 
 export const dynamic = "force-dynamic"
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const id = searchParams.get("id")
-    const search = searchParams.get("search") || ""
+    const search = sanitizeSearchTerm(searchParams.get("search"))
     const category = searchParams.get("category") || ""
     const page = parseInt(searchParams.get("page") || "1", 10)
     const limit = parseInt(searchParams.get("limit") || "12", 10)

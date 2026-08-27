@@ -33,3 +33,6 @@ apps/admin-ops-mobile/build/
 !public/app/*.apk
 **/build-log.txt
 tsconfig.tsbuildinfo
+
+# Kotlin incremental build artifacts (Flutter Android)
+apps/agent-mobile/android/.kotlin/

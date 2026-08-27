@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { X } from "lucide-react"
+import Link from "next/link"
+import { Download, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { APP_RELEASE } from "@/lib/app-release"
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -67,6 +69,7 @@ export function PwaInstallPrompt({ variant = "dataflex", storeName }: PwaInstall
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
   const [show, setShow] = useState(false)
   const [isIos, setIsIos] = useState(false)
+  const [isAndroid, setIsAndroid] = useState(false)
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -74,7 +77,9 @@ export function PwaInstallPrompt({ variant = "dataflex", storeName }: PwaInstall
 
     const ua = window.navigator.userAgent
     const ios = /iPad|iPhone|iPod/.test(ua) && !(window as Window & { MSStream?: unknown }).MSStream
+    const android = /Android/i.test(ua)
     setIsIos(ios)
+    setIsAndroid(android)
 
     const onBip = (e: BeforeInstallPromptEvent) => {
       e.preventDefault()
@@ -88,8 +93,17 @@ export function PwaInstallPrompt({ variant = "dataflex", storeName }: PwaInstall
       setShow(true)
     }
 
+    // Android users get the real APK, so surface the banner even when the
+    // browser never fires beforeinstallprompt.
+    if (android && variant === "dataflex") {
+      setShow(true)
+    }
+
     return () => window.removeEventListener("beforeinstallprompt", onBip)
-  }, [dismissKey])
+  }, [dismissKey, variant])
+
+  // The native Android app beats a home-screen shortcut, so lead with it.
+  const promoteAndroidApp = variant === "dataflex" && isAndroid
 
   const dismiss = () => {
     sessionStorage.setItem(dismissKey, "1")
@@ -119,13 +133,32 @@ export function PwaInstallPrompt({ variant = "dataflex", storeName }: PwaInstall
           />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-900 text-sm">{config.title}</p>
-          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-            {isIos && !deferred ? config.subtitleIos : config.subtitleInstall}
+          <p className="font-semibold text-slate-900 text-sm">
+            {promoteAndroidApp ? "Get the DataFlex Android App" : config.title}
           </p>
-          <div className="flex gap-2 mt-3">
-            {deferred && (
-              <Button type="button" size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={install}>
+          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+            {promoteAndroidApp
+              ? `Download the full agent app (v${APP_RELEASE.versionName}, ${APP_RELEASE.sizeLabel.toLowerCase()}) for the complete experience.`
+              : isIos && !deferred
+                ? config.subtitleIos
+                : config.subtitleInstall}
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {promoteAndroidApp && (
+              <Button asChild type="button" size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                <Link href={APP_RELEASE.installPagePath} onClick={dismiss}>
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Get the App
+                </Link>
+              </Button>
+            )}
+            {deferred && !promoteAndroidApp && (
+              <Button
+                type="button"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700"
+                onClick={install}
+              >
                 Install
               </Button>
             )}

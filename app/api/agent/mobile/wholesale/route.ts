@@ -3,6 +3,7 @@ import { authenticateAgent, createAuthErrorResponse } from "@/lib/api-auth"
 import { getAdminClient } from "@/lib/supabase-base"
 import { AGENT_MOMO } from "@/lib/agent-mobile"
 import { WHOLESALE_CATEGORIES } from "@/lib/wholesale"
+import { sanitizeSearchTerm } from "@/lib/postgrest-search"
 
 export const dynamic = "force-dynamic"
 
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
   const view = request.nextUrl.searchParams.get("view") || "catalog"
   const page = Math.max(1, parseInt(request.nextUrl.searchParams.get("page") || "1", 10))
   const limit = Math.min(24, Math.max(1, parseInt(request.nextUrl.searchParams.get("limit") || "12", 10)))
-  const search = (request.nextUrl.searchParams.get("search") || "").trim()
+  const search = sanitizeSearchTerm(request.nextUrl.searchParams.get("search"))
   const category = (request.nextUrl.searchParams.get("category") || "").trim()
   const priceBand = (request.nextUrl.searchParams.get("price") || "all").trim()
   const status = (request.nextUrl.searchParams.get("status") || "").trim()

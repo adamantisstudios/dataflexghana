@@ -1,11 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../utils/display_format.dart';
+import '../widgets/image_viewer.dart';
+import 'fashion_request_screen.dart';
 
 class FashionProductScreen extends StatefulWidget {
   const FashionProductScreen({super.key, required this.productId, this.assetBase = 'https://www.dataflexghana.com'});
@@ -67,9 +68,19 @@ class _FashionProductScreenState extends State<FashionProductScreen> {
     return [];
   }
 
-  Future<void> _openWebsite() async {
-    final uri = Uri.parse('https://www.dataflexghana.com/fashion-avenue/${widget.productId}');
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<void> _openRequest({required bool refer}) async {
+    final p = _product;
+    if (p == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FashionRequestScreen(
+          productId: widget.productId,
+          productCode: p['product_code']?.toString() ?? '',
+          productName: p['product_name']?.toString() ?? 'Custom Project',
+          referMode: refer,
+        ),
+      ),
+    );
   }
 
   @override
@@ -91,7 +102,12 @@ class _FashionProductScreenState extends State<FashionProductScreen> {
                           child: ListView(
                             padding: const EdgeInsets.all(16),
                             children: [
-                              _Gallery(images: _images, index: _imageIndex, onIndex: (i) => setState(() => _imageIndex = i)),
+                              _Gallery(
+                                images: _images,
+                                index: _imageIndex,
+                                onIndex: (i) => setState(() => _imageIndex = i),
+                                title: _product!['product_name']?.toString(),
+                              ),
                               const SizedBox(height: 16),
                               Text(_product!['product_name']?.toString() ?? 'Design', style: GoogleFonts.outfit(fontWeight: FontWeight.w800, fontSize: 22)),
                               Text(_product!['product_code']?.toString() ?? '', style: const TextStyle(color: DfColors.muted, fontFamily: 'monospace')),
@@ -132,13 +148,32 @@ class _FashionProductScreenState extends State<FashionProductScreen> {
                         ),
                         SafeArea(
                           minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _openWebsite,
-                              icon: const Icon(Icons.open_in_new),
-                              label: const Text('Request project on website'),
-                            ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: SizedBox(
+                                  height: 50,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _openRequest(refer: false),
+                                    icon: const Icon(Icons.checkroom),
+                                    label: const Text('Request this design'),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                flex: 2,
+                                child: SizedBox(
+                                  height: 50,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _openRequest(refer: true),
+                                    icon: const Icon(Icons.share_outlined, size: 18),
+                                    label: const Text('Refer'),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -148,10 +183,16 @@ class _FashionProductScreenState extends State<FashionProductScreen> {
 }
 
 class _Gallery extends StatelessWidget {
-  const _Gallery({required this.images, required this.index, required this.onIndex});
+  const _Gallery({
+    required this.images,
+    required this.index,
+    required this.onIndex,
+    this.title,
+  });
   final List<String> images;
   final int index;
   final ValueChanged<int> onIndex;
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
@@ -167,11 +208,45 @@ class _Gallery extends StatelessWidget {
     final safe = index.clamp(0, images.length - 1);
     return Column(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: CachedNetworkImage(imageUrl: images[safe], fit: BoxFit.cover),
+        GestureDetector(
+          onTap: () => FullScreenImageViewer.open(
+            context,
+            images: images,
+            initialIndex: safe,
+            title: title,
+          ),
+          child: Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: CachedNetworkImage(imageUrl: images[safe], fit: BoxFit.cover),
+                ),
+              ),
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.zoom_out_map, color: Colors.white, size: 15),
+                      SizedBox(width: 5),
+                      Text(
+                        'Tap to view',
+                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         if (images.length > 1) ...[
@@ -189,7 +264,7 @@ class _Gallery extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: images.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, i) => GestureDetector(
                 onTap: () => onIndex(i),
                 child: ClipRRect(

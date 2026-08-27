@@ -41,12 +41,18 @@ class ApiClient {
     } catch (_) {}
     if (res.statusCode >= 200 && res.statusCode < 300) return body;
     final err = body['error']?.toString() ?? 'Request failed (${res.statusCode})';
-    final photoGate = err.toLowerCase().contains('photo verification');
+    final code = body['code']?.toString();
+    final lower = err.toLowerCase();
+    // The server's gate message reads "verify your account with a photo", so a
+    // match on "photo verification" alone silently misses every real gate hit.
+    final photoGate = code == 'PHOTO_VERIFICATION_REQUIRED' ||
+        lower.contains('photo verification') ||
+        lower.contains('verify your account with a photo');
     throw ApiException(
       err,
       statusCode: res.statusCode,
       photoGate: photoGate,
-      code: body['code']?.toString(),
+      code: code,
       banned: body['banned'] == true,
     );
   }
@@ -347,7 +353,8 @@ class ApiClient {
       headers: await SessionStore.instance.authHeaders(),
     );
     final data = await _decode(res);
-    await CacheStore.instance.putJson('notifications', data, ttl: const Duration(minutes: 5));
+    // Short TTL so an admin broadcast reaches agents promptly.
+    await CacheStore.instance.putJson('notifications', data, ttl: const Duration(seconds: 60));
     return data;
   }
 
@@ -554,6 +561,67 @@ class ApiClient {
         return _decode(res);
       },
     );
+  }
+
+  /// Submits a Fashion Avenue project request. The response carries a
+  /// `whatsappUrl` that must be opened — the stored row is only a record, the
+  /// designer is notified by the WhatsApp message.
+  Future<Map<String, dynamic>> fashionProjectRequest({
+    required String productId,
+    required String productCode,
+    required String productName,
+    required String clientName,
+    required String clientWhatsapp,
+    String? clientLocation,
+    String? timelinePreference,
+    String? measurements,
+    String? additionalNotes,
+  }) async {
+    final res = await http.post(
+      await _uri('/api/fashion/project-request'),
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: jsonEncode({
+        'product_id': productId,
+        'product_code': productCode,
+        'product_name': productName,
+        'client_name': clientName,
+        'client_whatsapp': clientWhatsapp,
+        if (clientLocation != null && clientLocation.trim().isNotEmpty)
+          'client_location': clientLocation.trim(),
+        if (timelinePreference != null && timelinePreference.trim().isNotEmpty)
+          'timeline_preference': timelinePreference.trim(),
+        if (measurements != null && measurements.trim().isNotEmpty)
+          'measurements': measurements.trim(),
+        if (additionalNotes != null && additionalNotes.trim().isNotEmpty)
+          'additional_notes': additionalNotes.trim(),
+      }),
+    );
+    return _decode(res);
+  }
+
+  /// Refers a design to a friend. Returns `whatsappUrl` (to the friend) and
+  /// `adminNotificationUrl`.
+  Future<Map<String, dynamic>> fashionReferral({
+    required String productId,
+    required String productCode,
+    required String productName,
+    required String referrerName,
+    required String referrerWhatsapp,
+    required String friendWhatsapp,
+  }) async {
+    final res = await http.post(
+      await _uri('/api/fashion/referral'),
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: jsonEncode({
+        'product_id': productId,
+        'product_code': productCode,
+        'product_name': productName,
+        'referrer_name': referrerName,
+        'referrer_whatsapp': referrerWhatsapp,
+        'friend_whatsapp': friendWhatsapp,
+      }),
+    );
+    return _decode(res);
   }
 
   // ── Groceries (public Paystack flow) ──────────────────────────────────────
@@ -839,12 +907,13 @@ class ApiClient {
 
   Future<Map<String, dynamic>> getStoreSettings() async {
     final res = await http.get(
-      await _uri('/api/agent/store-settings'),
+      await _uri('/api/agent/mobile/store-settings'),
       headers: await SessionStore.instance.authHeaders(),
     );
     return _decode(res);
   }
 
+  /// Returns the refreshed settings payload so callers can apply it directly.
   Future<Map<String, dynamic>> upsertStoreSetting({
     required String itemType,
     required String itemId,
@@ -852,7 +921,7 @@ class ApiClient {
     double? customMargin,
   }) async {
     final res = await http.put(
-      await _uri('/api/agent/store-settings'),
+      await _uri('/api/agent/mobile/store-settings'),
       headers: await SessionStore.instance.authHeaders(),
       body: jsonEncode({
         'item_type': itemType,
@@ -866,17 +935,17 @@ class ApiClient {
     return data;
   }
 
+  /// Item is identified via query params — DELETE bodies are unreliable.
   Future<Map<String, dynamic>> deleteStoreSetting({
     required String itemType,
     required String itemId,
   }) async {
     final res = await http.delete(
-      await _uri('/api/agent/store-settings'),
-      headers: await SessionStore.instance.authHeaders(),
-      body: jsonEncode({
+      await _uri('/api/agent/mobile/store-settings', {
         'item_type': itemType,
         'item_id': itemId,
       }),
+      headers: await SessionStore.instance.authHeaders(),
     );
     final data = await _decode(res);
     await CacheStore.instance.invalidatePrefix('hub_');

@@ -112,6 +112,20 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
     return false;
   }
 
+  /// Mutating endpoints echo the refreshed collection; use it instead of an
+  /// extra round trip. Returns false when the payload lacks settings.
+  bool _applySettingsPayload(Map<String, dynamic> data) {
+    final list = data['settings'];
+    if (list is! List) return false;
+    _settings = list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+    final saved = data['savedBundles'];
+    if (saved is List) {
+      _savedBundles = saved.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+    _complianceVisible = _isComplianceVisible();
+    return true;
+  }
+
   Future<void> _loadSettings({bool force = false}) async {
     if (!force) {
       final cached = await CacheStore.instance.getJson<Map<String, dynamic>>('hub_store_settings');
@@ -129,7 +143,8 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
       }
     }
     final data = await ApiClient.instance.getStoreSettings();
-    await CacheStore.instance.putJson('hub_store_settings', data, ttl: const Duration(minutes: 30));
+    // Storefront edits made on the website should show up here quickly.
+    await CacheStore.instance.putJson('hub_store_settings', data, ttl: const Duration(minutes: 2));
     final list = data['settings'];
     _settings = list is List
         ? list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
@@ -260,14 +275,16 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
     final key = '$itemType:$itemId';
     setState(() => _busy.add(key));
     try {
-      await ApiClient.instance.upsertStoreSetting(
+      final data = await ApiClient.instance.upsertStoreSetting(
         itemType: itemType,
         itemId: itemId,
         isVisible: visible,
         customMargin: customMargin,
       );
       await CacheStore.instance.invalidate('hub_store_settings');
-      await _loadSettings(force: true);
+      if (!_applySettingsPayload(data)) {
+        await _loadSettings(force: true);
+      }
       setState(() {});
       _snack(successMessage ?? (visible ? 'Enabled on storefront' : 'Hidden from storefront'));
     } on ApiException catch (e) {
@@ -316,9 +333,15 @@ class _HubMarketplaceTabState extends State<HubMarketplaceTab> {
     final key = 'data_bundle:$id';
     setState(() => _busy.add(key));
     try {
-      await ApiClient.instance.deleteStoreSetting(itemType: 'data_bundle', itemId: id);
+      final data = await ApiClient.instance.deleteStoreSetting(
+        itemType: 'data_bundle',
+        itemId: id,
+      );
       await CacheStore.instance.invalidate('hub_store_settings');
-      await _loadSettings(force: true);
+      if (!_applySettingsPayload(data)) {
+        await _loadSettings(force: true);
+      }
+      _marginCtrls.remove(id)?.dispose();
       setState(() {});
       _snack('Removed from store');
     } on ApiException catch (e) {

@@ -256,12 +256,20 @@ export async function authenticateFromLocalStorage(
     }
   }
 
+  // The photo gate is a real, actionable outcome — clients render a verification
+  // screen for it. Keep it instead of letting later attempts mask it as a
+  // generic "Authentication failed".
+  let photoGateError: string | null = null
+
   // Prefer agent session when x-agent-id is sent (shared devices / mobile wallets)
   const explicitAgentId = request.headers.get("x-agent-id")?.trim()
   if (explicitAgentId && (!requiredRole || requiredRole === "agent")) {
     const agentAuth = await authenticateAgent(request)
     if (agentAuth.success) {
       return agentAuth
+    }
+    if (agentAuth.error === PHOTO_VERIFICATION_REQUIRED_ERROR) {
+      photoGateError = agentAuth.error
     }
   }
 
@@ -278,6 +286,13 @@ export async function authenticateFromLocalStorage(
     if (agentAuth.success) {
       return agentAuth
     }
+    if (agentAuth.error === PHOTO_VERIFICATION_REQUIRED_ERROR) {
+      photoGateError = agentAuth.error
+    }
+  }
+
+  if (photoGateError) {
+    return { success: false, error: photoGateError }
   }
 
   return { success: false, error: "Authentication failed" }
