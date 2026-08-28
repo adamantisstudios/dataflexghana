@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-client";
+import { getAdminClient } from "@/lib/supabase-base"
 import { authenticateAdmin } from "@/lib/api-auth"
 import { cleanOrdersData, canUpdateOrderStatus } from "@/lib/bundle-data-handler"
 import { calculateFinalCommission } from "@/lib/commission-calculator"
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Admin authentication required" }, { status: 401 })
     }
 
+    const supabase = getAdminClient()
     const { searchParams } = new URL(request.url)
     const isDataOrdersLog = searchParams.get("log") === "true"
     
@@ -42,12 +43,10 @@ export async function GET(request: NextRequest) {
     const limit = Number.parseInt(searchParams.get("limit") || "10")
     const offset = Number.parseInt(searchParams.get("offset") || "0")
 
-    // Build query with proper bundle joins - request one extra to check if more exist
+    // Build query with proper bundle joins
     let countQuery = supabase.from("data_orders").select("*", { count: "exact", head: true })
 
-    let dataQuery = supabase
-      .from("data_orders")
-      .select(`
+    let filteredQuery = supabase.from("data_orders").select(`
         *,
         data_bundles!fk_data_orders_bundle_id (
           id,
@@ -66,18 +65,20 @@ export async function GET(request: NextRequest) {
           phone_number
         )
       `)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1)
 
     // Apply filters to both queries
     if (agentId) {
       countQuery = countQuery.eq("agent_id", agentId)
-      dataQuery = dataQuery.eq("agent_id", agentId)
+      filteredQuery = filteredQuery.eq("agent_id", agentId)
     }
     if (status && status !== "all") {
       countQuery = countQuery.eq("status", status)
-      dataQuery = dataQuery.eq("status", status)
+      filteredQuery = filteredQuery.eq("status", status)
     }
+
+    const dataQuery = filteredQuery
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1)
 
     const [{ count: totalCount }, { data: orders, error }] = await Promise.all([countQuery, dataQuery])
 
@@ -122,6 +123,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Admin authentication required" }, { status: 401 })
     }
 
+    const supabase = getAdminClient()
     const body = await request.json()
     const { orderId, status, adminMessage } = body
 

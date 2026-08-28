@@ -8,27 +8,18 @@ import 'order_models.dart';
 
 const _pageSize = 25;
 
-const _statusFilters = <({String value, String label})>[
-  (value: 'all', label: 'All orders'),
+/// Mirrors the website's single "Filter Orders" dropdown.
+const _filters = <({String value, String label})>[
+  (value: 'all', label: 'All Orders'),
   (value: 'pending', label: 'Pending'),
   (value: 'processing', label: 'Processing'),
   (value: 'completed', label: 'Completed'),
   (value: 'canceled', label: 'Canceled'),
-  (value: 'failed', label: 'Failed'),
+  (value: 'manual', label: 'Manual Orders'),
+  (value: 'wallet', label: 'Wallet Orders'),
 ];
 
-const _paymentFilters = <({String value, String label})>[
-  (value: 'all', label: 'Any payment'),
-  (value: 'wallet', label: 'Wallet'),
-  (value: 'manual', label: 'Manual'),
-];
-
-const _providerFilters = <({String value, String label})>[
-  (value: 'all', label: 'All networks'),
-  (value: 'MTN', label: 'MTN'),
-  (value: 'Telecel', label: 'Telecel'),
-  (value: 'AirtelTigo', label: 'AirtelTigo'),
-];
+const _statusOptions = <String>['pending', 'processing', 'completed', 'canceled'];
 
 const _defaultAdminMessage =
     'We cannot verify this manual order or find proof of payment. Check and ensure you pay '
@@ -37,6 +28,9 @@ const _defaultAdminMessage =
     'but our system did not detect it, send proof of payment to 0246827049. Thank You.';
 
 /// Admin "Orders" tab — agent data orders from `data_orders`.
+///
+/// Deliberately kept as flat as the website's Orders tab: one search box, one
+/// filter dropdown, and each card carries its own actions. No detail sheet.
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
 
@@ -50,14 +44,15 @@ class _OrdersPageState extends State<OrdersPage> {
   bool _loading = true;
   bool _loadingMore = false;
   String? _error;
+  String? _busyOrderId;
   int _offset = 0;
   int _total = 0;
   bool _hasMore = false;
 
-  String _status = 'all';
-  String _payment = 'all';
-  String _provider = 'all';
+  String _filter = 'all';
   String _search = '';
+
+  bool get _filterIsPayment => _filter == 'manual' || _filter == 'wallet';
 
   @override
   void initState() {
@@ -66,7 +61,7 @@ class _OrdersPageState extends State<OrdersPage> {
   }
 
   List<DataOrder> get _visible => _orders
-      .where((o) => _payment == 'all' || o.paymentMethod == _payment)
+      .where((o) => !_filterIsPayment || o.paymentMethod == _filter)
       .where((o) => o.matches(_search))
       .toList();
 
@@ -88,8 +83,7 @@ class _OrdersPageState extends State<OrdersPage> {
         query: {
           'limit': _pageSize,
           'offset': offset,
-          if (_status != 'all') 'status': _status,
-          if (_provider != 'all') 'provider': _provider,
+          if (!_filterIsPayment && _filter != 'all') 'status': _filter,
         },
       );
       if (!mounted) return;
@@ -125,327 +119,62 @@ class _OrdersPageState extends State<OrdersPage> {
     }
   }
 
-  Future<void> _openDetail(DataOrder order) async {
-    final changed = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: OpsColors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (_) => _OrderDetailSheet(order: order),
-    );
-    if (changed == true && mounted) await _load();
+  void _replace(DataOrder order, Map<String, dynamic> fresh) {
+    final merged = Map<String, dynamic>.from(order.raw)..addAll(fresh);
+    final i = _orders.indexWhere((o) => o.id == order.id);
+    if (i != -1) _orders[i] = DataOrder(merged);
   }
 
-  int _countBy(String status) => _orders.where((o) => o.status == status).length;
-
-  @override
-  Widget build(BuildContext context) {
-    final visible = _visible;
-
-    return RefreshIndicator(
-      onRefresh: _load,
-      color: OpsColors.brand,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          SectionHeader(
-            title: 'Data order management',
-            subtitle: '$_total total · ${visible.length} shown',
-            trailing: IconButton(
-              tooltip: 'Refresh',
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: _loading ? null : _load,
-            ),
-          ),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 2.1,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            children: [
-              StatTile(
-                label: 'Total orders',
-                value: '$_total',
-                icon: Icons.receipt_long_outlined,
-              ),
-              StatTile(
-                label: 'Pending (loaded)',
-                value: '${_countBy('pending')}',
-                color: OpsColors.warning,
-                icon: Icons.schedule_rounded,
-              ),
-              StatTile(
-                label: 'Processing (loaded)',
-                value: '${_countBy('processing')}',
-                color: OpsColors.info,
-                icon: Icons.sync_rounded,
-              ),
-              StatTile(
-                label: 'Completed (loaded)',
-                value: '${_countBy('completed')}',
-                color: OpsColors.success,
-                icon: Icons.check_circle_outline,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          OpsSearchField(
-            hint: 'Search agent, phone, reference, bundle…',
-            onChanged: (v) => setState(() => _search = v),
-          ),
-          const SizedBox(height: 10),
-          OpsFilterBar(
-            options: _statusFilters,
-            selected: _status,
-            onSelected: (v) {
-              if (v == _status) return;
-              setState(() => _status = v);
-              _load();
-            },
-          ),
-          const SizedBox(height: 8),
-          OpsFilterBar(
-            options: _providerFilters,
-            selected: _provider,
-            onSelected: (v) {
-              if (v == _provider) return;
-              setState(() => _provider = v);
-              _load();
-            },
-          ),
-          const SizedBox(height: 8),
-          OpsFilterBar(
-            options: _paymentFilters,
-            selected: _payment,
-            onSelected: (v) => setState(() => _payment = v),
-          ),
-          const SizedBox(height: 16),
-          if (_error != null)
-            OpsError(message: _error!, onRetry: _load)
-          else if (_loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 48),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (visible.isEmpty)
-            OpsEmpty(
-              message: _search.isNotEmpty || _status != 'all' || _payment != 'all' || _provider != 'all'
-                  ? 'No orders match the current filters.'
-                  : 'No data orders yet. New agent orders will appear here.',
-              icon: Icons.storage_rounded,
-            )
-          else
-            ...visible.map(
-              (o) => _OrderCard(order: o, onTap: () => _openDetail(o)),
-            ),
-          if (!_loading && _error == null && _hasMore) ...[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _loadingMore ? null : () => _load(more: true),
-              icon: _loadingMore
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.expand_more_rounded),
-              label: Text(_loadingMore ? 'Loading…' : 'Load more orders'),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, required this.onTap});
-
-  final DataOrder order;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: OpsColors.border),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      order.bundleName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  StatusChip(status: order.status),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  OpsPill(
-                    label: order.isWallet ? 'Wallet' : 'Manual',
-                    color: order.isWallet ? OpsColors.brand : OpsColors.info,
-                    icon: order.isWallet
-                        ? Icons.account_balance_wallet_outlined
-                        : Icons.credit_card_rounded,
-                  ),
-                  if (order.provider.isNotEmpty)
-                    OpsPill(label: order.provider, color: OpsColors.warning),
-                  if (order.commissionPaid)
-                    const OpsPill(label: 'Commission paid', color: OpsColors.success),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _CardLine(icon: Icons.person_outline, text: order.agentName),
-              _CardLine(icon: Icons.phone_iphone_rounded, text: order.recipientPhone),
-              _CardLine(icon: Icons.tag_rounded, text: order.reference),
-              _CardLine(icon: Icons.schedule_rounded, text: formatDateTime(order.createdAt)),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Text(
-                    formatMoney(order.price),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: OpsColors.success,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Commission ${formatMoney(order.commission)}',
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: Colors.white54),
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right_rounded, color: Colors.white38),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CardLine extends StatelessWidget {
-  const _CardLine({required this.icon, required this.text});
-
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 14, color: Colors.white38),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 12.5, color: Colors.white70),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OrderDetailSheet extends StatefulWidget {
-  const _OrderDetailSheet({required this.order});
-
-  final DataOrder order;
-
-  @override
-  State<_OrderDetailSheet> createState() => _OrderDetailSheetState();
-}
-
-class _OrderDetailSheetState extends State<_OrderDetailSheet> {
-  late DataOrder _order = widget.order;
-  String? _busyAction;
-  bool _changed = false;
-
-  bool get _busy => _busyAction != null;
-
-  Future<void> _setStatus(String status) async {
-    if (_order.status == status) return;
+  Future<void> _setStatus(DataOrder order, String status) async {
+    if (order.status == status || _busyOrderId != null) return;
     final label = status[0].toUpperCase() + status.substring(1);
     final ok = await confirmAction(
       context,
       title: 'Mark as $label?',
       message: status == 'completed'
-          ? 'Completing the order finalises it and calculates the agent commission. This cannot be undone.'
-          : 'The order status will change from ${_order.status} to $status.',
+          ? 'Completing the order finalises it and calculates the agent commission.'
+          : 'The order status will change from ${order.status} to $status.',
       confirmLabel: 'Mark $label',
-      destructive: status == 'canceled' || status == 'failed',
+      destructive: status == 'canceled',
     );
     if (!ok || !mounted) return;
 
-    setState(() => _busyAction = status);
+    setState(() => _busyOrderId = order.id);
     try {
       final res = await AdminApi.instance.patch(
-        '/api/admin/data-orders/${_order.id}',
+        '/api/admin/data-orders/${order.id}',
         body: {'status': status},
       );
       if (!mounted) return;
       final data = res['data'];
       setState(() {
-        if (data is Map) _order = DataOrder(data.cast<String, dynamic>());
-        _busyAction = null;
-        _changed = true;
+        if (data is Map) _replace(order, data.cast<String, dynamic>());
+        _busyOrderId = null;
       });
       showOpsSnack(context, 'Order marked $label');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _busyAction = null);
+      setState(() => _busyOrderId = null);
       showOpsSnack(context, describeApiError(e), success: false);
     }
   }
 
-  Future<void> _sendMessage() async {
+  Future<void> _sendMessage(DataOrder order) async {
     final controller = TextEditingController(
-      text: _order.adminMessage.isNotEmpty ? _order.adminMessage : _defaultAdminMessage,
+      text: order.adminMessage.isNotEmpty ? order.adminMessage : _defaultAdminMessage,
     );
     final text = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: OpsColors.card,
-        title: const Text('Message to agent'),
+        title: const Text('Send Message to Agent'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Shown to the agent on their dashboard for this order.',
+                'This message will be visible to the agent in their dashboard.',
                 style: TextStyle(fontSize: 12, color: Colors.white54),
               ),
               const SizedBox(height: 12),
@@ -470,242 +199,348 @@ class _OrderDetailSheetState extends State<_OrderDetailSheet> {
     controller.dispose();
     if (text == null || text.isEmpty || !mounted) return;
 
-    setState(() => _busyAction = 'message');
+    setState(() => _busyOrderId = order.id);
     try {
-      // PUT is the only route that accepts an admin message; it requires a status,
-      // so the current status is resent unchanged.
-      final res = await AdminApi.instance.put(
+      // PUT is the only route that accepts an admin message; it requires a
+      // status, so the current status is resent unchanged.
+      await AdminApi.instance.put(
         '/api/admin/data-orders',
         body: {
-          'orderId': _order.id,
-          'status': _order.status,
+          'orderId': order.id,
+          'status': order.status,
           'adminMessage': text,
         },
       );
       if (!mounted) return;
-      final data = res['data'];
       setState(() {
-        if (data is Map) {
-          final merged = Map<String, dynamic>.from(_order.raw)
-            ..addAll(data.cast<String, dynamic>());
-          _order = DataOrder(merged);
-        } else {
-          _order.raw['admin_message'] = text;
-        }
-        _busyAction = null;
-        _changed = true;
+        _replace(order, {'admin_message': text});
+        _busyOrderId = null;
       });
       showOpsSnack(context, 'Message sent to agent');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _busyAction = null);
+      setState(() => _busyOrderId = null);
       showOpsSnack(context, describeApiError(e), success: false);
     }
   }
 
-  Future<void> _delete() async {
+  Future<void> _delete(DataOrder order) async {
+    if (!order.isDeletable) {
+      showOpsSnack(
+        context,
+        'Orders with status ${order.status} cannot be deleted.',
+        success: false,
+      );
+      return;
+    }
     final ok = await confirmAction(
       context,
-      title: 'Delete order?',
+      title: 'Delete this order?',
       message: 'This permanently removes the order from the database. This cannot be undone.',
       confirmLabel: 'Delete',
       destructive: true,
     );
     if (!ok || !mounted) return;
 
-    setState(() => _busyAction = 'delete');
+    setState(() => _busyOrderId = order.id);
     try {
-      await AdminApi.instance.delete('/api/admin/data-orders/${_order.id}');
+      await AdminApi.instance.delete('/api/admin/data-orders/${order.id}');
       if (!mounted) return;
+      setState(() {
+        _orders.removeWhere((o) => o.id == order.id);
+        if (_total > 0) _total--;
+        _busyOrderId = null;
+      });
       showOpsSnack(context, 'Order deleted');
-      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _busyAction = null);
+      setState(() => _busyOrderId = null);
       showOpsSnack(context, describeApiError(e), success: false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final o = _order;
-    final locked = o.isLocked;
+    final visible = _visible;
 
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.82,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      builder: (context, scrollController) => PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) Navigator.pop(context, _changed);
-        },
-        child: ListView(
-          controller: scrollController,
-          padding: EdgeInsets.fromLTRB(
-            16,
-            12,
-            16,
-            24 + MediaQuery.of(context).viewInsets.bottom,
+    return RefreshIndicator(
+      onRefresh: _load,
+      color: OpsColors.brand,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SectionHeader(
+            title: 'Orders',
+            subtitle: '$_total total · ${visible.length} shown',
+            trailing: IconButton(
+              tooltip: 'Refresh',
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: _loading ? null : _load,
+            ),
           ),
-          children: [
-            SheetHeader(
-              title: o.bundleName,
-              subtitle: 'Order ${o.id}',
-              trailing: StatusChip(status: o.status),
-            ),
-            const SizedBox(height: 16),
-            CopyField(label: 'Recipient phone', value: o.recipientPhone, color: OpsColors.brand),
-            const SizedBox(height: 8),
-            CopyField(label: 'Payment reference', value: o.reference, color: OpsColors.info),
-            const SizedBox(height: 16),
-            const Text(
-              'ORDER DETAILS',
-              style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w700,
-                color: Colors.white38,
+          OpsSearchField(
+            hint: 'Search orders…',
+            onChanged: (v) => setState(() => _search = v),
+          ),
+          const SizedBox(height: 10),
+          _FilterDropdown(
+            value: _filter,
+            onChanged: (v) {
+              if (v == _filter) return;
+              final wasPaymentOnly = _filterIsPayment;
+              setState(() => _filter = v);
+              // Payment filters are applied to the loaded page client-side, so
+              // only a status change needs a refetch.
+              if (!(wasPaymentOnly && _filterIsPayment)) _load();
+            },
+          ),
+          const SizedBox(height: 16),
+          if (_error != null)
+            OpsError(message: _error!, onRetry: _load)
+          else if (_loading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 48),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (visible.isEmpty)
+            OpsEmpty(
+              message: _search.isNotEmpty || _filter != 'all'
+                  ? 'No matching orders found.'
+                  : 'No data orders yet. New agent orders will appear here.',
+              icon: Icons.storage_rounded,
+            )
+          else
+            ...visible.map(
+              (o) => _OrderCard(
+                order: o,
+                busy: _busyOrderId == o.id,
+                onStatus: (s) => _setStatus(o, s),
+                onMessage: () => _sendMessage(o),
+                onDelete: () => _delete(o),
               ),
             ),
-            const SizedBox(height: 6),
-            DetailRow(label: 'Agent', value: o.agentName),
-            DetailRow(label: 'Agent phone', value: o.agentPhone),
-            DetailRow(label: 'Network', value: o.provider.isEmpty ? '—' : o.provider),
-            DetailRow(label: 'Bundle price', value: formatMoney(o.price)),
-            DetailRow(
-              label: 'Commission',
-              value: formatMoney(o.commission),
-              valueColor: OpsColors.success,
-            ),
-            DetailRow(label: 'Commission paid', value: o.commissionPaid ? 'Yes' : 'No'),
-            DetailRow(label: 'Payment method', value: o.isWallet ? 'Wallet' : 'Manual'),
-            DetailRow(label: 'Validity', value: o.validityDays.isEmpty ? '—' : '${o.validityDays} days'),
-            if (o.bundleStatus.isNotEmpty)
-              DetailRow(
-                label: 'Bundle data',
-                value: o.bundleStatus,
-                valueColor: o.bundleStatus == 'valid' ? OpsColors.success : OpsColors.warning,
-              ),
-            DetailRow(label: 'Placed', value: formatDateTime(o.createdAt)),
-            DetailRow(label: 'Updated', value: formatDateTime(o.updatedAt)),
-            if (o.adminMessage.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: OpsColors.warning.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: OpsColors.warning.withValues(alpha: 0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'ADMIN MESSAGE',
-                      style: TextStyle(
-                        fontSize: 10,
-                        letterSpacing: 0.5,
-                        fontWeight: FontWeight.w700,
-                        color: OpsColors.warning,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      o.adminMessage,
-                      style: const TextStyle(fontSize: 12.5, color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 18),
-            const Text(
-              'ACTIONS',
-              style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w700,
-                color: Colors.white38,
-              ),
-            ),
+          if (!_loading && _error == null && _hasMore) ...[
             const SizedBox(height: 8),
-            if (locked)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  'This order is ${o.status}; its status can no longer be changed.',
-                  style: const TextStyle(fontSize: 12, color: Colors.white54),
-                ),
-              ),
-            SheetAction(
-              icon: Icons.sync_rounded,
-              label: 'Mark processing',
-              color: OpsColors.info,
-              busy: _busyAction == 'processing',
-              onPressed: locked || _busy || o.status == 'processing'
-                  ? null
-                  : () => _setStatus('processing'),
-            ),
-            const SizedBox(height: 8),
-            SheetAction(
-              icon: Icons.check_circle_outline,
-              label: 'Mark completed',
-              color: OpsColors.success,
-              busy: _busyAction == 'completed',
-              onPressed: locked || _busy ? null : () => _setStatus('completed'),
-            ),
-            const SizedBox(height: 8),
-            SheetAction(
-              icon: Icons.schedule_rounded,
-              label: 'Move back to pending',
-              color: OpsColors.warning,
-              busy: _busyAction == 'pending',
-              onPressed:
-                  locked || _busy || o.status == 'pending' ? null : () => _setStatus('pending'),
-            ),
-            const SizedBox(height: 8),
-            SheetAction(
-              icon: Icons.cancel_outlined,
-              label: 'Cancel order',
-              color: OpsColors.danger,
-              busy: _busyAction == 'canceled',
-              onPressed: locked || _busy ? null : () => _setStatus('canceled'),
-            ),
-            const SizedBox(height: 8),
-            SheetAction(
-              icon: Icons.report_gmailerrorred_rounded,
-              label: 'Mark failed',
-              color: OpsColors.danger,
-              busy: _busyAction == 'failed',
-              onPressed: locked || _busy || o.status == 'failed' ? null : () => _setStatus('failed'),
-            ),
-            const SizedBox(height: 14),
-            SheetAction(
-              icon: Icons.forum_outlined,
-              label: o.adminMessage.isEmpty ? 'Send message to agent' : 'Edit agent message',
-              color: OpsColors.brand,
-              busy: _busyAction == 'message',
-              onPressed: _busy ? null : _sendMessage,
-            ),
-            const SizedBox(height: 8),
-            SheetAction(
-              icon: Icons.delete_outline_rounded,
-              label: o.isDeletable
-                  ? 'Delete order'
-                  : 'Delete unavailable for ${o.status} orders',
-              color: OpsColors.danger,
-              busy: _busyAction == 'delete',
-              onPressed: !o.isDeletable || _busy ? null : _delete,
-            ),
-            const SizedBox(height: 14),
-            TextButton(
-              onPressed: () => Navigator.pop(context, _changed),
-              child: const Text('Close'),
+            OutlinedButton.icon(
+              onPressed: _loadingMore ? null : () => _load(more: true),
+              icon: _loadingMore
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.expand_more_rounded),
+              label: Text(_loadingMore ? 'Loading…' : 'Load more orders'),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterDropdown extends StatelessWidget {
+  const _FilterDropdown({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey(value),
+      initialValue: value,
+      isExpanded: true,
+      dropdownColor: OpsColors.card,
+      decoration: const InputDecoration(
+        prefixIcon: Icon(Icons.filter_list_rounded, size: 18),
+        isDense: true,
+      ),
+      items: _filters
+          .map((f) => DropdownMenuItem(value: f.value, child: Text(f.label)))
+          .toList(),
+      onChanged: (v) {
+        if (v != null) onChanged(v);
+      },
+    );
+  }
+}
+
+class _OrderCard extends StatelessWidget {
+  const _OrderCard({
+    required this.order,
+    required this.busy,
+    required this.onStatus,
+    required this.onMessage,
+    required this.onDelete,
+  });
+
+  final DataOrder order;
+  final bool busy;
+  final ValueChanged<String> onStatus;
+  final VoidCallback onMessage;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: OpsColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    order.bundleName,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                StatusChip(status: order.status),
+              ],
+            ),
+            const SizedBox(height: 6),
+            OpsPill(
+              label: order.isWallet ? 'Wallet' : 'Manual',
+              color: order.isWallet ? OpsColors.brand : OpsColors.info,
+              icon: order.isWallet
+                  ? Icons.account_balance_wallet_outlined
+                  : Icons.credit_card_rounded,
+            ),
+            const SizedBox(height: 10),
+            _Line(label: 'Agent', value: order.agentName),
+            _Line(label: 'To', value: order.recipientPhone, copyable: true),
+            _Line(label: 'Reference', value: order.reference, copyable: true),
+            _Line(label: 'Ordered', value: formatDateTime(order.createdAt)),
+            const SizedBox(height: 8),
+            Text(
+              formatMoney(order.price),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                color: OpsColors.success,
+              ),
+            ),
+            Text(
+              'Commission: ${formatMoney(order.commission)}',
+              style: const TextStyle(fontSize: 12, color: Colors.white54),
+            ),
+            const Divider(height: 22, color: OpsColors.border),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    key: ValueKey('${order.id}-${order.status}'),
+                    initialValue:
+                        _statusOptions.contains(order.status) ? order.status : null,
+                    isExpanded: true,
+                    dropdownColor: OpsColors.card,
+                    decoration: const InputDecoration(isDense: true),
+                    items: _statusOptions
+                        .map(
+                          (s) => DropdownMenuItem(
+                            value: s,
+                            child: Text(s[0].toUpperCase() + s.substring(1)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: busy || order.isLocked
+                        ? null
+                        : (v) {
+                            if (v != null) onStatus(v);
+                          },
+                  ),
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  tooltip: order.adminMessage.isEmpty ? 'Send message' : 'Edit message',
+                  icon: Icon(
+                    order.adminMessage.isEmpty
+                        ? Icons.forum_outlined
+                        : Icons.mark_email_read_outlined,
+                    color: OpsColors.info,
+                  ),
+                  onPressed: busy ? null : onMessage,
+                ),
+                IconButton(
+                  tooltip: 'Delete order',
+                  icon: const Icon(Icons.delete_outline_rounded, color: OpsColors.danger),
+                  onPressed: busy ? null : onDelete,
+                ),
+              ],
+            ),
+            if (order.adminMessage.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Admin message: ${order.adminMessage}',
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11.5, color: OpsColors.warning),
+              ),
+            ],
+            if (order.isLocked)
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Text(
+                  'Status is final and can no longer be changed.',
+                  style: TextStyle(fontSize: 11.5, color: Colors.white38),
+                ),
+              ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _Line extends StatelessWidget {
+  const _Line({required this.label, required this.value, this.copyable = false});
+
+  final String label;
+  final String value;
+  final bool copyable;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = value.trim().isEmpty ? '—' : value;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.white54,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              shown,
+              style: const TextStyle(fontSize: 12.5, color: Colors.white),
+            ),
+          ),
+          if (copyable && shown != '—')
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+              icon: const Icon(Icons.copy_rounded, size: 15, color: OpsColors.info),
+              tooltip: 'Copy $label',
+              onPressed: () => copyValue(context, shown, label),
+            ),
+        ],
       ),
     );
   }

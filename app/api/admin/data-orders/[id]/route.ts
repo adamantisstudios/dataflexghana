@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-client";
+import { getAdminClient } from "@/lib/supabase-base"
 import { authenticateAdmin } from "@/lib/api-auth"
 import { cleanOrdersData, canUpdateOrderStatus } from "@/lib/bundle-data-handler"
+
+export const dynamic = "force-dynamic"
 
 // GET - Fetch single data order with bundle data
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -10,6 +12,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!authResult.success) {
       return NextResponse.json({ success: false, error: "Admin authentication required" }, { status: 401 })
     }
+
+    const { id } = await params
+    const supabase = getAdminClient()
 
     const { data: order, error } = await supabase
       .from("data_orders")
@@ -32,7 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           phone_number
         )
       `)
-      .eq("id", params.id)
+      .eq("id", id)
       .single()
 
     if (error || !order) {
@@ -60,6 +65,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ success: false, error: "Admin authentication required" }, { status: 401 })
     }
 
+    const { id } = await params
+    const supabase = getAdminClient()
     const body = await request.json()
     const { status, admin_message } = body
 
@@ -90,7 +97,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           is_active
         )
       `)
-      .eq("id", params.id)
+      .eq("id", id)
       .single()
 
     if (fetchError || !currentOrder) {
@@ -120,7 +127,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { data: updatedOrder, error: updateError } = await supabase
       .from("data_orders")
       .update(updateData)
-      .eq("id", params.id)
+      .eq("id", id)
       .select(`
         *,
         data_bundles!fk_data_orders_bundle_id (
@@ -172,11 +179,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ success: false, error: "Admin authentication required" }, { status: 401 })
     }
 
+    const { id } = await params
+    const supabase = getAdminClient()
+
     // Check if order exists
     const { data: order, error: fetchError } = await supabase
       .from("data_orders")
       .select("id, status")
-      .eq("id", params.id)
+      .eq("id", id)
       .single()
 
     if (fetchError || !order) {
@@ -193,7 +203,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     // Delete the order
-    const { error: deleteError } = await supabase.from("data_orders").delete().eq("id", params.id)
+    const { error: deleteError } = await supabase.from("data_orders").delete().eq("id", id)
 
     if (deleteError) {
       console.error("Error deleting order:", deleteError)
